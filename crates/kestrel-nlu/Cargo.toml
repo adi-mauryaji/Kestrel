@@ -1,0 +1,13 @@
+[package]
+name = "kestrel-nlu"
+description = "Kestrel NLU tiers: Tier 1 rules, Tier 3 encoder + head (Tier 2 behind a feature, later)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kestrel-core.workspace = true
+
+[lints]
+workspace = true
