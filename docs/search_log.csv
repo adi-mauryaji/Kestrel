@@ -1,1 +1,28 @@
 date,database,query,hits,new_relevant,notes
+2026-10-11,arXiv API (export.arxiv.org),"all:""model cascade"" AND all:""language model""",31,4,round 1; top 12 by relevance screened; new relevant: 2402.15991 2404.10136 2205.11747 2012.14682
+2026-10-11,arXiv API (export.arxiv.org),"all:cascade AND all:""intent classification""",7,0,round 1; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:""LLM routing"" AND all:cost",98,2,round 1; top 12 by relevance screened; new relevant: 2403.12031 2508.21141
+2026-10-11,arXiv API (export.arxiv.org),"all:""selective prediction"" AND all:intent",8,0,round 1; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:""intent detection"" AND all:calibration",9,1,round 1; top 12 by relevance screened; new relevant: 2203.09278
+2026-10-11,arXiv API (export.arxiv.org),"all:""out-of-scope"" AND all:intent AND all:confidence",4,3,round 1; top 12 by relevance screened; new relevant: 2106.04564 2403.18973 2608.20371
+2026-10-11,arXiv API (export.arxiv.org),"all:""early exit"" AND all:BERT",25,2,round 1; top 12 by relevance screened; new relevant: 2006.04152 2004.12993
+2026-10-11,arXiv API (export.arxiv.org),"all:energy AND all:""on-device"" AND all:""language model""",257,2,round 1; top 12 by relevance screened; new relevant: 2511.11624 2609.01798
+2026-10-11,arXiv API (export.arxiv.org),"all:""code-mixed"" AND all:intent",14,3,round 1; top 12 by relevance screened; new relevant: 1812.02914 2109.14350 2010.16411
+2026-10-11,arXiv API (export.arxiv.org),"all:""code-switched"" AND all:""intent""",10,1,round 1; top 12 by relevance screened; new relevant: 2103.07792
+2026-10-11,arXiv API (export.arxiv.org),all:hinglish AND all:intent,1,0,round 1; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),all:hinglish AND all:benchmark,16,1,round 1; top 12 by relevance screened; new relevant: 2106.06004
+2026-10-11,arXiv API (export.arxiv.org),"all:""continual learning"" AND all:""intent detection""",3,1,round 1; top 12 by relevance screened; new relevant: 2102.10905
+2026-10-11,arXiv API (export.arxiv.org),"all:""on-device"" AND all:cascade AND all:""language model""",18,1,round 2; top 12 by relevance screened; new relevant: 2410.08014
+2026-10-11,arXiv API (export.arxiv.org),"all:""rule-based"" AND all:cascade AND all:intent",1,0,round 2; top 12 by relevance screened; no rule->model cascade for intents found (arXiv only; weak gap evidence)
+2026-10-11,arXiv API (export.arxiv.org),"all:""edge"" AND all:""intent classification"" AND all:latency",1,0,round 2; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:""small language model"" AND all:routing AND all:""on-device""",21,4,round 2; top 12 by relevance screened; new relevant: 2502.04428 2609.30270 2607.18034 2610.09021
+2026-10-11,arXiv API (export.arxiv.org),"all:""code-mixed"" AND all:""semantic parsing""",1,0,round 2; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:hinglish AND all:""task-oriented""",1,1,round 2; top 12 by relevance screened; new relevant: 2212.08054
+2026-10-11,arXiv API (export.arxiv.org),"all:""temperature scaling"" AND all:cascade",6,2,round 2; top 12 by relevance screened; new relevant: 2509.08318 2610.00007
+2026-10-11,arXiv API (export.arxiv.org),"all:uncertainty AND all:""on-device"" AND all:routing",43,0,round 3; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:deferral AND all:""small language model""",1,1,round 3; top 12 by relevance screened; new relevant: 2608.05064
+2026-10-11,arXiv API (export.arxiv.org),"all:cascade AND all:latency AND all:energy AND all:""language model""",5,0,round 3; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:hinglish AND all:""intent classification""",1,0,round 3; top 12 by relevance screened
+2026-10-11,arXiv API (export.arxiv.org),"all:""code-switched"" AND all:""semantic parsing""",4,2,round 3; top 12 by relevance screened; new relevant: 2211.07514 2101.10524
+2026-10-11,arXiv API (export.arxiv.org),"all:""local"" AND all:assistant AND all:""small language model"" AND all:privacy",11,1,round 3; top 12 by relevance screened; new relevant: 2507.08878
+2026-10-11,arXiv API id_list,blueprint Ch. 4.3 seeds + candidates (metadata/abstract verification),n/a,0,"verification lookups, not discovery; 2004.07453 1706.04599 1705.08500 1909.02027 2003.04807 2305.05176 2406.18665 1612.00796 1908.10084 2204.08582 2402.05672 2505.09388"
