@@ -6,10 +6,18 @@ Per model in models/MANIFEST.toml (role slm/encoder, file present):
   * encoder: llama-bench -embd 1 pp<E> (one forward pass over E tokens)
   * startup: one process with -p 1 -n 1 --no-warmup -r 1 (process start + load + 1 token),
              measured with a WARM page cache (dropping caches needs root; recorded as such)
-  * peak RSS of every llama-bench process (os.wait4), CPU temperature before/after
+  * peak RSS of every llama-bench process (os.wait4), CPU temperature before/after,
+    mean/min CPU frequency sampled while it runs (Ch. 37.3: log frequency AND temperature)
+  * background CPU busy % measured during the cooldown before each process, i.e. while no
+    benchmark runs (load average would include the previous benchmark's own load)
 
 Models are interleaved per round (rotated order) to cancel drift (Ch. 34.5). One run of this
 script = one session; run it in 3 separate sessions for the repeatability CV (Week-2 test).
+
+Warm-up rounds (default 1) are recorded with phase=warmup and excluded from analysis. The
+2026-10-11 pilot showed why: on this Ryzen 5500U, prefill tok/s fell 26-39% after the first
+round (short boost window, then a lower sustained power limit) while decode stayed within 3%.
+Measured rounds should all be in the sustained regime.
 
 Preconditions (Ch. 37.3) are recorded in every row; on battery the script refuses unless
 --allow-battery, and then the rows say so. Energy is NOT measured here (Ch. 37.4).
@@ -24,6 +32,7 @@ import os
 import platform
 import subprocess
 import sys
+import threading
 import time
 import tomllib
 from datetime import datetime, timezone
@@ -61,22 +70,58 @@ def conditions() -> dict:
     }
 
 
-def run_bench(args: list[str]) -> tuple[list[dict], float, float]:
-    """Run llama-bench; return (json rows, wall seconds, peak RSS MiB) for that process."""
+def cpu_times() -> tuple[int, int]:
+    """(busy, total) jiffies from the aggregate `cpu` line of /proc/stat."""
+    fields = [int(x) for x in read("/proc/stat").splitlines()[0].split()[1:]]
+    idle = fields[3] + fields[4]  # idle + iowait
+    return sum(fields) - idle, sum(fields)
+
+
+def busy_pct(before: tuple[int, int], after: tuple[int, int]) -> float:
+    """Percent of CPU time spent busy between two cpu_times() samples."""
+    total = after[1] - before[1]
+    return 100.0 * (after[0] - before[0]) / total if total else 0.0
+
+
+def mean_cpu_mhz() -> float | None:
+    vals = [int(read(str(p))) for p in Path("/sys/devices/system/cpu").glob("cpu[0-9]*/cpufreq/scaling_cur_freq")]
+    return sum(vals) / len(vals) / 1000 if vals else None
+
+
+def freq_summary(samples: list[float]) -> tuple[float | None, float | None]:
+    """(mean, min) of frequency samples in MHz; (None, None) if nothing was sampled."""
+    return (sum(samples) / len(samples), min(samples)) if samples else (None, None)
+
+
+def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
+    """Run llama-bench; return (json rows, wall s, peak RSS MiB, CPU MHz samples) for that process."""
+    samples: list[float] = []
+    done = threading.Event()
+
+    def sample() -> None:
+        while not done.wait(0.25):
+            if (mhz := mean_cpu_mhz()) is not None:
+                samples.append(mhz)
+
     t0 = time.perf_counter()
     proc = subprocess.Popen([str(BENCH), *args, "-o", "json"],
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    sampler = threading.Thread(target=sample, daemon=True)
+    sampler.start()
     stdout = proc.stdout.read()
     _, status, usage = os.wait4(proc.pid, 0)
     wall = time.perf_counter() - t0
+    done.set()
+    sampler.join()
     if os.waitstatus_to_exitcode(status) != 0:
         raise RuntimeError(f"llama-bench failed: {' '.join(args)}")
-    return json.loads(stdout), wall, usage.ru_maxrss / 1024  # ru_maxrss is KiB on Linux
+    return json.loads(stdout), wall, usage.ru_maxrss / 1024, samples  # ru_maxrss is KiB on Linux
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rounds", type=int, default=3)
+    ap.add_argument("--rounds", type=int, default=3, help="measured rounds")
+    ap.add_argument("--warmup-rounds", type=int, default=1, help="recorded as phase=warmup")
     ap.add_argument("--reps", type=int, default=5, help="llama-bench repetitions per test")
     ap.add_argument("--threads", type=int, default=6, help="default = physical cores")
     ap.add_argument("--prompt", type=int, default=128, help="prefill tokens (SLM)")
@@ -106,19 +151,21 @@ def main() -> None:
     (OUT / f"{session}.env.json").write_text(json.dumps({
         "session": session, "llama_cpp_commit": commit, "kernel": platform.release(),
         "threads": args.threads, "reps": args.reps, "rounds": args.rounds,
+        "warmup_rounds": args.warmup_rounds,
         "page_cache": "warm (not dropped; needs root)", "energy": "NOT measured (Ch. 37.4)",
         "pre_conditions": pre, "args": vars(args),
     }, indent=2))
 
-    fields = ["session", "round", "model", "role", "quant", "sha256", "test", "n_tokens",
+    fields = ["session", "phase", "round", "model", "role", "quant", "sha256", "test", "n_tokens",
               "threads", "reps", "avg_tok_s", "stddev_tok_s", "median_ms", "wall_s",
-              "peak_rss_mib", "temp_before_c", "temp_after_c", "ac_online", "governor",
-              "boost", "load1", "llama_commit"]
+              "peak_rss_mib", "temp_before_c", "temp_after_c", "freq_mean_mhz", "freq_min_mhz",
+              "bg_busy_pct", "ac_online", "governor", "boost", "load1", "llama_commit"]
     out_csv = OUT / f"{session}.csv"
     with out_csv.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
-        for rnd in range(args.rounds):
+        for rnd in range(args.warmup_rounds + args.rounds):
+            phase = "warmup" if rnd < args.warmup_rounds else "measure"
             order = models[rnd % len(models):] + models[:rnd % len(models)]
             for m in order:
                 path = str(ROOT / "models" / m["file"])
@@ -132,16 +179,21 @@ def main() -> None:
                 tests.append(("startup", common + ["-p", "1", "-n", "0", "-r", "1", "--no-warmup"]
                               + (["-embd", "1"] if m["role"] == "encoder" else [])))
                 for kind, cli in tests:
+                    # The cooldown doubles as the background-load window: nothing of ours runs.
+                    before = cpu_times()
+                    time.sleep(args.cooldown)
+                    bg = busy_pct(before, cpu_times())
                     c = conditions()
-                    rows, wall, rss = run_bench(cli)
+                    rows, wall, rss, mhz = run_bench(cli)
                     t_after = cpu_temp_c()
+                    f_mean, f_min = freq_summary(mhz)
                     for r in rows:
                         test = (f"pp{r['n_prompt']}" if r["n_gen"] == 0 else f"tg{r['n_gen']}")
                         if kind == "startup":
                             test = "startup"
                         samples = sorted(r["samples_ns"])
                         w.writerow({
-                            "session": session, "round": rnd, "model": m["name"],
+                            "session": session, "phase": phase, "round": rnd, "model": m["name"],
                             "role": m["role"], "quant": m["quant"], "sha256": m["sha256"],
                             "test": test, "n_tokens": r["n_prompt"] or r["n_gen"],
                             "threads": args.threads, "reps": len(samples),
@@ -150,14 +202,17 @@ def main() -> None:
                             "median_ms": round(samples[len(samples) // 2] / 1e6, 3),
                             "wall_s": round(wall, 3), "peak_rss_mib": round(rss, 1),
                             "temp_before_c": c["temp_c"], "temp_after_c": t_after,
+                            "freq_mean_mhz": None if f_mean is None else round(f_mean),
+                            "freq_min_mhz": None if f_min is None else round(f_min),
+                            "bg_busy_pct": round(bg, 1),
                             "ac_online": c["ac_online"], "governor": c["governor"],
                             "boost": c["boost"], "load1": round(c["load1"], 2),
                             "llama_commit": commit[:9],
                         })
                     f.flush()
-                    print(f"round {rnd} {m['name']:28s} {kind:10s} wall={wall:6.1f}s "
-                          f"rss={rss:7.1f}MiB temp={c['temp_c']}->{t_after}", flush=True)
-                    time.sleep(args.cooldown)
+                    print(f"{phase} round {rnd} {m['name']:28s} {kind:10s} wall={wall:6.1f}s "
+                          f"rss={rss:7.1f}MiB temp={c['temp_c']}->{t_after} "
+                          f"mhz={f_mean and round(f_mean)} bg={bg:.1f}%", flush=True)
     print(f"wrote {out_csv.relative_to(ROOT)}")
 
 
