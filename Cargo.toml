@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/kestrel-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+
+# Exact pins (`=x.y.z`) for runtime bindings (Ch. 45.2). Add shared deps here.
+[workspace.dependencies]
+# Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the
+# newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
+llama-cpp-2 = "=0.1.157"
+llama-cpp-sys-2 = "=0.1.157"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+# Ch. 45.2. `-C target-cpu=native` is NOT set here: if used for benchmarks, record it.
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -1,0 +1,160 @@
+# Model manifest (blueprint Ch. 26.3, 45.2, 46). Weights are NOT in git; only this file.
+# `scripts/fetch_models.py` downloads each [[model]] with a `url`, verifies `sha256`, and
+# writes models/SHA256SUMS. URLs pin a Hugging Face commit (`revision`), so a re-fetch is
+# byte-identical. Licenses were read from each repo's model card on `verified`.
+#
+# Week-2 shortlist (human-chosen 2026-10-10): 3 SLMs x 2 quantization levels, 2 encoders.
+
+# ---------------------------------------------------------------- Tier 4: generative SLMs
+
+[[model]]
+name     = "qwen3-1.7b-q4_k_m"
+role     = "slm"
+family   = "qwen3"
+quant    = "Q4_K_M"
+repo     = "ggml-org/Qwen3-1.7B-GGUF"
+revision = "daeb8e2d528a760970442092f6bf1e55c3b659eb"
+file     = "Qwen3-1.7B-Q4_K_M.gguf"
+url      = "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/daeb8e2d528a760970442092f6bf1e55c3b659eb/Qwen3-1.7B-Q4_K_M.gguf"
+bytes    = 1282439264
+sha256   = "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+[[model]]
+name     = "qwen3-1.7b-q8_0"
+role     = "slm"
+family   = "qwen3"
+quant    = "Q8_0"
+repo     = "ggml-org/Qwen3-1.7B-GGUF"
+revision = "daeb8e2d528a760970442092f6bf1e55c3b659eb"
+file     = "Qwen3-1.7B-Q8_0.gguf"
+url      = "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/daeb8e2d528a760970442092f6bf1e55c3b659eb/Qwen3-1.7B-Q8_0.gguf"
+bytes    = 2165039200
+sha256   = "9860780f3a1fab1f8f909a1b549ea3e62c22d19ab1a492b3a1026b38c5bd3ec3"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+[[model]]
+name     = "gemma-4-e2b-it-q4_0"
+role     = "slm"
+family   = "gemma4"
+quant    = "Q4_0"
+repo     = "ggml-org/gemma-4-E2B-it-GGUF"
+revision = "b4243c156154b6dca9324415f8c7ccc098b4aed1"
+file     = "gemma-4-E2B-it-Q4_0.gguf"
+url      = "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/b4243c156154b6dca9324415f8c7ccc098b4aed1/gemma-4-E2B-it-Q4_0.gguf"
+bytes    = 2841481184
+sha256   = "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+[[model]]
+name     = "gemma-4-e2b-it-q8_0"
+role     = "slm"
+family   = "gemma4"
+quant    = "Q8_0"
+repo     = "ggml-org/gemma-4-E2B-it-GGUF"
+revision = "b4243c156154b6dca9324415f8c7ccc098b4aed1"
+file     = "gemma-4-E2B-it-Q8_0.gguf"
+url      = "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/b4243c156154b6dca9324415f8c7ccc098b4aed1/gemma-4-E2B-it-Q8_0.gguf"
+bytes    = 4967497152
+sha256   = "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+[[model]]
+name     = "qwen3-4b-q4_k_m"
+role     = "slm"
+family   = "qwen3"
+quant    = "Q4_K_M"
+repo     = "Qwen/Qwen3-4B-GGUF"
+revision = "bc640142c66e1fdd12af0bd68f40445458f3869b"
+file     = "Qwen3-4B-Q4_K_M.gguf"
+url      = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf"
+bytes    = 2497280256
+sha256   = "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+[[model]]
+name     = "qwen3-4b-q8_0"
+role     = "slm"
+family   = "qwen3"
+quant    = "Q8_0"
+repo     = "Qwen/Qwen3-4B-GGUF"
+revision = "bc640142c66e1fdd12af0bd68f40445458f3869b"
+file     = "Qwen3-4B-Q8_0.gguf"
+url      = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q8_0.gguf"
+bytes    = 4280404704
+sha256   = "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300"
+license  = "apache-2.0"
+verified = "2026-10-10"
+
+# ---------------------------------------------------------------- Tier 3: encoders
+
+[[model]]
+name     = "bge-small-en-v1.5-q8_0"
+role     = "encoder"
+family   = "bert"
+quant    = "Q8_0"
+repo     = "ggml-org/bge-small-en-v1.5-Q8_0-GGUF"
+revision = "f2068edd9b54f2a369549ccc71f70ed273a2a801"
+file     = "bge-small-en-v1.5-q8_0.gguf"
+url      = "https://huggingface.co/ggml-org/bge-small-en-v1.5-Q8_0-GGUF/resolve/f2068edd9b54f2a369549ccc71f70ed273a2a801/bge-small-en-v1.5-q8_0.gguf"
+bytes    = 36685152
+sha256   = "f046db1dc724cf4f6f0a0c5917e922823b73eb1d27b8f9a9c2797f7866974804"
+license  = "mit"
+verified = "2026-10-10"
+
+# No official GGUF exists. Source files are fetched here; scripts/convert_encoder.sh converts
+# them with the pinned llama.cpp converter. Add the GGUF's sha256 once produced.
+[[model]]
+name     = "multilingual-e5-small-src"
+role     = "encoder-source"
+family   = "xlm-roberta"
+repo     = "intfloat/multilingual-e5-small"
+revision = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
+dir      = "src/multilingual-e5-small"
+license  = "mit"
+verified = "2026-10-10"
+files = [
+  { file = "config.json" },
+  { file = "model.safetensors",        bytes = 470641600, sha256 = "1a55775f53449dac10a2bcbc312469fac40b96d53198c407081a831f81c98477" },
+  { file = "sentencepiece.bpe.model",  bytes = 5069051,   sha256 = "cfc8146abe2a0488e9e2a0c56de7952f7c11ab059eca145a0a727afce0db2865" },
+  { file = "tokenizer.json",           bytes = 17082730,  sha256 = "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39" },
+  { file = "tokenizer_config.json" },
+  { file = "special_tokens_map.json" },
+  { file = "modules.json" },
+  { file = "sentence_bert_config.json" },
+  { file = "1_Pooling/config.json" },
+]
+
+# Produced locally by scripts/convert_encoder.sh (llama.cpp 26394b4e + scripts/convert_bert_spm.py)
+# from multilingual-e5-small-src. Smoke parity vs PyTorch mean-pooled embeddings, 2026-10-10:
+# cosine f16 = 1.000000 / 0.999999, q8_0 = 0.999890 / 0.999909 (English / Hinglish sentence).
+[[model]]
+name      = "multilingual-e5-small-f16"
+role      = "encoder"
+family    = "xlm-roberta"
+quant     = "F16"
+repo      = "intfloat/multilingual-e5-small"
+revision  = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
+file      = "multilingual-e5-small-f16.gguf"
+converted = "scripts/convert_encoder.sh"
+sha256    = "41855d3a052d83fbcd65fa5823f8d776fe494f8f426718b424cbb13f836b5e61"
+license   = "mit"
+verified  = "2026-10-10"
+
+[[model]]
+name      = "multilingual-e5-small-q8_0"
+role      = "encoder"
+family    = "xlm-roberta"
+quant     = "Q8_0"
+repo      = "intfloat/multilingual-e5-small"
+revision  = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
+file      = "multilingual-e5-small-q8_0.gguf"
+converted = "scripts/convert_encoder.sh"
+sha256    = "9a2039af4b03dccd1d7e59a915679bc7997b61714a2b9174f43512ed1b0095c5"
+license   = "mit"
+verified  = "2026-10-10"

@@ -1,0 +1,12 @@
+[package]
+name = "kestrel-core"
+description = "Shared vocabulary for Kestrel: request/prediction types, errors, normalizer, resources"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

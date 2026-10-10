@@ -1,0 +1,20 @@
+# Rust
+/target/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Model weights and raw data are never committed (Ch. 24.1, 44.3); manifests are.
+models/*
+!models/MANIFEST.toml
+!models/SHA256SUMS
+datasets/raw/
+
+# Local tool state
+.claude/settings.local.json
+
+# Third-party sources built locally (scripts/build_llama.sh)
+/third_party/
