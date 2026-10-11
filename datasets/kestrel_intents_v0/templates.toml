@@ -1,4 +1,5 @@
-# Kestrel-Intents-v0 templates (ADR-010). DRAFT by Claude, not yet reviewed by a human.
+# Kestrel-Intents-v0 templates (ADR-010). Drafted by Claude; all families reviewed and accepted
+# by the human on 2026-10-11. Frozen: any change means a new version (v1) and a new fingerprint.
 #
 # One family = one request, written as English (en) and Romanized Hinglish (hi-en) templates.
 # Families are split whole, so a translation never sits in a different set from its original.
@@ -6,13 +7,12 @@
 # Out-of-scope families carry a domain; whole domains are split, so test OOS domains are unseen.
 # Compound families (2+ intents, in the order asked) are evaluation-only: val/test, never train.
 #
-# Reviewing: read each line; fix wording in place; set `reviewed = true` on a family you accept
-# (or flip default_reviewed once every family is done). `note` is for open questions.
+# `reviewed` is per family (default below); `note` records why a family is there.
 # Check with: python experiments/data/intents_v0.py --check
 
 schema = 1
 default_author = "claude-draft"
-default_reviewed = false
+default_reviewed = true
 
 family = [
 # --- search_notes: find notes by topic or keywords ----------------------------------------------

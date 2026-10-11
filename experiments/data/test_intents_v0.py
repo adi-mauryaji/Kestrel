@@ -1,4 +1,6 @@
-from intents_v0 import assign_splits, expand, load, load_labels, validate
+import json
+
+from intents_v0 import DATA, assign_splits, build, expand, load, load_labels, validate
 
 LABELS = load_labels()
 FILLERS = {"en": {"topic": ["python", "budget"], "when": ["tomorrow"]},
@@ -86,3 +88,11 @@ def test_compound_rows_are_evaluation_only():
     splits = assign_splits(_toy_dataset(), seed=0)
     where = {name for name, rows in splits.items() for r in rows if r["stratum"] == "compound"}
     assert where == {"val", "test"}
+
+
+def test_frozen_v0_splits_rebuild_identically(tmp_path):
+    """v0 is frozen: a change to templates, fillers or split code that alters it must become v1."""
+    frozen = json.loads((DATA / "splits" / "manifest.json").read_text())
+    assert build(tmp_path) == frozen
+    for name in ("train", "cal", "val", "test"):
+        assert (tmp_path / f"{name}.jsonl").read_bytes() == (DATA / "splits" / f"{name}.jsonl").read_bytes()

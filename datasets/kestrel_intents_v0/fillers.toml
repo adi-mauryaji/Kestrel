@@ -1,4 +1,4 @@
-# Kestrel-Intents-v0 slot fillers (ADR-010). DRAFT by Claude, not yet reviewed.
+# Kestrel-Intents-v0 slot fillers (ADR-010). Drafted by Claude; reviewed and accepted by the human on 2026-10-11.
 # A template may only use slots defined for its own language. Hinglish is Romanized.
 # English nouns stay English inside Hinglish (that's how it is typed); verb phrases follow Hindi order.
 # Topic fillers carry no article, so "my {topic} notes" and "notes about {topic}" both read naturally.

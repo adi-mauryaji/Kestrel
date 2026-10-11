@@ -1,6 +1,6 @@
 # Kestrel intent ontology v0
 
-Status: draft for human review, 2026-10-11 (ADR-010). This file is also the **annotation guide**
+Status: v0, accepted by the human 2026-10-11 (ADR-010). This file is also the **annotation guide**
 for the second annotator who labels ≥ 20% of Kestrel-Intents-v0 for Cohen's κ (Ch. 31.2).
 
 Labels live in `datasets/contracts/intents.txt`. That file is the order of `Intent::ALL` in
@@ -50,10 +50,10 @@ language mixing: the same request in English or Hinglish gets the same label.
 - **Mark done / edit / reschedule a task**: no tool exists in Ch. 15.
 - **Hindi in Devanagari script**: only Romanized Hinglish (ADR-005).
 
-## Open questions for the review
+## Review decisions (human, 2026-10-11)
 
-1. `cmp-09` "I prefer X, now summarize…": a standing preference plus a summary, or a one-off style
-   for this summary only? Today it's labelled `[set_preference, summarize_notes]`.
-2. Is "mark task 7 done" `unsupported` until a tool exists, or should v1 add `complete_task`?
-3. Should general-knowledge questions stay `unsupported`? Tier 4 could answer some of them, but
-   without retrieval that risks confident wrong answers.
+1. "I prefer X, now summarize…" is compound `[set_preference, summarize_notes]`: "I prefer" is a
+   standing preference (rule 5).
+2. General-knowledge questions stay `unsupported`: without retrieval, Tier 4 could be confidently wrong.
+3. Still open, for v1: is "mark task 7 done" `unsupported` until a tool exists, or should v1 add
+   `complete_task`? Not in v0 either way (no templates).

@@ -1,6 +1,6 @@
 # Kestrel-Intents-v0 (dataset card)
 
-**Status: DRAFT, not reviewed.** Synthetic: label it as synthetic in every table (Ch. 31.2).
+**Status: v0 frozen 2026-10-11** (templates reviewed by the human; κ not yet measured). Synthetic: label it as synthetic in every table (Ch. 31.2).
 Intent routing on Kestrel's own 9-intent ontology (`docs/intent_ontology.md`, ADR-010), in English and
 Romanized Hinglish, including compound and out-of-scope requests.
 
@@ -14,7 +14,8 @@ Romanized Hinglish, including compound and out-of-scope requests.
 
 Build: `python experiments/data/intents_v0.py --out DIR` writes `{train,cal,val,test}.jsonl` and
 `manifest.json` (counts per label × language, SHA-256 of every source file, fingerprints per split).
-Validate only: `--check`. Built splits are committed only once the templates are reviewed and frozen.
+Validate only: `--check`. The frozen build is in `splits/` (seed 0, 3 fills per template); its
+`manifest.json` holds the fingerprints to cite in every experiment manifest. Rebuilding must reproduce them.
 
 ## Construction
 
@@ -33,8 +34,8 @@ Row fields: `id, text, label, intents, lang (en | hi-en), family, group, stratum
 
 ## Provenance and caveats
 
-- Templates and fillers were **drafted by Claude (an LLM)** on 2026-10-11 and must be reviewed by the
-  human before freezing (`reviewed` per family). None of the evaluated SLMs (Qwen3, Gemma) drafted any.
+- Templates and fillers were **drafted by Claude (an LLM)** on 2026-10-11 and reviewed and accepted by the
+  human the same day (`reviewed` per family). None of the evaluated SLMs (Qwen3, Gemma) drafted any.
 - The drafter knew the Tier-1 rule set, and some families deliberately use rule-shaped phrasing
   ("remind me to …") while others are near-misses. **Tier-1 coverage on this set is therefore not an
   unbiased estimate of real-world coverage**; report it as coverage on Kestrel-Intents-v0 only.
