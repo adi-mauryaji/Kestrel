@@ -4,18 +4,36 @@ use serde::{Deserialize, Serialize};
 
 use crate::normalize::normalize;
 
-/// What the user wants. The serialized names are the labels used in datasets,
-/// `head.json` and configs, so renaming a variant is a breaking change.
+/// What the user wants: one intent per allowlisted tool, plus chitchat and unsupported (ADR-010).
+/// The serialized names are the labels used in datasets, `head.json` and configs, so renaming
+/// a variant is a breaking change. `datasets/contracts/intents.txt` lists them for Python.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Intent {
     SearchNotes,
+    ReadDocument,
     CreateTask,
+    DeleteTask,
     SummarizeNotes,
     SetPreference,
     RetrieveMemory,
     Chitchat,
     Unsupported,
+}
+
+impl Intent {
+    /// Every intent in declaration order: the class order for classifier heads.
+    pub const ALL: [Intent; 9] = [
+        Intent::SearchNotes,
+        Intent::ReadDocument,
+        Intent::CreateTask,
+        Intent::DeleteTask,
+        Intent::SummarizeNotes,
+        Intent::SetPreference,
+        Intent::RetrieveMemory,
+        Intent::Chitchat,
+        Intent::Unsupported,
+    ];
 }
 
 /// Cascade tiers, cheapest first. The discriminant is the tier number (1..=4).
@@ -91,7 +109,9 @@ mod tests {
     fn intent_labels_are_snake_case() {
         let cases = [
             (Intent::SearchNotes, "\"search_notes\""),
+            (Intent::ReadDocument, "\"read_document\""),
             (Intent::CreateTask, "\"create_task\""),
+            (Intent::DeleteTask, "\"delete_task\""),
             (Intent::SummarizeNotes, "\"summarize_notes\""),
             (Intent::SetPreference, "\"set_preference\""),
             (Intent::RetrieveMemory, "\"retrieve_memory\""),
@@ -102,6 +122,45 @@ mod tests {
             assert_eq!(serde_json::to_string(&intent).unwrap(), label);
             assert_eq!(serde_json::from_str::<Intent>(label).unwrap(), intent);
         }
+    }
+
+    /// `ALL` must hold every variant once, in declaration order. The match has no
+    /// wildcard, so a new variant doesn't compile until it is given a position here.
+    #[test]
+    fn all_lists_every_intent_in_order() {
+        use Intent::*;
+        let position = |i: Intent| match i {
+            SearchNotes => 0,
+            ReadDocument => 1,
+            CreateTask => 2,
+            DeleteTask => 3,
+            SummarizeNotes => 4,
+            SetPreference => 5,
+            RetrieveMemory => 6,
+            Chitchat => 7,
+            Unsupported => 8,
+        };
+        assert_eq!(Intent::ALL.map(position), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    }
+
+    /// The label list Python reads (ADR-010) must match the enum exactly.
+    #[test]
+    fn all_matches_the_dataset_contract() {
+        let contract = include_str!("../../../datasets/contracts/intents.txt");
+        let file_labels: Vec<&str> = contract
+            .lines()
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .collect();
+        let enum_labels: Vec<String> = Intent::ALL
+            .iter()
+            .map(|i| {
+                serde_json::to_string(i)
+                    .unwrap()
+                    .trim_matches('"')
+                    .to_owned()
+            })
+            .collect();
+        assert_eq!(enum_labels, file_labels);
     }
 
     #[test]

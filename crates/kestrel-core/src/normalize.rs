@@ -58,4 +58,23 @@ mod tests {
     fn whitespace_only_becomes_empty() {
         assert_eq!(normalize("   "), "");
     }
+
+    #[derive(serde::Deserialize)]
+    struct ParityCase {
+        input: String,
+        expected: String,
+        why: String,
+    }
+
+    /// The Python data pipeline's `norm_text` must give the same text the router sees at
+    /// inference (Ch. 32 "common mistakes"). Both sides run these cases.
+    #[test]
+    fn matches_shared_parity_cases() {
+        let json = include_str!("../../../datasets/contracts/normalize_cases.json");
+        let cases: Vec<ParityCase> = serde_json::from_str(json).unwrap();
+        assert!(cases.len() >= 10);
+        for c in cases {
+            assert_eq!(normalize(&c.input), c.expected, "{}", c.why);
+        }
+    }
 }

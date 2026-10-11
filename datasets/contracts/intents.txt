@@ -1,0 +1,11 @@
+# Kestrel intent labels (ADR-010), one per line, in core `Intent::ALL` order.
+# A data contract: kestrel-core's tests and experiments/data both read this file.
+search_notes
+read_document
+create_task
+delete_task
+summarize_notes
+set_preference
+retrieve_memory
+chitchat
+unsupported

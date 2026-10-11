@@ -1,0 +1,77 @@
+[
+ {
+  "input": "  Remind   me TO call Asha ",
+  "expected": "remind me to call asha",
+  "why": "lowercase + collapse"
+ },
+ {
+  "input": "call asha !",
+  "expected": "call asha",
+  "why": "no space left before stripped punctuation"
+ },
+ {
+  "input": "wow?! .",
+  "expected": "wow",
+  "why": "punctuation and spaces stripped together; A.16 norm_text leaves 'wow?!'"
+ },
+ {
+  "input": "call asha ! ?",
+  "expected": "call asha",
+  "why": "mixed trailing punctuation and spaces"
+ },
+ {
+  "input": "meet at 8.30 tomorrow.",
+  "expected": "meet at 8.30 tomorrow",
+  "why": "inner punctuation kept"
+ },
+ {
+  "input": "what's next?",
+  "expected": "what's next",
+  "why": "apostrophe kept"
+ },
+ {
+  "input": "Kal  5 BAJE yaad dila dena!!",
+  "expected": "kal 5 baje yaad dila dena",
+  "why": "Hinglish: only case and spacing change"
+ },
+ {
+  "input": "tab\there\nnew line",
+  "expected": "tab here new line",
+  "why": "tabs and newlines are whitespace"
+ },
+ {
+  "input": "a\u00a0b\u3000c",
+  "expected": "a b c",
+  "why": "no-break and ideographic spaces are Unicode White_Space"
+ },
+ {
+  "input": "a\u001fb",
+  "expected": "a\u001fb",
+  "why": "U+001F is not White_Space in Rust; Python's str.split() would split here"
+ },
+ {
+  "input": "\uff23\uff21\uff2c\uff2c asha",
+  "expected": "\uff43\uff41\uff4c\uff4c asha",
+  "why": "no NFKC on either side yet; A.16 would map full-width to 'call'"
+ },
+ {
+  "input": "\u0130stanbul",
+  "expected": "i\u0307stanbul",
+  "why": "full lowercase mapping (dotted capital I)"
+ },
+ {
+  "input": "\u039f\u0394\u039f\u03a3",
+  "expected": "\u03bf\u03b4\u03bf\u03c2",
+  "why": "final sigma"
+ },
+ {
+  "input": "   ",
+  "expected": "",
+  "why": "whitespace only"
+ },
+ {
+  "input": "?!",
+  "expected": "",
+  "why": "punctuation only"
+ }
+]
