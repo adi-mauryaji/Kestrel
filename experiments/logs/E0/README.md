@@ -1,12 +1,13 @@
 # E0 sessions
 
-Protocol v3 (ADR-011) for the 3 repeatability sessions: 2 warm-up + 3 measured rounds, threads pinned one per physical core (`cpu_mask` 555 here), user's Docker containers stopped.
+Final protocol for the 3 repeatability sessions (ADR-011 + ADR-012): 2 warm-up + 3 measured rounds, threads pinned one per physical core (`cpu_mask` 555 here), **turbo boost off**, AC with a full battery, user's Docker containers stopped. `bench_e0.py` refuses to start, and stops mid-session, on battery or with boost on.
 
 | Session | Date (UTC) | Status | Protocol |
 |---|---|---|---|
 | `20261010T194613Z` | 2026-10-10 19:46 | **Pilot.** Don't pool it with later sessions. | 3 rounds, no warm-up round; no CPU-frequency or background-load logging (added afterwards) |
 | `20261011T073450Z` | 2026-10-11 07:34 | **Unpinned reference.** Not pooled: the series restarted pinned (ADR-011). | 1 warm-up + 3 measured rounds; frequency + background logging; Docker containers kcc-kafka/kcc-mysql stopped |
 | `20261011T081903Z` | 2026-10-11 08:19 | **Not a repeatability session**: AC power was lost during measured round 2 (rows record `ac_online` False from there). Warm-up rounds 0–1 are the pinned on-AC reference. | protocol v3 (pinned `555`, 2 warm-up + 3 measured rounds); containers stopped; started 12 min after session 1 ended |
+| `20261011T101743Z` | 2026-10-11 10:17 | **Session 1 of 3** (final protocol). | v3 + ADR-012: pinned `555`, boost off, 2 warm-up + 3 measured rounds, AC with battery 99–100%, containers stopped, start 39 °C |
 
 ## Pilot findings (20261010T194613Z)
 
@@ -72,3 +73,23 @@ Start temperature 41 °C, 12 minutes after the unpinned session ended; backgroun
 3. **The pilot's lower prefill is still unexplained.** The pilot was on AC throughout; its sustained rounds had 25–48% lower prefill than session 1 but decode only 2–4% lower, ending at ~55–58 °C. That pattern differs from the battery one (decode −23%), so it is not explained by this session.
 
 `experiments/analysis/e0_summary.py <csv> [<csv> ...]` prints per-session means/CVs and, for 2+ sessions, the CV of session means.
+
+## Session 1 of 3 (20261011T101743Z): boost off, pinned
+
+44 min; every row on AC, boost 0, governor `performance`, mask `555`; background busy % mean 1.1, max 6.0.
+
+| Model | Prefill tok/s (CV) | Decode tok/s (CV) | Peak RSS MiB | Startup (s) | vs boost-on session 1: prefill / decode |
+|---|---|---|---|---|---|
+| Qwen3-1.7B Q4_K_M | 90.6 (0.2%) | 18.23 (0.1%) | 1955 | 1.88 | −23% / −2% |
+| Qwen3-1.7B Q8_0 | 73.3 (0.0%) | 11.46 (0.1%) | 2159 | 1.03 | −25% / −1% |
+| Gemma-4-E2B Q4_0 | 58.5 (1.1%) | 12.18 (1.6%) | 3839 | 3.12 | −27% / −5% |
+| Gemma-4-E2B Q8_0 | 52.4 (0.2%) | 8.04 (0.1%) | 4868 | 2.29 | −24% / −3% |
+| Qwen3-4B Q4_K_M | 36.3 (0.3%) | 8.24 (0.3%) | 4162 | 3.63 | −22% / −2% |
+| Qwen3-4B Q8_0 | 28.7 (1.2%) | 4.96 (0.3%) | 4192 | 1.37 | −22% / −1% |
+
+Encoders (median per 32-token pass, all 5 rounds): bge-small Q8 10.5 ms (one 13.5 ms outlier in measured round 2), e5-small F16 12.4–12.5 ms, e5-small Q8 10.5–10.6 ms.
+
+1. **No regime drift.** Frequency, temperatures (50–60 °C) and throughput are flat from warm-up round 0 to the end; the warm-up rounds are indistinguishable from the measured ones. Within-session CV ≤ 1.6% for every SLM test.
+2. **Boost off costs ~22–27% prefill and ~1–5% decode** against the boost-on session; encoder passes ~10.5 vs ~6.3 ms (pinned, boost on). Reported latencies are therefore conservative (ADR-012).
+3. **The pilot's sustained prefill matches these no-boost numbers** for some models (Qwen3-1.7B Q4 92.1 vs 90.6; Gemma Q4 58.3 vs 58.5), though it is 12–14% lower for others. The pilot probably ran near no-boost clocks for a reason we can't see.
+4. **Caveat on `freq_*_mhz`:** it averages all 12 logical CPUs. With pinning, 6 of them are idle siblings, so ~1.75 GHz understates the clock of the active cores. It still detects changes (it showed the battery drop).
