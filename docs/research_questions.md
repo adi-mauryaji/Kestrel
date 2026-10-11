@@ -24,31 +24,40 @@ Week-1 deliverable (blueprint Ch. 52). This adapts the blueprint's RQ1–RQ6 (Ch
 
 ## Closest prior work (preliminary, Ch. 4.5 columns, from abstracts)
 
-"?" = not stated in the abstract. To be confirmed from full texts in Week 2.
+Rows marked † were checked against the **full text** on 2026-10-11 (arXiv PDFs: C3 v1, CascadeBERT, chuang2025 v1, chaganti2026 v1); the others are still abstract-level. "?" = not stated.
 
 | Work | What is cascaded | Confidence signal | Calibrated? | Budget-aware? | Resources measured | On-device? | Rule tier? | Eval data |
 |---|---|---|---|---|---|---|---|---|
-| C3 (lu2024c3) | multilingual PLMs of different sizes | model confidence | **yes** | ? | "inference efficiency" (?) | ? | no | 3 cross-lingual benchmarks |
-| CascadeBERT (li2021cascadebert) | complete PLMs of different sizes | class probability (difficulty-aware) | yes (training objective) | speed-up target | speed-up | no | no | 6 classification tasks |
+| C3 (lu2024c3) † | multilingual encoders of increasing size (DistilBERT → mBERT → XLM-R base → XLM-R large); also a Llama-2 cascade | max class probability after logit normalization + per-model temperature (fit on validation data) | **yes** | speed-up targets 2×/3×/4× via the threshold | **FLOPs only** (speed-up ratio); no wall-clock, RAM or energy | no (cloud compute; motivation only) | no | XNLI, PAWS-X, QAM; GSM8k + TabMWP (500 items, machine-translated) — no code-mixed data |
+| CascadeBERT (li2021cascadebert) † | complete BERT models of increasing depth | max class probability, shaped by a difficulty-aware regularizer; ECE reported | yes (training objective) | speed-up target via the threshold | **FLOPs / layers executed** (estimated speed-up) | no | no | 6 GLUE classification tasks |
 | BabyBear (khalili2022babybear) | cheap model → deep model | confidence threshold | ? | compute cost | compute | no | no | doc classification, CoNLL NER |
-| chuang2025ondevice | on-device SLM → stronger LLM | uncertainty (several UQ methods) | calibration-data pipeline | invocation cost | ? | SLM on device | no | 1500+ settings |
-| chaganti2026ondevicener | local small → large (NER) | per-span confidence | yes (temperature) | cost-matched routing | latency, output validity | yes | no | 3 NER datasets |
+| chuang2025ondevice † | SLM → stronger LLM (8 SLMs, 2 LLMs) | 8 uncertainty-quantification methods | calibration-data pipeline for routing generalization | fraction routed to the LLM (invocation cost) | none on a device: run on 4× A100 80 GB ("on-device" is the setting being emulated) | **emulated** | no | 14 reasoning / QA / MMLU-style datasets; no intent data |
+| chaganti2026ondevicener † | GLiNER-small → GLiNER-large (encoder → encoder, NER) | per-span confidence, document-level gate | yes (temperature; ECE 0.24–0.47 roughly halved) | compared at matched budgets vs cost-matched random routing | per-document latency, output validity; no RAM or energy | yes (Apple M4 Pro, Ollama) | no | CoNLL-2003, WNUT-17, RSS-News (silver gold) |
 | koul2026hybridinfer | device → edge → cloud LLMs | Q-learning policy (thermal + complexity) | n/a | latency, cost, thermal | latency, cost | first tier only | no | 210 Android prompts |
+| arora2024intentllm (abstract) | SetFit encoder → LLM (intent detection) | uncertainty of the encoder | ? | latency | latency (−50% vs LLM-only within 2% accuracy) | ? | no | intent benchmarks incl. OOS |
+| zhang2026cauc (abstract) | heterogeneous models (accept / escalate / combine) | post-hoc calibrated confidence per model | **yes** (calibrated thresholds = selective-risk meaning) | validation-chosen policy per budget | strong-model calls, GFLOPs | no | no | 6 language benchmarks + images |
+| sadhu2026neurosymbolic (abstract) | deterministic solvers → SLM (learned DFA router) | none (deterministic routing) | n/a | token budget | latency **and energy** | **yes** (Raspberry Pi 4B) | **yes** (symbolic) | 100 maths/logic prompts |
+| mane2026cascadens (abstract) | symbolic semigraph → neural module | calibrated symbolic score | yes | ? | ? | ? | **yes** (symbolic) | product-review sarcasm |
+| alkiek2026harissa (abstract) | cheapest-first answering modes → deferral | hidden-state self-checks | trained | latency | latency | yes (single device) | no | 6 task/setting pairs |
 | **Kestrel (planned)** | **rules → frozen encoder + head → local SLM** | **calibrated probability per tier** | **yes (temperature)** | **latency/RAM budget** | **latency, peak RSS, energy if accessible** | **yes, fully** | **yes** | **CLINC150 + Kestrel-Intents-v0 (EN + Hinglish)** |
 
-**Reading (abstract level only):** no single prior work matches every column. The differences that survive so far:
-- a **heterogeneous** cascade (deterministic rules, encoder and generative tiers);
-- **fully on-device** on a commodity CPU, with joint latency/RAM/energy reporting;
-- **code-mixed Hinglish** evaluation.
+**Reading (updated 2026-10-11 after full texts of the four † rows and rounds 4–5):** no single prior work matches every column, but each planned difference now has close prior work on its own:
+- *Calibrated cascade with validation-chosen thresholds:* C3, CascadeBERT and especially **zhang2026cauc**, which also shows calibrated thresholds have a selective-risk meaning. RQ2 is a **replication in Kestrel's setting**, not a new idea.
+- *Encoder → LLM routing for intent detection with latency gains:* **arora2024intentllm** (SetFit → LLM, −50% latency within 2% accuracy). RQ1's Tier 3 → Tier 4 part is close to it; its hardware and calibration are not in the abstract (full text needed).
+- *A deterministic tier before a model:* **sadhu2026neurosymbolic** (on a Raspberry Pi, with latency and energy) and mane2026cascadens (calibrated symbolic → neural).
+- *On-device resource measurement:* sadhu2026neurosymbolic, alkiek2026harissa, chaganti2026ondevicener.
 
-Wording for now: "we *evaluate* …". Upgrading to "no prior work in our search reports …" requires the Week-2 full-text checks below.
+What still differs, as a **combination** (Ch. 4.5: don't claim novelty because components are combined):
+- the full rules → calibrated encoder head → local generative SLM cascade **for intent routing**, measured end to end on a commodity x86 CPU (latency + peak RSS);
+- **code-mixed Hinglish**: no cascade, routing or calibration study in the search evaluates code-mixed input (RQ7). This is the most distinctive part.
+
+Wording: "we *evaluate* …" / "we *replicate* … on-device". Claims of the form "no prior work in our search reports …" are only for the Hinglish cascade/calibration evaluation, and only after the stop rule is met. **The contribution framing is the human's decision.**
 
 ## Open items (Week 2)
 
-- **Stop rule not met.** Round 3 still added 4 relevant papers. Continue with:
-  - ACL Anthology and Semantic Scholar searches (Ch. 4.4 queries);
-  - forward chaining from C3, CascadeBERT and chuang2025ondevice;
-  - backward chaining from their related-work sections.
-- **Read full texts** of C3, CascadeBERT, chuang2025ondevice and chaganti2026ondevicener, and fill in the "?" cells.
+- **Stop rule not met.** Round 4 (8 OpenAlex queries) added 21 relevant papers and round 5 (forward chaining) added 8; almost all are from 2025–26. With a literal "two rounds with nothing new" rule, the search will not end in this field. **Proposal for the human:** count as "new relevant" only works that match ≥ 3 of the 8 Ch. 4.5 columns (or are code-mixed intent/calibration work); others go to the matrix as background. Next: backward chaining from the TMLR routing survey (moslem2026routingsurvey) and from the full texts below.
+- Done 2026-10-11: full texts of C3, CascadeBERT, chuang2025ondevice, chaganti2026ondevicener (table rows †).
+- **Read full texts next:** arora2024intentllm, zhang2026cauc, sadhu2026neurosymbolic (hardware, calibration, budget columns).
+- Search notes: Semantic Scholar keyword search was rate-limited and DBLP blocks scripts; ACL venues were covered through OpenAlex.
 - **Venue checks:** confirm each entry marked "venue not verified" before citing it.
-- **Write PREREG.md:** RQ7 needs its own stratified analysis plan, with paired tests per language and Holm correction across strata.
+- PREREG draft v0: `experiments/PREREG.md` (2026-10-11).

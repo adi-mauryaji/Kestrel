@@ -26,3 +26,16 @@ date,database,query,hits,new_relevant,notes
 2026-10-11,arXiv API (export.arxiv.org),"all:""code-switched"" AND all:""semantic parsing""",4,2,round 3; top 12 by relevance screened; new relevant: 2211.07514 2101.10524
 2026-10-11,arXiv API (export.arxiv.org),"all:""local"" AND all:assistant AND all:""small language model"" AND all:privacy",11,1,round 3; top 12 by relevance screened; new relevant: 2507.08878
 2026-10-11,arXiv API id_list,blueprint Ch. 4.3 seeds + candidates (metadata/abstract verification),n/a,0,"verification lookups, not discovery; 2004.07453 1706.04599 1705.08500 1909.02027 2003.04807 2305.05176 2406.18665 1612.00796 1908.10084 2204.08582 2402.05672 2505.09388"
+2026-10-11,OpenAlex API (works search),cascade intent classification,26583,1,round 4; top 25 by relevance screened; new relevant: arora2024intentllm
+2026-10-11,OpenAlex API (works search),model cascade confidence calibration language model,13142,6,round 4; top 25 by relevance screened; new relevant: zhang2026cauc hao2026calibcascadeclean liu2026corea xia2026ceunderlangvar mane2026cascadens burleigh2026slmcascade
+2026-10-11,OpenAlex API (works search),out-of-scope intent detection calibration,15346,3,round 4; top 25 by relevance screened; new relevant: qian2022oosva khojah2022nbest wang2024llmood
+2026-10-11,OpenAlex API (works search),code-mixed intent detection,56978,2,round 4; top 25 by relevance screened; new relevant: paul2025codemixedjicsf chaudhary2025mixedscript
+2026-10-11,OpenAlex API (works search),Hinglish intent classification,281,1,round 4; top 25 by relevance screened; new relevant: dey2026hinglishsrh
+2026-10-11,OpenAlex API (works search),on-device language model routing,293190,3,round 4; top 25 by relevance screened; new relevant: sadhu2026neurosymbolic sleher2025gqr consroute2026(lead)
+2026-10-11,OpenAlex API (works search),small language model routing latency,137363,4,round 4; top 25 by relevance screened; new relevant: doifode2026latentgate johnson2026frontdoor bensaad2026multilingualrouting digis2026microrouter(lead)
+2026-10-11,OpenAlex API (works search),selective prediction intent classification,33554,1,round 4; top 25 by relevance screened; new relevant: koo2026clarify
+2026-10-11,OpenAlex API (cites:),works citing CascadeBERT (2 OpenAlex records),34,2,round 5 forward chaining; all 34 screened; new relevant: varshney2022modelcascading rotem2023sweet
+2026-10-11,Semantic Scholar API (citations),works citing C3 (arXiv:2402.15991),0,0,round 5 forward chaining; S2 and OpenAlex both record no citing works
+2026-10-11,Semantic Scholar API (citations),works citing chuang2025ondevice (arXiv:2502.04428),35,7,round 5 forward chaining; all 35 screened (most are efficient-reasoning papers); new relevant: alkiek2026harissa moslem2026clusterroute nguyen2026zeroshotconf chen2026confmultiscale moslem2026routingsurvey chuang2024selfref (+burleigh2026slmcascade already found in round 4)
+2026-10-11,Semantic Scholar API (search),Ch. 4.4 Semantic Scholar queries,n/a,0,NOT RUN: unauthenticated search was rate-limited (1 of 8 queries returned in 10 min); replaced by OpenAlex
+2026-10-11,DBLP API,ACL Anthology venue coverage,n/a,0,NOT RUN: dblp.org returns a bot-check page to scripts; ACL venues covered via OpenAlex instead (EMNLP/ACL/SIGDIAL/EACL hits above)
