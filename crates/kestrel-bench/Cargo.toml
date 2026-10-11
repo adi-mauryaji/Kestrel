@@ -1,0 +1,13 @@
+[package]
+name = "kestrel-bench"
+description = "Kestrel benchmarking: latency stats, timing, peak RSS and CSV result writers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# std only on purpose: no CSV or stats crate needed for these few functions.
+[dependencies]
+
+[lints]
+workspace = true
