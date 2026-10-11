@@ -1,9 +1,11 @@
 # E0 sessions
 
+Protocol v3 (ADR-011) for the 3 repeatability sessions: 2 warm-up + 3 measured rounds, threads pinned one per physical core (`cpu_mask` 555 here), user's Docker containers stopped.
+
 | Session | Date (UTC) | Status | Protocol |
 |---|---|---|---|
 | `20261010T194613Z` | 2026-10-10 19:46 | **Pilot.** Don't pool it with later sessions. | 3 rounds, no warm-up round; no CPU-frequency or background-load logging (added afterwards) |
-| `20261011T073450Z` | 2026-10-11 07:34 | **Session 1** of 3 (protocol v2, ADR-009). Threads unpinned. | 1 warm-up + 3 measured rounds; frequency + background logging; Docker containers kcc-kafka/kcc-mysql stopped |
+| `20261011T073450Z` | 2026-10-11 07:34 | **Unpinned reference.** Not pooled: the series restarted pinned (ADR-011). | 1 warm-up + 3 measured rounds; frequency + background logging; Docker containers kcc-kafka/kcc-mysql stopped |
 
 ## Pilot findings (20261010T194613Z)
 

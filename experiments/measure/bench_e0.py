@@ -14,15 +14,19 @@ Per model in models/MANIFEST.toml (role slm/encoder, file present):
 Models are interleaved per round (rotated order) to cancel drift (Ch. 34.5). One run of this
 script = one session; run it in 3 separate sessions for the repeatability CV (Week-2 test).
 
-Warm-up rounds (default 1) are recorded with phase=warmup and excluded from analysis. The
+Warm-up rounds (default 2) are recorded with phase=warmup and excluded from analysis. The
 2026-10-11 pilot showed why: on this Ryzen 5500U, prefill tok/s fell 26-39% after the first
 round (short boost window, then a lower sustained power limit) while decode stayed within 3%.
-Measured rounds should all be in the sustained regime.
+In session 1 one warm-up round was not enough (round 1 still ran ~4% faster). ADR-011.
+
+Threads are pinned one per physical core (llama-bench -C <mask> --cpu-strict 1), the way the
+Kestrel runtime should run them; --no-pin disables it. Unpinned, two threads can share one
+core's SMT siblings: session 1's encoder latency was bimodal (~6.5 vs ~9.6 ms). ADR-011.
 
 Preconditions (Ch. 37.3) are recorded in every row; on battery the script refuses unless
 --allow-battery, and then the rows say so. Energy is NOT measured here (Ch. 37.4).
 
-Usage: .venv/bin/python experiments/measure/bench_e0.py [--rounds 3] [--threads 6] [--only NAME ...]
+Usage: .venv/bin/python experiments/measure/bench_e0.py [--rounds 3] [--no-pin] [--only NAME ...]
 """
 
 import argparse
@@ -93,6 +97,29 @@ def freq_summary(samples: list[float]) -> tuple[float | None, float | None]:
     return (sum(samples) / len(samples), min(samples)) if samples else (None, None)
 
 
+def read_topology() -> dict[int, tuple[str, str]]:
+    """Logical CPU -> (package id, core id) from sysfs."""
+    topo = {}
+    for d in Path("/sys/devices/system/cpu").glob("cpu[0-9]*"):
+        core = read(f"{d}/topology/core_id")
+        if core:
+            topo[int(d.name[3:])] = (read(f"{d}/topology/physical_package_id"), core)
+    return topo
+
+
+def one_cpu_per_core(topology: dict[int, tuple[str, str]]) -> list[int]:
+    """The lowest logical CPU of each physical core, so no two threads share a core's SMT siblings."""
+    first: dict[tuple[str, str], int] = {}
+    for cpu in sorted(topology):
+        first.setdefault(topology[cpu], cpu)
+    return sorted(first.values())
+
+
+def cpu_mask(cpus: list[int]) -> str:
+    """llama.cpp --cpu-mask value: hex bitmask of logical CPUs, e.g. [0, 2, 4] -> '15'."""
+    return format(sum(1 << c for c in cpus), "x")
+
+
 def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
     """Run llama-bench; return (json rows, wall s, peak RSS MiB, CPU MHz samples) for that process."""
     samples: list[float] = []
@@ -121,9 +148,10 @@ def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rounds", type=int, default=3, help="measured rounds")
-    ap.add_argument("--warmup-rounds", type=int, default=1, help="recorded as phase=warmup")
+    ap.add_argument("--warmup-rounds", type=int, default=2, help="recorded as phase=warmup")
     ap.add_argument("--reps", type=int, default=5, help="llama-bench repetitions per test")
-    ap.add_argument("--threads", type=int, default=6, help="default = physical cores")
+    ap.add_argument("--threads", type=int, help="default = physical cores")
+    ap.add_argument("--no-pin", action="store_true", help="don't pin threads to one CPU per core")
     ap.add_argument("--prompt", type=int, default=128, help="prefill tokens (SLM)")
     ap.add_argument("--gen", type=int, default=64, help="decode tokens (SLM)")
     ap.add_argument("--embd-tokens", type=int, default=32, help="tokens per encoder pass")
@@ -131,6 +159,11 @@ def main() -> None:
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--allow-battery", action="store_true")
     args = ap.parse_args()
+    cores = one_cpu_per_core(read_topology())
+    args.threads = args.threads or len(cores)
+    if not args.no_pin and args.threads > len(cores):
+        sys.exit(f"--threads {args.threads} > {len(cores)} physical cores: can't pin one per core")
+    mask = None if args.no_pin else cpu_mask(cores[: args.threads])
 
     pre = conditions()
     if not pre["ac_online"] and not args.allow_battery:
@@ -151,7 +184,7 @@ def main() -> None:
     (OUT / f"{session}.env.json").write_text(json.dumps({
         "session": session, "llama_cpp_commit": commit, "kernel": platform.release(),
         "threads": args.threads, "reps": args.reps, "rounds": args.rounds,
-        "warmup_rounds": args.warmup_rounds,
+        "warmup_rounds": args.warmup_rounds, "cpu_mask": mask, "pinned": mask is not None,
         "page_cache": "warm (not dropped; needs root)", "energy": "NOT measured (Ch. 37.4)",
         "pre_conditions": pre, "args": vars(args),
     }, indent=2))
@@ -159,7 +192,7 @@ def main() -> None:
     fields = ["session", "phase", "round", "model", "role", "quant", "sha256", "test", "n_tokens",
               "threads", "reps", "avg_tok_s", "stddev_tok_s", "median_ms", "wall_s",
               "peak_rss_mib", "temp_before_c", "temp_after_c", "freq_mean_mhz", "freq_min_mhz",
-              "bg_busy_pct", "ac_online", "governor", "boost", "load1", "llama_commit"]
+              "bg_busy_pct", "ac_online", "governor", "boost", "load1", "llama_commit", "cpu_mask"]
     out_csv = OUT / f"{session}.csv"
     with out_csv.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
@@ -170,6 +203,8 @@ def main() -> None:
             for m in order:
                 path = str(ROOT / "models" / m["file"])
                 common = ["-m", path, "-t", str(args.threads)]
+                if mask:
+                    common += ["-C", mask, "--cpu-strict", "1"]
                 if m["role"] == "slm":
                     tests = [("throughput", common + ["-p", str(args.prompt), "-n", str(args.gen),
                                                       "-r", str(args.reps)])]
@@ -207,7 +242,7 @@ def main() -> None:
                             "bg_busy_pct": round(bg, 1),
                             "ac_online": c["ac_online"], "governor": c["governor"],
                             "boost": c["boost"], "load1": round(c["load1"], 2),
-                            "llama_commit": commit[:9],
+                            "llama_commit": commit[:9], "cpu_mask": mask or "",
                         })
                     f.flush()
                     print(f"{phase} round {rnd} {m['name']:28s} {kind:10s} wall={wall:6.1f}s "
