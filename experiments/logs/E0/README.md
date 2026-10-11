@@ -3,6 +3,7 @@
 | Session | Date (UTC) | Status | Protocol |
 |---|---|---|---|
 | `20261010T194613Z` | 2026-10-10 19:46 | **Pilot.** Don't pool it with later sessions. | 3 rounds, no warm-up round; no CPU-frequency or background-load logging (added afterwards) |
+| `20261011T073450Z` | 2026-10-11 07:34 | **Session 1** of 3 (protocol v2, ADR-009). Threads unpinned. | 1 warm-up + 3 measured rounds; frequency + background logging; Docker containers kcc-kafka/kcc-mysql stopped |
 
 ## Pilot findings (20261010T194613Z)
 
@@ -31,3 +32,28 @@ Conditions: AC power, tuned `throughput-performance`, governor `performance` on 
 4. **Scale gap.** An encoder pass takes about 10 ms. The cheapest SLM needs about 1.4 s just to prefill a 128-token prompt, before it generates anything.
    - That's an observation about this machine, not a test of H1.
 5. Startup times were measured with a warm page cache and are not cold-start numbers.
+
+## Session 1 (20261011T073450Z)
+
+Conditions: AC, battery 100%, tuned `throughput-performance` (governor `performance`), boost on, 6 threads (unpinned), warm page cache, start temperature 42 °C, user's Docker containers stopped. Background CPU busy % during cooldowns: mean 1.0, max 5.5 (n = 96). Energy was **not** measured. Duration 33 min.
+
+Measured rounds 1–3 (mean, CV across the 3 rounds):
+
+| Model | Prefill tok/s (CV) | Decode tok/s (CV) | Peak RSS MiB | Startup (s) | vs pilot: prefill / decode |
+|---|---|---|---|---|---|
+| Qwen3-1.7B Q4_K_M | 118.3 (0.4%) | 18.7 (0.0%) | 1956 | 1.00 | +28% / +3% |
+| Qwen3-1.7B Q8_0 | 97.8 (5.6%) | 11.6 (0.2%) | 2159 | 0.65 | +42% / +2% |
+| Gemma-4-E2B Q4_0 | 80.6 (4.8%) | 12.8 (0.2%) | 3839 | 1.82 | +38% / +4% |
+| Gemma-4-E2B Q8_0 | 68.5 (3.9%) | 8.3 (0.1%) | 4864 | 1.44 | +45% / +3% |
+| Qwen3-4B Q4_K_M | 46.6 (1.0%) | 8.4 (0.2%) | 4162 | 2.06 | +46% / +3% |
+| Qwen3-4B Q8_0 | 36.6 (0.5%) | 5.0 (0.2%) | 4192 | 0.86 | +48% / +2% |
+| bge-small-en-v1.5 Q8_0 | 4449 (12.3%) | — | — | — | +25% |
+| multilingual-e5-small F16 | 4140 (2.2%) | — | — | — | +33% |
+| multilingual-e5-small Q8_0 | 3862 (24.3%) | — | — | — | +8% |
+
+Findings:
+
+1. **Decode is stable; prefill is not.** Within the session, decode varied ≤ 0.2% across rounds, while prefill varied up to 5.6%. Against the pilot's sustained rounds, decode is 2–4% higher but prefill is **25–48% higher**. Prefill is compute-bound and follows the CPU's power limit; decode is memory-bandwidth-bound. Today the measured rounds ran hotter (up to 89 °C) at 2.5–2.9 GHz; the pilot's sustained rounds ended at ~55–58 °C. One explanation is a lower sustained power limit during the pilot (e.g. thermal/power history after the long build session); it can't be confirmed (no frequency log then, no `platform_profile` on this laptop, power limits need root). **The 3-session CV will show whether prefill is repeatable at all; plan to report it per session.**
+2. **The warm-up round doesn't absorb all boost.** Measured round 1 ran at 2710 MHz vs ~2600 for rounds 2–3 and is the fast outlier where prefill CV is high (Qwen3-1.7B Q8: 104 vs 94.6; Gemma Q4: 85 vs 78.5).
+3. **Encoder latency is bimodal with unpinned threads.** e5-small Q8 alternated between ~6.5 and ~9.6 ms per 32-token pass. Logical CPUs 2k and 2k+1 are SMT siblings here. Exploratory check right after the session (8 alternating trials each, not part of the CSV): unpinned median 6.60 ms, CV 19.6%, outliers at 8–10 ms; pinned one thread per physical core (`-C 555 --cpu-strict 1`) median 6.37 ms, CV 4.4%, no outliers. Supports the "two threads on one core" explanation; small n.
+4. **RSS repeats exactly** (same values as the pilot, ±1 MiB). Q4 RSS ≫ file size still holds (H6 check pending).
