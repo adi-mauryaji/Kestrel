@@ -89,8 +89,11 @@ def busy_pct(before: tuple[int, int], after: tuple[int, int]) -> float:
     return 100.0 * (after[0] - before[0]) / total if total else 0.0
 
 
-def mean_cpu_mhz() -> float | None:
-    vals = [int(read(str(p))) for p in Path("/sys/devices/system/cpu").glob("cpu[0-9]*/cpufreq/scaling_cur_freq")]
+def mean_cpu_mhz(cpus: list[int] | None = None) -> float | None:
+    """Mean current frequency over the given logical CPUs (all CPUs if None)."""
+    paths = ([Path(f"/sys/devices/system/cpu/cpu{c}/cpufreq/scaling_cur_freq") for c in cpus] if cpus
+             else Path("/sys/devices/system/cpu").glob("cpu[0-9]*/cpufreq/scaling_cur_freq"))
+    vals = [int(v) for v in (read(str(p)) for p in paths) if v]
     return sum(vals) / len(vals) / 1000 if vals else None
 
 
@@ -133,15 +136,20 @@ def protocol_problems(pre: dict, allow_battery: bool, allow_boost: bool) -> list
     return problems
 
 
-def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
-    """Run llama-bench; return (json rows, wall s, peak RSS MiB, CPU MHz samples) for that process."""
+def run_bench(args: list[str], pinned: list[int] | None = None):
+    """Run llama-bench; return (json rows, wall s, peak RSS MiB, MHz samples over all CPUs,
+    MHz samples over the pinned CPUs only) for that process. With pinning, the all-CPU mean
+    includes idle SMT siblings and understates the working cores' clock."""
     samples: list[float] = []
+    samples_pinned: list[float] = []
     done = threading.Event()
 
     def sample() -> None:
         while not done.wait(0.25):
             if (mhz := mean_cpu_mhz()) is not None:
                 samples.append(mhz)
+            if pinned and (mhz := mean_cpu_mhz(pinned)) is not None:
+                samples_pinned.append(mhz)
 
     t0 = time.perf_counter()
     proc = subprocess.Popen([str(BENCH), *args, "-o", "json"],
@@ -155,7 +163,7 @@ def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
     sampler.join()
     if os.waitstatus_to_exitcode(status) != 0:
         raise RuntimeError(f"llama-bench failed: {' '.join(args)}")
-    return json.loads(stdout), wall, usage.ru_maxrss / 1024, samples  # ru_maxrss is KiB on Linux
+    return json.loads(stdout), wall, usage.ru_maxrss / 1024, samples, samples_pinned  # ru_maxrss: KiB
 
 
 def main() -> None:
@@ -177,7 +185,8 @@ def main() -> None:
     args.threads = args.threads or len(cores)
     if not args.no_pin and args.threads > len(cores):
         sys.exit(f"--threads {args.threads} > {len(cores)} physical cores: can't pin one per core")
-    mask = None if args.no_pin else cpu_mask(cores[: args.threads])
+    pinned = None if args.no_pin else cores[: args.threads]
+    mask = None if pinned is None else cpu_mask(pinned)
 
     pre = conditions()
     problems = protocol_problems(pre, args.allow_battery, args.allow_boost)
@@ -207,6 +216,7 @@ def main() -> None:
     fields = ["session", "phase", "round", "model", "role", "quant", "sha256", "test", "n_tokens",
               "threads", "reps", "avg_tok_s", "stddev_tok_s", "median_ms", "wall_s",
               "peak_rss_mib", "temp_before_c", "temp_after_c", "freq_mean_mhz", "freq_min_mhz",
+              "freq_pinned_mean_mhz", "freq_pinned_min_mhz",
               "bg_busy_pct", "ac_online", "governor", "boost", "load1", "llama_commit", "cpu_mask"]
     out_csv = OUT / f"{session}.csv"
     with out_csv.open("w", newline="") as f:
@@ -238,9 +248,10 @@ def main() -> None:
                     if problems:  # e.g. charger unplugged mid-session: stop, don't mix regimes
                         sys.exit(f"Session stopped before {m['name']} {kind}, round {rnd}: "
                                  + " ".join(problems) + f" Partial CSV: {out_csv}")
-                    rows, wall, rss, mhz = run_bench(cli)
+                    rows, wall, rss, mhz, mhz_pinned = run_bench(cli, pinned)
                     t_after = cpu_temp_c()
                     f_mean, f_min = freq_summary(mhz)
+                    fp_mean, fp_min = freq_summary(mhz_pinned)
                     for r in rows:
                         test = (f"pp{r['n_prompt']}" if r["n_gen"] == 0 else f"tg{r['n_gen']}")
                         if kind == "startup":
@@ -258,6 +269,8 @@ def main() -> None:
                             "temp_before_c": c["temp_c"], "temp_after_c": t_after,
                             "freq_mean_mhz": None if f_mean is None else round(f_mean),
                             "freq_min_mhz": None if f_min is None else round(f_min),
+                            "freq_pinned_mean_mhz": None if fp_mean is None else round(fp_mean),
+                            "freq_pinned_min_mhz": None if fp_min is None else round(fp_min),
                             "bg_busy_pct": round(bg, 1),
                             "ac_online": c["ac_online"], "governor": c["governor"],
                             "boost": c["boost"], "load1": round(c["load1"], 2),
