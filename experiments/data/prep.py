@@ -20,7 +20,7 @@ NAMES = ("train", "cal", "val", "test")
 
 # Unicode White_Space, which is what Rust's char::is_whitespace uses. Python's str.split() also
 # splits on U+001C..U+001F, so the set is spelled out.
-_WS = "\t\n\x0b\x0c\r \x85\xa0  -     　"
+_WS = "\t\n\x0b\x0c\r \x85\xa0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000"
 _WS_RUN = re.compile(f"[{_WS}]+")
 
 
