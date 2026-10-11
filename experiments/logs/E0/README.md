@@ -6,7 +6,7 @@ Protocol v3 (ADR-011) for the 3 repeatability sessions: 2 warm-up + 3 measured r
 |---|---|---|---|
 | `20261010T194613Z` | 2026-10-10 19:46 | **Pilot.** Don't pool it with later sessions. | 3 rounds, no warm-up round; no CPU-frequency or background-load logging (added afterwards) |
 | `20261011T073450Z` | 2026-10-11 07:34 | **Unpinned reference.** Not pooled: the series restarted pinned (ADR-011). | 1 warm-up + 3 measured rounds; frequency + background logging; Docker containers kcc-kafka/kcc-mysql stopped |
-| `20261011T081903Z` | 2026-10-11 08:19 | **Not a repeatability session**: the CPU dropped into the capped power regime during measured round 2. Warm-up rounds 0–1 are the pinned high-regime reference. | protocol v3 (pinned `555`, 2 warm-up + 3 measured rounds); containers stopped; started 12 min after session 1 ended |
+| `20261011T081903Z` | 2026-10-11 08:19 | **Not a repeatability session**: AC power was lost during measured round 2 (rows record `ac_online` False from there). Warm-up rounds 0–1 are the pinned on-AC reference. | protocol v3 (pinned `555`, 2 warm-up + 3 measured rounds); containers stopped; started 12 min after session 1 ended |
 
 ## Pilot findings (20261010T194613Z)
 
@@ -61,13 +61,14 @@ Findings:
 3. **Encoder latency is bimodal with unpinned threads.** e5-small Q8 alternated between ~6.5 and ~9.6 ms per 32-token pass. Logical CPUs 2k and 2k+1 are SMT siblings here. Exploratory check right after the session (8 alternating trials each, not part of the CSV): unpinned median 6.60 ms, CV 19.6%, outliers at 8–10 ms; pinned one thread per physical core (`-C 555 --cpu-strict 1`) median 6.37 ms, CV 4.4%, no outliers. Supports the "two threads on one core" explanation; small n.
 4. **RSS repeats exactly** (same values as the pilot, ±1 MiB). Q4 RSS ≫ file size still holds (H6 check pending).
 
-## Pinned session (20261011T081903Z): two power regimes
+## Pinned session (20261011T081903Z)
 
 Start temperature 41 °C, 12 minutes after the unpinned session ended; background busy % mean ~1.
 
-1. **The CPU has two sustained regimes, and load history decides which one runs.** Warm-up rounds 0–1 and the first 4 processes of measured round 2 ran like the unpinned session (2.6–3.0 GHz, temperatures after each process 78–93 °C). From `qwen3-4b-q8_0` in round 2 (~25 min in, after ~60 min of near-continuous load since 07:34) every process ran at **~1.95–2.0 GHz with temperatures of only ~56–59 °C**, and stayed there to the end. Throughput fell 20–35% for every model, **decode included** (Qwen3-1.7B Q4: 18.7 → 14.3 tok/s), and encoder passes went from 6.3–7.6 ms to 10.1–12.0 ms. A cool die at low clocks means a power cap, not die-temperature throttling; a long-window (skin/chassis or STAPM-type) limit is the likely mechanism. It can't be read without root.
-2. **The pilot's "sustained" rounds were in this capped regime** (they also ended at ~55–58 °C with lower prefill). The unpinned session stayed in the high regime for all 33 minutes. So the pilot-vs-session-1 prefill gap (25–48%) is a regime difference, not noise.
-3. **Pinning is not what slowed this session.** Before the switch, pinned SLM numbers equal the unpinned ones (Qwen3-1.7B Q4: 118.3 / 18.71 vs 118.3 / 18.68 tok/s). Pinned encoder latency in the high regime was 6.27–7.61 ms with no bimodality (unpinned: 6.5 vs 9.6 ms modes), which supports ADR-011's pinning.
-4. **Consequence for every latency experiment:** a long run on boosted clocks drifts from one regime into the other, so systems measured one after another (e.g. R0 then R3 in E1) would be compared across regimes. The protocol needs a fixed regime (Ch. 37.3: fixed turbo setting; discard affected runs by a pre-declared frequency rule).
+**Correction (2026-10-11, same day).** The first version of this section blamed the slowdown on a load-history power regime. The rows show `ac_online` turned False at that exact point: the laptop was **on battery** from measured round 2 (`qwen3-4b-q8_0`, ~25 min in) to the end. The script recorded it but kept running; it now stops instead (see below).
+
+1. **On battery, everything slows by 20–35%, decode included.** From the AC loss on, every process ran at ~1.95–2.0 GHz with temperatures of ~56–59 °C (Qwen3-1.7B Q4: 18.7 → 14.3 tok/s; encoder passes 6.3–7.6 → 10.1–12.0 ms). These rows are battery data and are excluded.
+2. **Pinning is not what slowed this session.** On AC, pinned SLM numbers equal the unpinned ones (Qwen3-1.7B Q4: 118.3 / 18.71 vs 118.3 / 18.68 tok/s). Pinned encoder latency on AC was 6.27–7.61 ms with no bimodality (unpinned: 6.5 vs 9.6 ms modes), which supports ADR-011.
+3. **The pilot's lower prefill is still unexplained.** The pilot was on AC throughout; its sustained rounds had 25–48% lower prefill than session 1 but decode only 2–4% lower, ending at ~55–58 °C. That pattern differs from the battery one (decode −23%), so it is not explained by this session.
 
 `experiments/analysis/e0_summary.py <csv> [<csv> ...]` prints per-session means/CVs and, for 2+ sessions, the CV of session means.
