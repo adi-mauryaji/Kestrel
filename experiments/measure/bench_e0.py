@@ -23,8 +23,10 @@ Threads are pinned one per physical core (llama-bench -C <mask> --cpu-strict 1),
 Kestrel runtime should run them; --no-pin disables it. Unpinned, two threads can share one
 core's SMT siblings: session 1's encoder latency was bimodal (~6.5 vs ~9.6 ms). ADR-011.
 
-Preconditions (Ch. 37.3) are recorded in every row; on battery the script refuses unless
---allow-battery, and then the rows say so. Energy is NOT measured here (Ch. 37.4).
+Preconditions (Ch. 37.3) are recorded in every row; on battery or with turbo boost on the script
+refuses unless --allow-battery / --allow-boost, and then the rows say so. Boost is off by protocol
+(ADR-012): with boost the CPU switches between a ~2.6 GHz and a ~2.0 GHz sustained regime
+depending on the last tens of minutes of load, which moves all throughput by 20-35%. Energy is NOT measured here (Ch. 37.4).
 
 Usage: .venv/bin/python experiments/measure/bench_e0.py [--rounds 3] [--no-pin] [--only NAME ...]
 """
@@ -120,6 +122,17 @@ def cpu_mask(cpus: list[int]) -> str:
     return format(sum(1 << c for c in cpus), "x")
 
 
+def protocol_problems(pre: dict, allow_battery: bool, allow_boost: bool) -> list[str]:
+    """Ch. 37.3 preconditions that stop a session unless explicitly allowed (rows record them anyway)."""
+    problems = []
+    if not pre["ac_online"] and not allow_battery:
+        problems.append("On battery: plug in (Ch. 37.3) or pass --allow-battery.")
+    if pre["boost"] != "0" and not allow_boost:
+        problems.append("Turbo boost is on: echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost "
+                        "(ADR-012) or pass --allow-boost.")
+    return problems
+
+
 def run_bench(args: list[str]) -> tuple[list[dict], float, float, list[float]]:
     """Run llama-bench; return (json rows, wall s, peak RSS MiB, CPU MHz samples) for that process."""
     samples: list[float] = []
@@ -158,6 +171,7 @@ def main() -> None:
     ap.add_argument("--cooldown", type=float, default=10.0, help="seconds between processes")
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--allow-battery", action="store_true")
+    ap.add_argument("--allow-boost", action="store_true", help="run with turbo boost on (not protocol)")
     args = ap.parse_args()
     cores = one_cpu_per_core(read_topology())
     args.threads = args.threads or len(cores)
@@ -166,8 +180,9 @@ def main() -> None:
     mask = None if args.no_pin else cpu_mask(cores[: args.threads])
 
     pre = conditions()
-    if not pre["ac_online"] and not args.allow_battery:
-        sys.exit("On battery: plug in (Ch. 37.3) or pass --allow-battery (rows will be flagged).")
+    problems = protocol_problems(pre, args.allow_battery, args.allow_boost)
+    if problems:
+        sys.exit("\n".join(problems))
 
     manifest = tomllib.loads((ROOT / "models/MANIFEST.toml").read_text())
     models = [m for m in manifest["model"]
@@ -219,6 +234,10 @@ def main() -> None:
                     time.sleep(args.cooldown)
                     bg = busy_pct(before, cpu_times())
                     c = conditions()
+                    problems = protocol_problems(c, args.allow_battery, args.allow_boost)
+                    if problems:  # e.g. charger unplugged mid-session: stop, don't mix regimes
+                        sys.exit(f"Session stopped before {m['name']} {kind}, round {rnd}: "
+                                 + " ".join(problems) + f" Partial CSV: {out_csv}")
                     rows, wall, rss, mhz = run_bench(cli)
                     t_after = cpu_temp_c()
                     f_mean, f_min = freq_summary(mhz)

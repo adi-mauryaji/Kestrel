@@ -1,4 +1,4 @@
-from bench_e0 import busy_pct, cpu_mask, freq_summary, one_cpu_per_core
+from bench_e0 import busy_pct, cpu_mask, freq_summary, one_cpu_per_core, protocol_problems
 
 
 def test_busy_pct_counts_only_non_idle_time():
@@ -35,3 +35,18 @@ def test_one_cpu_per_core_with_split_smt_siblings():
 def test_one_cpu_per_core_keeps_cores_of_different_packages_apart():
     topo = {0: ("0", "0"), 1: ("1", "0"), 2: ("0", "0"), 3: ("1", "0")}
     assert one_cpu_per_core(topo) == [0, 1]
+
+
+def test_protocol_accepts_ac_with_boost_off():
+    assert protocol_problems({"ac_online": True, "boost": "0"}, False, False) == []
+
+
+def test_protocol_rejects_boost_on_unless_allowed():
+    problems = protocol_problems({"ac_online": True, "boost": "1"}, False, False)
+    assert len(problems) == 1 and "boost" in problems[0]
+    assert protocol_problems({"ac_online": True, "boost": "1"}, False, True) == []
+
+
+def test_protocol_rejects_battery_unless_allowed():
+    assert "battery" in protocol_problems({"ac_online": False, "boost": "0"}, False, False)[0]
+    assert protocol_problems({"ac_online": False, "boost": "0"}, True, False) == []
