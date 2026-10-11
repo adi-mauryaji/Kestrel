@@ -1,0 +1,17 @@
+# Dataset manifest (blueprint Ch. 31, 32, 44.3). Raw files are NOT in git (datasets/raw/ is
+# ignored); this file is. `scripts/fetch_datasets.py` downloads each [[dataset]] from a pinned
+# commit into datasets/raw/<file> and verifies bytes + SHA-256. Licenses were read on `verified`.
+
+[[dataset]]
+name     = "clinc150"
+variant  = "full"
+repo     = "clinc/oos-eval"
+revision = "828f8093932c8fe6ca7936c3d2e52903b1c523de"
+file     = "clinc150/data_full.json"
+url      = "https://raw.githubusercontent.com/clinc/oos-eval/828f8093932c8fe6ca7936c3d2e52903b1c523de/data/data_full.json"
+bytes    = 2495390
+sha256   = "36923c3705a59e08fe9c3883d8bc2dd966ef93e22cb78ac41171782a698d56e0"
+# Also equals GitHub's git-blob SHA for this path at `revision` (7a7b26c5...), checked 2026-10-11.
+license  = "CC BY 3.0 Unported (repo LICENSE file). The blueprint cites CC BY 4.0 from the UCI listing; we use the repo copy."
+citation = "Larson et al. 2019. An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction. EMNLP-IJCNLP."
+verified = "2026-10-11"

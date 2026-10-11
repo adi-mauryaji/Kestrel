@@ -34,7 +34,7 @@ def download(url: str, dest: Path, expected_sha: str | None, expected_bytes: int
     if dest.exists() and (expected_bytes is None or dest.stat().st_size == expected_bytes):
         digest = sha256_of(dest)
         if expected_sha is None or digest == expected_sha:
-            print(f"  ok (cached)  {dest.relative_to(MODELS)}", flush=True)
+            print(f"  ok (cached)  {dest.relative_to(ROOT)}", flush=True)
             return digest
     dest.parent.mkdir(parents=True, exist_ok=True)
     part = dest.with_name(dest.name + ".part")
@@ -58,7 +58,7 @@ def download(url: str, dest: Path, expected_sha: str | None, expected_bytes: int
         part.unlink()
         sys.exit(f"SIZE MISMATCH for {dest.name}: expected {expected_bytes}, got {done}")
     part.rename(dest)
-    print(f"  ok (fetched) {dest.relative_to(MODELS)}", flush=True)
+    print(f"  ok (fetched) {dest.relative_to(ROOT)}", flush=True)
     return digest
 
 

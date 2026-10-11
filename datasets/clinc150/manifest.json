@@ -1,0 +1,105 @@
+{
+ "dataset": "clinc150-full",
+ "raw_sha256": "36923c3705a59e08fe9c3883d8bc2dd966ef93e22cb78ac41171782a698d56e0",
+ "seed": 0,
+ "oos_label": "oos",
+ "splits": {
+  "train": {
+   "n": 15000,
+   "n_oos": 0,
+   "n_intents": 150,
+   "fingerprint": "0397fd15263028cb74ccf5b533d9f1429b855c00fb4bfb0e619e06b0a7165a16"
+  },
+  "cal": {
+   "n": 1500,
+   "n_oos": 0,
+   "n_intents": 150,
+   "fingerprint": "b269cfa8803274f364f4e6bc285619f18a628a4208065cde2501c593a2b4944f"
+  },
+  "val": {
+   "n": 1700,
+   "n_oos": 200,
+   "n_intents": 150,
+   "fingerprint": "b1754f747ca2ffef97a6c792f610f4a09332728c35e97d0a29ae998feac784a2"
+  },
+  "test": {
+   "n": 5500,
+   "n_oos": 1000,
+   "n_intents": 150,
+   "fingerprint": "b13943f1cf1ef8e1af2e764f4c30a0c5819f7d2b6c6c6bd93b4736631a00af1a"
+  }
+ },
+ "cross_split_duplicates": 24,
+ "cross_split_duplicate_examples": [
+  [
+   "absolutely",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "bye",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "farewell",
+   [
+    "cal",
+    "train"
+   ]
+  ],
+  [
+   "goodbye",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "hello there",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "hey there",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "hey what's up",
+   [
+    "train",
+    "val"
+   ]
+  ],
+  [
+   "hiya",
+   [
+    "cal",
+    "train"
+   ]
+  ],
+  [
+   "hola",
+   [
+    "test",
+    "train"
+   ]
+  ],
+  [
+   "i need my account frozen",
+   [
+    "test",
+    "train"
+   ]
+  ]
+ ]
+}
