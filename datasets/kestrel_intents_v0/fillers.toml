@@ -1,0 +1,54 @@
+# Kestrel-Intents-v0 slot fillers (ADR-010). DRAFT by Claude, not yet reviewed.
+# A template may only use slots defined for its own language. Hinglish is Romanized.
+# English nouns stay English inside Hinglish (that's how it is typed); verb phrases follow Hindi order.
+# Topic fillers carry no article, so "my {topic} notes" and "notes about {topic}" both read naturally.
+
+[en]
+topic = ["python decorators", "budget meeting", "thesis", "client call", "rust lifetimes",
+         "marketing plan", "exam preparation", "goa trip", "quarterly goals", "research paper"]
+task = ["call asha", "pay the electricity bill", "submit the assignment", "buy groceries",
+        "book a doctor's appointment", "send the report to ravi", "water the plants",
+        "renew the gym membership", "review the pull request", "prepare the slides"]
+when = ["tomorrow", "today at 5 pm", "on friday", "next monday", "tonight", "this weekend",
+        "in two hours", "on 15 march"]
+doc = ["thesis.md", "notes/meeting-2026-10-01.md", "project-plan.txt", "todo.md", "ideas.md",
+       "reading-list.md"]
+task_id = ["3", "7", "12", "21", "42"]
+count = ["two", "three", "five"]
+pref = ["short answers", "bullet points", "a formal tone", "metric units", "replies in hinglish",
+        "replies without emojis"]
+fact = ["my sister's name is priya", "asha's birthday is on 5 march", "i'm vegetarian",
+        "my manager is ravi", "i wake up at 6 am", "my car is a white swift"]
+subject = ["my sister", "asha", "my diet", "my manager", "my morning routine"]
+city = ["delhi", "mumbai", "bangalore", "pune", "jaipur"]
+person = ["asha", "ravi", "mom", "priya", "the landlord"]
+song = ["kesariya", "bohemian rhapsody", "some lo-fi music", "arijit singh songs"]
+item = ["a phone charger", "running shoes", "a kilo of rice", "a birthday gift for asha",
+        "new headphones"]
+team = ["india", "rcb", "mumbai indians", "real madrid"]
+amount = ["250", "1200", "75"]
+
+[hi-en]
+topic = ["python decorators", "budget meeting", "thesis", "client call", "rust lifetimes",
+         "marketing plan", "exam preparation", "goa trip", "quarterly goals", "research paper"]
+task = ["asha ko call karna", "bijli ka bill bharna", "assignment submit karna", "grocery lena",
+        "doctor ka appointment book karna", "ravi ko report bhejna", "paudhon ko paani dena",
+        "gym membership renew karna", "pull request review karna", "slides banana"]
+when = ["kal", "aaj shaam 5 baje", "friday", "agle monday", "aaj raat", "is weekend",
+        "do ghante baad", "15 march"]
+doc = ["thesis.md", "notes/meeting-2026-10-01.md", "project-plan.txt", "todo.md", "ideas.md",
+       "reading-list.md"]
+task_id = ["3", "7", "12", "21", "42"]
+count = ["2", "3", "5"]
+pref = ["short answers", "bullet points", "formal tone", "metric units", "hinglish mein replies",
+        "bina emoji wale replies"]
+fact = ["meri sister ka naam priya hai", "asha ka birthday 5 march ko hai", "main vegetarian hoon",
+        "mera manager ravi hai", "main 6 baje uthta hoon", "meri car white swift hai"]
+subject = ["meri sister", "asha", "meri diet", "mere manager", "meri morning routine"]
+city = ["delhi", "mumbai", "bangalore", "pune", "jaipur"]
+person = ["asha", "ravi", "mummy", "priya", "landlord"]
+song = ["kesariya", "bohemian rhapsody", "lo-fi music", "arijit singh ke gaane"]
+item = ["phone charger", "running shoes", "ek kilo chawal", "asha ke liye birthday gift",
+        "naye headphones"]
+team = ["india", "rcb", "mumbai indians", "real madrid"]
+amount = ["250", "1200", "75"]
