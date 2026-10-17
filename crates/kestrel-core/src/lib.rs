@@ -4,6 +4,7 @@
 pub mod error;
 pub mod normalize;
 pub mod prob;
+pub mod resources;
 pub mod tier_model;
 pub mod types;
 

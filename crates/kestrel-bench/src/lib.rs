@@ -9,6 +9,6 @@ pub mod timing;
 
 pub use csv::CsvWriter;
 pub use results::{LATENCY_SUMMARY_HEADER, LatencySummary};
-pub use rss::{kib_to_mib, peak_rss_kib};
+pub use rss::{RssBreakdown, kib_to_mib, peak_rss_kib, rss_breakdown};
 pub use stats::{LatencyStats, summarize};
 pub use timing::measure;

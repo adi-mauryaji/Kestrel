@@ -1,0 +1,27 @@
+[package]
+name = "kestrel-inference"
+description = "Kestrel Tier 4: the Generator contract, a mock, and the llama.cpp adapter (feature \"llama\")"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+# Off by default so core tests build without the native library (Ch. 26.3, "Native deps").
+llama = ["dep:llama-cpp-2", "dep:llama-cpp-sys-2"]
+
+[dependencies]
+kestrel-core.workspace = true
+llama-cpp-2 = { workspace = true, optional = true }
+# Not used directly: listed so the exact pin of the sys crate (ADR-007) applies.
+llama-cpp-sys-2 = { workspace = true, optional = true }
+
+[dev-dependencies]
+kestrel-bench.workspace = true
+
+[[example]]
+name = "generate"
+required-features = ["llama"]
+
+[lints]
+workspace = true

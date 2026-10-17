@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-nlu"]
+members = ["crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,6 +10,7 @@ license = "MIT OR Apache-2.0"
 
 # Exact pins (`=x.y.z`) for runtime bindings (Ch. 45.2). Add shared deps here.
 [workspace.dependencies]
+kestrel-bench = { path = "crates/kestrel-bench" }
 kestrel-core = { path = "crates/kestrel-core" }
 # Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
