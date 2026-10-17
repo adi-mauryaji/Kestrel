@@ -104,3 +104,20 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset · δ, δ₃ after the pilot · contribution framing given the prior work in
 `docs/research_questions.md` (the calibrated cascade itself is not new; the Hinglish evaluation is the most distinctive part).
+
+Proposed 2026-10-17 from round-6 reading (Claude's proposals; none is adopted until the human decides):
+
+- **[decide] D9: add R2c, a calibrated cascade with one shared τ** (per-tier temperature, a single threshold chosen on val;
+  the CAUC design, zhang2026cauc). R3 vs R2 changes the temperature *and* the threshold policy at once, so H2 cannot tell
+  which helped. With R2c: R2c vs R2 isolates calibration (H2), and R3 vs R2c isolates per-tier thresholds (exploratory or a
+  new secondary hypothesis). Cost: offline only (same logged tier outputs); no extra measurement runs.
+- **[decide] D10: add a cost-matched random-escalation baseline** (R-rand) to E1/E2: at each tier, escalate a seeded random
+  subset with the same escalation rate as R3. wang2026misguided finds that no commercial router beats random routing at
+  matched cost; chaganti2026ondevicener reports the same comparison. Computed offline from logged per-tier outputs and
+  measured per-tier costs (expectation over ≥ 1000 seeds). Open: reported as a reference only, or tested as a secondary
+  hypothesis "R3 beats R-rand at matched cost".
+- **[decide] D11: report per-language escalation rate and cost under RQ7**: the share of requests reaching Tier 4 and the
+  mean latency, per `lang`. moslem2026routingsurvey (ethics section) warns that cost-optimized routing can give
+  non-standard language worse quality and a higher cost; jitkrittum2023deferral shows confidence deferral is weakest
+  under distribution shift. Open: descriptive only, or a new secondary hypothesis H7c "hi-en requests escalate to Tier 4
+  more often than en requests" (paired by template family where possible).
