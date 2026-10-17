@@ -1,0 +1,27 @@
+import pytest
+
+from splits import CLINC_RAW, DEV_SPLITS, load_splits
+
+
+def test_dev_splits_never_include_test():
+    # The test sets are touched once, after the PREREG freeze (Ch. 34.6). Tier-3 work stops at val.
+    assert DEV_SPLITS == ("train", "cal", "val")
+
+
+def test_intents_v0_splits_have_the_frozen_sizes_and_fields():
+    s = load_splits("intents_v0")
+    assert set(s) == set(DEV_SPLITS)
+    assert [len(s[k]) for k in DEV_SPLITS] == [604, 100, 128]
+    row = s["val"][0]
+    assert {"text", "label", "lang"} <= set(row)
+
+
+@pytest.mark.skipif(not CLINC_RAW.exists(), reason="needs datasets/raw (scripts/fetch_datasets.py)")
+def test_clinc150_splits_match_the_manifest_sizes():
+    s = load_splits("clinc150")
+    assert [len(s[k]) for k in DEV_SPLITS] == [15000, 1500, 1700]
+
+
+def test_unknown_dataset_is_an_error():
+    with pytest.raises(KeyError):
+        load_splits("banking77")

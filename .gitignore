@@ -18,3 +18,8 @@ datasets/raw/
 
 # Third-party sources built locally (scripts/build_llama.sh)
 /third_party/
+
+# Embedding cache (experiments/tier3/embed.py), recomputable
+/experiments/cache/
+# Trained heads from experiments/tier3/train.py (results are logged in experiments/logs/tier3/)
+/experiments/artifacts/

@@ -1,0 +1,22 @@
+{
+ "format": 1,
+ "classes": [
+  "search_notes",
+  "read_document",
+  "create_task",
+  "delete_task",
+  "summarize_notes",
+  "set_preference",
+  "retrieve_memory",
+  "chitchat",
+  "unsupported"
+ ],
+ "dim": 16,
+ "temperature": 1.7000000476837158,
+ "weights": "head.bin",
+ "bias": "head_bias.bin",
+ "weights_sha256": "0d5278e04c953a48ef7edbc047862fea442a7772c5776f5f170fbd861adb1629",
+ "bias_sha256": "ee75c1de56fd6511ebd38bc062258288282b87f002355f56a0537640b28105fa",
+ "purpose": "Python<->Rust LinearHead parity fixture (experiments/tier3/head.py)",
+ "seed": 0
+}

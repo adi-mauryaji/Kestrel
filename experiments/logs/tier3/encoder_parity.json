@@ -1,0 +1,31 @@
+{
+ "texts": 100,
+ "reference": "intfloat/multilingual-e5-small (PyTorch, mean pool, L2)",
+ "torch": "2.11.0+cpu",
+ "results": {
+  "multilingual-e5-small-f16": {
+   "tolerance_min_cosine": 0.9999,
+   "min_cosine": 0.9999986886978149,
+   "mean_cosine": 0.9999995231628418,
+   "min_cosine_by_lang": {
+    "en": 0.9999986886978149,
+    "hi-en": 0.9999991655349731
+   },
+   "max_abs_diff": 0.00032426416873931885,
+   "worst_text": "don't let me forget to pay the electricity bill",
+   "pass": true
+  },
+  "multilingual-e5-small-q8_0": {
+   "tolerance_min_cosine": 0.999,
+   "min_cosine": 0.999813437461853,
+   "mean_cosine": 0.9998738169670105,
+   "min_cosine_by_lang": {
+    "en": 0.9998185634613037,
+    "hi-en": 0.999813437461853
+   },
+   "max_abs_diff": 0.004017774015665054,
+   "worst_text": "help chahiye",
+   "pass": true
+  }
+ }
+}

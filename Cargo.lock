@@ -25,6 +25,8 @@ name = "kestrel-nlu"
 version = "0.1.0"
 dependencies = [
  "kestrel-core",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
