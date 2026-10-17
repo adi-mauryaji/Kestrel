@@ -42,5 +42,20 @@ Findings:
 Cost on the laptop: embedding 19,032 texts × 2 encoders took 5.5 min. Training took 8 min wall-clock on all 12 threads
 (94 CPU-minutes), almost all of it the CLINC150 C grid. The time of one fit was not measured first, as Ch. 33.3 asks.
 
-Open for the human: **which encoder** (one for both datasets, or one per dataset). If e5 is chosen, an F16 vs Q8_0 check
-of macro-F1 and ECE is still due (Ch. 11.4).
+Encoder choice (human, 2026-10-17, replying "continue" to Claude's recommendation): **multilingual-e5-small for both
+datasets**, accepting ~1.5 pp on CLINC150 Tier 3 for one system that covers Hinglish (ADR-014).
+
+### e5 F16 vs Q8_0 (2026-10-17, Ch. 11.4)
+
+After the human chose multilingual-e5-small, both quantizations were run with C fixed at 100 (the C chosen for Q8_0 on
+both datasets): `python experiments/tier3/train.py --encoders multilingual-e5-small-f16 --c 100`
+(`week5_e5_f16.json`; one fit was timed first: CLINC150 64 s, Intents-v0 2 s).
+
+| Dataset | F16 acc / F1 / ECE (calibrated) | Q8_0 acc / F1 / ECE (calibrated) |
+|---|---|---|
+| Intents-v0 (n = 104) | 0.894 / 0.889 / 0.085 | 0.885 / 0.882 / 0.054 |
+| CLINC150 (n = 1500) | 0.959 / 0.959 / 0.010 | 0.960 / 0.960 / 0.012 |
+
+Q8_0 matches F16 within noise: 1 Intents-v0 item and 1 CLINC150 item apart, ECE within ±0.03 on 104 items. It is half
+the size (0.13 vs 0.24 GB) and faster in E0 (≈ 9.0 vs 10.3 ms per 32-token pass). **Recommendation: the Tier-3 runtime
+uses multilingual-e5-small Q8_0.**

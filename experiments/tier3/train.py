@@ -11,6 +11,7 @@ For each dataset x encoder, on the development splits only (the test sets stay c
      inputs + Python probabilities (cases.json) for the Rust parity check.
 
     python experiments/tier3/train.py                  # writes experiments/logs/tier3/week5_dev.json
+    python experiments/tier3/train.py --encoders multilingual-e5-small-f16 --c 100 --out …/e5_quant.json
 """
 from __future__ import annotations
 
@@ -72,7 +73,7 @@ def _scores(p, y, classes):
             "ece": ece(conf.tolist(), (pred == y).tolist(), n_bins=ECE_BINS)}
 
 
-def run(dataset, encoder_name):
+def run(dataset, encoder_name, c_grid=C_GRID):
     enc = load_encoder(encoder_name)
     splits = load_splits(dataset)
     classes = classes_for(dataset, splits)
@@ -83,7 +84,7 @@ def run(dataset, encoder_name):
     x_tr, x_cal, x_val = x["train"][tr_keep], x["cal"][cal_keep], x["val"][val_keep]
 
     c_scores = {}
-    for c in C_GRID:
+    for c in c_grid:
         w, b = train_head(x_tr, y_tr, len(classes), c)
         pred = logits(x_val, w, b).argmax(axis=1)
         c_scores[c] = macro_f1([classes[i] for i in y_val], [classes[i] for i in pred])
@@ -136,19 +137,22 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--datasets", nargs="+", default=["intents_v0", "clinc150"])
     ap.add_argument("--encoders", nargs="+", default=["bge-small-en-v1.5-q8_0", "multilingual-e5-small-q8_0"])
+    ap.add_argument("--c", type=float, help="fixed C instead of the grid (one fit per run; Ch. 33.3 cost)")
+    ap.add_argument("--out", type=Path, default=LOG, help="results JSON")
     args = ap.parse_args(argv)
     results = []
     for ds in args.datasets:
         for name in args.encoders:
-            r = run(ds, name)
+            r = run(ds, name, (args.c,) if args.c else C_GRID)
             results.append(r)
             raw, cal = r["val_raw"], r["val_calibrated"]
             print(f"{ds:10s} {name:28s} C={r['c']:<6g} T={r['temperature']:.3f} cal_err={r['cal_errors']:<3d} "
                   f"val acc={cal['accuracy']:.3f} F1={cal['macro_f1']:.3f} "
                   f"ECE {raw['ece']:.3f}->{cal['ece']:.3f}", flush=True)
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    LOG.write_text(json.dumps(results, indent=1) + "\n")
-    print(f"wrote {LOG.relative_to(ROOT)}")
+    out = args.out.resolve()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(results, indent=1) + "\n")
+    print(f"wrote {out.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
