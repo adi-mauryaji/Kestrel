@@ -5,8 +5,10 @@
 //! - Weights load without mmap (PREREG D12), so peak RSS is the real footprint.
 //! - Greedy decoding only; any other temperature is rejected until sampling is implemented with
 //!   a recorded seed.
-//! - A context (KV cache) is created per call: simple and stateless between requests. Its cost
-//!   is measured by `examples/generate.rs` before deciding whether to reuse contexts.
+//! - `LlamaSlm` owns the weights; `LlamaSession` owns one context (KV cache) and implements
+//!   `Generator`. A session clears its KV cache before each call instead of creating a new
+//!   context: creating one cost ~160 ms per call (Qwen3-1.7B, n_ctx 2048), which would have
+//!   inflated every Tier-4 latency and the always-SLM baseline R0.
 //! - Prompts are tokenized by `str_to_token`, which parses special-token text. Callers that put
 //!   user text into a prompt must neutralize control tokens first (prompt builder, Week 6).
 
@@ -18,6 +20,7 @@ use std::time::Instant;
 use kestrel_core::resources::{CancelToken, Deadline, check};
 use kestrel_core::{KestrelError, Tier};
 use llama_cpp_2::TokenToStringError;
+use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
@@ -60,12 +63,13 @@ impl Default for LlamaConfig {
     }
 }
 
-pub struct LlamaGenerator {
+/// A loaded GGUF model. Generation happens in a `LlamaSession` borrowed from it.
+pub struct LlamaSlm {
     model: LlamaModel,
     cfg: LlamaConfig,
 }
 
-impl LlamaGenerator {
+impl LlamaSlm {
     pub fn load(path: &Path, cfg: LlamaConfig) -> Result<Self, KestrelError> {
         if !path.is_file() {
             return Err(KestrelError::Storage(format!(
@@ -90,15 +94,13 @@ impl LlamaGenerator {
             .with_n_threads_batch(self.cfg.n_threads)
     }
 
-    /// Milliseconds to create (and drop) one context: the per-call overhead inside TTFT.
-    pub fn probe_context_ms(&self) -> Result<f64, KestrelError> {
-        let t0 = Instant::now();
+    /// One context for repeated generations (one session per concurrent generation).
+    pub fn session(&self) -> Result<LlamaSession<'_>, KestrelError> {
         let ctx = self
             .model
             .new_context(backend()?, self.context_params())
             .map_err(|_| KestrelError::ModelUnavailable(Tier::Generative))?;
-        drop(ctx);
-        Ok(t0.elapsed().as_secs_f64() * 1e3)
+        Ok(LlamaSession { slm: self, ctx })
     }
 
     /// Prompt tokens as the model will see them (special-token text is parsed).
@@ -121,7 +123,12 @@ impl LlamaGenerator {
     }
 }
 
-impl Generator for LlamaGenerator {
+pub struct LlamaSession<'m> {
+    slm: &'m LlamaSlm,
+    ctx: LlamaContext<'m>,
+}
+
+impl Generator for LlamaSession<'_> {
     fn generate(
         &mut self,
         prompt: &str,
@@ -137,8 +144,9 @@ impl Generator for LlamaGenerator {
                 "only greedy decoding (temperature 0) is implemented",
             ));
         }
-        let prompt_tokens = self.tokenize(prompt)?;
-        let n_ctx = self.cfg.n_ctx as usize;
+        let slm = self.slm;
+        let prompt_tokens = slm.tokenize(prompt)?;
+        let n_ctx = slm.cfg.n_ctx as usize;
         if prompt_tokens.is_empty() || prompt_tokens.len() + p.max_tokens > n_ctx {
             return Err(invalid(format!(
                 "prompt ({} tokens) + max_tokens ({}) must fit the context ({n_ctx})",
@@ -147,10 +155,8 @@ impl Generator for LlamaGenerator {
             )));
         }
 
-        let mut ctx = self
-            .model
-            .new_context(backend()?, self.context_params())
-            .map_err(|_| KestrelError::ModelUnavailable(Tier::Generative))?;
+        let ctx = &mut self.ctx;
+        ctx.clear_kv_cache(); // nothing from the previous request may leak into this one
 
         // Prefill: the whole prompt in one batch; logits only for the last position.
         let mut batch = LlamaBatch::new(n_ctx, 1);
@@ -170,8 +176,8 @@ impl Generator for LlamaGenerator {
             if n >= p.max_tokens {
                 break StopReason::MaxTokens;
             }
-            let token = sampler.sample(&ctx, batch.n_tokens() - 1);
-            if self.model.is_eog_token(token) {
+            let token = sampler.sample(ctx, batch.n_tokens() - 1);
+            if slm.model.is_eog_token(token) {
                 let tail = std::mem::take(&mut utf8).finish();
                 if !tail.is_empty() {
                     on_token(&tail);
@@ -180,7 +186,7 @@ impl Generator for LlamaGenerator {
             }
             n += 1;
             ttft.get_or_insert_with(elapsed_ms);
-            let text = utf8.push(&self.piece(token)?);
+            let text = utf8.push(&slm.piece(token)?);
             if !text.is_empty() {
                 on_token(&text);
                 out.push_str(&text);
@@ -219,7 +225,7 @@ mod tests {
 
     use super::*;
 
-    fn generator() -> LlamaGenerator {
+    fn slm() -> LlamaSlm {
         let rel = std::env::var("KESTREL_SLM").expect("set KESTREL_SLM to a GGUF model path");
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let path = PathBuf::from(&rel);
@@ -228,7 +234,7 @@ mod tests {
         } else {
             workspace.join(path)
         };
-        LlamaGenerator::load(&path, LlamaConfig::default()).unwrap()
+        LlamaSlm::load(&path, LlamaConfig::default()).unwrap()
     }
 
     fn far() -> Deadline {
@@ -240,7 +246,8 @@ mod tests {
     #[test]
     #[ignore = "needs KESTREL_SLM"]
     fn generates_up_to_max_tokens_with_timing() {
-        let mut g = generator();
+        let m = slm();
+        let mut g = m.session().unwrap();
         let mut text = String::new();
         let st = g
             .generate(
@@ -261,8 +268,9 @@ mod tests {
 
     #[test]
     #[ignore = "needs KESTREL_SLM"]
-    fn greedy_decoding_is_deterministic() {
-        let mut g = generator();
+    fn greedy_decoding_is_deterministic_and_sessions_forget_earlier_calls() {
+        let m = slm();
+        let mut g = m.session().unwrap();
         let mut run = || {
             let mut text = String::new();
             g.generate(
@@ -275,13 +283,30 @@ mod tests {
             .unwrap();
             text
         };
-        assert_eq!(run(), run());
+        let first = run();
+        // Same session: the KV cache from the first call must not change the second.
+        assert_eq!(first, run());
+        let fresh = {
+            let mut s = m.session().unwrap();
+            let mut text = String::new();
+            s.generate(
+                PROMPT,
+                &GenParams::greedy(24),
+                &CancelToken::new(),
+                &far(),
+                &mut |t| text.push_str(t),
+            )
+            .unwrap();
+            text
+        };
+        assert_eq!(first, fresh);
     }
 
     #[test]
     #[ignore = "needs KESTREL_SLM"]
     fn cancellation_stops_within_one_token() {
-        let mut g = generator();
+        let m = slm();
+        let mut g = m.session().unwrap();
         let cancel = CancelToken::new();
         let c2 = cancel.clone();
         let mut pieces = 0;
@@ -298,7 +323,8 @@ mod tests {
     #[test]
     #[ignore = "needs KESTREL_SLM"]
     fn an_expired_deadline_times_out() {
-        let mut g = generator();
+        let m = slm();
+        let mut g = m.session().unwrap();
         let r = g.generate(
             PROMPT,
             &GenParams::greedy(8),
@@ -317,7 +343,8 @@ mod tests {
     #[test]
     #[ignore = "needs KESTREL_SLM"]
     fn rejects_sampling_and_oversized_requests() {
-        let mut g = generator();
+        let m = slm();
+        let mut g = m.session().unwrap();
         let sampled = GenParams {
             temperature: 0.7,
             ..GenParams::greedy(8)
@@ -336,7 +363,7 @@ mod tests {
 
     #[test]
     fn a_missing_model_file_is_a_storage_error() {
-        let r = LlamaGenerator::load(Path::new("/no/such/model.gguf"), LlamaConfig::default());
+        let r = LlamaSlm::load(Path::new("/no/such/model.gguf"), LlamaConfig::default());
         assert!(matches!(r, Err(KestrelError::Storage(_))));
     }
 }
