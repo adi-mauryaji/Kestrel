@@ -2,6 +2,7 @@
 //! deterministic `MockGenerator`; the llama.cpp adapter sits behind the "llama" feature.
 
 pub mod generate;
+pub mod labels;
 pub mod utf8;
 
 pub use generate::{GenParams, GenStats, Generator, MockGenerator, StopReason};

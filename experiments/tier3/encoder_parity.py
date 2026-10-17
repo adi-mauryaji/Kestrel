@@ -24,20 +24,11 @@ from transformers import AutoModel, AutoTokenizer
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from embed import load_encoder, model_input, run_llama_embedding  # noqa: E402
-from splits import INTENTS_V0  # noqa: E402
+from splits import parity_texts  # noqa: E402
 
 SOURCE = ROOT / "models" / "src" / "multilingual-e5-small"
 TOLERANCE = {"multilingual-e5-small-f16": 0.9999, "multilingual-e5-small-q8_0": 0.999}
 LOG = ROOT / "experiments" / "logs" / "tier3" / "encoder_parity.json"
-
-
-def parity_texts(n_per_lang: int = 50) -> list[dict]:
-    rows = sorted((json.loads(l) for l in (INTENTS_V0 / "train.jsonl").open(encoding="utf-8")),
-                  key=lambda r: r["id"])
-    out = []
-    for lang in ("en", "hi-en"):
-        out += [r for r in rows if r["lang"] == lang][:n_per_lang]
-    return out
 
 
 @torch.no_grad()

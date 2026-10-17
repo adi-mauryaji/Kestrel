@@ -18,9 +18,15 @@ llama-cpp-sys-2 = { workspace = true, optional = true }
 
 [dev-dependencies]
 kestrel-bench.workspace = true
+kestrel-nlu.workspace = true
+serde_json.workspace = true
 
 [[example]]
 name = "generate"
+required-features = ["llama"]
+
+[[example]]
+name = "embed_texts"
 required-features = ["llama"]
 
 [lints]

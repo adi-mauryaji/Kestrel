@@ -1,9 +1,12 @@
 """experiments/tier3/embed.py -- Tier-3 embedding cache (blueprint Ch. 33.2 steps 1-2).
 
-Embeds texts with a frozen GGUF sentence encoder through llama.cpp's `llama-embedding`: the same
-engine and commit (26394b4e, ADR-006) that the Rust runtime links through `llama-cpp-2`, so the
-head is trained on the vectors it will see at inference time. Embeddings are L2-normalized and
-pooled the way the GGUF file says (bge: CLS, e5: mean).
+Embeds texts with a frozen GGUF sentence encoder through **the Tier-3 runtime path**: the Rust
+`LlamaEmbedSession` (llama-cpp-2, llama.cpp 26394b4e), one text at a time, via the release example
+`embed_texts`. llama.cpp's numerics depend on the batch size: a 100-text `llama-embedding` batch
+differs from single texts by up to ~3e-3 per component (cosine ~0.9999), so a cache built from
+CLI batches would train the head on vectors the runtime never produces (train/serve skew).
+`run_llama_embedding` (CLI, batched) stays for timing and for reference checks. Embeddings are
+L2-normalized and pooled the way the GGUF file says (bge: CLS, e5: mean).
 
 What the encoder sees is `prefix + normalize(text)`:
 - normalize = kestrel_core::normalize (prep.norm_text), because the Rust Request carries
@@ -11,8 +14,10 @@ What the encoder sees is `prefix + normalize(text)`:
 - prefix = what the encoder was trained with: multilingual-e5 expects "query: " (its model card),
   bge-small-en-v1.5 needs no instruction for classification.
 
-Cache: one .npy per (encoder SHA-256, prefix, ordered input texts) under experiments/cache/
-(not in git). Delete the folder to recompute.
+Cache: one .npy per (encoder SHA-256, prefix, embedding path, ordered input texts) under
+experiments/cache/ (not in git). Delete the folder to recompute.
+
+    cargo build --release -p kestrel-inference --features llama --example embed_texts   # once
 
     python experiments/tier3/embed.py --time 200     # Ch. 33.3: time 200 items, extrapolate
 """
@@ -36,6 +41,8 @@ sys.path.insert(0, str(ROOT / "experiments" / "data"))
 from prep import norm_text  # noqa: E402
 
 LLAMA_EMBEDDING = ROOT / "third_party" / "llama.cpp" / "build" / "bin" / "llama-embedding"
+EMBED_TEXTS = ROOT / "target" / "release" / "examples" / "embed_texts"
+RUNTIME_ROUTE = "runtime-single-v1"  # cache-key tag of run_runtime_embedder
 MODELS_MANIFEST = ROOT / "models" / "MANIFEST.toml"
 CACHE_DIR = ROOT / "experiments" / "cache" / "embeddings"
 
@@ -95,18 +102,39 @@ def run_llama_embedding(encoder: Encoder, inputs: list[str], threads: int = 6) -
     return parse_array_output(done.stdout, len(inputs))
 
 
-def cache_key(encoder: Encoder, texts: list[str]) -> str:
+def run_runtime_embedder(encoder: Encoder, inputs: list[str]) -> np.ndarray:
+    """The Rust runtime embedder (`embed_texts`), one text at a time, as Tier 3 runs at inference."""
+    if not EMBED_TEXTS.exists():
+        raise FileNotFoundError(f"{EMBED_TEXTS} missing: cargo build --release -p kestrel-inference "
+                                "--features llama --example embed_texts")
+    if any("\n" in s for s in inputs):
+        raise ValueError("inputs must be single lines")
+    with tempfile.TemporaryDirectory() as d:
+        src, dst = Path(d) / "inputs.txt", Path(d) / "out.f32"
+        src.write_text("\n".join(inputs) + "\n", encoding="utf-8")
+        done = subprocess.run([str(EMBED_TEXTS), str(encoder.path), str(src), str(dst)],
+                              capture_output=True, text=True)
+        if done.returncode != 0:
+            raise RuntimeError(f"embed_texts failed ({done.returncode}): {done.stderr[-2000:]}")
+        n, dim = map(int, done.stdout.split())
+        if n != len(inputs):
+            raise ValueError(f"got {n} embeddings, expected {len(inputs)}")
+        return np.fromfile(dst, dtype="<f4").reshape(n, dim).astype(np.float32)
+
+
+def cache_key(encoder: Encoder, texts: list[str], route: str = RUNTIME_ROUTE) -> str:
     h = hashlib.sha256()
-    for part in (encoder.sha256, encoder.prefix, *texts):
+    for part in (encoder.sha256, encoder.prefix, route, *texts):
         h.update(part.encode("utf-8"))
         h.update(b"\x00")  # separator, so ("ab", "c") and ("a", "bc") differ
     return h.hexdigest()
 
 
 def embed(encoder: Encoder, texts: list[str], *, chunk: int = 512, cache_dir: Path = CACHE_DIR,
-          runner=run_llama_embedding) -> np.ndarray:
-    """[len(texts) x dim] float32 embeddings of `texts`, in order; cached on disk."""
-    key = cache_key(encoder, texts)
+          runner=run_runtime_embedder, route: str = RUNTIME_ROUTE) -> np.ndarray:
+    """[len(texts) x dim] float32 embeddings of `texts`, in order; cached on disk. `route` names
+    the embedding path in the cache key; pass a different tag with a different runner."""
+    key = cache_key(encoder, texts, route)
     path = cache_dir / f"{encoder.name}-{key[:20]}.npy"
     if path.exists():
         return np.load(path)
@@ -116,9 +144,25 @@ def embed(encoder: Encoder, texts: list[str], *, chunk: int = 512, cache_dir: Pa
     cache_dir.mkdir(parents=True, exist_ok=True)
     np.save(path, x)
     path.with_suffix(".json").write_text(json.dumps(
-        {"encoder": encoder.name, "sha256": encoder.sha256, "prefix": encoder.prefix,
+        {"encoder": encoder.name, "sha256": encoder.sha256, "prefix": encoder.prefix, "route": route,
          "n": len(texts), "dim": int(x.shape[1]), "key": key}, indent=1))
     return x
+
+
+def write_embed_cases(out: Path, encoder_name: str = "multilingual-e5-small-q8_0", n: int = 10,
+                      runner=run_llama_embedding) -> Path:
+    """Reference vectors for the Rust embedder test: `llama-embedding` on each parity text in its
+    own run (batch size 1, like the runtime). First n/2 English and n/2 Hinglish parity texts."""
+    from splits import parity_texts
+    enc = load_encoder(encoder_name)
+    rows = parity_texts(n // 2)
+    inputs = [model_input(r["text"], enc.prefix) for r in rows]
+    x = np.concatenate([runner(enc, [s]) for s in inputs])
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({"encoder": encoder_name, "sha256": enc.sha256, "tolerance_max_abs": 1e-6,
+                               "inputs": inputs, "embeddings": x.astype(np.float64).tolist()}) + "\n")
+    return out
 
 
 def main(argv=None):
@@ -127,7 +171,10 @@ def main(argv=None):
     ap.add_argument("--cache", action="store_true", help="embed the dev splits (train/cal/val) of --datasets")
     ap.add_argument("--encoders", nargs="+", default=["bge-small-en-v1.5-q8_0", "multilingual-e5-small-q8_0"])
     ap.add_argument("--datasets", nargs="+", default=["intents_v0", "clinc150"])
+    ap.add_argument("--embed-cases", type=Path, metavar="OUT", help="write Rust embedder parity cases")
     args = ap.parse_args(argv)
+    if args.embed_cases:
+        print(write_embed_cases(args.embed_cases))
     from splits import load_splits
     if args.time:
         texts = [r["text"] for r in load_splits("clinc150")["train"][: args.time]]

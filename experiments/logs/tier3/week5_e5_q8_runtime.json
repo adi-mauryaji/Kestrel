@@ -1,0 +1,77 @@
+[
+ {
+  "dataset": "intents_v0",
+  "encoder": "multilingual-e5-small-q8_0",
+  "classes": 9,
+  "c_grid_val_macro_f1": {
+   "100.0": 0.8821367437422218
+  },
+  "c": 100.0,
+  "temperature": 0.6878183675590189,
+  "temperature_note": "fitted on cal",
+  "cal_n": 100,
+  "cal_errors": 11,
+  "val_raw": {
+   "n": 104,
+   "accuracy": 0.8846153846153846,
+   "macro_f1": 0.8821367437422218,
+   "ece": 0.10467046089581088,
+   "nll": 0.4777178182278004
+  },
+  "val_calibrated": {
+   "n": 104,
+   "accuracy": 0.8846153846153846,
+   "macro_f1": 0.8821367437422218,
+   "ece": 0.05784692658977664,
+   "nll": 0.45084316097745847
+  },
+  "val_calibrated_en": {
+   "n": 52,
+   "accuracy": 0.9230769230769231,
+   "macro_f1": 0.9277777777777777,
+   "ece": 0.09001559848970173
+  },
+  "val_calibrated_hi-en": {
+   "n": 52,
+   "accuracy": 0.8461538461538461,
+   "macro_f1": 0.8385219718553052,
+   "ece": 0.09929299285325383
+  },
+  "val_compound": {
+   "n": 24,
+   "mean_top_prob": 0.8855648881729348,
+   "mean_top_prob_single": 0.8780997598474811
+  }
+ },
+ {
+  "dataset": "clinc150",
+  "encoder": "multilingual-e5-small-q8_0",
+  "classes": 150,
+  "c_grid_val_macro_f1": {
+   "100.0": 0.9596913379317471
+  },
+  "c": 100.0,
+  "temperature": 0.6658952142912156,
+  "temperature_note": "fitted on cal",
+  "cal_n": 1500,
+  "cal_errors": 48,
+  "val_raw": {
+   "n": 1500,
+   "accuracy": 0.96,
+   "macro_f1": 0.9596913379317471,
+   "ece": 0.05351026726118036,
+   "nll": 0.1818447019880676
+  },
+  "val_calibrated": {
+   "n": 1500,
+   "accuracy": 0.96,
+   "macro_f1": 0.9596913379317471,
+   "ece": 0.009810277903769931,
+   "nll": 0.13997148413081265
+  },
+  "val_oos": {
+   "n": 200,
+   "auroc_top_prob": 0.9550666666666666
+  }
+ }
+]

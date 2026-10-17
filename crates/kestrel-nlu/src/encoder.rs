@@ -15,12 +15,8 @@ use kestrel_core::prob::softmax;
 use kestrel_core::{Intent, KestrelError, Request, Tier, TierModel};
 use serde::Deserialize;
 
-/// Anything that maps text to a fixed-size vector. Production: the GGUF encoder through
-/// llama.cpp. It receives exactly what Python embedded: `input_prefix + normalized text`.
-pub trait Embedder {
-    fn dim(&self) -> usize;
-    fn embed(&self, text: &str) -> Result<Vec<f32>, KestrelError>;
-}
+/// Defined in core so the llama.cpp embedder (kestrel-inference) needn't depend on this crate.
+pub use kestrel_core::Embedder;
 
 const FORMAT: u32 = 1;
 

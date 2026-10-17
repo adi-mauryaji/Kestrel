@@ -59,3 +59,17 @@ both datasets): `python experiments/tier3/train.py --encoders multilingual-e5-sm
 Q8_0 matches F16 within noise: 1 Intents-v0 item and 1 CLINC150 item apart, ECE within ±0.03 on 104 items. It is half
 the size (0.13 vs 0.24 GB) and faster in E0 (≈ 9.0 vs 10.3 ms per 32-token pass). **Recommendation: the Tier-3 runtime
 uses multilingual-e5-small Q8_0.**
+
+### Train/serve parity of embeddings (2026-10-17)
+
+The Rust runtime embedder (`LlamaEmbedSession`, one text at a time) differed from the training cache by up to 2.9e-3 per
+component (cosine ≈ 0.9999). Cause: llama.cpp's numerics depend on the batch size. `llama-embedding` gives the same
+difference between a 100-text batch and a single text (e.g. "query: hi": 2.05e-3), while Rust and the CLI agree to 5e-8
+on single texts. The cache built from 2048-text CLI batches was therefore training the head on vectors the runtime never
+produces.
+
+Fix: the cache now uses the runtime path (`embed_texts` example, one text at a time; cache key tag `runtime-single-v1`).
+19,032 texts took ~3 min. The e5 Q8_0 heads were retrained at C = 100 (`week5_e5_q8_runtime.json`). Accuracy and macro-F1
+are unchanged on both datasets; ECE moved by ≤ 0.004 (Intents-v0 0.054 → 0.058, CLINC150 0.012 → 0.010); OOS AUROC
+0.9552 → 0.9551. The skew was small, but now train and serve match by construction. The bge rows and the F16 check above
+used the CLI-batch cache.

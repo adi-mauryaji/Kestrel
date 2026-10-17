@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from embed import (
+    EMBED_TEXTS,
     LLAMA_EMBEDDING,
     Encoder,
     cache_key,
@@ -10,6 +11,7 @@ from embed import (
     model_input,
     parse_array_output,
     run_llama_embedding,
+    run_runtime_embedder,
 )
 
 
@@ -47,6 +49,8 @@ def test_cache_key_changes_with_model_text_and_prefix():
     assert base != cache_key(_enc(prefix=""), ["hello", "bye"])
     assert base != cache_key(_enc(), ["bye", "hello"])  # order is part of the key
     assert base != cache_key(_enc(), ["hello", "bye", "x"])
+    # The embedding path is part of the key: batched CLI vectors differ from runtime ones.
+    assert base != cache_key(_enc(), ["hello", "bye"], route="cli-batch")
 
 
 def test_embed_chunks_keeps_order_and_reuses_the_cache(tmp_path):
@@ -102,3 +106,37 @@ def test_real_embeddings_are_unit_length_and_do_not_depend_on_batching():
     # The Rust runtime embeds one request at a time; the cache embeds many per batch.
     alone = run_llama_embedding(enc, [model_input(texts[1], enc.prefix)])
     assert np.abs(alone[0] - batch[1]).max() < 1e-4
+
+
+def test_write_embed_cases_embeds_each_text_in_its_own_run(tmp_path):
+    import json
+
+    from embed import write_embed_cases
+
+    calls = []
+
+    def fake_runner(encoder, inputs):
+        calls.append(len(inputs))
+        return np.tile(np.arange(3, dtype=np.float32), (len(inputs), 1))
+
+    out = write_embed_cases(tmp_path / "cases.json", "multilingual-e5-small-q8_0", n=10, runner=fake_runner)
+    cases = json.loads(out.read_text())
+    assert calls == [1] * 10  # one text per llama-embedding run: the runtime's batch size
+    assert len(cases["inputs"]) == len(cases["embeddings"]) == 10
+    assert all(s.startswith("query: ") for s in cases["inputs"])
+    assert cases["embeddings"][0] == [0.0, 1.0, 2.0]
+    assert cases["encoder"] == "multilingual-e5-small-q8_0" and cases["tolerance_max_abs"] > 0
+
+
+_have_runtime = _have_real and EMBED_TEXTS.exists()
+
+
+@pytest.mark.skipif(not _have_runtime, reason="needs the release embed_texts example (cargo build --release "
+                    "-p kestrel-inference --features llama --example embed_texts)")
+def test_runtime_embedder_equals_llama_embedding_on_single_texts():
+    enc = load_encoder("multilingual-e5-small-q8_0")
+    inputs = [model_input(t, enc.prefix) for t in ("remind me to call asha", "kal subah yaad dilana")]
+    runtime = run_runtime_embedder(enc, inputs)
+    for i, s in enumerate(inputs):
+        cli = run_llama_embedding(enc, [s])[0]
+        assert np.abs(runtime[i] - cli).max() < 1e-6  # the CLI prints 7 decimals

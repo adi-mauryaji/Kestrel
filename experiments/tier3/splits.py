@@ -27,3 +27,10 @@ def load_splits(dataset: str) -> dict[str, list[dict]]:
         full = kestrel_splits(load_official())
         return {s: full[s] for s in DEV_SPLITS}
     raise KeyError(f"unknown dataset {dataset!r}")
+
+
+def parity_texts(n_per_lang: int = 50) -> list[dict]:
+    """Fixed texts for encoder parity checks: the first n English and n Hinglish Intents-v0
+    train items by id (train only, so no evaluation item is used)."""
+    rows = sorted(load_splits("intents_v0")["train"], key=lambda r: r["id"])
+    return [r for lang in ("en", "hi-en") for r in [r for r in rows if r["lang"] == lang][:n_per_lang]]

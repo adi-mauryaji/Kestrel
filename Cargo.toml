@@ -12,6 +12,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 kestrel-bench = { path = "crates/kestrel-bench" }
 kestrel-core = { path = "crates/kestrel-core" }
+kestrel-nlu = { path = "crates/kestrel-nlu" }
 # Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
 llama-cpp-2 = "=0.1.157"

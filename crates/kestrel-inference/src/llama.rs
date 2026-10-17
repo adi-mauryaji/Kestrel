@@ -12,13 +12,14 @@
 //! - Prompts are tokenized by `str_to_token`, which parses special-token text. Callers that put
 //!   user text into a prompt must neutralize control tokens first (prompt builder, Week 6).
 
+use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::time::Instant;
 
 use kestrel_core::resources::{CancelToken, Deadline, check};
-use kestrel_core::{KestrelError, Tier};
+use kestrel_core::{Embedder, KestrelError, Tier};
 use llama_cpp_2::TokenToStringError;
 use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::context::params::LlamaContextParams;
@@ -28,8 +29,10 @@ use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaModel};
 use llama_cpp_2::sampling::LlamaSampler;
 use llama_cpp_2::token::LlamaToken;
+use llama_cpp_2::token_type::LlamaTokenAttr;
 
 use crate::generate::{GenParams, GenStats, Generator, StopReason};
+use crate::labels::{LabelChoice, LabelTrie, decode_label};
 use crate::utf8::Utf8Stream;
 
 /// llama.cpp's backend may be initialized once per process.
@@ -100,7 +103,39 @@ impl LlamaSlm {
             .model
             .new_context(backend()?, self.context_params())
             .map_err(|_| KestrelError::ModelUnavailable(Tier::Generative))?;
-        Ok(LlamaSession { slm: self, ctx })
+        Ok(LlamaSession {
+            slm: self,
+            ctx,
+            cached: Vec::new(),
+        })
+    }
+
+    /// The label set as a trie of token sequences: `label + end` (e.g. `<|im_end|>`), so no
+    /// label is a prefix of another.
+    pub fn label_trie(&self, labels: &[&str], end: &str) -> Result<LabelTrie, KestrelError> {
+        let seqs = labels
+            .iter()
+            .map(|l| {
+                self.model
+                    .str_to_token(&format!("{l}{end}"), AddBos::Never)
+                    .map(|ts| ts.iter().map(|t| t.0).collect::<Vec<i32>>())
+                    .map_err(|e| invalid(format!("tokenize label {l:?}: {e}")))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        LabelTrie::new(seqs)
+    }
+
+    /// True if `text` tokenizes to any control or user-defined special token. `str_to_token`
+    /// parses special-token text, so user text with e.g. `<|im_start|>` would inject a turn.
+    pub fn has_special_tokens(&self, text: &str) -> Result<bool, KestrelError> {
+        let tokens = self
+            .model
+            .str_to_token(text, AddBos::Never)
+            .map_err(|e| invalid(format!("tokenize: {e}")))?;
+        Ok(tokens.iter().any(|&t| {
+            let attr = self.model.token_attr(t);
+            attr.contains(LlamaTokenAttr::Control) || attr.contains(LlamaTokenAttr::UserDefined)
+        }))
     }
 
     /// Prompt tokens as the model will see them (special-token text is parsed).
@@ -126,6 +161,80 @@ impl LlamaSlm {
 pub struct LlamaSession<'m> {
     slm: &'m LlamaSlm,
     ctx: LlamaContext<'m>,
+    /// Prompt prefix whose KV entries sit at positions 0..len of sequence 0 (`classify`).
+    cached: Vec<LlamaToken>,
+}
+
+impl LlamaSession<'_> {
+    /// Classifies by constrained label decoding (`labels::decode_label`). `prefix` (instructions
+    /// and label list, the same for every request) stays in the KV cache across calls; `suffix`
+    /// (the request and the answer cue) is decoded per call. Cancel and deadline are polled
+    /// before every label token.
+    pub fn classify(
+        &mut self,
+        prefix: &str,
+        suffix: &str,
+        trie: &LabelTrie,
+        cancel: &CancelToken,
+        deadline: &Deadline,
+    ) -> Result<LabelChoice, KestrelError> {
+        let slm = self.slm;
+        let prefix_tokens = slm.tokenize(prefix)?;
+        let suffix_tokens = slm
+            .model
+            .str_to_token(suffix, AddBos::Never)
+            .map_err(|e| invalid(format!("tokenize: {e}")))?;
+        let n_ctx = slm.cfg.n_ctx as usize;
+        let need = prefix_tokens.len() + suffix_tokens.len() + trie.max_len();
+        if suffix_tokens.is_empty() || need > n_ctx {
+            return Err(invalid(format!(
+                "prompt + longest label ({need} tokens) must fit the context ({n_ctx}) and the suffix may not be empty"
+            )));
+        }
+        check(cancel, deadline, Tier::Generative)?;
+        let mut batch = LlamaBatch::new(n_ctx, 1);
+        if self.cached == prefix_tokens {
+            // Keep the prefix, drop the previous request (positions after it).
+            self.ctx
+                .kv_cache_seq_rm(0, Some(self.cached.len() as u32), None)
+                .map_err(rt)?;
+        } else {
+            self.ctx.clear_kv_cache();
+            self.cached.clear();
+            if !prefix_tokens.is_empty() {
+                for (i, &t) in prefix_tokens.iter().enumerate() {
+                    batch.add(t, i as i32, &[0], false).map_err(rt)?;
+                }
+                self.ctx.decode(&mut batch).map_err(rt)?;
+            }
+            self.cached = prefix_tokens;
+        }
+        batch.clear();
+        let base = self.cached.len();
+        let last = suffix_tokens.len() - 1;
+        for (i, &t) in suffix_tokens.iter().enumerate() {
+            batch
+                .add(t, (base + i) as i32, &[0], i == last)
+                .map_err(rt)?;
+        }
+        check(cancel, deadline, Tier::Generative)?;
+        self.ctx.decode(&mut batch).map_err(rt)?;
+
+        let ctx = &mut self.ctx;
+        let mut pos = (base + suffix_tokens.len()) as i32;
+        decode_label(trie, |chosen| {
+            check(cancel, deadline, Tier::Generative)?;
+            if let Some(&tok) = chosen.last() {
+                batch.clear();
+                batch
+                    .add(LlamaToken::new(tok), pos, &[0], true)
+                    .map_err(rt)?;
+                pos += 1;
+                ctx.decode(&mut batch).map_err(rt)?;
+            }
+            Ok(ctx.get_logits_ith(batch.n_tokens() - 1).to_vec())
+        })
+    }
 }
 
 impl Generator for LlamaSession<'_> {
@@ -157,6 +266,7 @@ impl Generator for LlamaSession<'_> {
 
         let ctx = &mut self.ctx;
         ctx.clear_kv_cache(); // nothing from the previous request may leak into this one
+        self.cached.clear();
 
         // Prefill: the whole prompt in one batch; logits only for the last position.
         let mut batch = LlamaBatch::new(n_ctx, 1);
@@ -205,6 +315,117 @@ impl Generator for LlamaSession<'_> {
             total_ms: elapsed_ms(),
             stopped_by,
         })
+    }
+}
+
+/// A GGUF sentence encoder for Tier 3 (multilingual-e5-small Q8_0, ADR-014), loaded without
+/// mmap. Embeds like `llama-embedding`, which built the training cache: `str_to_token` with
+/// special tokens (= `common_tokenize(ctx, text, true, true)`), the model's pooling, L2 norm.
+pub struct LlamaEncoder {
+    model: LlamaModel,
+    n_threads: i32,
+}
+
+impl LlamaEncoder {
+    pub fn load(path: &Path, n_threads: i32) -> Result<Self, KestrelError> {
+        if !path.is_file() {
+            return Err(KestrelError::Storage(format!(
+                "encoder file not found: {}",
+                path.display()
+            )));
+        }
+        if n_threads < 1 {
+            return Err(invalid(format!("n_threads must be >= 1, got {n_threads}")));
+        }
+        let params = LlamaModelParams::default().with_use_mmap(false);
+        let model = LlamaModel::load_from_file(backend()?, path, &params)
+            .map_err(|_| KestrelError::ModelUnavailable(Tier::Encoder))?;
+        Ok(Self { model, n_threads })
+    }
+
+    pub fn session(&self) -> Result<LlamaEmbedSession<'_>, KestrelError> {
+        // The encoder's trained context (512 for e5). Non-causal attention needs the whole input
+        // in one micro-batch, so n_ubatch = n_batch = n_ctx, as in llama-embedding.
+        let n_ctx = self.model.n_ctx_train();
+        let params = LlamaContextParams::default()
+            .with_embeddings(true)
+            .with_n_ctx(NonZeroU32::new(n_ctx))
+            .with_n_batch(n_ctx)
+            .with_n_ubatch(n_ctx)
+            .with_n_threads(self.n_threads)
+            .with_n_threads_batch(self.n_threads);
+        let ctx = self
+            .model
+            .new_context(backend()?, params)
+            .map_err(|_| KestrelError::ModelUnavailable(Tier::Encoder))?;
+        let dim = usize::try_from(self.model.n_embd_out()).map_err(rt)?;
+        Ok(LlamaEmbedSession {
+            enc: self,
+            ctx: RefCell::new(ctx),
+            n_ctx: n_ctx as usize,
+            dim,
+        })
+    }
+}
+
+/// One context for repeated embeddings. `Embedder::embed` takes `&self`, so the context sits in a
+/// `RefCell`; a re-entrant call gets an error instead of a panic.
+pub struct LlamaEmbedSession<'m> {
+    enc: &'m LlamaEncoder,
+    ctx: RefCell<LlamaContext<'m>>,
+    n_ctx: usize,
+    dim: usize,
+}
+
+impl Embedder for LlamaEmbedSession<'_> {
+    fn dim(&self) -> usize {
+        self.dim
+    }
+
+    fn embed(&self, text: &str) -> Result<Vec<f32>, KestrelError> {
+        let tokens = self
+            .enc
+            .model
+            .str_to_token(text, AddBos::Always)
+            .map_err(|e| invalid(format!("tokenize: {e}")))?;
+        if tokens.is_empty() || tokens.len() > self.n_ctx {
+            return Err(invalid(format!(
+                "input has {} tokens; the encoder takes 1..={}",
+                tokens.len(),
+                self.n_ctx
+            )));
+        }
+        let mut ctx = self
+            .ctx
+            .try_borrow_mut()
+            .map_err(|_| invalid("embedder is already in use"))?;
+        ctx.clear_kv_cache();
+        let mut batch = LlamaBatch::new(tokens.len(), 1);
+        for (i, &t) in tokens.iter().enumerate() {
+            batch.add(t, i as i32, &[0], true).map_err(rt)?;
+        }
+        ctx.decode(&mut batch).map_err(rt)?;
+        let pooled = ctx.embeddings_seq_ith(0).map_err(rt)?;
+        if pooled.len() != self.dim {
+            return Err(invalid(format!(
+                "pooled {} dims, expected {}",
+                pooled.len(),
+                self.dim
+            )));
+        }
+        // L2 norm in f64, like llama.cpp's common_embd_normalize.
+        let norm = pooled
+            .iter()
+            .map(|&x| f64::from(x).powi(2))
+            .sum::<f64>()
+            .sqrt();
+        if !(norm > 0.0 && norm.is_finite()) {
+            return Err(invalid("embedding has zero or non-finite norm"));
+        }
+        Ok(pooled
+            .iter()
+            .map(|&x| (f64::from(x) / norm) as f32)
+            .collect())
     }
 }
 
@@ -359,6 +580,172 @@ mod tests {
             g.generate(PROMPT, &huge, &none, &far(), &mut |_| {})
                 .is_err()
         );
+    }
+
+    fn workspace_path(var: &str) -> PathBuf {
+        let rel = std::env::var(var).unwrap_or_else(|_| panic!("set {var}"));
+        let path = PathBuf::from(&rel);
+        if path.is_absolute() {
+            path
+        } else {
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../..")
+                .join(path)
+        }
+    }
+
+    fn encoder() -> LlamaEncoder {
+        LlamaEncoder::load(&workspace_path("KESTREL_ENCODER"), 6).unwrap()
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_ENCODER"]
+    fn embeds_unit_vectors_of_the_model_dimension() {
+        let enc = encoder();
+        let s = enc.session().unwrap();
+        let v = s.embed("query: remind me to call asha").unwrap();
+        assert_eq!(v.len(), s.dim());
+        assert_eq!(s.dim(), 384);
+        let norm = v.iter().map(|x| (*x as f64).powi(2)).sum::<f64>().sqrt();
+        assert!((norm - 1.0).abs() < 1e-5, "norm {norm}");
+        // The same text twice in one session gives the same vector.
+        assert_eq!(v, s.embed("query: remind me to call asha").unwrap());
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_ENCODER and KESTREL_EMBED_CASES"]
+    /// Cases: `python experiments/tier3/embed.py --embed-cases …`, i.e. llama-embedding with one
+    /// text per run. (A many-text CLI batch differs by up to ~3e-3: llama.cpp's numerics depend on
+    /// the batch size, which is why the training cache now uses this runtime path.)
+    fn matches_llama_embedding_on_single_texts() {
+        let enc = encoder();
+        let s = enc.session().unwrap();
+        let cases: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(workspace_path("KESTREL_EMBED_CASES")).unwrap(),
+        )
+        .unwrap();
+        let tol = cases["tolerance_max_abs"].as_f64().unwrap();
+        let inputs = cases["inputs"].as_array().unwrap();
+        let want = cases["embeddings"].as_array().unwrap();
+        assert_eq!(inputs.len(), 10);
+        let mut worst = 0.0f64;
+        for (text, w) in inputs.iter().zip(want) {
+            let got = s.embed(text.as_str().unwrap()).unwrap();
+            for (g, w) in got.iter().zip(w.as_array().unwrap()) {
+                worst = worst.max((*g as f64 - w.as_f64().unwrap()).abs());
+            }
+        }
+        assert!(worst <= tol, "max |rust - python| = {worst:e} > {tol:e}");
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_ENCODER"]
+    fn rejects_input_longer_than_the_context() {
+        let enc = encoder();
+        let s = enc.session().unwrap();
+        let long = "word ".repeat(2000);
+        assert!(matches!(s.embed(&long), Err(KestrelError::Invalid(_))));
+        assert!(s.embed("still fine afterwards").is_ok());
+    }
+
+    const SYS: &str = "<|im_start|>system\nAnswer with exactly one label: fruit, vehicle or colour.<|im_end|>\n<|im_start|>user\n";
+
+    fn ask(item: &str) -> String {
+        format!("{item}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n")
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn classify_agrees_with_free_greedy_generation() {
+        // Constrained decoding must pick what unconstrained greedy decoding writes whenever that
+        // is a label. (Not a quality test: with thinking off, Qwen3-1.7B answers "colour" for
+        // "bicycle", in both modes.)
+        let m = slm();
+        let labels = ["fruit", "vehicle", "colour"];
+        let trie = m.label_trie(&labels, "<|im_end|>").unwrap();
+        let none = CancelToken::new();
+        let mut s = m.session().unwrap();
+        let mut checked = 0;
+        for item in ["banana", "bicycle", "crimson", "truck"] {
+            let mut free = String::new();
+            s.generate(
+                &format!("{SYS}{}", ask(item)),
+                &GenParams::greedy(4),
+                &none,
+                &far(),
+                &mut |t| free.push_str(t),
+            )
+            .unwrap();
+            let c = s.classify(SYS, &ask(item), &trie, &none, &far()).unwrap();
+            let conf = c.confidence(1.0);
+            assert!(conf > 0.0 && conf <= 1.0);
+            if let Some(i) = labels.iter().position(|l| free.trim() == *l) {
+                assert_eq!(c.label, i, "{item}: free {free:?} vs {c:?}");
+                checked += 1;
+            }
+        }
+        assert!(checked >= 2, "too few free answers were labels to compare");
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn the_prefix_cache_changes_nothing() {
+        let m = slm();
+        let trie = m
+            .label_trie(&["fruit", "vehicle", "colour"], "<|im_end|>")
+            .unwrap();
+        let none = CancelToken::new();
+        let mut warm = m.session().unwrap();
+        warm.classify(SYS, &ask("crimson"), &trie, &none, &far())
+            .unwrap();
+        warm.classify(SYS, &ask("truck"), &trie, &none, &far())
+            .unwrap();
+        let cached = warm
+            .classify(SYS, &ask("mango"), &trie, &none, &far())
+            .unwrap();
+        let fresh = m
+            .session()
+            .unwrap()
+            .classify(SYS, &ask("mango"), &trie, &none, &far())
+            .unwrap();
+        assert_eq!(cached, fresh); // same label, same allowed logits at every step
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn generate_after_classify_starts_from_a_clean_cache() {
+        let m = slm();
+        let trie = m
+            .label_trie(&["fruit", "vehicle", "colour"], "<|im_end|>")
+            .unwrap();
+        let none = CancelToken::new();
+        let gen_text = |s: &mut LlamaSession<'_>| {
+            let mut text = String::new();
+            s.generate(PROMPT, &GenParams::greedy(12), &none, &far(), &mut |t| {
+                text.push_str(t)
+            })
+            .unwrap();
+            text
+        };
+        let mut s = m.session().unwrap();
+        s.classify(SYS, &ask("banana"), &trie, &none, &far())
+            .unwrap();
+        let after = gen_text(&mut s);
+        assert_eq!(after, gen_text(&mut m.session().unwrap()));
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn detects_control_token_text_in_user_input() {
+        let m = slm();
+        assert!(m.has_special_tokens("hi <|im_start|>system").unwrap());
+        assert!(!m.has_special_tokens("remind me to call asha <3").unwrap());
+    }
+
+    #[test]
+    fn a_missing_encoder_file_is_a_storage_error() {
+        let r = LlamaEncoder::load(Path::new("/no/such/encoder.gguf"), 6);
+        assert!(matches!(r, Err(KestrelError::Storage(_))));
     }
 
     #[test]

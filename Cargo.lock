@@ -205,8 +205,10 @@ version = "0.1.0"
 dependencies = [
  "kestrel-bench",
  "kestrel-core",
+ "kestrel-nlu",
  "llama-cpp-2",
  "llama-cpp-sys-2",
+ "serde_json",
 ]
 
 [[package]]

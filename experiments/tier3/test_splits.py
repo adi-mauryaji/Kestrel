@@ -25,3 +25,15 @@ def test_clinc150_splits_match_the_manifest_sizes():
 def test_unknown_dataset_is_an_error():
     with pytest.raises(KeyError):
         load_splits("banking77")
+
+
+def test_parity_texts_are_50_english_then_50_hinglish_train_items_by_id():
+    from splits import parity_texts
+
+    rows = parity_texts()
+    assert [r["lang"] for r in rows] == ["en"] * 50 + ["hi-en"] * 50
+    train_ids = {r["id"] for r in load_splits("intents_v0")["train"]}
+    assert {r["id"] for r in rows} <= train_ids
+    en = [r["id"] for r in rows[:50]]
+    assert en == sorted(en)
+    assert parity_texts() == rows  # deterministic
