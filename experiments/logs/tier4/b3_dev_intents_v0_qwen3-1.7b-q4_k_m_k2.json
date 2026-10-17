@@ -1,0 +1,55 @@
+{
+ "dataset": "intents_v0",
+ "model": "qwen3-1.7b-q4_k_m",
+ "prompt": "tier4_intent_prompt.txt",
+ "shots_per_label_and_language": 2,
+ "shots": 36,
+ "note": "dev timing on the laptop as found (boost on); not an E1 measurement",
+ "temperature": 7.076221388606198,
+ "temperature_note": "fitted on cal (BCE)",
+ "cal_n": 100,
+ "cal_accuracy": 0.85,
+ "val_raw": {
+  "n": 104,
+  "accuracy": 0.9038461538461539,
+  "macro_f1": 0.8930606648253706,
+  "ece": 0.0762303719667804
+ },
+ "val_calibrated": {
+  "n": 104,
+  "accuracy": 0.9038461538461539,
+  "macro_f1": 0.8930606648253706,
+  "ece": 0.08703190034138521
+ },
+ "val_calibrated_en": {
+  "n": 52,
+  "accuracy": 0.9615384615384616,
+  "macro_f1": 0.9506172839506173,
+  "ece": 0.101628382698071
+ },
+ "val_calibrated_hi-en": {
+  "n": 52,
+  "accuracy": 0.8461538461538461,
+  "macro_f1": 0.8245097495097495,
+  "ece": 0.09600805778765203
+ },
+ "val_compound": {
+  "n": 24,
+  "mean_confidence": 0.858385468793863,
+  "label_in_gold": 1.0
+ },
+ "dev_ms": {
+  "mean": 686.8873252061404,
+  "p50": 553.8823085,
+  "p95": 804.389854
+ },
+ "control_token_rejections": 0,
+ "val_errors": {
+  "search_notes -> retrieve_memory": 3,
+  "chitchat -> set_preference": 2,
+  "retrieve_memory -> unsupported": 2,
+  "delete_task -> create_task": 1,
+  "delete_task -> unsupported": 1,
+  "unsupported -> chitchat": 1
+ }
+}

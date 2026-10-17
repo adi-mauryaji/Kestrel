@@ -69,6 +69,28 @@ def fit_conf_temperature(steps_list, correct) -> float:
     return float(np.exp(res.x))
 
 
+def select_shots(train_rows, labels, k: int) -> list[dict]:
+    """k few-shot examples per (label, language) from the training split, each from a different
+    template family (first families by name, first item by id). Round-robin order over labels,
+    so the examples nearest the request are not all one label."""
+    picks = {}
+    for label in labels:
+        for lang in ("en", "hi-en"):
+            cands = sorted((r for r in train_rows if r["label"] == label and r["lang"] == lang),
+                           key=lambda r: (r["family"], r["id"]))
+            chosen, families = [], set()
+            for r in cands:
+                if r["family"] not in families:
+                    families.add(r["family"])
+                    chosen.append(r)
+                if len(chosen) == k:
+                    break
+            picks[(label, lang)] = chosen
+    return [{"text": picks[(label, lang)][i]["text"], "label": label}
+            for i in range(k) for lang in ("en", "hi-en") for label in labels
+            if i < len(picks[(label, lang)])]
+
+
 def model_path(name: str) -> Path:
     for m in tomllib.loads((ROOT / "models" / "MANIFEST.toml").read_text())["model"]:
         if m["name"] == name and m["role"] == "slm":
@@ -76,7 +98,7 @@ def model_path(name: str) -> Path:
     raise KeyError(name)
 
 
-def classify(model: Path, rows: list[dict]) -> list[dict]:
+def classify(model: Path, rows: list[dict], shots: list[dict] | None = None) -> list[dict]:
     """Runs classify_items over rows (text normalized like Request.text); results in row order."""
     if not CLASSIFY.exists():
         raise FileNotFoundError(f"{CLASSIFY}: cargo build --release -p kestrel-inference --features llama "
@@ -84,7 +106,13 @@ def classify(model: Path, rows: list[dict]) -> list[dict]:
     with tempfile.TemporaryDirectory() as d:
         items, out = Path(d) / "items.jsonl", Path(d) / "out.jsonl"
         items.write_text("".join(json.dumps({"id": r["id"], "text": norm_text(r["text"])}) + "\n" for r in rows))
-        subprocess.run([str(CLASSIFY), str(model), str(PROMPT), str(LABELS), str(items), str(out)], check=True)
+        cmd = [str(CLASSIFY), str(model), str(PROMPT), str(LABELS), str(items), str(out)]
+        if shots:
+            ex = Path(d) / "examples.jsonl"
+            ex.write_text("".join(json.dumps({"text": norm_text(s["text"]), "label": s["label"]}) + "\n"
+                                  for s in shots))
+            cmd.append(str(ex))
+        subprocess.run(cmd, check=True)
         res = [json.loads(l) for l in out.read_text().splitlines()]
     assert [r["id"] for r in res] == [r["id"] for r in rows]
     return res
@@ -95,12 +123,15 @@ def _metrics(gold, pred, conf, correct):
             "ece": ece(list(conf), list(correct), n_bins=ECE_BINS)}
 
 
-def run(model_name: str, dataset: str = "intents_v0"):
+def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0):
     splits = load_splits(dataset)
     model = model_path(model_name)
+    labels = [l for l in LABELS.read_text().split("\n") if l and not l.startswith("#")]
+    shots = select_shots(splits["train"], labels, shots_per) if shots_per else []
     out = {"dataset": dataset, "model": model_name, "prompt": PROMPT.name,
+           "shots_per_label_and_language": shots_per, "shots": len(shots),
            "note": "dev timing on the laptop as found (boost on); not an E1 measurement"}
-    res = {s: classify(model, splits[s]) for s in ("cal", "val")}
+    res = {s: classify(model, splits[s], shots) for s in ("cal", "val")}
     single = lambda r: "|" not in r["label"]  # noqa: E731
 
     cal_rows = [(r, o) for r, o in zip(splits["cal"], res["cal"]) if single(r) and "steps" in o]
@@ -147,10 +178,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", default="qwen3-1.7b-q4_k_m")
     ap.add_argument("--dataset", default="intents_v0", choices=["intents_v0"])
+    ap.add_argument("--shots", type=int, default=0, help="few-shot examples per label and language (train)")
     args = ap.parse_args(argv)
-    r = run(args.model, args.dataset)
+    r = run(args.model, args.dataset, args.shots)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    path = LOG_DIR / f"b3_dev_{args.dataset}_{args.model}.json"
+    path = LOG_DIR / f"b3_dev_{args.dataset}_{args.model}_k{args.shots}.json"
     path.write_text(json.dumps(r, indent=1) + "\n")
     print(json.dumps({k: v for k, v in r.items() if k != "val_errors"}, indent=1))
     print("val errors:", r["val_errors"])

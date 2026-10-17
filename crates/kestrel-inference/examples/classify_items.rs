@@ -1,7 +1,9 @@
 //! Tier-4 label classification over a JSONL of requests (B3 / R0 runs on dev splits).
 //!
-//!     classify_items <model.gguf> <system_prompt.txt> <labels.txt> <items.jsonl> <out.jsonl>
+//!     classify_items <model.gguf> <system_prompt.txt> <labels.txt> <items.jsonl> <out.jsonl> [examples.jsonl]
 //!
+//! examples (optional): few-shot `{"text", "label"}` lines from the training split, rendered as
+//! earlier chat turns in the KV-cached prefix.
 //! items: one `{"id", "text"}` per line, `text` already normalized (the Request text every tier
 //! sees). out: one line per item with the label, every constrained step (allowed tokens, their
 //! logits, the pick) so the confidence can be recomputed at any temperature, and the wall time.
@@ -18,8 +20,10 @@ use serde_json::{Value, json};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let [model, system, labels, items, out] = args.as_slice() else {
-        return Err("usage: classify_items <model.gguf> <system.txt> <labels.txt> <items.jsonl> <out.jsonl>".into());
+    let (model, system, labels, items, out, examples) = match args.as_slice() {
+        [m, s, l, i, o] => (m, s, l, i, o, None),
+        [m, s, l, i, o, e] => (m, s, l, i, o, Some(e)),
+        _ => return Err("usage: classify_items <model.gguf> <system.txt> <labels.txt> <items.jsonl> <out.jsonl> [examples.jsonl]".into()),
     };
     let labels: Vec<String> = std::fs::read_to_string(labels)?
         .lines()
@@ -27,12 +31,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|l| !l.is_empty() && !l.starts_with('#'))
         .map(String::from)
         .collect();
-    let prompt = ChatPrompt::new(ChatFormat::Qwen3NoThink, &std::fs::read_to_string(system)?);
-    let cfg = LlamaConfig {
-        n_ctx: 1024,
-        ..LlamaConfig::default()
-    };
-    let slm = LlamaSlm::load(&PathBuf::from(model), cfg)?;
+    let mut shots = Vec::new();
+    if let Some(path) = examples {
+        for line in std::fs::read_to_string(path)?.lines() {
+            let e: Value = serde_json::from_str(line)?;
+            let (text, label) = (e["text"].as_str(), e["label"].as_str());
+            shots.push((
+                text.ok_or("example without text")?.to_string(),
+                label.ok_or("example without label")?.to_string(),
+            ));
+        }
+    }
+    let prompt = ChatPrompt::new(ChatFormat::Qwen3NoThink, &std::fs::read_to_string(system)?)
+        .with_examples(shots);
+    // 2048 tokens: room for a few-shot prefix (k = 2 is ~1250 tokens); the size does not change results.
+    let slm = LlamaSlm::load(&PathBuf::from(model), LlamaConfig::default())?;
     let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
     let trie = slm.label_trie(&label_refs, prompt.end_of_answer())?;
     let mut session = slm.session()?;

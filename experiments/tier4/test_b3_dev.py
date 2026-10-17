@@ -36,3 +36,22 @@ def test_fit_conf_temperature_needs_both_outcomes():
     steps = [[_step([3.0, 0.0], 0)]] * 10
     with pytest.raises(ValueError, match="both"):
         fit_conf_temperature(steps, [True] * 10)
+
+
+def test_select_shots_takes_k_per_label_and_language_from_distinct_train_families():
+    from b3_dev import select_shots
+    from splits import load_splits
+
+    train = load_splits("intents_v0")["train"]
+    labels = sorted({r["label"] for r in train})
+    shots = select_shots(train, labels, k=2)
+    assert len(shots) == len(labels) * 2 * 2
+    by_text = {r["text"]: r for r in train}
+    fams = {}
+    for s in shots:
+        r = by_text[s["text"]]  # every shot is a training item, with its own label
+        assert r["label"] == s["label"]
+        fams.setdefault((s["label"], r["lang"]), []).append(r["family"])
+    assert all(len(set(f)) == 2 for f in fams.values())
+    # Round-robin: the first len(labels) shots already cover every label once.
+    assert {s["label"] for s in shots[: len(labels)]} == set(labels)

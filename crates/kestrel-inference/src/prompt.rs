@@ -15,6 +15,8 @@ pub enum ChatFormat {
 pub struct ChatPrompt {
     format: ChatFormat,
     system: String,
+    /// Few-shot examples (request, answer), rendered as earlier chat turns inside the prefix.
+    examples: Vec<(String, String)>,
 }
 
 impl ChatPrompt {
@@ -22,16 +24,30 @@ impl ChatPrompt {
         Self {
             format,
             system: system.trim_end().to_string(), // files end with a newline; the template adds its own
+            examples: Vec::new(),
         }
+    }
+
+    /// Adds few-shot turns. They sit in the KV-cached prefix, so they cost nothing per request.
+    pub fn with_examples(mut self, examples: Vec<(String, String)>) -> Self {
+        self.examples = examples;
+        self
     }
 
     /// Everything before the user's text. The same for every request, so it is KV-cached.
     pub fn prefix(&self) -> String {
         match self.format {
-            ChatFormat::Qwen3NoThink => format!(
-                "<|im_start|>system\n{}<|im_end|>\n<|im_start|>user\n",
-                self.system
-            ),
+            ChatFormat::Qwen3NoThink => {
+                let mut p = format!("<|im_start|>system\n{}<|im_end|>\n", self.system);
+                for (request, answer) in &self.examples {
+                    p += "<|im_start|>user\n";
+                    p += &self.suffix(request); // same cue as the real turn ...
+                    p += answer; // ... answered the way labels are decoded
+                    p += self.end_of_answer();
+                    p += "\n";
+                }
+                p + "<|im_start|>user\n"
+            }
         }
     }
 
@@ -66,6 +82,18 @@ mod tests {
              remind me to call asha<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
         );
         assert_eq!(p.end_of_answer(), "<|im_end|>");
+    }
+
+    #[test]
+    fn examples_are_earlier_turns_answered_like_the_real_one() {
+        let p = ChatPrompt::new(ChatFormat::Qwen3NoThink, "Pick.")
+            .with_examples(vec![("hi".into(), "chitchat".into())]);
+        assert_eq!(
+            p.prefix(),
+            "<|im_start|>system\nPick.<|im_end|>\n\
+             <|im_start|>user\nhi<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nchitchat<|im_end|>\n\
+             <|im_start|>user\n"
+        );
     }
 
     #[test]
