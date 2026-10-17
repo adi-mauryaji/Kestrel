@@ -121,3 +121,9 @@ Proposed 2026-10-17 from round-6 reading (Claude's proposals; none is adopted un
   non-standard language worse quality and a higher cost; jitkrittum2023deferral shows confidence deferral is weakest
   under distribution shift. Open: descriptive only, or a new secondary hypothesis H7c "hi-en requests escalate to Tier 4
   more often than en requests" (paired by template family where possible).
+- **[decide] D12: fix the Tier-4 weight load mode and the RSS metric before E1/E6.** The H6 check (2026-10-17,
+  `experiments/logs/E0/README.md`) shows that with mmap, llama.cpp's Q4 weight repacking makes `VmHWM` count the repacked
+  weights twice. Qwen3-1.7B: Q4 saves 10% RAM vs Q8 with mmap, 39% without. Options: (a) load without mmap
+  (`use_mmap = false`), so `VmHWM` is the real footprint (startup reads the whole file); (b) keep mmap and report
+  `RssAnon` and `RssFile` next to `VmHWM`. Either way the same mode applies to every system, and β and H6 are judged under
+  it.

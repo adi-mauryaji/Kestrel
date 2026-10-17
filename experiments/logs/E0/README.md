@@ -33,6 +33,7 @@ Conditions: AC power, tuned `throughput-performance`, governor `performance` on 
 3. **Q4 files did not save RAM as expected.** Peak RSS for the Q4 files is well above file size (Qwen3-1.7B Q4: 1.91 GiB RSS for a 1.28 GB file). Q8 RSS is about equal to file size. Q4 and Q8 Qwen3-4B differ by only 0.03 GiB of RSS.
    - Hypothesis to verify: llama.cpp's CPU weight repacking keeps a second, repacked copy for Q4 formats.
    - Matters for H6, which assumes Q4 lowers RAM.
+   - **Confirmed 2026-10-17**, see "H6 check" at the end of this file. It is the mmap'd original plus the repacked copy.
 4. **Scale gap.** An encoder pass takes about 10 ms. The cheapest SLM needs about 1.4 s just to prefill a 128-token prompt, before it generates anything.
    - That's an observation about this machine, not a test of H1.
 5. Startup times were measured with a warm page cache and are not cold-start numbers.
@@ -93,3 +94,27 @@ Encoders (median per 32-token pass, all 5 rounds): bge-small Q8 10.5 ms (one 13.
 2. **Boost off costs ~22–27% prefill and ~1–5% decode** against the boost-on session; encoder passes ~10.5 vs ~6.3 ms (pinned, boost on). Reported latencies are therefore conservative (ADR-012).
 3. **The pilot's sustained prefill matches these no-boost numbers** for some models (Qwen3-1.7B Q4 92.1 vs 90.6; Gemma Q4 58.3 vs 58.5), though it is 12–14% lower for others. The pilot probably ran near no-boost clocks for a reason we can't see.
 4. **Caveat on `freq_*_mhz`:** it averages all 12 logical CPUs. With pinning, 6 of them are idle siblings, so ~1.75 GHz understates the clock of the active cores. It still detects changes (it showed the battery drop). From session 2 on, `freq_pinned_mean_mhz` / `freq_pinned_min_mhz` also average only the pinned CPUs (smoke check: 1870 vs 1775 MHz all-CPU).
+
+## H6 check: Q4 RSS and CPU weight repacking (2026-10-17, not an E0 session)
+
+One-off check of pilot finding 3. Qwen3-1.7B, `llama-bench -p 16 -n 4 -r 1 --no-warmup -t 6 -v`, peak RSS from
+`/usr/bin/time -f %M`, boost on, unpinned, laptop otherwise as usual. RSS is deterministic here (E0 repeats it to ±1 MiB),
+so these conditions don't matter for it; no latency was taken from these runs. Logs were not kept (scratch).
+
+| File | Load mode | Weight buffers (from `-v`) | Repacked tensors | Peak RSS MiB |
+|---|---|---|---|---|
+| Q4_K_M (1223 MiB) | auto = mmap (E0's mode) | CPU_Mapped 1210.6 + CPU_REPACK 645.8 | 168 (q4_K → q4_K_8x8) | **1938** |
+| Q4_K_M | `--load-mode none` | CPU 571.6 + CPU_REPACK 645.8 | 168 | **1311** |
+| Q8_0 (2065 MiB) | auto = mmap | CPU_Mapped 2059.1 | 0 | 2147 |
+| Q8_0 | `--load-mode none` | CPU 2059.1 | 0 | 2148 |
+
+1. **Hypothesis confirmed.** On this CPU (AVX2), llama.cpp repacks the q4_K tensors into an extra anonymous buffer
+   (646 MiB). With mmap, it reads the original pages to do so, and they stay mapped, so `VmHWM` counts those weights twice.
+   Without mmap, the repacked tensors are not loaded a second time and Q4 RSS ≈ file size + ~90 MiB of
+   context/compute buffers. Q8_0 is not repacked here, so its load mode makes no difference.
+2. **Q4's RAM saving depends on the load mode:** vs Q8, −209 MiB (−10%) with mmap, −837 MiB (−39%) without.
+3. The doubled pages are clean and file-backed, so the kernel can drop them under memory pressure. `VmHWM` still counts
+   them, so with mmap it overstates what Q4 really needs.
+4. `-ot '.*=CPU'` did not turn repacking off. It moved only the embedding and output tensors; the layers were still repacked.
+5. Consequence for the PREREG (proposed D12): fix the Tier-4 load mode before E1/E6, or report `RssAnon` and `RssFile`
+   separately. The E0 RSS table stays valid for mmap loading and must be labelled that way.
