@@ -2,13 +2,36 @@
 //! (`datasets/contracts/tier4_intent_prompt.txt`, the same for R0 and the cascade's Tier 4);
 //! this module adds the model's chat format around them.
 //!
-//! Qwen3 with thinking off: ChatML plus the empty `<think>` block that Qwen3's template inserts
-//! for `enable_thinking=false`, so the answer starts right after it. Other formats (Gemma) are
-//! added when those models are evaluated.
+//! - Qwen3 with thinking off: ChatML plus the empty `<think>` block that Qwen3's template inserts
+//!   for `enable_thinking=false`, so the answer starts right after it.
+//! - Gemma 4 (thinking off is its default): `<|turn>role\n…<turn|>\n`, answer cue
+//!   `<|turn>model\n`; checked against the GGUF's own Jinja template rendered on a sample chat.
+//!
+//! The BOS token is not written here: the tokenizer adds it when the model wants one.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChatFormat {
     Qwen3NoThink,
+    Gemma4,
+}
+
+impl ChatFormat {
+    /// The format for a GGUF `general.architecture` value.
+    pub fn for_architecture(arch: &str) -> Option<Self> {
+        match arch {
+            "qwen3" => Some(Self::Qwen3NoThink),
+            "gemma4" => Some(Self::Gemma4),
+            _ => None,
+        }
+    }
+
+    /// (system turn opener, turn closer, user turn opener).
+    fn markers(self) -> (&'static str, &'static str, &'static str) {
+        match self {
+            Self::Qwen3NoThink => ("<|im_start|>system\n", "<|im_end|>\n", "<|im_start|>user\n"),
+            Self::Gemma4 => ("<|turn>system\n", "<turn|>\n", "<|turn>user\n"),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -36,19 +59,16 @@ impl ChatPrompt {
 
     /// Everything before the user's text. The same for every request, so it is KV-cached.
     pub fn prefix(&self) -> String {
-        match self.format {
-            ChatFormat::Qwen3NoThink => {
-                let mut p = format!("<|im_start|>system\n{}<|im_end|>\n", self.system);
-                for (request, answer) in &self.examples {
-                    p += "<|im_start|>user\n";
-                    p += &self.suffix(request); // same cue as the real turn ...
-                    p += answer; // ... answered the way labels are decoded
-                    p += self.end_of_answer();
-                    p += "\n";
-                }
-                p + "<|im_start|>user\n"
-            }
+        let (system, close, user) = self.format.markers();
+        let mut p = format!("{system}{}{close}", self.system);
+        for (request, answer) in &self.examples {
+            p += user;
+            p += &self.suffix(request); // same cue as the real turn ...
+            p += answer; // ... answered the way labels are decoded
+            p += self.end_of_answer();
+            p += "\n";
         }
+        p + user
     }
 
     /// The user's text and the cue for the answer.
@@ -57,6 +77,7 @@ impl ChatPrompt {
             ChatFormat::Qwen3NoThink => {
                 format!("{user}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n")
             }
+            ChatFormat::Gemma4 => format!("{user}<turn|>\n<|turn>model\n"),
         }
     }
 
@@ -64,6 +85,7 @@ impl ChatPrompt {
     pub fn end_of_answer(&self) -> &'static str {
         match self.format {
             ChatFormat::Qwen3NoThink => "<|im_end|>",
+            ChatFormat::Gemma4 => "<turn|>",
         }
     }
 }
@@ -94,6 +116,32 @@ mod tests {
              <|im_start|>user\nhi<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nchitchat<|im_end|>\n\
              <|im_start|>user\n"
         );
+    }
+
+    #[test]
+    fn gemma4_prompt_matches_its_rendered_template() {
+        // gemma-4-E2B-it GGUF chat template, rendered with jinja2 for [system, user, assistant,
+        // user], add_generation_prompt, enable_thinking=False; minus the leading "<bos>".
+        let rendered = "<|turn>system\nPick a label.<turn|>\n<|turn>user\nhi<turn|>\n\
+                        <|turn>model\nchitchat<turn|>\n<|turn>user\nremind me to call asha<turn|>\n\
+                        <|turn>model\n";
+        let p = ChatPrompt::new(ChatFormat::Gemma4, "Pick a label.")
+            .with_examples(vec![("hi".into(), "chitchat".into())]);
+        assert_eq!(p.prefix() + &p.suffix("remind me to call asha"), rendered);
+        assert_eq!(p.end_of_answer(), "<turn|>");
+    }
+
+    #[test]
+    fn the_format_follows_the_gguf_architecture() {
+        assert_eq!(
+            ChatFormat::for_architecture("qwen3"),
+            Some(ChatFormat::Qwen3NoThink)
+        );
+        assert_eq!(
+            ChatFormat::for_architecture("gemma4"),
+            Some(ChatFormat::Gemma4)
+        );
+        assert_eq!(ChatFormat::for_architecture("llama"), None);
     }
 
     #[test]

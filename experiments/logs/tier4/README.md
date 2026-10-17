@@ -45,3 +45,24 @@ in round-robin label order. They are rendered as earlier ChatML turns inside the
 - Calibration: at k = 2 the cal-fitted T does not help val (0.076 → 0.087; 100 cal and 104 val items).
 - Proposed (human to confirm): R0 and Tier 4 use k = 2 with Qwen3-1.7B Q4. Still open for SLM selection (Ch. 12.4):
   Qwen3-4B and Gemma-4-E2B (needs a Gemma chat format) at the same k.
+
+## SLM comparison at k = 2 (2026-10-17, Ch. 12.4)
+
+The human confirmed k = 2 ("continue" after the proposal). The same prompt contract and shots, all three shortlisted SLMs
+at Q4. The chat format comes from the GGUF `general.architecture`. The Gemma 4 format was checked against the GGUF's
+own Jinja template, rendered on a sample chat with thinking off.
+
+| SLM | Val acc | Macro-F1 | en | hi-en | ECE raw → cal | T | mean / p50 / p95 ms |
+|---|---|---|---|---|---|---|---|
+| Qwen3-1.7B Q4_K_M | 0.904 | 0.893 | 0.962 | 0.846 | 0.076 → 0.087 | 7.1 | 687 / 554 / 804 |
+| Gemma-4-E2B-it Q4_0 | 0.981 | 0.978 | 0.981 | 0.981 | 0.028 → 0.024 | 0.85 | 681 / 550 / 676 |
+| Qwen3-4B Q4_K_M | 0.990 | 0.989 | 1.000 | 0.981 | 0.010 → 0.018 | 3.9 | 1762 / 1402 / 2242 |
+
+- Gemma-4-E2B matches Qwen3-4B within 1 item (n = 104) at Qwen3-1.7B's latency, with no Hinglish gap. Its remaining
+  errors are chitchat → unsupported (2). Qwen3-1.7B's errors are spread over several labels.
+- Calibration: Gemma and Qwen3-4B are already close to calibrated (raw ECE 0.028 / 0.010). Qwen3-1.7B is not.
+- Licenses per the manifest: all Apache-2.0 (verified 2026-10-10).
+- Caveats: dev only, n = 104, timing as found (boost on). Gemma-4-E2B is the model kasnesis2026callsite found unsafe in
+  tool calls, so the allowlist and validation of Ch. 15 stay mandatory whichever SLM is chosen.
+- **Proposed (human to decide): Tier-4 SLM = Gemma-4-E2B-it Q4_0.** With an always-SLM baseline this strong, H1 becomes
+  a real test: the cascade must escalate the hard requests to keep accuracy within δ of 0.98.

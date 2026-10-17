@@ -97,6 +97,13 @@ impl LlamaSlm {
             .with_n_threads_batch(self.cfg.n_threads)
     }
 
+    /// The GGUF `general.architecture` (e.g. "qwen3", "gemma4"); selects the chat format.
+    pub fn architecture(&self) -> Result<String, KestrelError> {
+        self.model
+            .meta_val_str("general.architecture")
+            .map_err(|e| invalid(format!("general.architecture: {e}")))
+    }
+
     /// One context for repeated generations (one session per concurrent generation).
     pub fn session(&self) -> Result<LlamaSession<'_>, KestrelError> {
         let ctx = self

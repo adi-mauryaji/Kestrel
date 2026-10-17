@@ -1,0 +1,50 @@
+{
+ "dataset": "intents_v0",
+ "model": "qwen3-4b-q4_k_m",
+ "prompt": "tier4_intent_prompt.txt",
+ "shots_per_label_and_language": 2,
+ "shots": 36,
+ "note": "dev timing on the laptop as found (boost on); not an E1 measurement",
+ "temperature": 3.9011567954750217,
+ "temperature_note": "fitted on cal (BCE)",
+ "cal_n": 100,
+ "cal_accuracy": 0.98,
+ "val_raw": {
+  "n": 104,
+  "accuracy": 0.9903846153846154,
+  "macro_f1": 0.9892255892255891,
+  "ece": 0.00996612417725046
+ },
+ "val_calibrated": {
+  "n": 104,
+  "accuracy": 0.9903846153846154,
+  "macro_f1": 0.9892255892255891,
+  "ece": 0.018058079383011065
+ },
+ "val_calibrated_en": {
+  "n": 52,
+  "accuracy": 1.0,
+  "macro_f1": 1.0,
+  "ece": 0.00757886820715814
+ },
+ "val_calibrated_hi-en": {
+  "n": 52,
+  "accuracy": 0.9807692307692307,
+  "macro_f1": 0.9775910364145659,
+  "ece": 0.02853729055886542
+ },
+ "val_compound": {
+  "n": 24,
+  "mean_confidence": 0.8091672699719791,
+  "label_in_gold": 0.8333333333333334
+ },
+ "dev_ms": {
+  "mean": 1761.7999280789475,
+  "p50": 1402.1043925,
+  "p95": 2241.77976
+ },
+ "control_token_rejections": 0,
+ "val_errors": {
+  "chitchat -> unsupported": 1
+ }
+}

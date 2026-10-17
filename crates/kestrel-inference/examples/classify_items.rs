@@ -42,10 +42,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     }
-    let prompt = ChatPrompt::new(ChatFormat::Qwen3NoThink, &std::fs::read_to_string(system)?)
-        .with_examples(shots);
     // 2048 tokens: room for a few-shot prefix (k = 2 is ~1250 tokens); the size does not change results.
     let slm = LlamaSlm::load(&PathBuf::from(model), LlamaConfig::default())?;
+    let arch = slm.architecture()?;
+    let format =
+        ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
+    let prompt = ChatPrompt::new(format, &std::fs::read_to_string(system)?).with_examples(shots);
     let label_refs: Vec<&str> = labels.iter().map(String::as_str).collect();
     let trie = slm.label_trie(&label_refs, prompt.end_of_answer())?;
     let mut session = slm.session()?;
