@@ -3,6 +3,7 @@
 
 pub mod generate;
 pub mod labels;
+pub mod prompt;
 pub mod utf8;
 
 pub use generate::{GenParams, GenStats, Generator, MockGenerator, StopReason};

@@ -29,5 +29,9 @@ required-features = ["llama"]
 name = "embed_texts"
 required-features = ["llama"]
 
+[[example]]
+name = "classify_items"
+required-features = ["llama"]
+
 [lints]
 workspace = true

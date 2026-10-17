@@ -1,0 +1,38 @@
+import math
+
+import numpy as np
+import pytest
+
+from b3_dev import fit_conf_temperature, step_confidence
+
+
+def _step(logits, chosen):
+    return {"allowed": list(range(len(logits))), "logits": logits, "chosen": chosen}
+
+
+def test_step_confidence_is_the_product_of_restricted_softmaxes():
+    # Same case as the Rust labels test: logits [2, 1] pick 0, then [0, 1] pick 1, then a forced step.
+    steps = [_step([2.0, 1.0], 0), _step([0.0, 1.0], 1), _step([0.0], 0)]
+    p1 = math.exp(2) / (math.exp(2) + math.exp(1))
+    p2 = math.exp(1) / (1 + math.exp(1))
+    assert step_confidence(steps) == pytest.approx(p1 * p2)
+    assert step_confidence(steps, 3.0) < step_confidence(steps)
+    assert step_confidence(steps, 1e6) == pytest.approx(0.25, abs=1e-3)
+
+
+def test_fit_conf_temperature_recovers_the_generating_temperature():
+    rng = np.random.default_rng(0)
+    steps, correct = [], []
+    for _ in range(20000):
+        z = rng.normal(0, 3, size=2).tolist()
+        chosen = int(np.argmax(z))
+        p = step_confidence([_step(z, chosen)], 2.0)  # the truth: P(correct) = softmax(z / 2)
+        steps.append([_step(z, chosen)])
+        correct.append(bool(rng.random() < p))
+    assert fit_conf_temperature(steps, correct) == pytest.approx(2.0, abs=0.15)
+
+
+def test_fit_conf_temperature_needs_both_outcomes():
+    steps = [[_step([3.0, 0.0], 0)]] * 10
+    with pytest.raises(ValueError, match="both"):
+        fit_conf_temperature(steps, [True] * 10)
