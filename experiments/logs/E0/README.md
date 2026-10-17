@@ -118,3 +118,34 @@ so these conditions don't matter for it; no latency was taken from these runs. L
 4. `-ot '.*=CPU'` did not turn repacking off. It moved only the embedding and output tensors; the layers were still repacked.
 5. Consequence for the PREREG (proposed D12): fix the Tier-4 load mode before E1/E6, or report `RssAnon` and `RssFile`
    separately. The E0 RSS table stays valid for mmap loading and must be labelled that way.
+
+## Session 2 of 3 (20261017T132649Z): evening, boost off, pinned
+
+2026-10-17, 18:56–19:41 IST (session 1 ran at 15:47 IST). Protocol v3 + ADR-012: AC, battery Full (100%), tuned
+`throughput-performance`, governor `performance`, boost 0, mask `555`, Docker containers stopped, CPU 45 °C at start.
+Nothing else ran during the session.
+
+Invalidation rules (PREREG §4): AC-off/boost-on rows 0 of 120. Background busy mean 1.18%, max 7.6% (limit 10%). Pinned
+CPU frequency during SLM tests 1985–2052 MHz, within ±2% of the session median (limit 10%). Max temperature 63.1 °C.
+**Valid.**
+
+| Model | Prefill tok/s (CV) | Decode tok/s (CV) | Peak RSS MiB | vs session 1: prefill / decode |
+|---|---|---|---|---|
+| Qwen3-1.7B Q4_K_M | 90.98 (0.2%) | 18.29 (0.8%) | 1956 | +0.4% / +0.3% |
+| Qwen3-1.7B Q8_0 | 73.20 (0.3%) | 11.49 (0.8%) | 2159 | −0.1% / +0.3% |
+| Gemma-4-E2B Q4_0 | 58.69 (0.7%) | 12.01 (2.0%) | 3838 | +0.4% / −1.4% |
+| Gemma-4-E2B Q8_0 | 52.05 (0.5%) | 8.00 (0.3%) | 4853 | −0.7% / −0.5% |
+| Qwen3-4B Q4_K_M | 36.20 (0.3%) | 8.22 (0.1%) | 4140 | −0.2% / −0.2% |
+| Qwen3-4B Q8_0 | 28.62 (0.6%) | 4.94 (0.5%) | 4192 | −0.3% / −0.4% |
+
+Across sessions 1–2 (CV of the session means, `experiments/analysis/e0_summary.py`):
+1. **SLM throughput is repeatable:** CV ≤ 1.0% for every pp128 and tg64 test.
+2. **e5 encoder passes are repeatable:** CV 0.2% (Q8_0) and 0.7% (F16). bge-small pp32 is not (9.4% across sessions,
+   13–20% within): a 0.2 s run is too short for llama-bench, and bge was not chosen (ADR-014).
+3. **Startup is noisier:** CV 1–13% across sessions, highest for Q8 files (Qwen3-4B Q8 12.8%), i.e. disk/page-cache
+   effects. E1 loads models once, so startup is reported but not part of per-request latency.
+4. Peak RSS repeats within 1% (mmap loading as in session 1; E1/E6 load without mmap, D12).
+5. Frequency: session 2 logs the pinned-CPU mean (~2020 MHz). Session 1's column averages all 12 CPUs (~1760 MHz), so
+   the two are not directly comparable (see session 1, note 4).
+
+Session 3 (morning) is still due for the 3-session check (Week 2 "T").
