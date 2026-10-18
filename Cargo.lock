@@ -192,6 +192,18 @@ name = "kestrel-bench"
 version = "0.1.0"
 
 [[package]]
+name = "kestrel-cli"
+version = "0.1.0"
+dependencies = [
+ "kestrel-core",
+ "kestrel-inference",
+ "kestrel-nlu",
+ "kestrel-router",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kestrel-core"
 version = "0.1.0"
 dependencies = [

@@ -20,7 +20,7 @@ impl TierModel for Slm {
     }
 }
 
-fn cascade(signal: bool) -> Cascade {
+fn cascade(signal: bool) -> Cascade<'static> {
     // 0.99 is a placeholder, NOT the rules' measured precision (Ch. 9.3).
     let rules = RulesTier::new(RuleSet::default_set(), 0.99, 1).unwrap();
     let cfg = RouterConfig {

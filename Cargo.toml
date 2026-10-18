@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu", "crates/kestrel-router"]
+members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu", "crates/kestrel-router"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 kestrel-bench = { path = "crates/kestrel-bench" }
 kestrel-core = { path = "crates/kestrel-core" }
+kestrel-inference = { path = "crates/kestrel-inference" }
 kestrel-nlu = { path = "crates/kestrel-nlu" }
 kestrel-router = { path = "crates/kestrel-router" }
 # Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the

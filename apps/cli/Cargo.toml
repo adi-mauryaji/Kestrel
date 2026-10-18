@@ -1,0 +1,26 @@
+[package]
+name = "kestrel-cli"
+description = "The kestrel binary: wires the tiers into the cascade (Ch. 24)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "kestrel"
+path = "src/main.rs"
+
+[features]
+# Off by default like kestrel-inference's: CI builds without the native library.
+llama = ["kestrel-inference/llama"]
+
+[dependencies]
+kestrel-core.workspace = true
+kestrel-inference.workspace = true
+kestrel-nlu.workspace = true
+kestrel-router.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

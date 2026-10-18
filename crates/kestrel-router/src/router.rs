@@ -82,15 +82,15 @@ pub struct Trace {
     pub multi_intent: bool,
 }
 
-pub struct Cascade {
+pub struct Cascade<'a> {
     /// Sorted by tier, cheapest first; at most one model per tier.
-    tiers: Vec<Box<dyn TierModel>>,
+    tiers: Vec<Box<dyn TierModel + 'a>>,
     cfg: RouterConfig,
 }
 
-impl Cascade {
+impl<'a> Cascade<'a> {
     pub fn new(
-        mut tiers: Vec<Box<dyn TierModel>>,
+        mut tiers: Vec<Box<dyn TierModel + 'a>>,
         cfg: RouterConfig,
     ) -> Result<Self, KestrelError> {
         cfg.validate()?;
@@ -522,6 +522,28 @@ mod tests {
         assert!(RouterConfig::from_json(bad).is_err());
         let missing = r#"{"accept": [0.0, 1.0, 0.5, 0.0], "latency_budget_ms": 1}"#;
         assert!(RouterConfig::from_json(missing).is_err());
+    }
+
+    /// Real tiers borrow their loaded models (`GenerativeTier<'m>`), so a cascade must accept
+    /// tiers that are not `'static`.
+    #[test]
+    fn accepts_tiers_that_borrow_their_model() {
+        struct Borrowing<'m>(&'m [(Intent, f32)]);
+        impl TierModel for Borrowing<'_> {
+            fn tier(&self) -> Tier {
+                Encoder
+            }
+            fn est_cost_ms(&self) -> u32 {
+                10
+            }
+            fn classify(&self, _: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
+                Ok(self.0.to_vec())
+            }
+        }
+        let model = vec![(SearchNotes, 0.9)];
+        let c = Cascade::new(vec![Box::new(Borrowing(&model))], cfg(2000)).unwrap();
+        let (out, _) = c.route(&Request::new(1, "anything"));
+        assert_eq!(out, Outcome::Accepted(pred(SearchNotes, 0.9, Encoder)));
     }
 
     #[test]
