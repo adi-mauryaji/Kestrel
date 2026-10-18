@@ -1,0 +1,365 @@
+<title>Kestrel Request Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow working column; a sticky mode bar; the request (or the task) is the largest thing on screen. */
+:root {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --ink: #1d2128;
+  --muted: #5d6573;
+  --line: #d9dcd6;
+  --chestnut: #9a4523;   /* kestrel back feathers: actions and selection */
+  --chestnut-ink: #ffffff;
+  --slate: #4c5e77;      /* kestrel head and tail: secondary marks */
+  --slate-soft: #e6eaf0;
+  --good: #2f6b3a;
+  --warn: #8a5a00;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+    --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+    --good: #7cc48a; --warn: #e6b04f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+  --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+  --good: #7cc48a; --warn: #e6b04f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font-body); }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 20px; }
+h1 { font: 800 clamp(1.7rem, 5vw, 2.3rem)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 600 1.15rem/1.3 var(--font-display); margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; }
+.eyebrow { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.modes { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding-block: 8px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.modes button { font: 700 0.95rem var(--font-body); padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.modes button[aria-pressed="true"] { background: var(--slate); border-color: var(--slate); color: var(--surface); }
+.field { display: grid; gap: 6px; }
+label.small, .small { font-size: 0.85rem; color: var(--muted); }
+input[type="text"], textarea { font: 16px/1.4 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
+textarea { resize: vertical; min-height: 44px; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--chestnut); outline-offset: 2px; }
+.panel { display: grid; gap: 16px; }
+.progress { display: grid; gap: 6px; }
+.bar { height: 6px; background: var(--slate-soft); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--chestnut); transition: width .2s; }
+.counts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+.request { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 20px; display: grid; gap: 10px; }
+.request .text { font-size: clamp(1.25rem, 4.2vw, 1.6rem); line-height: 1.35; overflow-wrap: anywhere; }
+.request .id { font: 400 0.75rem var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.choice { text-align: left; display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.choice .name { font: 600 0.86rem var(--font-mono); overflow-wrap: anywhere; }
+.choice .gloss { font-size: 0.8rem; color: var(--muted); }
+.choice .key { font: 400 0.7rem var(--font-mono); color: var(--slate); }
+.choice[aria-pressed="true"] { background: var(--chestnut); border-color: var(--chestnut); color: var(--chestnut-ink); }
+.choice[aria-pressed="true"] .gloss, .choice[aria-pressed="true"] .key { color: var(--chestnut-ink); }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 700 0.95rem var(--font-body); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--chestnut); border-color: var(--chestnut); color: var(--chestnut-ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+summary { cursor: pointer; font-weight: 700; }
+.guide { display: grid; gap: 14px; margin-top: 12px; }
+.guide dl { display: grid; gap: 10px; margin: 0; }
+.guide dt { font: 600 0.86rem var(--font-mono); color: var(--chestnut); }
+.guide dd { margin: 2px 0 0; }
+.guide .ex { color: var(--muted); font-size: 0.9rem; }
+.guide ol { margin: 0; padding-left: 1.3rem; display: grid; gap: 6px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+.task .ask { font-weight: 700; }
+.task .n { font: 600 0.72rem var(--font-mono); color: var(--slate); letter-spacing: .06em; }
+.consent { display: flex; gap: 10px; align-items: flex-start; background: var(--slate-soft); padding: 12px 14px; border-radius: 8px; }
+.consent input { margin-top: 4px; width: 20px; height: 20px; flex: none; }
+.send { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 18px; }
+.status { font-size: 0.9rem; min-height: 1.4em; }
+.status.ok { color: var(--good); } .status.warn { color: var(--warn); }
+.export { font: 400 0.75rem/1.4 var(--font-mono); min-height: 90px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="panel" style="gap:10px">
+    <span class="eyebrow">Kestrel · research study</span>
+    <h1>Kestrel Request Lab</h1>
+    <p class="lede">Kestrel is an offline assistant for notes, tasks and reminders, built for a student research project on
+      English and Hinglish requests. You can help in one of two ways below. Your answers are anonymous: use a short code, not your name.</p>
+  </header>
+
+  <nav class="modes" aria-label="What would you like to do?">
+    <button type="button" id="mode-label" aria-pressed="true">Label requests</button>
+    <button type="button" id="mode-write" aria-pressed="false">Write requests</button>
+  </nav>
+
+  <div class="field">
+    <label for="code" class="small">Your code (initials or a nickname, 1–24 characters)</label>
+    <input type="text" id="code" maxlength="24" autocomplete="off" placeholder="e.g. RK or blue-falcon">
+  </div>
+
+  <section id="panel-label" class="panel" aria-labelledby="h-label">
+    <h2 id="h-label">Label each request with what the person wants</h2>
+    <p class="small">Pick the one label that fits; if the request asks for two different things, pick <b>compound</b>.
+      Keys 1–9 and 0 pick a label, ← and → move. It takes about 20–30 minutes; your progress stays in this browser.</p>
+    <details>
+      <summary>How to choose (read once before starting)</summary>
+      <div class="guide">
+        <dl id="guide-defs"></dl>
+        <div><p class="eyebrow" style="margin-bottom:8px">Rules, in order: the first that fits decides</p><ol id="guide-rules"></ol></div>
+      </div>
+    </details>
+    <div class="progress">
+      <div class="counts small"><span id="pos">Request 1 of –</span><span id="done">0 labelled</span></div>
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    </div>
+    <article class="request" aria-live="polite">
+      <div class="text" id="req-text">Loading the requests…</div>
+      <div class="id" id="req-id"></div>
+    </article>
+    <div class="choices" id="choices" role="group" aria-label="Labels"></div>
+    <div class="nav">
+      <button type="button" class="btn" id="prev">← Previous</button>
+      <button type="button" class="btn" id="next">Next →</button>
+      <button type="button" class="btn" id="jump">Next unlabelled</button>
+    </div>
+  </section>
+
+  <section id="panel-write" class="panel" aria-labelledby="h-write" hidden>
+    <h2 id="h-write">Write what you would say to Kestrel</h2>
+    <p class="small">For each task, write two requests the way you would really type or say them in Hinglish
+      (Hindi in Latin letters, mixed with English as you like). An English one is optional. Make up names and details;
+      don't copy each other's sentences. About 10–15 minutes.</p>
+    <label class="consent" for="consent">
+      <input type="checkbox" id="consent">
+      <span>I agree that what I write here can be used, without my name, in a public research dataset for the Kestrel project.
+        I won't write real personal details such as phone numbers, addresses or passwords.</span>
+    </label>
+    <div class="counts small"><span id="w-count">0 of 20 Hinglish requests written</span></div>
+    <div id="tasks" class="panel"></div>
+  </section>
+
+  <section class="send" aria-labelledby="h-send">
+    <h2 id="h-send">Send your answers</h2>
+    <div class="nav">
+      <button type="button" class="btn primary" id="save" hidden>Save to the study</button>
+      <button type="button" class="btn" id="copy">Copy answers</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <p class="small" id="send-help">If “Save” is not shown, tap “Copy answers” and paste the text in a message to the person who shared this page.</p>
+    <textarea id="export" class="export" readonly rows="4" aria-label="Your answers as text"></textarea>
+  </section>
+</div>
+
+<script>
+const DATA = {"version": 1, "items": [{"id": "create-12/en/0/0", "text": "note down a task to renew the gym membership"}, {"id": "create-02/en/0/1", "text": "add a task to renew the gym membership"}, {"id": "create-17/en/0/0", "text": "can you make sure i renew the gym membership in two hours? add it as a task"}, {"id": "delete-14/en/0/0", "text": "delete my reminder to review the pull request"}, {"id": "read-17/hi-en/0/1", "text": "ideas.md load karo"}, {"id": "delete-09/hi-en/0/2", "text": "reminder 42 delete kar do please"}, {"id": "cmp-02/en/0/2", "text": "find my notes on research paper and summarize them"}, {"id": "oos-maths-01/hi-en/0/0", "text": "75 dollar ko rupees mein convert karo"}, {"id": "recall-09/hi-en/0/0", "text": "kya maine kabhi meri diet ke baare mein bataya tha?"}, {"id": "search-14/en/0/0", "text": "search notes: exam preparation"}, {"id": "delete-07/en/0/1", "text": "remove 'call asha' from my to-do list"}, {"id": "search-15/en/0/2", "text": "fetch my notes related to client call"}, {"id": "pref-01/hi-en/0/1", "text": "mujhe metric units pasand hai"}, {"id": "recall-09/en/0/0", "text": "did i ever tell you about my morning routine?"}, {"id": "search-17/en/0/1", "text": "show notes tagged budget meeting"}, {"id": "pref-13/en/0/1", "text": "update my preferences: short answers"}, {"id": "search-19/en/0/0", "text": "please search for thesis in my notebook"}, {"id": "read-14/hi-en/0/1", "text": "ideas.md pe jao"}, {"id": "recall-03/en/0/0", "text": "do you know anything about my manager?"}, {"id": "read-20/hi-en/0/0", "text": "thesis.md view karo"}, {"id": "delete-19/hi-en/0/1", "text": "task 21 uda do"}, {"id": "search-15/hi-en/0/1", "text": "budget meeting se related notes laao"}, {"id": "oos-facts-02/hi-en/0/0", "text": "jaipur ki population kitni hai?"}, {"id": "chat-07/hi-en/1/0", "text": "kuch funny bolo"}, {"id": "oos-email-02/en/0/0", "text": "check my inbox"}, {"id": "chat-11/en/0/0", "text": "bye"}, {"id": "chat-20/hi-en/1/0", "text": "aaj mera birthday hai"}, {"id": "pref-14/en/0/0", "text": "i like replies in hinglish better"}, {"id": "cmp-07/hi-en/0/1", "text": "ideas.md ka summary do aur action items ko tasks bana do"}, {"id": "read-17/en/0/2", "text": "load ideas.md"}, {"id": "read-18/hi-en/0/0", "text": "project-plan.txt mein maine kya likha tha dekh sakta hoon?"}, {"id": "summarize-16/en/0/2", "text": "summarize ideas.md in three sentences"}, {"id": "delete-05/hi-en/0/0", "text": "yeh task delete kar do: pull request review karna"}, {"id": "summarize-08/hi-en/0/2", "text": "reading-list.md ke main points batao"}, {"id": "recall-18/en/0/2", "text": "check your memory for my morning routine"}, {"id": "pref-10/hi-en/0/2", "text": "default bullet points set karo"}, {"id": "oos-news-01/en/0/0", "text": "what's in the news today?"}, {"id": "create-13/en/0/1", "text": "ping me tomorrow to book a doctor's appointment"}, {"id": "search-13/hi-en/0/2", "text": "mere kaun se notes exam preparation cover karte hain?"}, {"id": "pref-19/hi-en/0/0", "text": "mere profile mein add karo: main 6 baje uthta hoon"}, {"id": "pref-08/en/0/0", "text": "my preference is short answers"}, {"id": "summarize-18/en/0/2", "text": "quick summary of my notes from the last two days"}, {"id": "pref-10/en/0/1", "text": "set my default to a formal tone"}, {"id": "chat-12/en/0/0", "text": "sorry, my mistake"}, {"id": "recall-11/en/0/0", "text": "what's in your memory about asha"}, {"id": "summarize-06/hi-en/0/2", "text": "last 3 meeting notes ka saar batao"}, {"id": "cmp-03/hi-en/0/2", "text": "ideas.md kholo aur kal ravi ko report bhejna yaad dila dena"}, {"id": "pref-02/en/0/0", "text": "remember that i wake up at 6 am"}, {"id": "create-19/en/0/2", "text": "alert me on friday to call asha"}, {"id": "pref-18/en/0/1", "text": "go with metric units from here on"}, {"id": "create-11/en/0/1", "text": "make a to-do: book a doctor's appointment"}, {"id": "delete-02/hi-en/0/1", "text": "task number 12 hata do"}, {"id": "recall-10/hi-en/0/1", "text": "asha ki memory entries dikhao"}, {"id": "summarize-05/hi-en/0/2", "text": "python decorators wale notes ka gist kya hai?"}, {"id": "oos-travel-01/hi-en/0/1", "text": "bangalore ki flight book karo"}, {"id": "search-20/en/0/0", "text": "find the note where i mentioned python decorators"}, {"id": "oos-music-02/en/0/0", "text": "skip this song"}, {"id": "read-19/hi-en/0/1", "text": "please thesis.md khol do"}, {"id": "summarize-14/en/0/0", "text": "what are the highlights of my client call notes"}, {"id": "read-01/en/0/0", "text": "open project-plan.txt"}, {"id": "summarize-13/en/0/2", "text": "boil down thesis.md to bullet points"}, {"id": "pref-03/hi-en/0/2", "text": "ab se mujhe short answers chahiye"}, {"id": "pref-15/hi-en/0/2", "text": "bhoolna mat ki meri sister ka naam priya hai"}, {"id": "chat-18/en/0/0", "text": "help"}, {"id": "create-16/en/0/0", "text": "reminder: review the pull request on friday"}, {"id": "delete-02/en/0/0", "text": "remove task number 12"}, {"id": "summarize-19/en/0/0", "text": "what did my last five notes say, in short?"}, {"id": "read-05/en/0/2", "text": "display the contents of ideas.md"}, {"id": "cmp-05/hi-en/0/1", "text": "yaad rakhna ki meri sister ka naam priya hai, phir do ghante baad doctor ka appointment book karna yaad dila dena"}, {"id": "pref-18/hi-en/0/1", "text": "ab hinglish mein replies wala style follow karo"}, {"id": "cmp-09/hi-en/0/1", "text": "mujhe metric units pasand hai, ab client call notes ka summary do"}, {"id": "read-01/hi-en/0/2", "text": "notes/meeting-2026-10-01.md kholo"}, {"id": "summarize-09/en/0/1", "text": "short summary of notes/meeting-2026-10-01.md please"}, {"id": "create-03/hi-en/0/1", "text": "naya task banao - ravi ko report bhejna"}, {"id": "read-16/en/0/1", "text": "read out reading-list.md"}, {"id": "recall-12/hi-en/0/1", "text": "meri morning routine ke baare mein kya save kiya tha"}, {"id": "cmp-04/en/0/1", "text": "delete task 12 and add a task to buy groceries"}, {"id": "search-07/en/0/0", "text": "any notes mentioning python decorators?"}, {"id": "summarize-19/hi-en/0/0", "text": "last 3 notes mein kya tha, short mein batao"}, {"id": "chat-04/hi-en/1/0", "text": "chalo good night"}, {"id": "create-15/hi-en/0/1", "text": "yeh task track karo: assignment submit karna"}, {"id": "oos-shopping-01/hi-en/0/0", "text": "online naye headphones order karo"}, {"id": "recall-03/hi-en/0/2", "text": "asha ke baare mein kuch pata hai?"}, {"id": "summarize-02/en/0/1", "text": "give me a summary of my last three notes"}, {"id": "search-14/hi-en/0/0", "text": "notes search karo, quarterly goals"}, {"id": "create-20/en/0/2", "text": "give me a nudge today at 5 pm to pay the electricity bill"}, {"id": "delete-12/en/0/0", "text": "drop task 12"}, {"id": "read-08/en/0/1", "text": "let me see reading-list.md"}, {"id": "cmp-08/en/0/0", "text": "what do you remember about my manager? also find my notes on exam preparation"}, {"id": "search-16/hi-en/0/2", "text": "marketing plan ke baare mein kahin likha tha, dhoond do"}, {"id": "chat-16/en/0/0", "text": "how was your day?"}, {"id": "delete-19/en/0/1", "text": "wipe task 7"}, {"id": "oos-maths-02/en/0/2", "text": "what's 18 percent of 250?"}, {"id": "read-13/en/0/2", "text": "show the full text of reading-list.md"}, {"id": "search-04/hi-en/0/2", "text": "client call ke baare mein jo bhi likha tha woh dikhao"}, {"id": "pref-03/en/0/0", "text": "from now on, i want a formal tone"}, {"id": "oos-sports-02/hi-en/0/2", "text": "rcb game ka score kya hai"}, {"id": "read-10/en/0/0", "text": "i want to read ideas.md"}, {"id": "chat-17/en/1/0", "text": "what's your favourite movie"}, {"id": "delete-01/en/0/0", "text": "delete task 21"}, {"id": "chat-17/hi-en/1/0", "text": "favourite movie kaun si hai"}, {"id": "create-09/hi-en/0/1", "text": "aaj shaam 5 baje yaad dilana ki mujhe doctor ka appointment book karna hai"}, {"id": "delete-17/en/0/1", "text": "trash the task to buy groceries"}, {"id": "pref-04/hi-en/0/2", "text": "hamesha hinglish mein replies dena"}, {"id": "delete-12/hi-en/0/0", "text": "task 7 drop kar do"}, {"id": "recall-19/hi-en/0/0", "text": "last cheez kya thi jo maine yaad rakhne ko kahi thi?"}, {"id": "pref-11/en/0/1", "text": "for future replies, stick to bullet points"}, {"id": "summarize-03/en/0/1", "text": "summarize todo.md"}, {"id": "create-17/hi-en/0/1", "text": "kya is weekend ke liye task add kar sakte ho: gym membership renew karna?"}, {"id": "delete-11/en/0/0", "text": "erase task 42 from my list"}, {"id": "create-04/en/0/2", "text": "create a task to review the pull request on 15 march"}, {"id": "oos-shopping-02/en/0/2", "text": "add a birthday gift for asha to my amazon cart"}, {"id": "search-12/hi-en/0/2", "text": "marketing plan ke baare mein jo note kiya tha woh nikal sakte ho?"}, {"id": "pref-06/en/0/2", "text": "keep in mind that i wake up at 6 am"}, {"id": "delete-13/hi-en/0/2", "text": "task 21 list se nikaal do"}, {"id": "oos-sports-01/en/0/2", "text": "who won the real madrid match?"}, {"id": "recall-06/hi-en/0/1", "text": "mere manager ke baare mein jo bataya tha woh recall karo"}, {"id": "read-04/en/0/2", "text": "can you open the file ideas.md?"}, {"id": "chat-13/hi-en/0/0", "text": "kya tum robot ho?"}, {"id": "pref-16/hi-en/0/2", "text": "mere liye note karo: mera manager ravi hai"}, {"id": "read-09/hi-en/0/1", "text": "mera todo.md wala file open karo"}, {"id": "cmp-01/en/0/0", "text": "summarize my last two meeting notes and create a task list"}, {"id": "recall-06/en/0/1", "text": "recall what i told you about my diet"}, {"id": "create-01/hi-en/0/2", "text": "friday bijli ka bill bharna yaad dila dena"}, {"id": "delete-11/hi-en/0/0", "text": "meri list se task 7 mita do"}, {"id": "delete-10/hi-en/0/1", "text": "task 7 cancel karo"}, {"id": "recall-17/en/0/0", "text": "what facts do you have on my morning routine"}, {"id": "summarize-12/hi-en/0/1", "text": "jo last 3 notes liye the unka recap do"}, {"id": "oos-shopping-02/hi-en/0/1", "text": "ek kilo chawal cart mein daalo"}, {"id": "search-03/en/0/0", "text": "do i have any notes on research paper?"}, {"id": "oos-calls-02/en/0/2", "text": "text priya that i'm on my way"}, {"id": "read-11/hi-en/0/0", "text": "document project-plan.txt open kar do"}, {"id": "search-09/en/0/0", "text": "i need my notes on quarterly goals"}, {"id": "oos-weather-01/hi-en/0/1", "text": "pune mein mausam kaisa hai?"}, {"id": "oos-email-01/hi-en/0/1", "text": "priya ko email bhejo ki main late aaunga"}, {"id": "summarize-13/hi-en/0/2", "text": "reading-list.md ko bullet points mein summarize karo"}, {"id": "chat-12/hi-en/1/0", "text": "oops, ignore karo"}, {"id": "oos-facts-01/en/0/0", "text": "who is the prime minister of japan?"}, {"id": "cmp-03/en/0/2", "text": "open notes/meeting-2026-10-01.md and remind me to book a doctor's appointment tomorrow"}, {"id": "summarize-18/hi-en/0/1", "text": "pichhle 2 din ke notes ka quick summary"}, {"id": "pref-07/hi-en/0/2", "text": "mere baare mein save karo: main vegetarian hoon"}, {"id": "delete-20/en/0/1", "text": "unschedule the reminder to water the plants"}, {"id": "oos-music-01/hi-en/0/0", "text": "lo-fi music chalao"}, {"id": "summarize-20/hi-en/0/1", "text": "exam preparation notes summarize kar do pls"}, {"id": "chat-07/en/1/0", "text": "say something funny"}, {"id": "pref-06/hi-en/0/1", "text": "dhyan rakhna ki asha ka birthday 5 march ko hai"}, {"id": "oos-web-02/hi-en/0/0", "text": "internet pe python decorators search karo"}, {"id": "search-12/en/0/2", "text": "can you dig up what i noted down about exam preparation"}, {"id": "chat-06/en/0/0", "text": "who made you?"}, {"id": "summarize-10/en/0/0", "text": "condense my budget meeting notes into a few lines"}, {"id": "cmp-11/hi-en/0/0", "text": "ideas.md padho phir task add karo: slides banana"}, {"id": "pref-15/en/0/0", "text": "don't forget that asha's birthday is on 5 march"}, {"id": "read-11/en/0/0", "text": "bring up the document todo.md"}, {"id": "create-06/hi-en/0/1", "text": "mujhe doctor ka appointment book karna bhoolne mat dena"}, {"id": "delete-06/hi-en/0/2", "text": "ab yeh reminder nahi chahiye: paudhon ko paani dena"}, {"id": "oos-web-01/hi-en/0/1", "text": "marketing plan google karo"}, {"id": "read-07/en/0/2", "text": "pull up project-plan.txt"}, {"id": "recall-17/hi-en/0/1", "text": "meri diet pe kya facts hain tumhare paas"}, {"id": "cmp-12/hi-en/0/2", "text": "exam preparation ke notes dhundo, summary do aur follow-up task add karo: pull request review karna"}, {"id": "cmp-06/en/0/2", "text": "search my notes for research paper and open the first one"}, {"id": "search-02/hi-en/0/0", "text": "mere notes mein python decorators search karo"}, {"id": "search-11/en/0/2", "text": "find notes thesis"}, {"id": "recall-07/en/0/0", "text": "what do you know about me?"}, {"id": "cmp-05/en/0/2", "text": "remember that asha's birthday is on 5 march, then remind me to call asha on 15 march"}, {"id": "create-13/hi-en/0/1", "text": "agle monday mujhe ping karna, paudhon ko paani dena hai"}, {"id": "summarize-02/hi-en/0/0", "text": "mere last 3 notes ka summary do"}, {"id": "recall-18/hi-en/0/2", "text": "apni memory mein meri diet check karo"}, {"id": "delete-01/hi-en/0/1", "text": "task 12 delete karo"}, {"id": "delete-16/en/0/0", "text": "can you remove task 7?"}, {"id": "summarize-04/hi-en/0/1", "text": "research paper notes ka tl;dr do"}, {"id": "oos-sports-01/hi-en/0/0", "text": "rcb ka match kaun jeeta?"}, {"id": "create-04/hi-en/0/0", "text": "ek task create karo, 15 march asha ko call karna"}, {"id": "recall-01/hi-en/0/0", "text": "meri diet ke baare mein tumhe kya yaad hai?"}, {"id": "search-16/en/0/0", "text": "i wrote something about marketing plan somewhere, find it"}, {"id": "oos-web-01/en/0/2", "text": "google python decorators"}, {"id": "chat-08/hi-en/0/0", "text": "tum mast ho"}, {"id": "read-19/en/0/0", "text": "open project-plan.txt please"}, {"id": "oos-news-02/en/0/1", "text": "any headlines about pune?"}, {"id": "search-19/hi-en/0/1", "text": "please notebook mein python decorators search kar do"}, {"id": "summarize-08/en/0/1", "text": "give me the key points from project-plan.txt"}, {"id": "cmp-08/hi-en/0/2", "text": "meri morning routine ke baare mein kya yaad hai? aur rust lifetimes ke notes bhi dhundo"}, {"id": "read-07/hi-en/0/1", "text": "reading-list.md nikalo"}, {"id": "read-06/hi-en/0/1", "text": "reading-list.md mein kya likha hai?"}, {"id": "delete-08/hi-en/0/1", "text": "task 21 scrap karo"}, {"id": "search-07/hi-en/0/2", "text": "marketing plan wale koi notes hain kya"}, {"id": "search-10/hi-en/0/2", "text": "jo notes rust lifetimes ke baare mein hain unki list do"}, {"id": "oos-web-02/en/0/0", "text": "search the web for thesis"}, {"id": "search-08/hi-en/0/0", "text": "mere quarterly goals wale notes nikalo"}, {"id": "summarize-04/en/0/2", "text": "tl;dr of my python decorators notes"}, {"id": "summarize-10/hi-en/0/0", "text": "goa trip ke notes ko kuch lines mein samjhao"}, {"id": "delete-04/hi-en/0/0", "text": "task 7 hatao"}, {"id": "create-14/en/0/0", "text": "add this to my tasks: renew the gym membership"}, {"id": "cmp-11/en/0/2", "text": "read notes/meeting-2026-10-01.md then add a task to review the pull request"}, {"id": "create-08/hi-en/0/0", "text": "to-do list mein daalo: gym membership renew karna"}, {"id": "summarize-15/hi-en/0/1", "text": "thesis ke notes pe brief karo"}, {"id": "delete-13/en/0/2", "text": "take task 12 off my list"}, {"id": "chat-14/hi-en/0/0", "text": "helpful tha"}, {"id": "pref-14/hi-en/0/2", "text": "mujhe metric units zyada achha lagta hai"}, {"id": "read-12/hi-en/0/2", "text": "thesis.md yahan print karo"}, {"id": "search-09/hi-en/0/0", "text": "mujhe goa trip ke notes chahiye"}, {"id": "create-16/hi-en/0/0", "text": "reminder: 15 march assignment submit karna"}, {"id": "recall-01/en/0/1", "text": "what do you remember about my manager?"}, {"id": "create-18/en/0/2", "text": "jot down that i need to renew the gym membership"}, {"id": "cmp-01/hi-en/0/0", "text": "last 3 meeting notes ka summary do aur task list banao"}, {"id": "recall-02/hi-en/0/0", "text": "maine mere manager ke baare mein kya bataya tha"}, {"id": "create-12/hi-en/0/2", "text": "task note kar lo: slides banana"}, {"id": "chat-03/en/1/0", "text": "how's it going"}, {"id": "pref-17/hi-en/0/2", "text": "kya tum yaad rakh sakte ho ki meri car white swift hai?"}, {"id": "recall-02/en/0/0", "text": "what have i told you about asha"}, {"id": "pref-12/en/0/0", "text": "fyi, my manager is ravi. remember it"}, {"id": "read-04/hi-en/0/1", "text": "todo.md file khol sakte ho?"}, {"id": "summarize-20/en/0/1", "text": "pls summarize client call notes"}, {"id": "create-20/hi-en/0/2", "text": "remind kar dena aaj raat, grocery lena hai"}, {"id": "recall-10/en/0/2", "text": "show my memory entries for my manager"}, {"id": "pref-19/en/0/1", "text": "add to my profile: i'm vegetarian"}, {"id": "delete-18/en/0/2", "text": "kill reminder 12"}, {"id": "read-06/en/0/0", "text": "what's in reading-list.md?"}, {"id": "oos-device-01/en/0/0", "text": "turn on the living room lights"}, {"id": "search-04/en/0/0", "text": "show me everything i wrote about thesis"}, {"id": "create-06/en/0/0", "text": "don't let me forget to prepare the slides"}], "guide": [{"label": "search_notes", "definition": "Find notes by topic or keywords.", "gloss": "find notes", "examples": ["find what i wrote about the hackathon", "biology lab wale notes dhoondh do"]}, {"label": "read_document", "definition": "Open or show one specific document, named by its file name or title.", "gloss": "open one document", "examples": ["open budget-2026.xlsx", "resume.pdf kholo"]}, {"label": "create_task", "definition": "Add a task or a reminder for later.", "gloss": "reminder / to-do", "examples": ["remind me to renew my bus pass on monday", "parso dentist appointment yaad dilana"]}, {"label": "delete_task", "definition": "Delete, remove or cancel a task or reminder that already exists.", "gloss": "remove a task", "examples": ["cancel the gym reminder", "dentist wala reminder hata do"]}, {"label": "summarize_notes", "definition": "Summarize notes or a document: a summary, gist, recap or key points.", "gloss": "summary", "examples": ["give me the gist of my physics notes", "meeting notes ka chhota summary bana do"]}, {"label": "set_preference", "definition": "Tell Kestrel to remember a standing preference or a personal fact.", "gloss": "remember about me", "examples": ["remember that i am allergic to peanuts", "yaad rakhna ki mujhe chai bina cheeni pasand hai"]}, {"label": "retrieve_memory", "definition": "Ask what Kestrel has stored about the user.", "gloss": "what do you know about me", "examples": ["what do you know about my diet", "maine apne bhai ke baare mein kya bataya tha"]}, {"label": "chitchat", "definition": "Greetings, thanks, small talk, or questions about Kestrel itself. No action.", "gloss": "small talk", "examples": ["how old are you, kestrel", "tumhara naam kisne rakha"]}, {"label": "unsupported", "definition": "Anything no Kestrel tool can do: internet, email, calls, messages, device control, shopping, travel, live data, general knowledge, calculations.", "gloss": "can't do that", "examples": ["book a cab to the station", "aaj cricket match ka score kya hai"]}, {"label": "compound", "definition": "Two or more different actions in one request.", "gloss": "two or more things", "examples": ["find my chemistry notes and summarize them", "purana reminder hatao aur kal ke liye naya lagao"]}], "rules": ["Two or more actions asked: compound.", "A summary, gist, recap or key points: summarize_notes, even when one document is named.", "One named document to open, show or read: read_document. A topic or keywords instead: search_notes.", "What Kestrel has stored about the user: retrieve_memory. The user's own notes and files: search_notes.", "Keeping a standing preference or a personal fact about the user: set_preference.", "Something to do later: create_task. Removing or cancelling one: delete_task.", "A capability Kestrel lacks: unsupported. Calling or messaging someone right now is unsupported; a reminder to do it later is create_task.", "Social talk with no action: chitchat.", "Label what the person asks for, not what Kestrel would do well. Ignore spelling, casing and mixing of Hindi and English: the same request gets the same label in either language."], "tasks": [{"id": "remind", "ask": "Ask Kestrel to remind you about something later, or to add something to your to-do list."}, {"id": "cancel", "ask": "Ask Kestrel to remove or cancel a reminder or task you made earlier."}, {"id": "find", "ask": "Ask Kestrel to find your notes about some topic."}, {"id": "open", "ask": "Ask Kestrel to open or show one particular file or document, by its name."}, {"id": "summary", "ask": "Ask Kestrel for a short summary of your notes or of a document."}, {"id": "remember", "ask": "Tell Kestrel something it should remember about you, or how you like things done."}, {"id": "recall", "ask": "Ask Kestrel what it remembers about you, or about something you told it before."}, {"id": "chat", "ask": "Just talk to Kestrel: say hello, thank it, or ask it about itself."}, {"id": "outside", "ask": "Ask for something an offline notes-and-tasks assistant cannot do: weather, food orders, sending a message, news, a calculation."}, {"id": "two", "ask": "Ask for two different things in one sentence (for example, find something and then do something with it)."}]};
+const KEYS = ["1","2","3","4","5","6","7","8","9","0"];
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kestrel-lab:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("kestrel-lab:" + k, JSON.stringify(v)); } catch {} },
+};
+const state = {
+  mode: location.hash === "#write" ? "write" : "label",
+  code: store.get("code", ""),
+  answers: store.get("answers", {}),          // item id -> label
+  pos: store.get("pos", 0),
+  requests: store.get("requests", {}),        // "task|lang|slot" -> text
+  consent: store.get("consent", false),
+};
+let db = null, uid = null, canWrite = null;
+
+function setMode(m) {
+  state.mode = m;
+  $("panel-label").hidden = m !== "label";
+  $("panel-write").hidden = m !== "write";
+  $("mode-label").setAttribute("aria-pressed", String(m === "label"));
+  $("mode-write").setAttribute("aria-pressed", String(m === "write"));
+  try { history.replaceState(null, "", m === "write" ? "#write" : "#label"); } catch {}
+  refreshExport();
+}
+
+function renderGuide() {
+  const dl = $("guide-defs");
+  for (const g of DATA.guide) {
+    const dt = document.createElement("dt"); dt.textContent = g.label;
+    const dd = document.createElement("dd"); dd.textContent = g.definition;
+    const ex = document.createElement("div"); ex.className = "ex"; ex.textContent = "e.g. " + g.examples.map((e) => "“" + e + "”").join(" · ");
+    dd.append(ex); dl.append(dt, dd);
+  }
+  for (const r of DATA.rules) { const li = document.createElement("li"); li.textContent = r; $("guide-rules").append(li); }
+}
+
+function renderChoices() {
+  const box = $("choices");
+  DATA.guide.forEach((g, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "choice"; b.dataset.label = g.label;
+    const name = document.createElement("span"); name.className = "name"; name.textContent = g.label;
+    const gloss = document.createElement("span"); gloss.className = "gloss"; gloss.textContent = g.gloss;
+    const key = document.createElement("span"); key.className = "key"; key.textContent = "key " + KEYS[i];
+    b.append(name, gloss, key);
+    b.addEventListener("click", () => choose(g.label));
+    box.append(b);
+  });
+}
+
+function renderItem() {
+  const n = DATA.items.length;
+  state.pos = Math.max(0, Math.min(n - 1, state.pos));
+  const item = DATA.items[state.pos];
+  $("req-text").textContent = item.text;
+  $("req-id").textContent = item.id;
+  const done = Object.keys(state.answers).length;
+  $("pos").textContent = `Request ${state.pos + 1} of ${n}`;
+  $("done").textContent = `${done} labelled`;
+  $("bar").style.width = (100 * done / n).toFixed(1) + "%";
+  for (const b of $("choices").children) b.setAttribute("aria-pressed", String(state.answers[item.id] === b.dataset.label));
+  $("prev").disabled = state.pos === 0;
+  $("next").disabled = state.pos === n - 1;
+  store.set("pos", state.pos);
+}
+
+function choose(label) {
+  const item = DATA.items[state.pos];
+  state.answers[item.id] = label;
+  store.set("answers", state.answers);
+  renderItem(); refreshExport();
+  if (state.pos < DATA.items.length - 1) setTimeout(() => { state.pos += 1; renderItem(); }, 160);
+}
+
+function nextUnlabelled() {
+  const n = DATA.items.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (state.pos + k) % n;
+    if (!state.answers[DATA.items[i].id]) { state.pos = i; renderItem(); return; }
+  }
+  setStatus("Every request has a label. Thank you! Now send your answers below.", "ok");
+}
+
+function renderTasks() {
+  const box = $("tasks");
+  DATA.tasks.forEach((t, i) => {
+    const card = document.createElement("div"); card.className = "task";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = `TASK ${i + 1} OF ${DATA.tasks.length}`;
+    const ask = document.createElement("p"); ask.className = "ask"; ask.textContent = t.ask;
+    card.append(n, ask);
+    for (const [lang, slot, labelText] of [["hi-en", 0, "Hinglish"], ["hi-en", 1, "Hinglish (another way)"], ["en", 0, "English (optional)"]]) {
+      const key = `${t.id}|${lang}|${slot}`;
+      const f = document.createElement("div"); f.className = "field";
+      const l = document.createElement("label"); l.className = "small"; l.htmlFor = "w-" + key.replaceAll("|", "-"); l.textContent = labelText;
+      const ta = document.createElement("textarea"); ta.id = "w-" + key.replaceAll("|", "-"); ta.rows = 1; ta.maxLength = 300;
+      ta.value = state.requests[key] || "";
+      ta.addEventListener("input", () => { state.requests[key] = ta.value; store.set("requests", state.requests); countWritten(); refreshExport(); });
+      f.append(l, ta); card.append(f);
+    }
+    box.append(card);
+  });
+}
+
+function countWritten() {
+  const n = Object.entries(state.requests).filter(([k, v]) => k.includes("|hi-en|") && v.trim()).length;
+  $("w-count").textContent = `${n} of ${DATA.tasks.length * 2} Hinglish requests written`;
+}
+
+function payload() {
+  const code = state.code.trim();
+  if (state.mode === "label") return { kind: "kestrel-annotation", version: 1, code, answers: state.answers };
+  const requests = Object.entries(state.requests)
+    .filter(([, v]) => v.trim())
+    .map(([k, v]) => { const [task, lang] = k.split("|"); return { task, lang, text: v.trim() }; });
+  return { kind: "kestrel-requests", version: 1, code, consent: state.consent, requests };
+}
+
+function problem() {
+  const p = payload();
+  if (!p.code) return "Add your code at the top first.";
+  if (p.kind === "kestrel-annotation" && !Object.keys(p.answers).length) return "Label at least one request first.";
+  if (p.kind === "kestrel-requests" && !p.consent) return "Tick the consent box first.";
+  if (p.kind === "kestrel-requests" && !p.requests.length) return "Write at least one request first.";
+  return null;
+}
+
+function refreshExport() {
+  const msg = problem();
+  $("export").value = msg ? "" : JSON.stringify(payload());
+  $("copy").disabled = !!msg;
+  $("save").disabled = !!msg;
+}
+
+function setStatus(text, kind) { const s = $("status"); s.textContent = text; s.className = "status " + (kind || ""); }
+
+async function copyAnswers() {
+  const msg = problem(); if (msg) { setStatus(msg, "warn"); return; }
+  const text = $("export").value;
+  try { await navigator.clipboard.writeText(text); setStatus("Copied. Paste it in a message to the person who shared this page.", "ok"); }
+  catch { const t = $("export"); t.focus(); t.select(); setStatus("Copying was blocked here: the text below is selected; copy it yourself.", "warn"); }
+}
+
+async function save() {
+  const msg = problem(); if (msg) { setStatus(msg, "warn"); return; }
+  if (!db || !uid) { setStatus("Saving is not available here. Use “Copy answers” instead.", "warn"); return; }
+  const p = payload();
+  const path = (p.kind === "kestrel-annotation" ? "annotations/" : "requests/") + uid;
+  $("save").disabled = true;
+  try {
+    await db.doc(path).set({ ...p, saved_at: new Date().toISOString() });
+    setStatus("Saved at " + new Date().toLocaleTimeString() + ". You can keep going and save again.", "ok");
+  } catch (e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; $("save").hidden = true; setStatus("This account can't save here. Use “Copy answers” instead.", "warn"); }
+    else setStatus("Saving failed (" + (e && e.code || "error") + "). Try again, or use “Copy answers”.", "warn");
+  } finally { refreshExport(); }
+}
+
+async function connect() {
+  try {
+    const [d, u] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
+    if (!d || !u) return;
+    const id = await u.id();
+    const can = await u.can("data.write");
+    if (!id || can === false) return;
+    db = d; uid = id; canWrite = can;
+    $("save").hidden = false;
+    $("send-help").textContent = "“Save” sends your answers straight to the study. “Copy answers” works too, if you prefer to send them yourself.";
+  } catch { /* stay on copy-only */ }
+}
+
+function start() {
+  if (!DATA) { $("req-text").textContent = "No requests were built into this page."; return; }
+  $("code").value = state.code;
+  $("code").addEventListener("input", (e) => { state.code = e.target.value; store.set("code", state.code); refreshExport(); });
+  $("consent").checked = state.consent;
+  $("consent").addEventListener("change", (e) => { state.consent = e.target.checked; store.set("consent", state.consent); refreshExport(); });
+  $("mode-label").addEventListener("click", () => setMode("label"));
+  $("mode-write").addEventListener("click", () => setMode("write"));
+  $("prev").addEventListener("click", () => { state.pos -= 1; renderItem(); });
+  $("next").addEventListener("click", () => { state.pos += 1; renderItem(); });
+  $("jump").addEventListener("click", nextUnlabelled);
+  $("copy").addEventListener("click", copyAnswers);
+  $("save").addEventListener("click", save);
+  document.addEventListener("keydown", (e) => {
+    if (state.mode !== "label" || e.target.closest("input, textarea")) return;
+    const i = KEYS.indexOf(e.key);
+    if (i >= 0 && i < DATA.guide.length) { choose(DATA.guide[i].label); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" && state.pos > 0) { state.pos -= 1; renderItem(); }
+    else if (e.key === "ArrowRight" && state.pos < DATA.items.length - 1) { state.pos += 1; renderItem(); }
+  });
+  renderGuide(); renderChoices(); renderTasks(); countWritten(); renderItem(); setMode(state.mode);
+  connect();
+}
+start();
+</script>

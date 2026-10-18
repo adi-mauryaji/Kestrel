@@ -1,0 +1,365 @@
+<title>Kestrel Request Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow working column; a sticky mode bar; the request (or the task) is the largest thing on screen. */
+:root {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --ink: #1d2128;
+  --muted: #5d6573;
+  --line: #d9dcd6;
+  --chestnut: #9a4523;   /* kestrel back feathers: actions and selection */
+  --chestnut-ink: #ffffff;
+  --slate: #4c5e77;      /* kestrel head and tail: secondary marks */
+  --slate-soft: #e6eaf0;
+  --good: #2f6b3a;
+  --warn: #8a5a00;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+    --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+    --good: #7cc48a; --warn: #e6b04f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+  --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+  --good: #7cc48a; --warn: #e6b04f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font-body); }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 20px; }
+h1 { font: 800 clamp(1.7rem, 5vw, 2.3rem)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 600 1.15rem/1.3 var(--font-display); margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; }
+.eyebrow { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.modes { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--bg); padding-block: 8px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.modes button { font: 700 0.95rem var(--font-body); padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.modes button[aria-pressed="true"] { background: var(--slate); border-color: var(--slate); color: var(--surface); }
+.field { display: grid; gap: 6px; }
+label.small, .small { font-size: 0.85rem; color: var(--muted); }
+input[type="text"], textarea { font: 16px/1.4 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
+textarea { resize: vertical; min-height: 44px; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--chestnut); outline-offset: 2px; }
+.panel { display: grid; gap: 16px; }
+.progress { display: grid; gap: 6px; }
+.bar { height: 6px; background: var(--slate-soft); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--chestnut); transition: width .2s; }
+.counts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-variant-numeric: tabular-nums; }
+.request { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 20px; display: grid; gap: 10px; }
+.request .text { font-size: clamp(1.25rem, 4.2vw, 1.6rem); line-height: 1.35; overflow-wrap: anywhere; }
+.request .id { font: 400 0.75rem var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.choice { text-align: left; display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.choice .name { font: 600 0.86rem var(--font-mono); overflow-wrap: anywhere; }
+.choice .gloss { font-size: 0.8rem; color: var(--muted); }
+.choice .key { font: 400 0.7rem var(--font-mono); color: var(--slate); }
+.choice[aria-pressed="true"] { background: var(--chestnut); border-color: var(--chestnut); color: var(--chestnut-ink); }
+.choice[aria-pressed="true"] .gloss, .choice[aria-pressed="true"] .key { color: var(--chestnut-ink); }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 700 0.95rem var(--font-body); padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--chestnut); border-color: var(--chestnut); color: var(--chestnut-ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; }
+summary { cursor: pointer; font-weight: 700; }
+.guide { display: grid; gap: 14px; margin-top: 12px; }
+.guide dl { display: grid; gap: 10px; margin: 0; }
+.guide dt { font: 600 0.86rem var(--font-mono); color: var(--chestnut); }
+.guide dd { margin: 2px 0 0; }
+.guide .ex { color: var(--muted); font-size: 0.9rem; }
+.guide ol { margin: 0; padding-left: 1.3rem; display: grid; gap: 6px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; }
+.task .ask { font-weight: 700; }
+.task .n { font: 600 0.72rem var(--font-mono); color: var(--slate); letter-spacing: .06em; }
+.consent { display: flex; gap: 10px; align-items: flex-start; background: var(--slate-soft); padding: 12px 14px; border-radius: 8px; }
+.consent input { margin-top: 4px; width: 20px; height: 20px; flex: none; }
+.send { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 18px; }
+.status { font-size: 0.9rem; min-height: 1.4em; }
+.status.ok { color: var(--good); } .status.warn { color: var(--warn); }
+.export { font: 400 0.75rem/1.4 var(--font-mono); min-height: 90px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="panel" style="gap:10px">
+    <span class="eyebrow">Kestrel · research study</span>
+    <h1>Kestrel Request Lab</h1>
+    <p class="lede">Kestrel is an offline assistant for notes, tasks and reminders, built for a student research project on
+      English and Hinglish requests. You can help in one of two ways below. Your answers are anonymous: use a short code, not your name.</p>
+  </header>
+
+  <nav class="modes" aria-label="What would you like to do?">
+    <button type="button" id="mode-label" aria-pressed="true">Label requests</button>
+    <button type="button" id="mode-write" aria-pressed="false">Write requests</button>
+  </nav>
+
+  <div class="field">
+    <label for="code" class="small">Your code (initials or a nickname, 1–24 characters)</label>
+    <input type="text" id="code" maxlength="24" autocomplete="off" placeholder="e.g. RK or blue-falcon">
+  </div>
+
+  <section id="panel-label" class="panel" aria-labelledby="h-label">
+    <h2 id="h-label">Label each request with what the person wants</h2>
+    <p class="small">Pick the one label that fits; if the request asks for two different things, pick <b>compound</b>.
+      Keys 1–9 and 0 pick a label, ← and → move. It takes about 20–30 minutes; your progress stays in this browser.</p>
+    <details>
+      <summary>How to choose (read once before starting)</summary>
+      <div class="guide">
+        <dl id="guide-defs"></dl>
+        <div><p class="eyebrow" style="margin-bottom:8px">Rules, in order: the first that fits decides</p><ol id="guide-rules"></ol></div>
+      </div>
+    </details>
+    <div class="progress">
+      <div class="counts small"><span id="pos">Request 1 of –</span><span id="done">0 labelled</span></div>
+      <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+    </div>
+    <article class="request" aria-live="polite">
+      <div class="text" id="req-text">Loading the requests…</div>
+      <div class="id" id="req-id"></div>
+    </article>
+    <div class="choices" id="choices" role="group" aria-label="Labels"></div>
+    <div class="nav">
+      <button type="button" class="btn" id="prev">← Previous</button>
+      <button type="button" class="btn" id="next">Next →</button>
+      <button type="button" class="btn" id="jump">Next unlabelled</button>
+    </div>
+  </section>
+
+  <section id="panel-write" class="panel" aria-labelledby="h-write" hidden>
+    <h2 id="h-write">Write what you would say to Kestrel</h2>
+    <p class="small">For each task, write two requests the way you would really type or say them in Hinglish
+      (Hindi in Latin letters, mixed with English as you like). An English one is optional. Make up names and details;
+      don't copy each other's sentences. About 10–15 minutes.</p>
+    <label class="consent" for="consent">
+      <input type="checkbox" id="consent">
+      <span>I agree that what I write here can be used, without my name, in a public research dataset for the Kestrel project.
+        I won't write real personal details such as phone numbers, addresses or passwords.</span>
+    </label>
+    <div class="counts small"><span id="w-count">0 of 20 Hinglish requests written</span></div>
+    <div id="tasks" class="panel"></div>
+  </section>
+
+  <section class="send" aria-labelledby="h-send">
+    <h2 id="h-send">Send your answers</h2>
+    <div class="nav">
+      <button type="button" class="btn primary" id="save" hidden>Save to the study</button>
+      <button type="button" class="btn" id="copy">Copy answers</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <p class="small" id="send-help">If “Save” is not shown, tap “Copy answers” and paste the text in a message to the person who shared this page.</p>
+    <textarea id="export" class="export" readonly rows="4" aria-label="Your answers as text"></textarea>
+  </section>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const KEYS = ["1","2","3","4","5","6","7","8","9","0"];
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kestrel-lab:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("kestrel-lab:" + k, JSON.stringify(v)); } catch {} },
+};
+const state = {
+  mode: location.hash === "#write" ? "write" : "label",
+  code: store.get("code", ""),
+  answers: store.get("answers", {}),          // item id -> label
+  pos: store.get("pos", 0),
+  requests: store.get("requests", {}),        // "task|lang|slot" -> text
+  consent: store.get("consent", false),
+};
+let db = null, uid = null, canWrite = null;
+
+function setMode(m) {
+  state.mode = m;
+  $("panel-label").hidden = m !== "label";
+  $("panel-write").hidden = m !== "write";
+  $("mode-label").setAttribute("aria-pressed", String(m === "label"));
+  $("mode-write").setAttribute("aria-pressed", String(m === "write"));
+  try { history.replaceState(null, "", m === "write" ? "#write" : "#label"); } catch {}
+  refreshExport();
+}
+
+function renderGuide() {
+  const dl = $("guide-defs");
+  for (const g of DATA.guide) {
+    const dt = document.createElement("dt"); dt.textContent = g.label;
+    const dd = document.createElement("dd"); dd.textContent = g.definition;
+    const ex = document.createElement("div"); ex.className = "ex"; ex.textContent = "e.g. " + g.examples.map((e) => "“" + e + "”").join(" · ");
+    dd.append(ex); dl.append(dt, dd);
+  }
+  for (const r of DATA.rules) { const li = document.createElement("li"); li.textContent = r; $("guide-rules").append(li); }
+}
+
+function renderChoices() {
+  const box = $("choices");
+  DATA.guide.forEach((g, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "choice"; b.dataset.label = g.label;
+    const name = document.createElement("span"); name.className = "name"; name.textContent = g.label;
+    const gloss = document.createElement("span"); gloss.className = "gloss"; gloss.textContent = g.gloss;
+    const key = document.createElement("span"); key.className = "key"; key.textContent = "key " + KEYS[i];
+    b.append(name, gloss, key);
+    b.addEventListener("click", () => choose(g.label));
+    box.append(b);
+  });
+}
+
+function renderItem() {
+  const n = DATA.items.length;
+  state.pos = Math.max(0, Math.min(n - 1, state.pos));
+  const item = DATA.items[state.pos];
+  $("req-text").textContent = item.text;
+  $("req-id").textContent = item.id;
+  const done = Object.keys(state.answers).length;
+  $("pos").textContent = `Request ${state.pos + 1} of ${n}`;
+  $("done").textContent = `${done} labelled`;
+  $("bar").style.width = (100 * done / n).toFixed(1) + "%";
+  for (const b of $("choices").children) b.setAttribute("aria-pressed", String(state.answers[item.id] === b.dataset.label));
+  $("prev").disabled = state.pos === 0;
+  $("next").disabled = state.pos === n - 1;
+  store.set("pos", state.pos);
+}
+
+function choose(label) {
+  const item = DATA.items[state.pos];
+  state.answers[item.id] = label;
+  store.set("answers", state.answers);
+  renderItem(); refreshExport();
+  if (state.pos < DATA.items.length - 1) setTimeout(() => { state.pos += 1; renderItem(); }, 160);
+}
+
+function nextUnlabelled() {
+  const n = DATA.items.length;
+  for (let k = 1; k <= n; k++) {
+    const i = (state.pos + k) % n;
+    if (!state.answers[DATA.items[i].id]) { state.pos = i; renderItem(); return; }
+  }
+  setStatus("Every request has a label. Thank you! Now send your answers below.", "ok");
+}
+
+function renderTasks() {
+  const box = $("tasks");
+  DATA.tasks.forEach((t, i) => {
+    const card = document.createElement("div"); card.className = "task";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = `TASK ${i + 1} OF ${DATA.tasks.length}`;
+    const ask = document.createElement("p"); ask.className = "ask"; ask.textContent = t.ask;
+    card.append(n, ask);
+    for (const [lang, slot, labelText] of [["hi-en", 0, "Hinglish"], ["hi-en", 1, "Hinglish (another way)"], ["en", 0, "English (optional)"]]) {
+      const key = `${t.id}|${lang}|${slot}`;
+      const f = document.createElement("div"); f.className = "field";
+      const l = document.createElement("label"); l.className = "small"; l.htmlFor = "w-" + key.replaceAll("|", "-"); l.textContent = labelText;
+      const ta = document.createElement("textarea"); ta.id = "w-" + key.replaceAll("|", "-"); ta.rows = 1; ta.maxLength = 300;
+      ta.value = state.requests[key] || "";
+      ta.addEventListener("input", () => { state.requests[key] = ta.value; store.set("requests", state.requests); countWritten(); refreshExport(); });
+      f.append(l, ta); card.append(f);
+    }
+    box.append(card);
+  });
+}
+
+function countWritten() {
+  const n = Object.entries(state.requests).filter(([k, v]) => k.includes("|hi-en|") && v.trim()).length;
+  $("w-count").textContent = `${n} of ${DATA.tasks.length * 2} Hinglish requests written`;
+}
+
+function payload() {
+  const code = state.code.trim();
+  if (state.mode === "label") return { kind: "kestrel-annotation", version: 1, code, answers: state.answers };
+  const requests = Object.entries(state.requests)
+    .filter(([, v]) => v.trim())
+    .map(([k, v]) => { const [task, lang] = k.split("|"); return { task, lang, text: v.trim() }; });
+  return { kind: "kestrel-requests", version: 1, code, consent: state.consent, requests };
+}
+
+function problem() {
+  const p = payload();
+  if (!p.code) return "Add your code at the top first.";
+  if (p.kind === "kestrel-annotation" && !Object.keys(p.answers).length) return "Label at least one request first.";
+  if (p.kind === "kestrel-requests" && !p.consent) return "Tick the consent box first.";
+  if (p.kind === "kestrel-requests" && !p.requests.length) return "Write at least one request first.";
+  return null;
+}
+
+function refreshExport() {
+  const msg = problem();
+  $("export").value = msg ? "" : JSON.stringify(payload());
+  $("copy").disabled = !!msg;
+  $("save").disabled = !!msg;
+}
+
+function setStatus(text, kind) { const s = $("status"); s.textContent = text; s.className = "status " + (kind || ""); }
+
+async function copyAnswers() {
+  const msg = problem(); if (msg) { setStatus(msg, "warn"); return; }
+  const text = $("export").value;
+  try { await navigator.clipboard.writeText(text); setStatus("Copied. Paste it in a message to the person who shared this page.", "ok"); }
+  catch { const t = $("export"); t.focus(); t.select(); setStatus("Copying was blocked here: the text below is selected; copy it yourself.", "warn"); }
+}
+
+async function save() {
+  const msg = problem(); if (msg) { setStatus(msg, "warn"); return; }
+  if (!db || !uid) { setStatus("Saving is not available here. Use “Copy answers” instead.", "warn"); return; }
+  const p = payload();
+  const path = (p.kind === "kestrel-annotation" ? "annotations/" : "requests/") + uid;
+  $("save").disabled = true;
+  try {
+    await db.doc(path).set({ ...p, saved_at: new Date().toISOString() });
+    setStatus("Saved at " + new Date().toLocaleTimeString() + ". You can keep going and save again.", "ok");
+  } catch (e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; $("save").hidden = true; setStatus("This account can't save here. Use “Copy answers” instead.", "warn"); }
+    else setStatus("Saving failed (" + (e && e.code || "error") + "). Try again, or use “Copy answers”.", "warn");
+  } finally { refreshExport(); }
+}
+
+async function connect() {
+  try {
+    const [d, u] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
+    if (!d || !u) return;
+    const id = await u.id();
+    const can = await u.can("data.write");
+    if (!id || can === false) return;
+    db = d; uid = id; canWrite = can;
+    $("save").hidden = false;
+    $("send-help").textContent = "“Save” sends your answers straight to the study. “Copy answers” works too, if you prefer to send them yourself.";
+  } catch { /* stay on copy-only */ }
+}
+
+function start() {
+  if (!DATA) { $("req-text").textContent = "No requests were built into this page."; return; }
+  $("code").value = state.code;
+  $("code").addEventListener("input", (e) => { state.code = e.target.value; store.set("code", state.code); refreshExport(); });
+  $("consent").checked = state.consent;
+  $("consent").addEventListener("change", (e) => { state.consent = e.target.checked; store.set("consent", state.consent); refreshExport(); });
+  $("mode-label").addEventListener("click", () => setMode("label"));
+  $("mode-write").addEventListener("click", () => setMode("write"));
+  $("prev").addEventListener("click", () => { state.pos -= 1; renderItem(); });
+  $("next").addEventListener("click", () => { state.pos += 1; renderItem(); });
+  $("jump").addEventListener("click", nextUnlabelled);
+  $("copy").addEventListener("click", copyAnswers);
+  $("save").addEventListener("click", save);
+  document.addEventListener("keydown", (e) => {
+    if (state.mode !== "label" || e.target.closest("input, textarea")) return;
+    const i = KEYS.indexOf(e.key);
+    if (i >= 0 && i < DATA.guide.length) { choose(DATA.guide[i].label); e.preventDefault(); }
+    else if (e.key === "ArrowLeft" && state.pos > 0) { state.pos -= 1; renderItem(); }
+    else if (e.key === "ArrowRight" && state.pos < DATA.items.length - 1) { state.pos += 1; renderItem(); }
+  });
+  renderGuide(); renderChoices(); renderTasks(); countWritten(); renderItem(); setMode(state.mode);
+  connect();
+}
+start();
+</script>
