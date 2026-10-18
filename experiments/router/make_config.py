@@ -10,6 +10,10 @@ canonical JSON of every other field, so a run can record exactly which config it
 JSON rather than the blueprint's router.toml: reading TOML in Rust needs the `toml` crate, a new
 dependency that the capability registry has not approved; serde_json is already pinned.
 
+The config is self-contained for the runtime (`kestrel route-items`): model file names, Tier 4's
+context size and few-shot examples (k per label and language from train, ADR-015), and per-tier cost
+estimates (measured dev means, rounded up; the budget is not binding on dev).
+
 `tiers` lists the tiers the cascade is built from. A tier whose threshold came out "off" (it never
 accepts) is left out, because a threshold in [0, 1] cannot express "never". `accept` is indexed by
 `Tier::index()`; Tier 2 is not built, so its slot holds 1.0.
@@ -19,6 +23,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -38,7 +44,23 @@ def verify(cfg: dict) -> bool:
     return cfg.get("config_sha256") == config_hash(cfg)
 
 
-def build(policies: dict, meta: dict, tier_outputs_sha256: str, *, signal, delta: float,
+def runtime_inputs(meta: dict) -> dict:
+    """What the runtime needs beyond thresholds, recomputed the way tier_outputs.py ran Tier 3/4."""
+    for sub in ("data", "analysis", "tier3", "tier4"):
+        sys.path.insert(0, str(ROOT / "experiments" / sub))
+    from b3_dev import TASKS, select_shots
+    from embed import load_encoder
+    from splits import load_splits
+
+    _, labels_file, n_ctx = TASKS[meta["dataset"]]
+    labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#")]
+    train = load_splits(meta["dataset"])["train"]
+    shots = select_shots(train, labels, meta["tier4"]["shots_per_label_and_language"])
+    return {"encoder_file": load_encoder(meta["tier3"]["encoder"]).path.name, "n_ctx": n_ctx,
+            "shots": [{"text": s["text"], "label": s["label"]} for s in shots]}
+
+
+def build(policies: dict, meta: dict, tier_outputs_sha256: str, runtime: dict, *, signal, delta: float,
           budget_ms: int = 10_000) -> dict:
     if signal not in SIGNALS:
         raise ValueError(f"the router has no {signal!r} signal")
@@ -55,12 +77,16 @@ def build(policies: dict, meta: dict, tier_outputs_sha256: str, *, signal, delta
         "tiers": [k for k, t in ((1, t1), (3, t3), (4, t4)) if t is not None],
         "accept": [UNUSED if t1 is None else t1, UNUSED, UNUSED if t3 is None else t3, UNUSED if t4 is None else t4],
         "latency_budget_ms": budget_ms,
+        "est_cost_ms": [math.ceil(policies["cost_ms_mean"]["t1"]), 0, math.ceil(policies["cost_ms_mean"]["t3"]),
+                        math.ceil(policies["cost_ms_mean"]["t4"])],
         "multi_intent_to_generative": SIGNALS[signal],
         "calibration": {"tier1_confidence": cal["rule_precision_cal"], "tier3_temperature": cal["t3"],
                         "tier4_temperature": cal["t4"]},
-        "models": {"tier3": {k: meta["tier3"][k] for k in ("encoder", "encoder_sha256", "head", "head_bin_sha256")},
+        "models": {"tier3": {k: meta["tier3"][k] for k in ("encoder", "encoder_sha256", "head", "head_bin_sha256")}
+                   | {"encoder_file": runtime["encoder_file"]},
                    "tier4": {k: meta["tier4"][k] for k in ("model", "model_file", "prompt", "prompt_sha256",
-                                                           "shots_per_label_and_language")}},
+                                                           "shots_per_label_and_language")}
+                   | {"n_ctx": runtime["n_ctx"], "shots": runtime["shots"]}},
         "chosen_on": {"split": "val", "n": policies["n_val"], "delta": delta, "r0_acc": policies["R0"]["acc"],
                       "acc": point["acc"], "cost_ms": point["cost"], "crossfit": point["crossfit"]},
         "provenance": {"tier_outputs_sha256": tier_outputs_sha256, "git_head_at_logging": meta["git_head"]},
@@ -79,7 +105,7 @@ def main(argv=None):
     outputs = LOG_DIR / f"tier_outputs_{args.dataset}.jsonl"
     policies = json.loads((LOG_DIR / f"policies_{args.dataset}.json").read_text())
     meta = json.loads(outputs.with_suffix(".meta.json").read_text())
-    cfg = build(policies, meta, hashlib.sha256(outputs.read_bytes()).hexdigest(),
+    cfg = build(policies, meta, hashlib.sha256(outputs.read_bytes()).hexdigest(), runtime_inputs(meta),
                 signal=None if args.signal == "none" else args.signal, delta=args.delta, budget_ms=args.budget_ms)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"router_{args.dataset}.json"

@@ -1,0 +1,36 @@
+{
+ "n": 128,
+ "agree": 128,
+ "mismatches": [],
+ "conf_max_abs_diff": {
+  "3": 1.6244987632862973e-07,
+  "4": 2.988561809136314e-08,
+  "1": 0.0
+ },
+ "config_sha256": "4da87c8c9e2ae8e3f44c05f922c1e134f82f3d2a8e44fe65b6a95007d74f328c",
+ "accuracy": {
+  "runtime": 0.984375,
+  "simulation": 0.984375
+ },
+ "wall_ms": {
+  "mean": 448.2262017421875,
+  "p50": 597.969679,
+  "p95": 969.3142246,
+  "simulated_mean_cost": 477.66254746874995,
+  "by_end_tier": {
+   "1": {
+    "n": 9,
+    "mean": 0.004889
+   },
+   "3": {
+    "n": 46,
+    "mean": 4.977313108695651
+   },
+   "4": {
+    "n": 73,
+    "mean": 782.7938824520547
+   }
+  }
+ },
+ "note": "dev timing on the laptop as found (boost on); not an E1 measurement"
+}

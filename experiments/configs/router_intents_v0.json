@@ -15,6 +15,12 @@
   0.0
  ],
  "latency_budget_ms": 10000,
+ "est_cost_ms": [
+  1,
+  0,
+  6,
+  813
+ ],
  "multi_intent_to_generative": true,
  "calibration": {
   "tier1_confidence": 1.0,
@@ -26,14 +32,162 @@
    "encoder": "multilingual-e5-small-q8_0",
    "encoder_sha256": "9a2039af4b03dccd1d7e59a915679bc7997b61714a2b9174f43512ed1b0095c5",
    "head": "intents_v0-multilingual-e5-small-q8_0",
-   "head_bin_sha256": "214e846ef491ccfb98d6bdf0a9d1e4f75a66e426c76ff03e170971367f4001ef"
+   "head_bin_sha256": "214e846ef491ccfb98d6bdf0a9d1e4f75a66e426c76ff03e170971367f4001ef",
+   "encoder_file": "multilingual-e5-small-q8_0.gguf"
   },
   "tier4": {
    "model": "gemma-4-e2b-it-q4_0",
    "model_file": "gemma-4-E2B-it-Q4_0.gguf",
    "prompt": "tier4_intent_prompt.txt",
    "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
-   "shots_per_label_and_language": 2
+   "shots_per_label_and_language": 2,
+   "n_ctx": 2048,
+   "shots": [
+    {
+     "text": "search my notes for budget meeting",
+     "label": "search_notes"
+    },
+    {
+     "text": "open project-plan.txt",
+     "label": "read_document"
+    },
+    {
+     "text": "remind me to pay the electricity bill tomorrow",
+     "label": "create_task"
+    },
+    {
+     "text": "delete task 21",
+     "label": "delete_task"
+    },
+    {
+     "text": "summarize my notes on exam preparation",
+     "label": "summarize_notes"
+    },
+    {
+     "text": "i prefer short answers",
+     "label": "set_preference"
+    },
+    {
+     "text": "what do you remember about asha?",
+     "label": "retrieve_memory"
+    },
+    {
+     "text": "hi",
+     "label": "chitchat"
+    },
+    {
+     "text": "call asha",
+     "label": "unsupported"
+    },
+    {
+     "text": "mere notes mein python decorators search karo",
+     "label": "search_notes"
+    },
+    {
+     "text": "thesis.md kholo",
+     "label": "read_document"
+    },
+    {
+     "text": "kal slides banana yaad dila dena",
+     "label": "create_task"
+    },
+    {
+     "text": "task 3 delete karo",
+     "label": "delete_task"
+    },
+    {
+     "text": "marketing plan ke notes ka summary do",
+     "label": "summarize_notes"
+    },
+    {
+     "text": "mujhe hinglish mein replies pasand hai",
+     "label": "set_preference"
+    },
+    {
+     "text": "meri diet ke baare mein tumhe kya yaad hai?",
+     "label": "retrieve_memory"
+    },
+    {
+     "text": "namaste",
+     "label": "chitchat"
+    },
+    {
+     "text": "landlord ko call lagao",
+     "label": "unsupported"
+    },
+    {
+     "text": "do i have any notes on research paper?",
+     "label": "search_notes"
+    },
+    {
+     "text": "show me project-plan.txt",
+     "label": "read_document"
+    },
+    {
+     "text": "add a task to call asha",
+     "label": "create_task"
+    },
+    {
+     "text": "remove task number 12",
+     "label": "delete_task"
+    },
+    {
+     "text": "summarize reading-list.md",
+     "label": "summarize_notes"
+    },
+    {
+     "text": "always give me a formal tone",
+     "label": "set_preference"
+    },
+    {
+     "text": "what have i told you about asha",
+     "label": "retrieve_memory"
+    },
+    {
+     "text": "what can you do?",
+     "label": "chitchat"
+    },
+    {
+     "text": "text mom that i'm on my way",
+     "label": "unsupported"
+    },
+    {
+     "text": "kya mere paas python decorators pe koi notes hai?",
+     "label": "search_notes"
+    },
+    {
+     "text": "reading-list.md dikhao",
+     "label": "read_document"
+    },
+    {
+     "text": "task add karo: paudhon ko paani dena",
+     "label": "create_task"
+    },
+    {
+     "text": "task number 42 hata do",
+     "label": "delete_task"
+    },
+    {
+     "text": "todo.md ka summary banao",
+     "label": "summarize_notes"
+    },
+    {
+     "text": "hamesha formal tone dena",
+     "label": "set_preference"
+    },
+    {
+     "text": "maine mere manager ke baare mein kya bataya tha",
+     "label": "retrieve_memory"
+    },
+    {
+     "text": "tum kya kya kar sakte ho?",
+     "label": "chitchat"
+    },
+    {
+     "text": "ravi ko message karo ki main raaste mein hoon",
+     "label": "unsupported"
+    }
+   ]
   }
  },
  "chosen_on": {
@@ -52,5 +206,5 @@
   "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
   "git_head_at_logging": "57ac751"
  },
- "config_sha256": "a54aec30ad9075958f5a065dabf813f43e6cbd53b2684e83ebd6f8d35ba2e4d1"
+ "config_sha256": "4da87c8c9e2ae8e3f44c05f922c1e134f82f3d2a8e44fe65b6a95007d74f328c"
 }

@@ -68,8 +68,9 @@ flip a decision. Switching to midpoints changed only the no-signal cross-fit cos
 ## Dev router config (2026-10-18)
 
 `python experiments/router/make_config.py --signal conjunction --delta 0.0` → `experiments/configs/router_intents_v0.json`.
-Contents: R3 at δ = 0 with the signal, tiers [1, 3, 4], accept [0, -, 0.964, 0], the temperatures, model and prompt
-hashes, and the val point it came from. `config_sha256` covers every other field. The Rust router reads it with
+Contents: R3 at δ = 0 with the signal, tiers [1, 3, 4], accept [0, -, 0.964, 0], the temperatures, model files and
+hashes, the prompt, Tier 4's context and its 36 few-shot examples, per-tier cost estimates, and the val point it came
+from, so the runtime needs nothing else. `config_sha256` covers every other field. The Rust router reads it with
 `RouterConfig::from_json` (tested against the committed file). It is marked DEV: δ is not set, so it gets regenerated
 after the pilot. JSON, not router.toml: TOML in Rust needs the `toml` crate, which is not approved yet.
 
@@ -90,3 +91,21 @@ CLINC150 has no compound items, so there the signal can only cost: 4.9% of reque
 Gemma (0.806 in scope on the 300-item subset), roughly −0.7 pp accuracy and ~5% more Tier-4 traffic. Under ADR-017 this
 is reported, not tuned away: changing the signal after seeing CLINC150 dev data would need a new decision before the
 freeze.
+
+## The Rust cascade reproduces the simulation (2026-10-18)
+
+`cargo build --release -p kestrel-cli --features llama && python experiments/router/check_runtime.py` →
+`runtime_check_intents_v0.json`. `kestrel route-items` builds the real cascade from the dev config: `RulesTier`,
+`EncoderTier` (e5 Q8 + head) and `GenerativeTier` (Gemma, k = 2 shots from the config, prefix primed). It routes the 128
+val items, and the result is compared with `policies.route` under the same config.
+
+| | Result |
+|---|---|
+| Decisions (label + tier where routing ended) | **128 / 128 agree** |
+| Max confidence gap, runtime vs simulation | Tier 3 1.6e-7 (f32 head), Tier 4 3.0e-8, Tier 1 0 |
+| Accuracy | 0.984 runtime = 0.984 simulation |
+| Wall time per request (dev, boost on) | mean 448 ms (simulated 478), p50 598, p95 969 |
+| By the tier where routing ended | Tier 1: 9 items, 0.005 ms · Tier 3: 46, 5.0 ms · Tier 4: 73, 783 ms |
+
+So the offline simulation is a faithful model of the runtime on this config. Requests that stay below Tier 4 cost
+about 5 ms against ~800 ms for R0, far inside ρ = 0.1 (D6). These are dev timings; E1 measures under protocol v3.
