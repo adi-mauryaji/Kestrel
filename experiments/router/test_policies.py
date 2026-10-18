@@ -196,3 +196,21 @@ def test_fast_per_tier_search_chooses_what_the_full_grid_chooses(seed, tiers, si
             assert fast[d]["tau"] == slow["tau"] and fast[d]["acc"] == slow["acc"]
             assert fast[d]["cost"] == pytest.approx(slow["cost"])
     assert risk == risk_at_coverage(pts)
+
+
+def test_records_are_read_from_plain_or_gzipped_logs(tmp_path):
+    import gzip
+    import json
+
+    from policies import read_tier_outputs
+
+    rec = {"id": "x", "split": "val"}
+    (tmp_path / "tier_outputs_a.jsonl").write_text(json.dumps(rec) + "\n")
+    with gzip.open(tmp_path / "tier_outputs_b.jsonl.gz", "wt") as f:
+        f.write(json.dumps(rec) + "\n")
+    for name in ("a", "b"):
+        (tmp_path / f"tier_outputs_{name}.meta.json").write_text('{"dataset": "%s"}' % name)
+        recs, meta, path = read_tier_outputs(name, tmp_path)
+        assert recs == [rec] and meta == {"dataset": name} and path.exists()
+    with pytest.raises(FileNotFoundError):
+        read_tier_outputs("c", tmp_path)

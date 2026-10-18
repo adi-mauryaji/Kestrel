@@ -109,3 +109,51 @@ val items, and the result is compared with `policies.route` under the same confi
 
 So the offline simulation is a faithful model of the runtime on this config. Requests that stay below Tier 4 cost
 about 5 ms against ~800 ms for R0, far inside ρ = 0.1 (D6). These are dev timings; E1 measures under protocol v3.
+
+## CLINC150 dev: tier outputs and policies (2026-10-18, ADR-018)
+
+`python experiments/router/tier_outputs.py --dataset clinc150 --shots 1 --prompt tier4_clinc150_desc_prompt.txt
+--n-ctx 8192` (~60 min of full CPU, boost on) → `tier_outputs_clinc150.jsonl.gz`. The plain file is 21 MB and stays
+local; gzip -9 brings it to 7.9 MB, and `policies.py` reads either form. All 3200 cal + val items; runtime e5 vectors
+equal the cache (gap 0.0); 0 Tier-4 errors; Tier 4 ~1.0 s per item. Then `python experiments/router/policies.py
+--dataset clinc150` → `policies_clinc150.json`.
+
+The cascade is Tier 3 → Tier 4: the Kestrel rules cannot answer with CLINC150 labels. The prefix-sum search
+(`best_per_tier`) makes the 1700 × 1700 threshold grid exact and fast.
+
+| Val, n = 1700 (200 OOS) | Result |
+|---|---|
+| Tier 3 (e5 head), in scope | acc 0.960, ECE 0.054 → 0.010 (T = 0.67), 5.6 ms |
+| Tier 4 (Gemma, descriptions), in scope | acc 0.925, ECE 0.032 → 0.012 (T = 1.26), 988 ms |
+| R0 always Gemma | **0.844** (1434), 988 ms |
+| R1 Tier 3 alone, always answers | **0.847** (1440), 6 ms |
+| R3 + conjunction signal, δ = 0 (pre-registered rule) | 0.847 at 59 ms: τ3 = 0, so everything is accepted at Tier 3 except the 4.6% the signal sends to Tier 4. R-rand 0.846; cross-fit 0.846 |
+| Selective risk at coverage 0.80 (D4), errors of 1360 answered | R1 34 · R2 30 · **R2c 20** · R3 11 (no signal) / 15 (signal) |
+
+Readings (dev; not results):
+- **On CLINC150 the always-SLM baseline is no stronger than the encoder alone.** Gemma is 3.5 pp below the head in scope
+  and rarely answers `oos`. So the pre-registered rule (cheapest point with accuracy ≥ R0 − δ) picks a degenerate
+  cascade, Tier 3 only, and H1 would hold trivially. The signal's 78 false positives are its only Tier-4 traffic.
+- **H2 direction on CLINC150:** with one shared τ, calibration lowers selective risk at 80% coverage from 30 to 20
+  errors (R2 → R2c). Per-tier τ (R3) brings it to 11. On Intents-v0 (n = 128) the two were 2 items apart.
+- **Exploratory, beyond the pre-registered rule: Tier 4 as a second opinion that abstains.** With τ4 > 0 the cascade
+  declines OOS requests that both tiers are unsure of. Points chosen on val, cross-fit in brackets:
+
+| Exploratory point (val) | Accuracy | Mean cost | Tier-4 rate | Coverage |
+|---|---|---|---|---|
+| R0 with its own tuned abstention τ4 | 0.872 | 988 ms | 1.00 | — |
+| R1 with its own tuned abstention τ3 | 0.912 | 6 ms | 0 | — |
+| R3 + signal, accuracy ≥ 0.90 | 0.900 (0.901) | 111 ms (114) | 0.11 | 0.945 |
+| R3 + signal, accuracy ≥ 0.93 | 0.930 (0.931) | 175 ms (179) | 0.18 | 0.905 |
+| R3 without the signal, accuracy ≥ 0.93 | 0.930 (0.930) | 119 ms (121) | 0.13 | 0.908 |
+
+  The cascade beats both single models in accuracy at about a fifth of R0's cost, and cross-fitting barely moves it
+  (n = 1700). These points come from rules the PREREG does not yet contain. They are exploratory unless the human
+  changes the rule before the freeze.
+
+Open for the human (before the PREREG freeze):
+1. **Operating-point rule.** "Cheapest point within δ of R0" is degenerate on CLINC150. Alternatives: the most accurate
+   point within a cost budget (e.g. ρ × R0's cost), or Ch. 13.4's "cheapest with selective risk ≤ ε". Either could be
+   pre-registered, with the whole frontier reported regardless.
+2. **R0's abstention (Ch. 35 equal effort).** The cascade may abstain below τ4, but R0 as defined always answers. Since
+   OOS scoring rewards abstaining, a fair R0 may need its own tuned threshold (0.844 → 0.872 on val).

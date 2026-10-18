@@ -23,3 +23,6 @@ datasets/raw/
 /experiments/cache/
 # Trained heads from experiments/tier3/train.py (results are logged in experiments/logs/tier3/)
 /experiments/artifacts/
+
+# Large router logs are committed gzipped (experiments/router/policies.py reads either form)
+/experiments/logs/router/tier_outputs_clinc150.jsonl

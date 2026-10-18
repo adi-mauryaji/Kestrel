@@ -23,6 +23,7 @@ embedding, Tier-4 classify with the prefix cached). Dev timing as found, not E1.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import sys
 from dataclasses import dataclass
@@ -46,6 +47,18 @@ SIGNALS = (None, "conjunction", "ambiguous")
 COVERAGE = 0.80  # D4
 ECE_BINS = 15
 OFF = np.inf  # a threshold no confidence reaches: the tier never accepts
+
+
+def read_tier_outputs(dataset: str, log_dir: Path = LOG_DIR):
+    """(records, meta, path) of tier_outputs_<dataset>, plain .jsonl or gzipped .jsonl.gz. A large
+    log (CLINC150: 21 MB) is committed gzipped; the plain file stays local."""
+    meta = json.loads((log_dir / f"tier_outputs_{dataset}.meta.json").read_text())
+    plain = log_dir / f"tier_outputs_{dataset}.jsonl"
+    for path, opener in ((plain, open), (plain.with_name(plain.name + ".gz"), gzip.open)):
+        if path.exists():
+            with opener(path, "rt") as f:
+                return [json.loads(l) for l in f], meta, path
+    raise FileNotFoundError(f"{plain}[.gz]")
 
 
 @dataclass
@@ -406,9 +419,7 @@ def main(argv=None):
     ap.add_argument("--dataset", default="intents_v0", choices=sorted(DATASETS))
     args = ap.parse_args(argv)
     tiers, oos_label = DATASETS[args.dataset]
-    outputs = LOG_DIR / f"tier_outputs_{args.dataset}.jsonl"
-    recs = [json.loads(l) for l in outputs.read_text().splitlines()]
-    meta = json.loads(outputs.with_suffix(".meta.json").read_text())
+    recs, meta, outputs = read_tier_outputs(args.dataset)
     classes = meta["tier3"]["classes"]
     classes = classes if oos_label in classes else classes + [oos_label]
     out = {"dataset": args.dataset} | run(recs, classes, meta["tier3"]["temperature_cal"], oos_label, tiers)
