@@ -1,0 +1,115 @@
+{
+ "intents_v0/cal": {
+  "oos": {
+   "n": 12,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "oos/en": {
+   "n": 6,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "oos/hi-en": {
+   "n": 6,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single": {
+   "n": 88,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single/en": {
+   "n": 44,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single/hi-en": {
+   "n": 44,
+   "flagged": 0,
+   "rate": 0.0
+  }
+ },
+ "intents_v0/val": {
+  "compound": {
+   "n": 24,
+   "flagged": 24,
+   "rate": 1.0
+  },
+  "compound/en": {
+   "n": 12,
+   "flagged": 12,
+   "rate": 1.0
+  },
+  "compound/hi-en": {
+   "n": 12,
+   "flagged": 12,
+   "rate": 1.0
+  },
+  "oos": {
+   "n": 16,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "oos/en": {
+   "n": 8,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "oos/hi-en": {
+   "n": 8,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single": {
+   "n": 88,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single/en": {
+   "n": 44,
+   "flagged": 0,
+   "rate": 0.0
+  },
+  "single/hi-en": {
+   "n": 44,
+   "flagged": 0,
+   "rate": 0.0
+  }
+ },
+ "clinc150/cal": {
+  "single": {
+   "n": 1500,
+   "flagged": 74,
+   "rate": 0.04933333333333333
+  },
+  "single/en": {
+   "n": 1500,
+   "flagged": 74,
+   "rate": 0.04933333333333333
+  }
+ },
+ "clinc150/val": {
+  "oos": {
+   "n": 200,
+   "flagged": 4,
+   "rate": 0.02
+  },
+  "oos/en": {
+   "n": 200,
+   "flagged": 4,
+   "rate": 0.02
+  },
+  "single": {
+   "n": 1500,
+   "flagged": 74,
+   "rate": 0.04933333333333333
+  },
+  "single/en": {
+   "n": 1500,
+   "flagged": 74,
+   "rate": 0.04933333333333333
+  }
+ }
+}

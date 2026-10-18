@@ -41,3 +41,14 @@ def test_rules_runner_normalizes_like_a_request():
     assert out[0]["outcome"] == "match" and out[0]["intent"] == "create_task" and not out[0]["conjunction"]
     assert out[1]["outcome"] == "ambiguous" and out[1]["conjunction"]
     assert all(r["us"] >= 0 for r in out)
+
+
+def test_signal_rates_count_by_kind_and_language():
+    from signal_check import rates
+
+    rows = [{"label": "a", "lang": "en"}, {"label": "a", "lang": "hi-en"}, {"label": "a|b", "lang": "en"},
+            {"label": "oos"}]
+    r = rates(rows, [True, False, True, False], "oos")
+    assert r["single"] == {"n": 2, "flagged": 1, "rate": 0.5}
+    assert r["single/hi-en"]["flagged"] == 0 and r["compound"]["rate"] == 1.0
+    assert r["oos/en"] == {"n": 1, "flagged": 0, "rate": 0.0}  # no lang field: one language

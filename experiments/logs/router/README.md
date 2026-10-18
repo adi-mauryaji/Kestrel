@@ -72,3 +72,21 @@ Contents: R3 at δ = 0 with the signal, tiers [1, 3, 4], accept [0, -, 0.964, 0]
 hashes, and the val point it came from. `config_sha256` covers every other field. The Rust router reads it with
 `RouterConfig::from_json` (tested against the committed file). It is marked DEV: δ is not set, so it gets regenerated
 after the pilot. JSON, not router.toml: TOML in Rust needs the `toml` crate, which is not approved yet.
+
+## The multi-intent signal on each dataset (2026-10-18, ADR-017)
+
+`python experiments/router/signal_check.py` → `signal_check.json`. This uses the Rust rules runner over the dev splits; no
+model is needed.
+
+| Dev split | Single-intent flagged | OOS flagged | Compound flagged |
+|---|---|---|---|
+| Intents-v0 cal | 0 / 88 | 0 / 12 | — |
+| Intents-v0 val | 0 / 88 | 0 / 16 | 24 / 24 |
+| CLINC150 cal | 74 / 1500 (4.9%) | — | — |
+| CLINC150 val | 74 / 1500 (4.9%) | 4 / 200 | — |
+
+All the CLINC150 hits are "and" inside one request, for example "one hundred and fifty bucks" or "pto for march 2 and 3".
+CLINC150 has no compound items, so there the signal can only cost: 4.9% of requests skip Tier 3 (0.960 in scope) for
+Gemma (0.806 in scope on the 300-item subset), roughly −0.7 pp accuracy and ~5% more Tier-4 traffic. Under ADR-017 this
+is reported, not tuned away: changing the signal after seeing CLINC150 dev data would need a new decision before the
+freeze.
