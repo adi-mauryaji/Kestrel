@@ -33,8 +33,8 @@ family) and scores the other half, both ways.
 |---|---|---|---|---|---|---|
 | R0 always Gemma | — | 0.984 | 812 ms | 1.00 | | |
 | R1 Tier 3 alone (always answers) | — | 0.719 | 6 ms | 0 | | |
-| R3, no signal | 0 | 0.984 | 737 ms | 0.90 | 0.958 | 0.922 / 613 ms |
-| R3, no signal | 0.02 | 0.969 | 669 ms | 0.82 | 0.948 | 0.883 / 545 ms |
+| R3, no signal | 0 | 0.984 | 737 ms | 0.90 | 0.958 | 0.922 / 600 ms |
+| R3, no signal | 0.02 | 0.969 | 669 ms | 0.82 | 0.948 | 0.883 / 540 ms |
 | **R3 + conjunction → Tier 4** | 0 | 0.984 | **478 ms** | 0.57 | 0.946 | **0.953 / 412 ms** |
 | R3 + conjunction → Tier 4 | 0.02 | 0.969 | 386 ms | 0.45 | 0.933 | 0.953 / 406 ms |
 | R3 + conjunction → Tier 4 | 0.05 | 0.938 | 304 ms | 0.34 | 0.921 | 0.922 / 276 ms |
@@ -57,6 +57,18 @@ Readings (dev, small n; not results):
 - Tier-1 rules hardly matter here: 8.7% coverage, all of it from 4 template families, and their confidence is
   fitted on 3 matches.
 
-Open for the human (before the PREREG freeze): whether the conjunction signal is part of the pre-registered cascade;
-whether R2/R2c on the frontier mean "shared escalation τ, Tier 4 always answers" (used above) or the all-tier τ; δ (after
-the pilot); the Tier-1 confidence estimate (3 cal matches).
+Decided 2026-10-18 (ADR-017): the conjunction signal is part of every pre-registered cascade, and R2/R2c on the
+frontier use one shared escalation τ with Tier 4 always answering. Still open: δ (after the pilot); the Tier-1 confidence
+estimate (3 cal matches; kept for now, limitation stated).
+
+Thresholds are midpoints between neighbouring observed confidences (`_grid`). On val this gives the same outcomes as
+thresholds at the observed values, but no val item sits on a threshold, so f32 vs f64 rounding in the Rust router cannot
+flip a decision. Switching to midpoints changed only the no-signal cross-fit costs (613 → 600, 545 → 540 ms).
+
+## Dev router config (2026-10-18)
+
+`python experiments/router/make_config.py --signal conjunction --delta 0.0` → `experiments/configs/router_intents_v0.json`.
+Contents: R3 at δ = 0 with the signal, tiers [1, 3, 4], accept [0, -, 0.964, 0], the temperatures, model and prompt
+hashes, and the val point it came from. `config_sha256` covers every other field. The Rust router reads it with
+`RouterConfig::from_json` (tested against the committed file). It is marked DEV: δ is not set, so it gets regenerated
+after the pilot. JSON, not router.toml: TOML in Rust needs the `toml` crate, which is not approved yet.

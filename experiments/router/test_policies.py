@@ -59,7 +59,7 @@ def test_the_conjunction_signal_sends_a_request_straight_to_tier_4():
     a = _answers(recs)
     assert route(a, (0.5, 0.8, 0.0)).tier.tolist() == [1]
     r = route(a, (0.5, 0.8, 0.0), signal="conjunction")
-    assert r.tier.tolist() == [4] and r.cost == pytest.approx([500.001])  # Tier 3 not paid
+    assert r.tier.tolist() == [4] and r.cost == pytest.approx([500.0])  # nothing below Tier 4 is paid
 
 
 def test_scoring_rules_for_in_scope_out_of_scope_and_compound_items():
@@ -123,3 +123,11 @@ def test_a_shared_threshold_either_binds_tier_4_too_or_leaves_it_answering():
     assert any(p["coverage"] < 1 for p in every)  # high tau: Tier 4 abstains too
     last = sweep_shared(a, last_answers=True)
     assert all(p["coverage"] == 1 and p["tau"][2] == 0.0 for p in last)
+
+
+def test_candidate_thresholds_fall_between_observed_confidences():
+    # Midpoints, so f32 vs f64 rounding cannot move any item across a chosen threshold.
+    from policies import OFF, _grid
+
+    assert _grid(np.array([0.9, 0.2, 0.5, 0.5])).tolist() == pytest.approx([0.0, 0.35, 0.7, OFF])
+    assert _grid(np.array([0.4])).tolist() == [0.0, OFF]

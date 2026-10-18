@@ -124,7 +124,7 @@ def _signal(a: Answers, signal):
 
 def route(a: Answers, tau, tiers=(1, 3, 4), signal=None) -> Routed:
     """The cascade over logged outputs: same policy as kestrel_router::Cascade (no budget). A flagged
-    request (signal) is not accepted at Tier 1 and skips Tier 3: it goes straight to Tier 4."""
+    request (signal) skips every tier below Tier 4 and pays nothing for them (ADR-017)."""
     use1, use3, use4 = (k in tiers for k in (1, 3, 4))
     flag = _signal(a, signal)
     if flag.any() and not use4:
@@ -144,7 +144,7 @@ def _finish(a, acc1, pool1, flag, use, accept3, accept4) -> Routed:
     pred = np.full(len(a.gold), -1)
     pred[acc1], pred[acc3], pred[acc4] = a.y1[acc1], a.y3[acc3], a.y4[acc4]
     tier = np.where(reach4, 4, np.where(reach3, 3, np.where(use1, 1, 0)))
-    cost = use1 * a.k1 + reach3 * a.k3 + reach4 * a.k4
+    cost = (use1 & ~flag) * a.k1 + reach3 * a.k3 + reach4 * a.k4
     return Routed(pred, tier, cost, flag, pool1, acc1, reach3, acc3, reach4, acc4, use)
 
 
@@ -210,7 +210,11 @@ def by_lang(a: Answers, r: Routed) -> dict:
 
 
 def _grid(c):
-    return np.unique(np.r_[0.0, c, OFF])
+    """Every threshold that gives a different outcome: accept all (0), accept none (OFF), and the
+    midpoints between neighbouring observed confidences. Midpoints keep each chosen threshold away
+    from every val confidence, so the Rust router's f32 arithmetic decides the same way."""
+    u = np.unique(c)
+    return np.r_[0.0, (u[:-1] + u[1:]) / 2, OFF]
 
 
 def sweep_shared(a: Answers, signal=None, last_answers=False) -> list[dict]:

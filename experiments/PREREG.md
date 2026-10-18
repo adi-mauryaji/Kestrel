@@ -23,6 +23,14 @@ rates (D10; expectation over ≥ 1000 seeds, offline), **R4** adaptive (only if 
 B1 (rules only) is reported with coverage and precision. R0 and Tier 4 inside the cascade use the **same** prompt template,
 model, quantization, grammar and thread count.
 
+**[accepted 2026-10-18, ADR-017] Routing signal and R2/R2c.** Every cascade (R2, R2c, R3, R-rand) sends a request that
+contains a conjunction token (`and`, `then`, `aur`, `phir`, `fir`; `kestrel_core::features::has_conjunction` on the
+normalized text) straight to Tier 4. Lower tiers are not consulted, and if Tier 4 fails the request abstains. Its
+false-positive rate on single-intent items is reported per dataset and language. On the accuracy–cost frontier, R2 and R2c
+use one shared escalation τ for the tiers below Tier 4, and Tier 4 always answers. H2's risk–coverage curve uses one τ
+for every tier, Tier 4 included (D9). Dev finding (experiments/logs/router/README.md): in this cascade, temperature
+scaling cannot move the accuracy–cost frontier, so H2 is a statement about abstention quality only.
+
 **Selected components (dev runs, 2026-10-17):** Tier-3 encoder multilingual-e5-small Q8_0 (ADR-014). Tier-4 / R0 SLM
 Gemma-4-E2B-it Q4_0 (ADR-016). Intents-v0 prompt = `datasets/contracts/tier4_intent_prompt.txt` + k = 2 shots per
 (label, language) from train (ADR-015). Constrained label decoding gives the Tier-4 confidence; its temperature is fitted
