@@ -23,6 +23,11 @@ rates (D10; expectation over ≥ 1000 seeds, offline), **R4** adaptive (only if 
 B1 (rules only) is reported with coverage and precision. R0 and Tier 4 inside the cascade use the **same** prompt template,
 model, quantization, grammar and thread count.
 
+**Selected components (dev runs, 2026-10-17):** Tier-3 encoder multilingual-e5-small Q8_0 (ADR-014). Tier-4 / R0 SLM
+Gemma-4-E2B-it Q4_0 (ADR-016). Intents-v0 prompt = `datasets/contracts/tier4_intent_prompt.txt` + k = 2 shots per
+(label, language) from train (ADR-015). Constrained label decoding gives the Tier-4 confidence; its temperature is fitted
+on cal by BCE. CLINC150: the label set adds an explicit `oos` answer (ADR-016); the prompt is still to be fixed on dev.
+
 ## 2. Data (frozen inputs)
 
 | Dataset | Sets used | Fingerprint / source | Notes |

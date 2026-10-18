@@ -66,3 +66,35 @@ own Jinja template, rendered on a sample chat with thinking off.
   tool calls, so the allowlist and validation of Ch. 15 stay mandatory whichever SLM is chosen.
 - **Proposed (human to decide): Tier-4 SLM = Gemma-4-E2B-it Q4_0.** With an always-SLM baseline this strong, H1 becomes
   a real test: the cascade must escalate the hard requests to keep accuracy within δ of 0.98.
+
+## CLINC150, Gemma-4-E2B, k = 1, fixed 300-item subsets (2026-10-17, ADR-016)
+
+`python experiments/tier4/b3_dev.py --model gemma-4-e2b-it-q4_0 --dataset clinc150 --shots 1 --subset 300` →
+`b3_dev_clinc150_gemma-4-e2b-it-q4_0_k1_n300.json`. Prompt contract `datasets/contracts/tier4_clinc150_prompt.txt`
+(built by `experiments/tier4/clinc_prompt.py`): the 150 train intents by name, plus `oos` ("none of the listed intents").
+CLINC150 ships no definitions, and a test keeps every dataset item out of the prompt. There is one example per intent
+from train (150 shots). `oos` has none, because train has no OOS items. The prefix (~3k tokens) is primed into the KV
+cache once at load (`LlamaSession::prime`), so it does not count against the first request. Runner context: 6144.
+Subsets: a seeded sample of 300 from cal (0 OOS; cal has none) and 300 from val (37 OOS).
+
+| | n | Accuracy | Macro-F1 | ECE raw → calibrated |
+|---|---|---|---|---|
+| cal | 300 | 0.827 | | (T = 1.35 fitted here) |
+| val, all | 300 | 0.767 | 0.776 | 0.128 → 0.071 |
+| val, in scope | 263 | 0.806 (212) | | |
+| val, OOS | 37 | recall 0.486 (18) | | |
+
+- On CLINC150 the always-SLM baseline is weak. The Tier-3 head scores 0.960 on all 1500 in-scope val items. Tier 4 is
+  about 15 pp below that, on a subset. This is the opposite of Intents-v0, where Gemma beats the head.
+- OOS: 19 of 37 OOS items get an intent (fun_fact 8; calculator and time 2 each). Only 4 of 263 in-scope items are
+  answered `oos`. So the model rarely abstains, and the router's abstention will have to catch OOS.
+- In-scope errors mostly fall on near-duplicate intent names: income → w2 4, freeze_account ↔ account_blocked 3,
+  travel_notification → travel_alert, calendar → calendar_update, reminder_update → reminder,
+  shopping_list → shopping_list_update, meal_suggestion → recipe (2 each). With label names alone, some pairs are
+  ambiguous.
+- Dev timing (boost on, not E1): mean 806 ms, p50 816, p95 1197. Gemma on Intents-v0 was mean 681 ms, p50 550, so the
+  longer prefix costs every request time.
+- Caveats: only 300 + 300 items; the temperature was fitted on cal, which has no OOS items.
+- Open (Ch. 35 equal effort, before the PREREG freeze): CLINC150 R0 is not yet tuned the way Intents-v0 was.
+  Candidates: k = 2 (300 shots, ~5–6k-token prefix, slower per request), or one-line intent descriptions written from
+  the label names (no dataset text). Either one is tried on these same subsets and logged here.

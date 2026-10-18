@@ -42,8 +42,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ));
         }
     }
-    // 2048 tokens: room for a few-shot prefix (k = 2 is ~1250 tokens); the size does not change results.
-    let slm = LlamaSlm::load(&PathBuf::from(model), LlamaConfig::default())?;
+    // Context: KESTREL_N_CTX, default 2048 (Intents-v0 at k = 2 needs ~1250 tokens; CLINC150 with
+    // 150 labels and examples ~3k). The size does not change results, only what fits.
+    let n_ctx = match std::env::var("KESTREL_N_CTX") {
+        Ok(v) => v.parse::<u32>()?,
+        Err(_) => LlamaConfig::default().n_ctx,
+    };
+    let cfg = LlamaConfig {
+        n_ctx,
+        ..LlamaConfig::default()
+    };
+    let slm = LlamaSlm::load(&PathBuf::from(model), cfg)?;
     let arch = slm.architecture()?;
     let format =
         ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
@@ -53,6 +62,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut session = slm.session()?;
     let prefix = prompt.prefix();
     let none = CancelToken::new();
+    let t0 = Instant::now();
+    let n_prefix = session.prime(&prefix)?;
+    eprintln!(
+        "prefix: {n_prefix} tokens primed in {:.1} s",
+        t0.elapsed().as_secs_f64()
+    );
 
     let mut w = BufWriter::new(std::fs::File::create(out)?);
     let (mut n, mut total_ms) = (0usize, 0.0f64);

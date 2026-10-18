@@ -55,3 +55,23 @@ def test_select_shots_takes_k_per_label_and_language_from_distinct_train_familie
     assert all(len(set(f)) == 2 for f in fams.values())
     # Round-robin: the first len(labels) shots already cover every label once.
     assert {s["label"] for s in shots[: len(labels)]} == set(labels)
+
+
+def test_select_shots_works_without_language_or_family_fields():
+    # CLINC150 rows carry neither: one language, every item its own "family".
+    from b3_dev import select_shots
+
+    rows = [{"id": f"x/{lab}/{i}", "text": f"{lab} {i}", "label": lab} for lab in ("b", "a") for i in range(3)]
+    shots = select_shots(rows, ["a", "b"], k=2)
+    assert [s["label"] for s in shots] == ["a", "b", "a", "b"]
+    assert [s["text"] for s in shots] == ["a 0", "b 0", "a 1", "b 1"]
+
+
+def test_subset_is_a_fixed_seeded_sample():
+    from b3_dev import subset
+
+    rows = [{"id": f"r{i}"} for i in range(1000)]
+    a, b = subset(rows, 300, seed=0), subset(rows, 300, seed=0)
+    assert a == b and len(a) == 300 and len({r["id"] for r in a}) == 300
+    assert subset(rows, 300, seed=1) != a
+    assert subset(rows, 5000, seed=0) == rows  # asking for more than exists keeps everything, in order

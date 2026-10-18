@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -31,12 +32,17 @@ ROOT = Path(__file__).resolve().parents[2]
 for sub in ("data", "analysis", "tier3"):
     sys.path.insert(0, str(ROOT / "experiments" / sub))
 from metrics import accuracy, ece, macro_f1  # noqa: E402
-from prep import norm_text  # noqa: E402
+from prep import norm_text, seeded_order  # noqa: E402
 from splits import load_splits  # noqa: E402
 
 CLASSIFY = ROOT / "target" / "release" / "examples" / "classify_items"
-PROMPT = ROOT / "datasets" / "contracts" / "tier4_intent_prompt.txt"
-LABELS = ROOT / "datasets" / "contracts" / "intents.txt"
+CONTRACTS = ROOT / "datasets" / "contracts"
+# Per dataset: (prompt contract, label list, runner context tokens).
+TASKS = {
+    "intents_v0": (CONTRACTS / "tier4_intent_prompt.txt", CONTRACTS / "intents.txt", 2048),
+    "clinc150": (CONTRACTS / "tier4_clinc150_prompt.txt", CONTRACTS / "clinc150_labels.txt", 6144),
+}
+PROMPT, LABELS, _ = TASKS["intents_v0"]
 LOG_DIR = ROOT / "experiments" / "logs" / "tier4"
 T_BOUNDS = (0.05, 20.0)
 ECE_BINS = 15
@@ -73,22 +79,33 @@ def select_shots(train_rows, labels, k: int) -> list[dict]:
     """k few-shot examples per (label, language) from the training split, each from a different
     template family (first families by name, first item by id). Round-robin order over labels,
     so the examples nearest the request are not all one label."""
+    # CLINC150 rows have no language or family: one language, each item its own family.
+    langs = sorted({r.get("lang") for r in train_rows}, key=str)
+    family = lambda r: r.get("family", r["id"])  # noqa: E731
     picks = {}
     for label in labels:
-        for lang in ("en", "hi-en"):
-            cands = sorted((r for r in train_rows if r["label"] == label and r["lang"] == lang),
-                           key=lambda r: (r["family"], r["id"]))
+        for lang in langs:
+            cands = sorted((r for r in train_rows if r["label"] == label and r.get("lang") == lang),
+                           key=lambda r: (family(r), r["id"]))
             chosen, families = [], set()
             for r in cands:
-                if r["family"] not in families:
-                    families.add(r["family"])
+                if family(r) not in families:
+                    families.add(family(r))
                     chosen.append(r)
                 if len(chosen) == k:
                     break
             picks[(label, lang)] = chosen
     return [{"text": picks[(label, lang)][i]["text"], "label": label}
-            for i in range(k) for lang in ("en", "hi-en") for label in labels
+            for i in range(k) for lang in langs for label in labels
             if i < len(picks[(label, lang)])]
+
+
+def subset(rows: list[dict], n: int, seed: int = 0) -> list[dict]:
+    """A fixed sample of n rows (seeded hash order of the ids), kept in the original order."""
+    if n >= len(rows):
+        return rows
+    keep = set(seeded_order([r["id"] for r in rows], seed)[:n])
+    return [r for r in rows if r["id"] in keep]
 
 
 def model_path(name: str) -> Path:
@@ -98,7 +115,8 @@ def model_path(name: str) -> Path:
     raise KeyError(name)
 
 
-def classify(model: Path, rows: list[dict], shots: list[dict] | None = None) -> list[dict]:
+def classify(model: Path, rows: list[dict], shots: list[dict] | None = None,
+             task: str = "intents_v0") -> list[dict]:
     """Runs classify_items over rows (text normalized like Request.text); results in row order."""
     if not CLASSIFY.exists():
         raise FileNotFoundError(f"{CLASSIFY}: cargo build --release -p kestrel-inference --features llama "
@@ -106,13 +124,14 @@ def classify(model: Path, rows: list[dict], shots: list[dict] | None = None) -> 
     with tempfile.TemporaryDirectory() as d:
         items, out = Path(d) / "items.jsonl", Path(d) / "out.jsonl"
         items.write_text("".join(json.dumps({"id": r["id"], "text": norm_text(r["text"])}) + "\n" for r in rows))
-        cmd = [str(CLASSIFY), str(model), str(PROMPT), str(LABELS), str(items), str(out)]
+        prompt, labels, n_ctx = TASKS[task]
+        cmd = [str(CLASSIFY), str(model), str(prompt), str(labels), str(items), str(out)]
         if shots:
             ex = Path(d) / "examples.jsonl"
             ex.write_text("".join(json.dumps({"text": norm_text(s["text"]), "label": s["label"]}) + "\n"
                                   for s in shots))
             cmd.append(str(ex))
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, env={**os.environ, "KESTREL_N_CTX": str(n_ctx)})
         res = [json.loads(l) for l in out.read_text().splitlines()]
     assert [r["id"] for r in res] == [r["id"] for r in rows]
     return res
@@ -123,15 +142,20 @@ def _metrics(gold, pred, conf, correct):
             "ece": ece(list(conf), list(correct), n_bins=ECE_BINS)}
 
 
-def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0):
+def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0, n_subset: int | None = None):
     splits = load_splits(dataset)
+    if n_subset:
+        splits = {s: (rows if s == "train" else subset(rows, n_subset)) for s, rows in splits.items()}
     model = model_path(model_name)
-    labels = [l for l in LABELS.read_text().split("\n") if l and not l.startswith("#")]
-    shots = select_shots(splits["train"], labels, shots_per) if shots_per else []
-    out = {"dataset": dataset, "model": model_name, "prompt": PROMPT.name,
+    prompt, labels_file, _ = TASKS[dataset]
+    labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#")]
+    shot_labels = [l for l in labels if l != "oos"]  # train has no OOS items (D2)
+    shots = select_shots(splits["train"], shot_labels, shots_per) if shots_per else []
+    out = {"dataset": dataset, "model": model_name, "prompt": prompt.name,
            "shots_per_label_and_language": shots_per, "shots": len(shots),
+           "subset_per_split": n_subset,
            "note": "dev timing on the laptop as found (boost on); not an E1 measurement"}
-    res = {s: classify(model, splits[s], shots) for s in ("cal", "val")}
+    res = {s: classify(model, splits[s], shots, dataset) for s in ("cal", "val")}
     single = lambda r: "|" not in r["label"]  # noqa: E731
 
     cal_rows = [(r, o) for r, o in zip(splits["cal"], res["cal"]) if single(r) and "steps" in o]
@@ -151,11 +175,17 @@ def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0):
     for name, tt in (("val_raw", 1.0), ("val_calibrated", t)):
         conf = [step_confidence(o["steps"], tt) for _, o in sv]
         out[name] = _metrics(gold, pred, conf, correct)
-    for lang in ("en", "hi-en"):
-        idx = [i for i, (r, _) in enumerate(sv) if r["lang"] == lang]
+    for lang in sorted({r["lang"] for r, _ in sv if r.get("lang")}):
+        idx = [i for i, (r, _) in enumerate(sv) if r.get("lang") == lang]
         conf = [step_confidence(sv[i][1]["steps"], t) for i in idx]
         out[f"val_calibrated_{lang}"] = _metrics([gold[i] for i in idx], [pred[i] for i in idx], conf,
                                                  [correct[i] for i in idx])
+    oos = [i for i, g in enumerate(gold) if g == "oos"]
+    if oos:
+        ins = [i for i, g in enumerate(gold) if g != "oos"]
+        out["val_oos"] = {"n_oos": len(oos), "oos_recall": float(np.mean([pred[i] == "oos" for i in oos])),
+                          "in_scope_accuracy": float(np.mean([correct[i] for i in ins])),
+                          "in_scope_predicted_oos": float(np.mean([pred[i] == "oos" for i in ins]))}
     comp = [(r, o) for r, o in val if not single(r)]
     out["val_compound"] = {"n": len(comp),
                            "mean_confidence": float(np.mean([step_confidence(o["steps"], t) for _, o in comp]))
@@ -177,12 +207,14 @@ def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", default="qwen3-1.7b-q4_k_m")
-    ap.add_argument("--dataset", default="intents_v0", choices=["intents_v0"])
+    ap.add_argument("--dataset", default="intents_v0", choices=sorted(TASKS))
     ap.add_argument("--shots", type=int, default=0, help="few-shot examples per label and language (train)")
+    ap.add_argument("--subset", type=int, help="fixed seeded sample of N items from cal and from val")
     args = ap.parse_args(argv)
-    r = run(args.model, args.dataset, args.shots)
+    r = run(args.model, args.dataset, args.shots, args.subset)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    path = LOG_DIR / f"b3_dev_{args.dataset}_{args.model}_k{args.shots}.json"
+    tag = f"_n{args.subset}" if args.subset else ""
+    path = LOG_DIR / f"b3_dev_{args.dataset}_{args.model}_k{args.shots}{tag}.json"
     path.write_text(json.dumps(r, indent=1) + "\n")
     print(json.dumps({k: v for k, v in r.items() if k != "val_errors"}, indent=1))
     print("val errors:", r["val_errors"])

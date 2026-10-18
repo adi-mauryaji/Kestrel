@@ -173,6 +173,46 @@ pub struct LlamaSession<'m> {
 }
 
 impl LlamaSession<'_> {
+    /// Decodes `prefix` into the KV cache now, so the first `classify` with it pays only for its
+    /// request. A long few-shot prefix (CLINC150: ~3k tokens) takes about a minute to prefill on
+    /// the laptop: a load-time cost, not a per-request one.
+    pub fn prime(&mut self, prefix: &str) -> Result<usize, KestrelError> {
+        let tokens = self.slm.tokenize(prefix)?;
+        if tokens.len() >= self.slm.cfg.n_ctx as usize {
+            return Err(invalid(format!(
+                "prefix ({} tokens) must leave room in the context ({})",
+                tokens.len(),
+                self.slm.cfg.n_ctx
+            )));
+        }
+        let n = tokens.len();
+        self.load_prefix(tokens)?;
+        Ok(n)
+    }
+
+    /// Makes positions 0..len of sequence 0 hold `prefix_tokens` and nothing after them: reuses
+    /// the cached prefix when it matches, otherwise clears the cache and decodes it.
+    fn load_prefix(&mut self, prefix_tokens: Vec<LlamaToken>) -> Result<(), KestrelError> {
+        if self.cached == prefix_tokens {
+            // Keep the prefix, drop the previous request (positions after it).
+            return self
+                .ctx
+                .kv_cache_seq_rm(0, Some(self.cached.len() as u32), None)
+                .map_err(rt);
+        }
+        self.ctx.clear_kv_cache();
+        self.cached.clear();
+        if !prefix_tokens.is_empty() {
+            let mut batch = LlamaBatch::new(prefix_tokens.len(), 1);
+            for (i, &t) in prefix_tokens.iter().enumerate() {
+                batch.add(t, i as i32, &[0], false).map_err(rt)?;
+            }
+            self.ctx.decode(&mut batch).map_err(rt)?;
+        }
+        self.cached = prefix_tokens;
+        Ok(())
+    }
+
     /// Classifies by constrained label decoding (`labels::decode_label`). `prefix` (instructions
     /// and label list, the same for every request) stays in the KV cache across calls; `suffix`
     /// (the request and the answer cue) is decoded per call. Cancel and deadline are polled
@@ -199,24 +239,8 @@ impl LlamaSession<'_> {
             )));
         }
         check(cancel, deadline, Tier::Generative)?;
+        self.load_prefix(prefix_tokens)?;
         let mut batch = LlamaBatch::new(n_ctx, 1);
-        if self.cached == prefix_tokens {
-            // Keep the prefix, drop the previous request (positions after it).
-            self.ctx
-                .kv_cache_seq_rm(0, Some(self.cached.len() as u32), None)
-                .map_err(rt)?;
-        } else {
-            self.ctx.clear_kv_cache();
-            self.cached.clear();
-            if !prefix_tokens.is_empty() {
-                for (i, &t) in prefix_tokens.iter().enumerate() {
-                    batch.add(t, i as i32, &[0], false).map_err(rt)?;
-                }
-                self.ctx.decode(&mut batch).map_err(rt)?;
-            }
-            self.cached = prefix_tokens;
-        }
-        batch.clear();
         let base = self.cached.len();
         let last = suffix_tokens.len() - 1;
         for (i, &t) in suffix_tokens.iter().enumerate() {
@@ -716,6 +740,27 @@ mod tests {
             .classify(SYS, &ask("mango"), &trie, &none, &far())
             .unwrap();
         assert_eq!(cached, fresh); // same label, same allowed logits at every step
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn a_primed_prefix_gives_the_same_result() {
+        let m = slm();
+        let trie = m
+            .label_trie(&["fruit", "vehicle", "colour"], "<|im_end|>")
+            .unwrap();
+        let none = CancelToken::new();
+        let mut primed = m.session().unwrap();
+        assert!(primed.prime(SYS).unwrap() > 0);
+        let a = primed
+            .classify(SYS, &ask("lemon"), &trie, &none, &far())
+            .unwrap();
+        let b = m
+            .session()
+            .unwrap()
+            .classify(SYS, &ask("lemon"), &trie, &none, &far())
+            .unwrap();
+        assert_eq!(a, b);
     }
 
     #[test]
