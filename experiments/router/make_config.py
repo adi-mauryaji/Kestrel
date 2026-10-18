@@ -52,8 +52,9 @@ def runtime_inputs(meta: dict) -> dict:
     from embed import load_encoder
     from splits import load_splits
 
-    _, labels_file, n_ctx = TASKS[meta["dataset"]]
-    labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#")]
+    _, labels_file, task_ctx = TASKS[meta["dataset"]]
+    n_ctx = meta["tier4"].get("n_ctx", task_ctx)  # older logs ran at the task's context
+    labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#") and l != "oos"]
     train = load_splits(meta["dataset"])["train"]
     shots = select_shots(train, labels, meta["tier4"]["shots_per_label_and_language"])
     return {"encoder_file": load_encoder(meta["tier3"]["encoder"]).path.name, "n_ctx": n_ctx,

@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from policies import Answers, best_point, correct, r_rand, route, rule_precision, sweep_shared
+from policies import OFF, Answers, best_point, correct, r_rand, route, rule_precision, sweep_shared
 
 CLASSES = ["create_task", "search_notes", "unsupported"]
 
@@ -131,3 +131,33 @@ def test_candidate_thresholds_fall_between_observed_confidences():
 
     assert _grid(np.array([0.9, 0.2, 0.5, 0.5])).tolist() == pytest.approx([0.0, 0.35, 0.7, OFF])
     assert _grid(np.array([0.4])).tolist() == [0.0, OFF]
+
+
+def test_clinc_style_answers_index_oos_after_the_head_classes_and_ignore_foreign_rule_labels():
+    head = ["a", "b"]  # CLINC150's head has no oos class; Tier 4 can still answer oos
+    recs = [_rec("oos", t4="oos"), _rec("a", t1="create_task", t4="a")]
+    for r in recs:
+        r["t3"]["logits"] = [1.0, 0.0]
+    a = Answers.build(recs, head + ["oos"], rule_conf=1.0, t3=1.0, t4=1.0, oos_label="oos")
+    assert a.oos.tolist() == [True, False] and a.oos_idx == 2
+    assert a.y4.tolist() == [2, 0]
+    assert not a.m1.any()  # a Kestrel rule label is not a CLINC150 class: Tier 1 has no opinion
+    r = route(a, (OFF, 0.99, 0.0), tiers=(3, 4))
+    assert correct(a, r.pred, r.tier).tolist() == [True, True]
+
+
+def test_families_come_from_the_record_else_the_id_prefix_of_older_logs():
+    recs = [_rec("a", t4="a"), _rec("b", t4="b")]
+    recs[0]["id"], recs[1]["id"] = "create-12/en/0/0", "clinc150/val/2"
+    recs[1]["family"] = "clinc150/val/2"
+    a = Answers.build(recs, ["a", "b"], rule_conf=1.0, t3=1.0, t4=1.0)
+    assert a.family.tolist() == ["create-12", "clinc150/val/2"]
+
+
+def test_thresholds_of_tiers_left_out_are_reported_off():
+    from policies import summary, sweep_per_tier
+
+    a = _answers([_rec("create_task", t3=(5.0, 0.0, 0.0)), _rec("search_notes")])
+    s = summary(a, route(a, (0.0, 0.5, 0.0), tiers=(3, 4)), (0.0, 0.5, 0.0))
+    assert s["tau"] == [None, 0.5, 0.0]
+    assert all(p["tau"][0] is None for p in sweep_per_tier(a, tiers=(3, 4)))

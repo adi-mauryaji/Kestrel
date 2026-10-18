@@ -75,3 +75,13 @@ def test_subset_is_a_fixed_seeded_sample():
     assert a == b and len(a) == 300 and len({r["id"] for r in a}) == 300
     assert subset(rows, 300, seed=1) != a
     assert subset(rows, 5000, seed=0) == rows  # asking for more than exists keeps everything, in order
+
+
+def test_log_name_records_subset_and_a_prompt_override():
+    from b3_dev import TASKS, log_name
+
+    default = TASKS["clinc150"][0]
+    assert log_name("clinc150", "g", 1, 300, default) == "b3_dev_clinc150_g_k1_n300.json"
+    other = default.with_name("tier4_clinc150_desc_prompt.txt")
+    assert log_name("clinc150", "g", 1, 300, other) == "b3_dev_clinc150_g_k1_n300_tier4_clinc150_desc_prompt.json"
+    assert log_name("intents_v0", "g", 2, None, TASKS["intents_v0"][0]) == "b3_dev_intents_v0_g_k2.json"

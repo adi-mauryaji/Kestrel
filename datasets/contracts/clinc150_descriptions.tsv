@@ -1,0 +1,152 @@
+# CLINC150 intent descriptions for the Tier-4 prompt (ADR-018). Written by Claude from the label names
+# and train examples; no dataset text. Format: label<TAB>description.
+accept_reservations	whether a restaurant takes reservations at all
+account_blocked	the user's bank account is already blocked or on hold: why, or how to unblock it
+alarm	set, change or check a wake-up alarm
+application_status	the status of a credit card or loan application the user submitted
+apr	the APR (annual percentage rate) of a credit card
+are_you_a_bot	whether the assistant is a person or a machine
+balance	the current balance of a bank account
+bill_balance	how much is owed on a bill such as utilities or phone
+bill_due	the date a bill must be paid by
+book_flight	find or book a flight
+book_hotel	find or book a hotel room or other place to stay
+calculator	work out an arithmetic result
+calendar	read what is on the user's calendar for a day or event
+calendar_update	add, move or delete an event on the user's calendar
+calories	the number of calories in a food or drink
+cancel	stop or cancel what the assistant is doing right now
+cancel_reservation	cancel a restaurant reservation
+car_rental	rent a car
+card_declined	why a card payment was refused
+carry_on	how many carry-on bags a flight allows
+change_accent	make the assistant speak with a different accent
+change_ai_name	give the assistant a new name
+change_language	change the language the assistant speaks
+change_speed	make the assistant talk faster or slower
+change_user_name	change the name the assistant uses for the user
+change_volume	make the assistant louder or quieter, or set its volume
+confirm_reservation	check that an existing restaurant reservation is in place
+cook_time	how long a food takes to cook
+credit_limit	the current credit limit of a card
+credit_limit_change	raise or change the credit limit of a card
+credit_score	what the user's credit score is
+current_location	where the user is right now
+damaged_card	report a card that is broken or damaged
+date	today's date, or the date of a day
+definition	what a word means
+direct_deposit	arrange for a paycheck to be deposited directly into an account
+directions	the route to get to a place
+distance	how far away a place is, or how long the trip takes
+do_you_have_pets	whether the assistant has pets
+exchange_rate	the exchange rate between currencies
+expiration_date	when a card expires
+find_phone	locate the user's misplaced phone
+flight_status	whether a flight is on time, delayed or landed
+flip_coin	flip a coin
+food_last	how long a food stays good before it spoils
+freeze_account	the user wants their own account frozen or blocked now
+fun_fact	tell an interesting fact
+gas	how much fuel is left in the car
+gas_type	which kind of fuel the car needs
+goodbye	saying goodbye
+greeting	saying hello or asking how the assistant is doing
+how_busy	how crowded a place is or how long the wait is
+how_old_are_you	the assistant's age or birthday
+improve_credit_score	how to raise a credit score
+income	how much the user earns: salary or income amount
+ingredient_substitution	what can replace one ingredient with another
+ingredients_list	the ingredients of a dish
+insurance	what the user's insurance or benefits cover
+insurance_change	switch to, change or start an insurance plan
+interest_rate	the interest rate of an account or loan
+international_fees	fees for using a card abroad or in a foreign currency
+international_visa	whether a visa is needed to visit a country
+jump_start	start a car with a dead battery
+last_maintenance	when the car last had service or an oil change
+lost_luggage	luggage lost by an airline
+make_call	phone someone
+maybe	the user is unsure: maybe, I don't know
+meal_suggestion	suggest a meal or what to eat
+meaning_of_life	what life means, its purpose
+measurement_conversion	convert between units of measure
+meeting_schedule	when a meeting is scheduled
+min_payment	the minimum payment due on a bill or card
+mpg	the car's fuel economy (miles per gallon)
+new_card	apply for a new credit card
+next_holiday	when the next holiday is
+next_song	move on to the following track
+no	the user says no or disagrees
+nutrition_info	nutritional content of a food, beyond calories
+oil_change_how	how to change a car's oil
+oil_change_when	when the car needs an oil change
+order	buy or order a product
+order_checks	order new paper checks or checkbooks
+order_status	where an order or package is
+pay_bill	make a payment on a bill now
+payday	when the user's next paycheck arrives
+pin_change	change the PIN of a card or account
+play_music	play music, a song or an artist
+plug_type	which power plug or socket a country uses
+pto_balance	how many vacation days the user has left
+pto_request	ask for time off from work
+pto_request_status	whether a time-off request was approved
+pto_used	how many vacation days the user has used
+recipe	how to make or prepare a dish
+redeem_rewards	how to use or cash in reward points
+reminder	list or read the user's existing reminders
+reminder_update	set a new reminder or change one
+repeat	repeat what the assistant just said
+replacement_card_duration	how long a replacement card takes to arrive
+report_fraud	report a charge the user thinks is fraud
+report_lost_card	report a lost or stolen card
+reset_settings	restore the assistant's default settings
+restaurant_reservation	book a table at a restaurant
+restaurant_reviews	how good a restaurant is according to reviews or ratings
+restaurant_suggestion	recommend a restaurant to go to
+rewards_balance	how many reward points the user has
+roll_dice	roll one or more dice
+rollover_401k	roll over or move a 401k retirement account
+routing	a bank account's routing number
+schedule_maintenance	book service or maintenance for the car
+schedule_meeting	book a meeting or a meeting room
+share_location	send the user's location to someone
+shopping_list	read the items on the user's shopping list
+shopping_list_update	add or remove items on the shopping list
+smart_home	control a home device such as lights, heating or an oven
+spelling	how a word is spelled
+spending_history	how much the user spent, on what or over what period
+sync_device	connect or pair the assistant with a phone or device
+taxes	the user's taxes: how much, or tax information
+tell_joke	tell a joke
+text	send someone an SMS
+thank_you	the user says thanks
+time	the clock time right now, here or in some place
+timer	set a countdown timer
+timezone	which time zone a place is in
+tire_change	when the tires need replacing
+tire_pressure	the air pressure in the tires
+todo_list	read what is on the to-do list
+todo_list_update	add or remove items on the to-do list
+traffic	traffic conditions on a route
+transactions	list recent transactions on an account or card
+transfer	move money between accounts
+translate	translate something into another language
+travel_alert	safety warnings or advisories about a destination
+travel_notification	tell the bank about the user's upcoming trip so the card keeps working
+travel_suggestion	things to see or do at a destination
+uber	book an uber ride
+update_playlist	add a song to a playlist or change a playlist
+user_name	what name the assistant uses for the user
+vaccines	which vaccines are needed for a trip
+w2	where to find or get the W-2 tax form
+weather	the weather or forecast
+what_are_your_hobbies	the assistant's hobbies or interests
+what_can_i_ask_you	what the assistant can do
+what_is_your_name	the assistant's name
+what_song	the name of the track that is playing now
+where_are_you_from	where the assistant comes from
+whisper_mode	switch the assistant to whisper mode
+who_do_you_work_for	who the assistant works for
+who_made_you	who created the assistant
+yes	the user says yes or agrees

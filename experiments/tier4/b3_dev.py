@@ -116,15 +116,17 @@ def model_path(name: str) -> Path:
 
 
 def classify(model: Path, rows: list[dict], shots: list[dict] | None = None,
-             task: str = "intents_v0") -> list[dict]:
-    """Runs classify_items over rows (text normalized like Request.text); results in row order."""
+             task: str = "intents_v0", prompt: Path | None = None, n_ctx: int | None = None) -> list[dict]:
+    """Runs classify_items over rows (text normalized like Request.text); results in row order.
+    `prompt` and `n_ctx` override the task's prompt contract and runner context."""
     if not CLASSIFY.exists():
         raise FileNotFoundError(f"{CLASSIFY}: cargo build --release -p kestrel-inference --features llama "
                                 "--example classify_items")
     with tempfile.TemporaryDirectory() as d:
         items, out = Path(d) / "items.jsonl", Path(d) / "out.jsonl"
         items.write_text("".join(json.dumps({"id": r["id"], "text": norm_text(r["text"])}) + "\n" for r in rows))
-        prompt, labels, n_ctx = TASKS[task]
+        task_prompt, labels, task_ctx = TASKS[task]
+        prompt, n_ctx = prompt or task_prompt, n_ctx or task_ctx
         cmd = [str(CLASSIFY), str(model), str(prompt), str(labels), str(items), str(out)]
         if shots:
             ex = Path(d) / "examples.jsonl"
@@ -142,20 +144,30 @@ def _metrics(gold, pred, conf, correct):
             "ece": ece(list(conf), list(correct), n_bins=ECE_BINS)}
 
 
-def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0, n_subset: int | None = None):
+def log_name(dataset: str, model: str, shots: int, n_subset: int | None, prompt: Path) -> str:
+    """Log file name; a prompt other than the task's default is named in it."""
+    tag = f"_n{n_subset}" if n_subset else ""
+    if prompt != TASKS[dataset][0]:
+        tag += f"_{prompt.stem}"
+    return f"b3_dev_{dataset}_{model}_k{shots}{tag}.json"
+
+
+def run(model_name: str, dataset: str = "intents_v0", shots_per: int = 0, n_subset: int | None = None,
+        prompt: Path | None = None, n_ctx: int | None = None):
     splits = load_splits(dataset)
     if n_subset:
         splits = {s: (rows if s == "train" else subset(rows, n_subset)) for s, rows in splits.items()}
     model = model_path(model_name)
-    prompt, labels_file, _ = TASKS[dataset]
+    task_prompt, labels_file, task_ctx = TASKS[dataset]
+    prompt = prompt or task_prompt
     labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#")]
     shot_labels = [l for l in labels if l != "oos"]  # train has no OOS items (D2)
     shots = select_shots(splits["train"], shot_labels, shots_per) if shots_per else []
     out = {"dataset": dataset, "model": model_name, "prompt": prompt.name,
            "shots_per_label_and_language": shots_per, "shots": len(shots),
-           "subset_per_split": n_subset,
+           "subset_per_split": n_subset, "n_ctx": n_ctx or task_ctx,
            "note": "dev timing on the laptop as found (boost on); not an E1 measurement"}
-    res = {s: classify(model, splits[s], shots, dataset) for s in ("cal", "val")}
+    res = {s: classify(model, splits[s], shots, dataset, prompt, n_ctx) for s in ("cal", "val")}
     single = lambda r: "|" not in r["label"]  # noqa: E731
 
     cal_rows = [(r, o) for r, o in zip(splits["cal"], res["cal"]) if single(r) and "steps" in o]
@@ -210,11 +222,13 @@ def main(argv=None):
     ap.add_argument("--dataset", default="intents_v0", choices=sorted(TASKS))
     ap.add_argument("--shots", type=int, default=0, help="few-shot examples per label and language (train)")
     ap.add_argument("--subset", type=int, help="fixed seeded sample of N items from cal and from val")
+    ap.add_argument("--prompt", help="prompt contract under datasets/contracts/ instead of the task's")
+    ap.add_argument("--n-ctx", type=int, help="runner context tokens instead of the task's")
     args = ap.parse_args(argv)
-    r = run(args.model, args.dataset, args.shots, args.subset)
+    prompt = CONTRACTS / args.prompt if args.prompt else TASKS[args.dataset][0]
+    r = run(args.model, args.dataset, args.shots, args.subset, prompt, args.n_ctx)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    tag = f"_n{args.subset}" if args.subset else ""
-    path = LOG_DIR / f"b3_dev_{args.dataset}_{args.model}_k{args.shots}{tag}.json"
+    path = LOG_DIR / log_name(args.dataset, args.model, args.shots, args.subset, prompt)
     path.write_text(json.dumps(r, indent=1) + "\n")
     print(json.dumps({k: v for k, v in r.items() if k != "val_errors"}, indent=1))
     print("val errors:", r["val_errors"])

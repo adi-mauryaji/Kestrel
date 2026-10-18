@@ -5,6 +5,8 @@ are computed once here and the policies are simulated offline (policies.py). Dev
 (cal + val); the test split cannot be loaded here.
 
     python experiments/router/tier_outputs.py      # ~3-4 min of full CPU: Tier 4 on 228 items
+    python experiments/router/tier_outputs.py --dataset clinc150 --shots K [--prompt FILE] [--n-ctx N]
+                                                   # ~1 h: Tier 4 on 3200 items (ADR-018)
 
 - Tier 1: `rules_items` (Rust `RuleSet::default_set`, text normalized as `Request::new` does):
   outcome, conjunction flag, time of `classify` in us.
@@ -15,11 +17,12 @@ are computed once here and the policies are simulated offline (policies.py). Dev
   via `classify_items`: label, constrained steps (confidence at any T), ms. An item the prompt
   builder rejects carries `error` instead.
 
-Out: experiments/logs/router/tier_outputs_intents_v0.jsonl (one record per item, cal then val)
+Out: experiments/logs/router/tier_outputs_<dataset>.jsonl (one record per item, cal then val)
 and .meta.json (models, hashes, settings). Timings are dev timings as found, not E1.
 """
 from __future__ import annotations
 
+import argparse
 import datetime as dt
 import hashlib
 import json
@@ -33,19 +36,18 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 for sub in ("data", "analysis", "tier3", "tier4"):
     sys.path.insert(0, str(ROOT / "experiments" / sub))
-from b3_dev import TASKS, classify, model_path, select_shots  # noqa: E402
+from b3_dev import CONTRACTS, TASKS, classify, model_path, select_shots  # noqa: E402
 from embed import EMBED_TEXTS, embed, load_encoder, model_input  # noqa: E402
 from head import load_head, logits  # noqa: E402
 from splits import load_splits  # noqa: E402
 
 RULES_ITEMS = ROOT / "target" / "release" / "examples" / "rules_items"
-DATASET = "intents_v0"
 ENCODER = "multilingual-e5-small-q8_0"
-HEAD_DIR = ROOT / "experiments" / "artifacts" / "tier3" / f"{DATASET}-{ENCODER}"
+HEADS = ROOT / "experiments" / "artifacts" / "tier3"
 SLM = "gemma-4-e2b-it-q4_0"
-SHOTS_PER = 2
+SHOTS_PER = 2  # Intents-v0 (ADR-015)
 PARITY_TOL = 1e-6
-OUT = ROOT / "experiments" / "logs" / "router" / f"tier_outputs_{DATASET}.jsonl"
+LOG_DIR = ROOT / "experiments" / "logs" / "router"
 
 
 def run_rules(rows: list[dict]) -> list[dict]:
@@ -71,11 +73,11 @@ def timed_embeddings(enc, texts: list[str]) -> tuple[np.ndarray, list[float]]:
         return np.fromfile(dst, dtype="<f4").reshape(n, dim), [float(v) for v in ms.read_text().split()]
 
 
-def run_tier3(enc, rows: list[dict]):
+def run_tier3(enc, rows: list[dict], head_dir: Path):
     """Raw head logits [n x K], ms per item, head metadata."""
-    w, b, t, meta = load_head(HEAD_DIR)
+    w, b, t, meta = load_head(head_dir)
     if meta["encoder"] != enc.name or meta["encoder_sha256"] != enc.sha256:
-        raise ValueError(f"head {HEAD_DIR.name} was trained on another encoder file")
+        raise ValueError(f"head {head_dir.name} was trained on another encoder file")
     texts = [r["text"] for r in rows]
     x, ms = timed_embeddings(enc, texts)
     gap = float(np.abs(x - embed(enc, texts)).max())
@@ -90,7 +92,8 @@ def assemble(split: str, rows: list[dict], t1: list[dict], z3, ms3: list[float],
     if [o["id"] for o in t1] != ids or [o["id"] for o in t4] != ids or len(z3) != len(ids) or len(ms3) != len(ids):
         raise ValueError(f"{split}: tier outputs are not aligned with the rows")
     drop_id = lambda o: {k: v for k, v in o.items() if k != "id"}  # noqa: E731
-    return [{"split": split, "id": r["id"], "gold": r["label"], "lang": r["lang"], "compound": "|" in r["label"],
+    return [{"split": split, "id": r["id"], "gold": r["label"], "lang": r.get("lang", "en"),
+             "family": r.get("family", r["id"]), "compound": "|" in r["label"],
              "t1": drop_id(a), "t3": {"logits": [float(v) for v in z], "ms": m}, "t4": drop_id(c)}
             for r, a, z, m, c in zip(rows, t1, z3, ms3, t4)]
 
@@ -99,11 +102,22 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def main():
-    splits = load_splits(DATASET)
-    prompt, labels_file, _ = TASKS[DATASET]
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--dataset", default="intents_v0", choices=sorted(TASKS))
+    ap.add_argument("--shots", type=int, default=SHOTS_PER, help="few-shot examples per label and language")
+    ap.add_argument("--prompt", help="prompt contract under datasets/contracts/ instead of the task's")
+    ap.add_argument("--n-ctx", type=int, help="Tier-4 context tokens instead of the task's")
+    args = ap.parse_args(argv)
+    dataset = args.dataset
+    task_prompt, labels_file, task_ctx = TASKS[dataset]
+    prompt = CONTRACTS / args.prompt if args.prompt else task_prompt
+    n_ctx = args.n_ctx or task_ctx
+    head_dir = HEADS / f"{dataset}-{ENCODER}"
+    out_path = LOG_DIR / f"tier_outputs_{dataset}.jsonl"
+    splits = load_splits(dataset)
     labels = [l for l in labels_file.read_text().split("\n") if l and not l.startswith("#")]
-    shots = select_shots(splits["train"], labels, SHOTS_PER)
+    shots = select_shots(splits["train"], [l for l in labels if l != "oos"], args.shots)  # train has no OOS
     enc = load_encoder(ENCODER)
     slm = model_path(SLM)
 
@@ -111,30 +125,30 @@ def main():
     for split in ("cal", "val"):
         rows = splits[split]
         t1 = run_rules(rows)
-        z3, ms3, head_meta = run_tier3(enc, rows)
-        t4 = classify(slm, rows, shots, DATASET)
+        z3, ms3, head_meta = run_tier3(enc, rows, head_dir)
+        t4 = classify(slm, rows, shots, dataset, prompt, n_ctx)
         records += assemble(split, rows, t1, z3, ms3, t4)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text("".join(json.dumps(r) + "\n" for r in records))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("".join(json.dumps(r) + "\n" for r in records))
     boost = Path("/sys/devices/system/cpu/cpufreq/boost")
-    head_json = json.loads((HEAD_DIR / "head.json").read_text())
+    head_json = json.loads((head_dir / "head.json").read_text())
     meta = {
-        "dataset": DATASET, "n": {s: sum(r["split"] == s for r in records) for s in ("cal", "val")},
+        "dataset": dataset, "n": {s: sum(r["split"] == s for r in records) for s in ("cal", "val")},
         "date": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "git_head": subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
                                    cwd=ROOT).stdout.strip(),
         "tier1": {"rules": "kestrel_nlu::rules::RuleSet::default_set"},
-        "tier3": {"encoder": ENCODER, "encoder_sha256": enc.sha256, "head": HEAD_DIR.name,
-                  "head_bin_sha256": _sha256(HEAD_DIR / "head.bin"), "classes": head_json["classes"],
+        "tier3": {"encoder": ENCODER, "encoder_sha256": enc.sha256, "head": head_dir.name,
+                  "head_bin_sha256": _sha256(head_dir / "head.bin"), "classes": head_json["classes"],
                   "temperature_cal": head_meta["temperature"], "cache_gap_max_abs": head_meta["cache_gap"]},
         "tier4": {"model": SLM, "model_file": slm.name, "prompt": prompt.name, "prompt_sha256": _sha256(prompt),
-                  "shots_per_label_and_language": SHOTS_PER, "shots": len(shots),
+                  "shots_per_label_and_language": args.shots, "shots": len(shots), "n_ctx": n_ctx,
                   "errors": sum("error" in r["t4"] for r in records)},
         "timing": {"boost": boost.read_text().strip() if boost.exists() else None,
                    "note": "dev timing on the laptop as found; not an E1 measurement"},
     }
-    OUT.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1) + "\n")
+    out_path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1) + "\n")
     print(json.dumps(meta, indent=1))
 
 

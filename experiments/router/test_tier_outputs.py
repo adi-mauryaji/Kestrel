@@ -52,3 +52,13 @@ def test_signal_rates_count_by_kind_and_language():
     assert r["single"] == {"n": 2, "flagged": 1, "rate": 0.5}
     assert r["single/hi-en"]["flagged"] == 0 and r["compound"]["rate"] == 1.0
     assert r["oos/en"] == {"n": 1, "flagged": 0, "rate": 0.0}  # no lang field: one language
+
+
+def test_assemble_records_a_family_and_defaults_the_language():
+    rows = [{"id": "clinc150/val/1", "text": "x", "label": "a"},
+            {"id": "create-12/en/0/0", "text": "y", "label": "create_task", "lang": "en", "family": "create-12"}]
+    t1 = [{"id": r["id"], "outcome": "no_match", "conjunction": False, "us": 1.0} for r in rows]
+    t4 = [{"id": r["id"], "label": "a", "steps": [], "ms": 1.0} for r in rows]
+    recs = assemble("val", rows, t1, np.zeros((2, 2)), [1.0, 1.0], t4)
+    assert [r["family"] for r in recs] == ["clinc150/val/1", "create-12"]
+    assert [r["lang"] for r in recs] == ["en", "en"]

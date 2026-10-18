@@ -1,6 +1,6 @@
 """experiments/router/policies.py -- routing policies simulated on the logged tier outputs (Week 7, Ch. 13.2-13.4).
 
-    python experiments/router/policies.py      # seconds; reads tier_outputs_intents_v0.jsonl
+    python experiments/router/policies.py [--dataset clinc150]   # reads tier_outputs_<dataset>.jsonl
 
 Every policy is a function of the per-item tier outputs logged once by tier_outputs.py:
 - R0 always Tier 4; R1 Tier 3 alone with a threshold;
@@ -22,6 +22,7 @@ embedding, Tier-4 classify with the prefix cached). Dev timing as found, not E1.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from dataclasses import dataclass
@@ -37,7 +38,9 @@ from metrics import ece  # noqa: E402
 
 LOG_DIR = ROOT / "experiments" / "logs" / "router"
 TIER_OUTPUTS = LOG_DIR / "tier_outputs_intents_v0.jsonl"
-OOS_LABEL = "unsupported"
+# Per dataset: the tiers the cascade uses and the OOS label. The Kestrel rules cannot answer with a
+# CLINC150 label, so the CLINC150 cascade is Tier 3 -> Tier 4 (its conjunction flag is still read).
+DATASETS = {"intents_v0": ((1, 3, 4), "unsupported"), "clinc150": ((3, 4), "oos")}
 DELTAS = (0.0, 0.01, 0.02, 0.03, 0.05)
 SIGNALS = (None, "conjunction", "ambiguous")
 COVERAGE = 0.80  # D4
@@ -70,21 +73,25 @@ class Answers:
     oos_idx: int
 
     @classmethod
-    def build(cls, recs, classes, *, rule_conf: float, t3: float, t4: float) -> "Answers":
+    def build(cls, recs, classes, *, rule_conf: float, t3: float, t4: float,
+              oos_label: str = "unsupported") -> "Answers":
+        """`classes`: the Tier-3 head's classes, plus the OOS label at the end when the head has no
+        OOS class (CLINC150), so Tier 4's `oos` answer has an index. A Tier-1 match on a label
+        outside `classes` (Kestrel rules on CLINC150) counts as no opinion."""
         idx = {c: i for i, c in enumerate(classes)}
         z = np.array([r["t3"]["logits"] for r in recs], dtype=np.float64) / t3
         p3 = np.exp(z - z.max(axis=1, keepdims=True))
         p3 /= p3.sum(axis=1, keepdims=True)
-        m1 = np.array([r["t1"]["outcome"] == "match" for r in recs])
+        m1 = np.array([r["t1"]["outcome"] == "match" and r["t1"]["intent"] in idx for r in recs])
         m4 = np.array(["label" in r["t4"] for r in recs])
         return cls(
             gold=np.array([-2 if r["compound"] else idx[r["gold"]] for r in recs]),
             compound=np.array([r["compound"] for r in recs]),
-            oos=np.array([r["gold"] == OOS_LABEL for r in recs]),
+            oos=np.array([r["gold"] == oos_label for r in recs]),
             conj=np.array([r["t1"]["conjunction"] for r in recs]),
             amb=np.array([r["t1"]["outcome"] == "ambiguous" for r in recs]),
             lang=np.array([r["lang"] for r in recs]),
-            family=np.array([r["id"].split("/")[0] for r in recs]),
+            family=np.array([r.get("family", r["id"].split("/")[0]) for r in recs]),
             m1=m1,
             y1=np.array([idx[r["t1"]["intent"]] if ok else -1 for r, ok in zip(recs, m1)]),
             c1=np.where(m1, rule_conf, 0.0),
@@ -96,7 +103,7 @@ class Answers:
             k1=np.array([r["t1"]["us"] / 1e3 for r in recs]),
             k3=np.array([r["t3"]["ms"] for r in recs]),
             k4=np.array([r["t4"].get("ms", 0.0) for r in recs]),
-            oos_idx=idx.get(OOS_LABEL, -3),
+            oos_idx=idx.get(oos_label, -3),
         )
 
     def subset(self, mask) -> "Answers":
@@ -197,8 +204,8 @@ def summary(a: Answers, r: Routed, tau=None) -> dict:
            "coverage": float(answered.mean()),
            "risk": float(1 - ok[answered].mean()) if answered.any() else None,
            "tier_rate": {str(k): float((r.tier == k).mean()) for k in (1, 3, 4)}}
-    if tau is not None:
-        out["tau"] = [None if t == OFF else float(t) for t in tau]
+    if tau is not None:  # a tier left out of the cascade is "off" whatever tau says
+        out["tau"] = [None if t == OFF or not used else float(t) for t, used in zip(tau, r.use)]
     return out
 
 
@@ -217,21 +224,23 @@ def _grid(c):
     return np.r_[0.0, (u[:-1] + u[1:]) / 2, OFF]
 
 
-def sweep_shared(a: Answers, signal=None, last_answers=False) -> list[dict]:
+def sweep_shared(a: Answers, signal=None, last_answers=False, tiers=(1, 3, 4)) -> list[dict]:
     """One threshold (R2, R2c) over every value where the outcome can change. By default it applies
     to every tier, Tier 4 included (abstention: the risk-coverage curve of H2). With `last_answers`
     it decides escalation only and Tier 4 always answers, as R3's grid chooses (tau4 = 0)."""
+    c1 = a.c1[a.m1] if 1 in tiers else np.array([])
     if last_answers:
-        taus = _grid(np.r_[a.c1[a.m1], a.c3])
-        return [summary(a, route(a, (t, t, 0.0), signal=signal), (t, t, 0.0)) for t in taus]
-    taus = _grid(np.r_[a.c1[a.m1], a.c3, a.c4[a.m4]])
-    return [summary(a, route(a, (t, t, t), signal=signal), (t, t, t)) for t in taus]
+        taus = _grid(np.r_[c1, a.c3])
+        return [summary(a, route(a, (t, t, 0.0), tiers, signal), (t, t, 0.0)) for t in taus]
+    taus = _grid(np.r_[c1, a.c3, a.c4[a.m4]])
+    return [summary(a, route(a, (t, t, t), tiers, signal), (t, t, t)) for t in taus]
 
 
-def sweep_per_tier(a: Answers, signal=None) -> list[dict]:
+def sweep_per_tier(a: Answers, signal=None, tiers=(1, 3, 4)) -> list[dict]:
     """Per-tier thresholds (R3). Tier-1 confidence is one constant, so tau1 is on or off."""
-    return [summary(a, route(a, (t1, t3, t4), signal=signal), (t1, t3, t4))
-            for t1 in (0.0, OFF) for t3 in _grid(a.c3) for t4 in _grid(a.c4[a.m4])]
+    t1s = (0.0, OFF) if 1 in tiers else (OFF,)
+    return [summary(a, route(a, (t1, t3, t4), tiers, signal), (t1, t3, t4))
+            for t1 in t1s for t3 in _grid(a.c3) for t4 in _grid(a.c4[a.m4])]
 
 
 def risk_at_coverage(points: list[dict], coverage: float = COVERAGE):
@@ -247,7 +256,7 @@ def _tau(p):
     return tuple(OFF if t is None else t for t in p["tau"])
 
 
-def crossfit(a: Answers, r0_acc_of, delta: float, signal=None) -> dict:
+def crossfit(a: Answers, r0_acc_of, delta: float, signal=None, tiers=(1, 3, 4)) -> dict:
     """Thresholds chosen on one half of val (split by template family), scored on the other, both ways."""
     fams = np.unique(a.family)
     rng = np.random.default_rng(0)
@@ -256,23 +265,25 @@ def crossfit(a: Answers, r0_acc_of, delta: float, signal=None) -> dict:
     ok, cost, n = 0.0, 0.0, 0
     for train in (fold, ~fold):
         at, ae = a.subset(train), a.subset(~train)
-        p = best_point(sweep_per_tier(at, signal), r0_acc_of(at) - delta)
-        r = route(ae, _tau(p), signal=signal)
+        p = best_point(sweep_per_tier(at, signal, tiers), r0_acc_of(at) - delta)
+        r = route(ae, _tau(p), tiers, signal)
         ok += correct(ae, r.pred, r.tier).sum()
         cost += r.cost.sum()
         n += len(ae.gold)
     return {"acc": ok / n, "cost": cost / n}
 
 
-def run(recs, classes, t3_cal: float) -> dict:
+def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 3, 4)) -> dict:
+    """`classes`: head classes, plus `oos_label` at the end if the head lacks it."""
     cal = [r for r in recs if r["split"] == "cal"]
     val = [r for r in recs if r["split"] == "val"]
-    p_rule, n_rule = rule_precision(cal)
+    p_rule, n_rule = rule_precision(cal) if 1 in tiers else (None, 0)
     single_cal = [r for r in cal if not r["compound"] and "steps" in r["t4"]]
     t4_cal = fit_conf_temperature([r["t4"]["steps"] for r in single_cal],
                                   [r["t4"]["label"] == r["gold"] for r in single_cal])
-    raw = Answers.build(val, classes, rule_conf=1.0, t3=1.0, t4=1.0)
-    cal_ = Answers.build(val, classes, rule_conf=p_rule if p_rule is not None else 1.0, t3=t3_cal, t4=t4_cal)
+    build = lambda **kw: Answers.build(val, classes, oos_label=oos_label, **kw)  # noqa: E731
+    raw = build(rule_conf=1.0, t3=1.0, t4=1.0)
+    cal_ = build(rule_conf=p_rule if p_rule is not None else 1.0, t3=t3_cal, t4=t4_cal)
 
     def r0(a):
         return route(a, (OFF, OFF, 0.0), tiers=(4,))
@@ -281,10 +292,12 @@ def run(recs, classes, t3_cal: float) -> dict:
         r = r0(a)
         return float(correct(a, r.pred, r.tier).mean())
 
-    single = ~raw.compound
+    # Per-tier quality on items whose gold label is a head class (CLINC150's OOS items have none).
+    n_head = len(val[0]["t3"]["logits"])
+    single = ~raw.compound & (raw.gold >= 0) & (raw.gold < n_head)
     ece_of = lambda c, y: float(ece(list(c[single]), list((y == raw.gold)[single]), n_bins=ECE_BINS))  # noqa: E731
     out = {
-        "n_val": len(val), "n_cal": len(cal),
+        "tiers": list(tiers), "oos_label": oos_label, "n_val": len(val), "n_cal": len(cal),
         "calibration": {"rule_precision_cal": p_rule, "rule_matches_cal": n_rule,
                         "rule_precision_val": rule_precision(val)[0], "rule_matches_val": rule_precision(val)[1],
                         "t3": t3_cal, "t4": t4_cal},
@@ -305,32 +318,39 @@ def run(recs, classes, t3_cal: float) -> dict:
     out["R1"] = {"always_answer": r1[0], "risk_at_coverage": risk_at_coverage(r1)}
     floor = {d: out["R0"]["acc"] - d for d in DELTAS}
     for name, a in (("R2", raw), ("R2c", cal_)):
-        out[name] = {"risk_at_coverage": risk_at_coverage(sweep_shared(a)), "points": {}}
+        out[name] = {"risk_at_coverage": risk_at_coverage(sweep_shared(a, tiers=tiers)), "points": {}}
         for s in SIGNALS[:2]:
-            pts = sweep_shared(a, s, last_answers=True)
+            pts = sweep_shared(a, s, last_answers=True, tiers=tiers)
             out[name]["points"][str(s)] = {str(d): best_point(pts, floor[d]) for d in DELTAS}
     out["R3"] = {}
     for s in SIGNALS:
-        pts = sweep_per_tier(cal_, s)
+        pts = sweep_per_tier(cal_, s, tiers)
         res = {"risk_at_coverage": risk_at_coverage(pts), "points": {}}
         for d in DELTAS:
             p = best_point(pts, floor[d])
             if p is None:
                 res["points"][str(d)] = None
                 continue
-            r = route(cal_, _tau(p), signal=s)
+            r = route(cal_, _tau(p), tiers, s)
             res["points"][str(d)] = p | {"by_lang": by_lang(cal_, r), "r_rand": r_rand(cal_, r),
-                                         "crossfit": crossfit(cal_, r0_acc, d, s)}
+                                         "crossfit": crossfit(cal_, r0_acc, d, s, tiers)}
         out["R3"][str(s)] = res
     return out
 
 
-def main():
-    recs = [json.loads(l) for l in TIER_OUTPUTS.read_text().splitlines()]
-    meta = json.loads(TIER_OUTPUTS.with_suffix(".meta.json").read_text())
-    out = run(recs, meta["tier3"]["classes"], meta["tier3"]["temperature_cal"])
-    out["inputs"] = {"tier_outputs": TIER_OUTPUTS.name, "git_head_at_logging": meta["git_head"]}
-    path = LOG_DIR / "policies_intents_v0.json"
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--dataset", default="intents_v0", choices=sorted(DATASETS))
+    args = ap.parse_args(argv)
+    tiers, oos_label = DATASETS[args.dataset]
+    outputs = LOG_DIR / f"tier_outputs_{args.dataset}.jsonl"
+    recs = [json.loads(l) for l in outputs.read_text().splitlines()]
+    meta = json.loads(outputs.with_suffix(".meta.json").read_text())
+    classes = meta["tier3"]["classes"]
+    classes = classes if oos_label in classes else classes + [oos_label]
+    out = {"dataset": args.dataset} | run(recs, classes, meta["tier3"]["temperature_cal"], oos_label, tiers)
+    out["inputs"] = {"tier_outputs": outputs.name, "git_head_at_logging": meta["git_head"]}
+    path = LOG_DIR / f"policies_{args.dataset}.json"
     path.write_text(json.dumps(out, indent=1) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k not in ("R2", "R2c", "R3")}, indent=1))
     for name in ("R2", "R2c"):

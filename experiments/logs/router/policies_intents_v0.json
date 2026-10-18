@@ -1,4 +1,11 @@
 {
+ "dataset": "intents_v0",
+ "tiers": [
+  1,
+  3,
+  4
+ ],
+ "oos_label": "unsupported",
  "n_val": 128,
  "n_cal": 100,
  "calibration": {
