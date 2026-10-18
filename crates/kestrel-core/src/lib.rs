@@ -3,6 +3,7 @@
 
 pub mod embedder;
 pub mod error;
+pub mod features;
 pub mod normalize;
 pub mod prob;
 pub mod resources;

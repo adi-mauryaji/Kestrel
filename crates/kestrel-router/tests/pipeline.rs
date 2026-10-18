@@ -20,18 +20,19 @@ impl TierModel for Slm {
     }
 }
 
-fn cascade() -> Cascade {
+fn cascade(signal: bool) -> Cascade {
     // 0.99 is a placeholder, NOT the rules' measured precision (Ch. 9.3).
     let rules = RulesTier::new(RuleSet::default_set(), 0.99, 1).unwrap();
     let cfg = RouterConfig {
         accept: [0.95, 0.90, 0.85, 0.60],
         latency_budget_ms: 2000,
+        multi_intent_to_generative: signal,
     };
     Cascade::new(vec![Box::new(Slm), Box::new(rules)], cfg).unwrap()
 }
 
 fn route(text: &str) -> (Outcome, Vec<Tier>) {
-    let (out, trace) = cascade().route(&Request::new(1, text));
+    let (out, trace) = cascade(false).route(&Request::new(1, text));
     (out, trace.tiers_consulted)
 }
 
@@ -63,4 +64,19 @@ fn a_negated_request_escalates() {
         "{out:?}"
     );
     assert_eq!(consulted, vec![Tier::Rules, Tier::Generative]);
+}
+
+#[test]
+fn with_the_signal_a_multi_intent_request_skips_the_rules() {
+    let r = Request::new(
+        3,
+        "Summarize my last three meeting notes and create a task list",
+    );
+    let (out, trace) = cascade(true).route(&r);
+    assert!(
+        matches!(out, Outcome::Accepted(ref p) if p.tier == Tier::Generative),
+        "{out:?}"
+    );
+    assert_eq!(trace.tiers_consulted, vec![Tier::Generative]);
+    assert!(trace.multi_intent);
 }

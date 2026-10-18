@@ -9,9 +9,13 @@
 //! - the budget sum cannot overflow (checked, not wrapping or saturating);
 //! - ties between intents go to the first one the tier listed, so routing is deterministic.
 
+use kestrel_core::features::has_conjunction;
 use kestrel_core::{Intent, KestrelError, Prediction, Request, Tier, TierModel};
+use serde::Deserialize;
 
-#[derive(Debug, Clone, PartialEq)]
+/// Generated from the dev tuning by experiments/router/make_config.py (thresholds from val only);
+/// fields the router does not use (provenance, hash) are ignored when reading.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct RouterConfig {
     /// Minimum calibrated confidence to accept at each tier (index = `Tier::index()`).
     /// Tuned on the validation split only, never on test (Ch. 13.4).
@@ -19,6 +23,29 @@ pub struct RouterConfig {
     /// Per-request budget in ms. A tier whose measured cost would push the running total past it
     /// is not consulted.
     pub latency_budget_ms: u32,
+    /// ADR-017: a request with a conjunction token (`features::has_conjunction`) may ask for
+    /// several things, so it goes straight to the generative tier.
+    pub multi_intent_to_generative: bool,
+}
+
+impl RouterConfig {
+    /// Reads a generated config (JSON) and checks it.
+    pub fn from_json(text: &str) -> Result<Self, KestrelError> {
+        let cfg: Self = serde_json::from_str(text)
+            .map_err(|e| KestrelError::Invalid(format!("router config: {e}")))?;
+        cfg.validate()?;
+        Ok(cfg)
+    }
+
+    /// Every threshold must lie in [0, 1] (`contains` is false for NaN, so NaN fails too).
+    pub fn validate(&self) -> Result<(), KestrelError> {
+        match self.accept.iter().find(|t| !(0.0..=1.0).contains(*t)) {
+            Some(t) => Err(KestrelError::Invalid(format!(
+                "accept thresholds must be in [0, 1], got {t}"
+            ))),
+            None => Ok(()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,6 +78,8 @@ pub struct Trace {
     pub tiers_failed: Vec<Tier>,
     /// Sum of the consulted tiers' measured costs.
     pub est_spent_ms: u32,
+    /// The multi-intent signal fired, so tiers below the generative one were skipped.
+    pub multi_intent: bool,
 }
 
 pub struct Cascade {
@@ -64,12 +93,7 @@ impl Cascade {
         mut tiers: Vec<Box<dyn TierModel>>,
         cfg: RouterConfig,
     ) -> Result<Self, KestrelError> {
-        // `contains` is false for NaN, so NaN is rejected too.
-        if let Some(t) = cfg.accept.iter().find(|t| !(0.0..=1.0).contains(*t)) {
-            return Err(KestrelError::Invalid(format!(
-                "accept thresholds must be in [0, 1], got {t}"
-            )));
-        }
+        cfg.validate()?;
         tiers.sort_by_key(|m| m.tier());
         if let Some(w) = tiers.windows(2).find(|w| w[0].tier() == w[1].tier()) {
             return Err(KestrelError::Invalid(format!(
@@ -88,8 +112,14 @@ impl Cascade {
         let mut trace = Trace::default();
         let mut best: Option<Prediction> = None;
         let abstain = |best: Option<Prediction>, reason| Outcome::Abstained { best, reason };
+        // A request that may ask for several things must not be accepted as one intent below the
+        // generative tier (ADR-010), so it skips those tiers, and abstains if that tier fails.
+        trace.multi_intent = self.cfg.multi_intent_to_generative && has_conjunction(&req.text);
 
         for m in &self.tiers {
+            if trace.multi_intent && m.tier() < Tier::Generative {
+                continue;
+            }
             let spent = trace.est_spent_ms.checked_add(m.est_cost_ms());
             let Some(spent) = spent.filter(|s| *s <= self.cfg.latency_budget_ms) else {
                 let reason = if best.is_some() {
@@ -206,7 +236,24 @@ mod tests {
         RouterConfig {
             accept: [0.95, 0.90, 0.85, 0.60],
             latency_budget_ms: budget,
+            multi_intent_to_generative: false,
         }
+    }
+
+    fn route_text(tiers: Vec<Box<dyn TierModel>>, signal: bool, text: &str) -> (Outcome, Trace) {
+        let mut c = cfg(2000);
+        c.multi_intent_to_generative = signal;
+        Cascade::new(tiers, c)
+            .unwrap()
+            .route(&Request::new(1, text))
+    }
+
+    fn three_tiers() -> Vec<Box<dyn TierModel>> {
+        vec![
+            m(Rules, 1, vec![(SearchNotes, 0.99)]),
+            m(Encoder, 10, vec![(SearchNotes, 0.99)]),
+            m(Generative, 800, vec![(SummarizeNotes, 0.7)]),
+        ]
     }
 
     fn route(tiers: Vec<Box<dyn TierModel>>, budget: u32) -> (Outcome, Trace) {
@@ -460,8 +507,75 @@ mod tests {
     }
 
     #[test]
+    fn reads_a_generated_config_and_ignores_its_provenance_fields() {
+        let json = r#"{"format": 1, "accept": [0.0, 1.0, 0.96, 0.0], "latency_budget_ms": 10000,
+                       "multi_intent_to_generative": true, "config_sha256": "ab", "chosen_on": {}}"#;
+        let c = RouterConfig::from_json(json).unwrap();
+        assert_eq!(c.accept, [0.0, 1.0, 0.96, 0.0]);
+        assert_eq!(c.latency_budget_ms, 10000);
+        assert!(c.multi_intent_to_generative);
+    }
+
+    #[test]
+    fn a_config_with_a_bad_threshold_or_a_missing_field_is_an_error() {
+        let bad = r#"{"accept": [0.0, 1.0, 1.5, 0.0], "latency_budget_ms": 1, "multi_intent_to_generative": false}"#;
+        assert!(RouterConfig::from_json(bad).is_err());
+        let missing = r#"{"accept": [0.0, 1.0, 0.5, 0.0], "latency_budget_ms": 1}"#;
+        assert!(RouterConfig::from_json(missing).is_err());
+    }
+
+    #[test]
     fn rejects_two_models_for_one_tier() {
         let tiers = vec![m(Encoder, 10, vec![]), m(Encoder, 20, vec![])];
         assert!(Cascade::new(tiers, cfg(2000)).is_err());
+    }
+
+    #[test]
+    fn a_conjunction_sends_the_request_straight_to_the_generative_tier() {
+        let (out, tr) = route_text(three_tiers(), true, "Find my notes and summarize them");
+        assert_eq!(
+            out,
+            Outcome::Accepted(pred(SummarizeNotes, 0.7, Generative))
+        );
+        assert_eq!(tr.tiers_consulted, vec![Generative]);
+        assert_eq!(tr.est_spent_ms, 800);
+        assert!(tr.multi_intent);
+    }
+
+    #[test]
+    fn the_signal_changes_nothing_when_off_or_without_a_conjunction() {
+        for (signal, text) in [
+            (false, "find my notes and summarize them"),
+            (true, "find my notes about android"),
+        ] {
+            let (out, tr) = route_text(three_tiers(), signal, text);
+            assert_eq!(
+                out,
+                Outcome::Accepted(pred(SearchNotes, 0.99, Rules)),
+                "{text}"
+            );
+            assert!(!tr.multi_intent, "{text}");
+        }
+    }
+
+    #[test]
+    fn a_flagged_request_abstains_rather_than_fall_back_below_the_generative_tier() {
+        let none = Outcome::Abstained {
+            best: None,
+            reason: AbstainReason::NoTierAvailable,
+        };
+        let broken = vec![
+            m(Encoder, 10, vec![(SearchNotes, 0.99)]),
+            failing(Generative, 800, || {
+                KestrelError::ModelUnavailable(Generative)
+            }),
+        ];
+        let (out, tr) = route_text(broken, true, "find my notes and summarize them");
+        assert_eq!(out, none);
+        assert_eq!(tr.tiers_failed, vec![Generative]);
+        let no_slm = vec![m(Encoder, 10, vec![(SearchNotes, 0.99)])];
+        let (out, tr) = route_text(no_slm, true, "find my notes and summarize them");
+        assert_eq!(out, none);
+        assert!(tr.tiers_consulted.is_empty());
     }
 }

@@ -12,7 +12,8 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::time::Instant;
 
 use kestrel_core::Request;
-use kestrel_nlu::rules::{RuleOutcome, RuleSet, has_conjunction};
+use kestrel_core::features::has_conjunction;
+use kestrel_nlu::rules::{RuleOutcome, RuleSet};
 use serde_json::{Value, json};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

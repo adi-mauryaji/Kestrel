@@ -9,15 +9,13 @@
 //! Rules are English only until the Kestrel-Intents-v0 dev split exists. Hinglish requests
 //! get `NoMatch` here and escalate to the multilingual encoder. Write rules on the dev split only (Ch. 9.4).
 
+use kestrel_core::features::{has_conjunction, tokens};
 use kestrel_core::{Intent, KestrelError, Request, Tier, TierModel};
 
 /// Words that flip or cancel a request. Conservative: on any of them, Tier 1 escalates.
 const NEGATIONS: &[&str] = &[
     "not", "don't", "dont", "doesn't", "never", "cannot", "can't", "mat", "nahi", "nahin",
 ];
-
-/// Words that join two requests ("summarize my notes and create a task").
-const CONJUNCTIONS: &[&str] = &["and", "then", "aur", "phir", "fir"];
 
 pub enum Matcher {
     /// The request's first tokens equal this phrase's tokens.
@@ -49,19 +47,6 @@ pub enum RuleOutcome {
 
 pub struct RuleSet {
     rules: Vec<Rule>,
-}
-
-/// Split normalized text into word tokens; apostrophes stay inside words ("don't").
-fn tokens(text: &str) -> Vec<&str> {
-    text.split(|c: char| !(c.is_alphanumeric() || c == '\''))
-        .filter(|t| !t.is_empty())
-        .collect()
-}
-
-/// Whether normalized text contains a conjunction token ("and", "then", "aur", "phir", "fir"):
-/// the multi-intent signal the router reads (Ch. 13.1), the same one `classify` uses.
-pub fn has_conjunction(text: &str) -> bool {
-    tokens(text).iter().any(|t| CONJUNCTIONS.contains(t))
 }
 
 impl Rule {
@@ -313,21 +298,6 @@ mod tests {
             "remind me to call asha phir summarize my notes",
         ] {
             assert_eq!(c(text), both, "{text:?}");
-        }
-    }
-
-    #[test]
-    fn conjunction_flag_is_on_whole_tokens_in_either_language() {
-        for text in [
-            "summarize my notes and create a task",
-            "ideas.md padho phir task add karo",
-            "notes dhundo aur summary do",
-            "open todo.md, then read it",
-        ] {
-            assert!(has_conjunction(&normalize(text)), "{text:?}");
-        }
-        for text in ["find notes about android", "standup notes kholo", "thanks"] {
-            assert!(!has_conjunction(&normalize(text)), "{text:?}");
         }
     }
 

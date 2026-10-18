@@ -11,3 +11,5 @@ pub use utf8::Utf8Stream;
 
 #[cfg(feature = "llama")]
 pub mod llama;
+#[cfg(feature = "llama")]
+pub mod tier;

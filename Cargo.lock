@@ -226,6 +226,8 @@ version = "0.1.0"
 dependencies = [
  "kestrel-core",
  "kestrel-nlu",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

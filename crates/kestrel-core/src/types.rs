@@ -34,6 +34,22 @@ impl Intent {
         Intent::Chitchat,
         Intent::Unsupported,
     ];
+
+    /// The label string: the serialized name (tested), used where a tier needs the text itself,
+    /// such as Tier 4's constrained label decoding.
+    pub fn label(self) -> &'static str {
+        match self {
+            Intent::SearchNotes => "search_notes",
+            Intent::ReadDocument => "read_document",
+            Intent::CreateTask => "create_task",
+            Intent::DeleteTask => "delete_task",
+            Intent::SummarizeNotes => "summarize_notes",
+            Intent::SetPreference => "set_preference",
+            Intent::RetrieveMemory => "retrieve_memory",
+            Intent::Chitchat => "chitchat",
+            Intent::Unsupported => "unsupported",
+        }
+    }
 }
 
 /// Cascade tiers, cheapest first. The discriminant is the tier number (1..=4).
@@ -121,6 +137,14 @@ mod tests {
         for (intent, label) in cases {
             assert_eq!(serde_json::to_string(&intent).unwrap(), label);
             assert_eq!(serde_json::from_str::<Intent>(label).unwrap(), intent);
+        }
+    }
+
+    #[test]
+    fn label_is_the_serialized_name() {
+        for intent in Intent::ALL {
+            let json = serde_json::to_value(intent).unwrap();
+            assert_eq!(json.as_str(), Some(intent.label()), "{intent:?}");
         }
     }
 
