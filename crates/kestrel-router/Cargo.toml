@@ -1,0 +1,16 @@
+[package]
+name = "kestrel-router"
+description = "Kestrel cascade router: per-tier thresholds, latency budget, traces (Ch. 13)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kestrel-core.workspace = true
+
+[dev-dependencies]
+kestrel-nlu.workspace = true
+
+[lints]
+workspace = true
