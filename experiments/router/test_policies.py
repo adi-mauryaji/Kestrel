@@ -161,3 +161,38 @@ def test_thresholds_of_tiers_left_out_are_reported_off():
     s = summary(a, route(a, (0.0, 0.5, 0.0), tiers=(3, 4)), (0.0, 0.5, 0.0))
     assert s["tau"] == [None, 0.5, 0.0]
     assert all(p["tau"][0] is None for p in sweep_per_tier(a, tiers=(3, 4)))
+
+
+def _random_answers(seed, n=70):
+    rng = np.random.default_rng(seed)
+    golds = ["create_task", "search_notes", "unsupported", "create_task|search_notes"]
+    recs = []
+    for i in range(n):
+        gold = golds[rng.integers(4)]
+        t4 = None if rng.random() < 0.05 else CLASSES[rng.integers(3)]
+        r = _rec(gold, t1="create_task" if rng.random() < 0.2 else None, t3=tuple(rng.normal(size=3) * 2), t4=t4,
+                 conj=bool(rng.random() < 0.15), ms=(0.001, 5 + rng.random(), 500 + 100 * rng.random()))
+        if t4 is not None:
+            r["t4"]["steps"][0]["logits"] = [float(rng.normal() * 2), 0.0]
+        recs.append(r)
+    return _answers(recs, rule_conf=0.9)
+
+
+@pytest.mark.parametrize("seed", [0, 1, 2])
+@pytest.mark.parametrize("tiers", [(1, 3, 4), (3, 4)])
+@pytest.mark.parametrize("signal", [None, "conjunction"])
+def test_fast_per_tier_search_chooses_what_the_full_grid_chooses(seed, tiers, signal):
+    from policies import best_per_tier, risk_at_coverage, sweep_per_tier
+
+    a = _random_answers(seed)
+    pts = sweep_per_tier(a, signal, tiers)
+    r0 = max(p["acc"] for p in pts)
+    floors = {d: r0 - d for d in (0.0, 0.02, 0.05, 0.2)}
+    fast, risk = best_per_tier(a, floors, signal, tiers)
+    for d, floor in floors.items():
+        slow = best_point(pts, floor)
+        assert (fast[d] is None) == (slow is None)
+        if slow is not None:
+            assert fast[d]["tau"] == slow["tau"] and fast[d]["acc"] == slow["acc"]
+            assert fast[d]["cost"] == pytest.approx(slow["cost"])
+    assert risk == risk_at_coverage(pts)

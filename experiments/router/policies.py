@@ -243,6 +243,69 @@ def sweep_per_tier(a: Answers, signal=None, tiers=(1, 3, 4)) -> list[dict]:
             for t1 in t1s for t3 in _grid(a.c3) for t4 in _grid(a.c4[a.m4])]
 
 
+def best_per_tier(a: Answers, floors: dict, signal=None, tiers=(1, 3, 4), coverage: float = COVERAGE):
+    """The choices of `best_point(sweep_per_tier(...), floor)` for every floor, and of
+    `risk_at_coverage(sweep_per_tier(...))`, without simulating each grid point: CLINC150's grid
+    (~1700 x 1700 thresholds over 1700 items) is too large for that.
+
+    For fixed tau1 and tau4, raising tau3 only moves Tier-3 candidates, least confident first,
+    from Tier 3 to Tier 4, so correct / answered / cost for every tau3 are prefix sums over the
+    candidates sorted by confidence. Ties are broken as the full grid's order does (tau1, tau3,
+    tau4), and each chosen point is summarized by an exact `route`."""
+    use1 = 1 in tiers
+    if not (3 in tiers and 4 in tiers):
+        raise ValueError("best_per_tier needs Tier 3 and Tier 4")
+    n = len(a.gold)
+    flag = _signal(a, signal)
+    t1s = (0.0, OFF) if use1 else (OFF,)
+    g3, g4 = _grid(a.c3), _grid(a.c4[a.m4])
+    ok1 = correct(a, a.y1, np.full(n, 1))
+    ok3 = correct(a, a.y3, np.full(n, 3))
+    k1 = ((use1 & ~flag) * a.k1).sum()
+    cs = lambda x: np.r_[0.0, np.cumsum(x)]  # noqa: E731
+    best = {d: None for d in floors}  # d -> (key, tau)
+    cov_best = None
+    for i1, t1 in enumerate(t1s):
+        acc1 = use1 & a.m1 & ~flag & (a.c1 >= t1)
+        cand = ~acc1 & ~flag  # reach Tier 3
+        fixed4 = ~acc1 & flag  # sent straight to Tier 4
+        order = np.flatnonzero(cand)[np.argsort(-a.c3[cand], kind="stable")]
+        j = np.searchsorted(-a.c3[order], -g3, side="right")  # candidates with c3 >= tau3, per tau3
+        cost = (k1 + a.k3[cand].sum() + a.k4[fixed4].sum() + a.k4[order].sum() - cs(a.k4[order])[j]) / n
+        for i4, t4 in enumerate(g4):
+            pred4 = np.where(a.m4 & (a.c4 >= t4), a.y4, -1)
+            ok4 = correct(a, pred4, np.full(n, 4))
+            ans4 = pred4 != -1
+            ca4 = ok4 & ans4
+            n_ok = (ok1[acc1].sum() + ok4[fixed4].sum() + ok4[order].sum() + cs(ok3[order] & 1)[j]
+                    - cs(ok4[order] & 1)[j])
+            n_ans = acc1.sum() + ans4[fixed4].sum() + ans4[order].sum() + j - cs(ans4[order] & 1)[j]
+            n_ca = ((ok1 & acc1).sum() + ca4[fixed4].sum() + ca4[order].sum() + cs(ok3[order] & 1)[j]
+                    - cs(ca4[order] & 1)[j])
+            acc = n_ok / n
+            for d, floor in floors.items():
+                ok = np.flatnonzero(acc >= floor - 1e-12)
+                if len(ok):
+                    i3 = ok[np.lexsort((ok, -acc[ok], cost[ok]))[0]]
+                    key = (cost[i3], -acc[i3], i1, i3, i4)
+                    if best[d] is None or key < best[d][0]:
+                        best[d] = (key, (t1, g3[i3], t4))
+            cov = n_ans / n
+            ok = np.flatnonzero((cov >= coverage) & (n_ans > 0))
+            if len(ok):
+                risk = 1 - n_ca[ok] / n_ans[ok]
+                k = np.lexsort((ok, risk, cov[ok]))[0]
+                key = (cov[ok[k]], risk[k], i1, ok[k], i4)
+                if cov_best is None or key < cov_best[0]:
+                    cov_best = (key, (t1, g3[ok[k]], t4))
+    points = {d: None if b is None else summary(a, route(a, b[1], tiers, signal), b[1]) for d, b in best.items()}
+    risk = None
+    if cov_best is not None:
+        p = summary(a, route(a, cov_best[1], tiers, signal), cov_best[1])
+        risk = {"coverage": p["coverage"], "risk": p["risk"], "tau": p["tau"]}
+    return points, risk
+
+
 def risk_at_coverage(points: list[dict], coverage: float = COVERAGE):
     """Selective risk of the point with the smallest coverage >= `coverage` (D4)."""
     ok = [p for p in points if p["coverage"] >= coverage and p["risk"] is not None]
@@ -265,7 +328,7 @@ def crossfit(a: Answers, r0_acc_of, delta: float, signal=None, tiers=(1, 3, 4)) 
     ok, cost, n = 0.0, 0.0, 0
     for train in (fold, ~fold):
         at, ae = a.subset(train), a.subset(~train)
-        p = best_point(sweep_per_tier(at, signal, tiers), r0_acc_of(at) - delta)
+        p = best_per_tier(at, {delta: r0_acc_of(at) - delta}, signal, tiers)[0][delta]
         r = route(ae, _tau(p), tiers, signal)
         ok += correct(ae, r.pred, r.tier).sum()
         cost += r.cost.sum()
@@ -324,10 +387,10 @@ def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 
             out[name]["points"][str(s)] = {str(d): best_point(pts, floor[d]) for d in DELTAS}
     out["R3"] = {}
     for s in SIGNALS:
-        pts = sweep_per_tier(cal_, s, tiers)
-        res = {"risk_at_coverage": risk_at_coverage(pts), "points": {}}
+        points, risk = best_per_tier(cal_, floor, s, tiers)
+        res = {"risk_at_coverage": risk, "points": {}}
         for d in DELTAS:
-            p = best_point(pts, floor[d])
+            p = points[d]
             if p is None:
                 res["points"][str(d)] = None
                 continue
