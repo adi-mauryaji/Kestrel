@@ -1,0 +1,44 @@
+{
+ "dataset": "intents_v0",
+ "n": {
+  "cal": 100,
+  "val": 128
+ },
+ "date": "2026-10-18T09:54:24+00:00",
+ "git_head": "57ac751",
+ "tier1": {
+  "rules": "kestrel_nlu::rules::RuleSet::default_set"
+ },
+ "tier3": {
+  "encoder": "multilingual-e5-small-q8_0",
+  "encoder_sha256": "9a2039af4b03dccd1d7e59a915679bc7997b61714a2b9174f43512ed1b0095c5",
+  "head": "intents_v0-multilingual-e5-small-q8_0",
+  "head_bin_sha256": "214e846ef491ccfb98d6bdf0a9d1e4f75a66e426c76ff03e170971367f4001ef",
+  "classes": [
+   "search_notes",
+   "read_document",
+   "create_task",
+   "delete_task",
+   "summarize_notes",
+   "set_preference",
+   "retrieve_memory",
+   "chitchat",
+   "unsupported"
+  ],
+  "temperature_cal": 0.6878183484077454,
+  "cache_gap_max_abs": 0.0
+ },
+ "tier4": {
+  "model": "gemma-4-e2b-it-q4_0",
+  "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+  "prompt": "tier4_intent_prompt.txt",
+  "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+  "shots_per_label_and_language": 2,
+  "shots": 36,
+  "errors": 0
+ },
+ "timing": {
+  "boost": "1",
+  "note": "dev timing on the laptop as found; not an E1 measurement"
+ }
+}

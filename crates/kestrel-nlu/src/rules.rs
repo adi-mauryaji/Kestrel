@@ -58,6 +58,12 @@ fn tokens(text: &str) -> Vec<&str> {
         .collect()
 }
 
+/// Whether normalized text contains a conjunction token ("and", "then", "aur", "phir", "fir"):
+/// the multi-intent signal the router reads (Ch. 13.1), the same one `classify` uses.
+pub fn has_conjunction(text: &str) -> bool {
+    tokens(text).iter().any(|t| CONJUNCTIONS.contains(t))
+}
+
 impl Rule {
     fn matches(&self, toks: &[&str]) -> bool {
         match &self.matcher {
@@ -137,7 +143,7 @@ impl RuleSet {
         }
 
         let distinct = distinct_intents(hits.iter().copied());
-        if distinct.len() > 1 && toks.iter().any(|t| CONJUNCTIONS.contains(t)) {
+        if distinct.len() > 1 && has_conjunction(text) {
             return RuleOutcome::Ambiguous(distinct);
         }
 
@@ -307,6 +313,21 @@ mod tests {
             "remind me to call asha phir summarize my notes",
         ] {
             assert_eq!(c(text), both, "{text:?}");
+        }
+    }
+
+    #[test]
+    fn conjunction_flag_is_on_whole_tokens_in_either_language() {
+        for text in [
+            "summarize my notes and create a task",
+            "ideas.md padho phir task add karo",
+            "notes dhundo aur summary do",
+            "open todo.md, then read it",
+        ] {
+            assert!(has_conjunction(&normalize(text)), "{text:?}");
+        }
+        for text in ["find notes about android", "standup notes kholo", "thanks"] {
+            assert!(!has_conjunction(&normalize(text)), "{text:?}");
         }
     }
 

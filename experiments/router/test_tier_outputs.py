@@ -1,0 +1,43 @@
+import numpy as np
+import pytest
+
+from tier_outputs import RULES_ITEMS, assemble, run_rules
+
+ROWS = [{"id": "a/en/0/0", "text": "remind me to call asha", "label": "create_task", "lang": "en"},
+        {"id": "b/hi-en/0/0", "text": "notes dhundo aur summary do", "label": "search_notes|summarize_notes",
+         "lang": "hi-en"}]
+T1 = [{"id": "a/en/0/0", "outcome": "match", "intent": "create_task", "rule": "remind", "conjunction": False, "us": 3.0},
+      {"id": "b/hi-en/0/0", "outcome": "no_match", "conjunction": True, "us": 2.0}]
+T4 = [{"id": "a/en/0/0", "label": "create_task", "steps": [], "ms": 500.0},
+      {"id": "b/hi-en/0/0", "label": "search_notes", "steps": [], "ms": 600.0}]
+
+
+def test_assemble_keeps_row_order_and_every_tier():
+    z3 = np.array([[1.0, 0.0], [0.0, 2.0]])
+    recs = assemble("val", ROWS, T1, z3, [8.0, 9.0], T4)
+    assert [r["id"] for r in recs] == ["a/en/0/0", "b/hi-en/0/0"]
+    a, b = recs
+    assert a["split"] == "val" and a["gold"] == "create_task" and a["lang"] == "en" and not a["compound"]
+    assert b["compound"] and b["gold"] == "search_notes|summarize_notes"
+    assert a["t1"] == {k: v for k, v in T1[0].items() if k != "id"}
+    assert b["t3"] == {"logits": [0.0, 2.0], "ms": 9.0}
+    assert b["t4"] == {"label": "search_notes", "steps": [], "ms": 600.0}
+
+
+def test_assemble_refuses_tier_outputs_for_other_items():
+    z3 = np.zeros((2, 2))
+    with pytest.raises(ValueError):
+        assemble("val", ROWS, T1[::-1], z3, [1.0, 1.0], T4)
+    with pytest.raises(ValueError):
+        assemble("val", ROWS, T1, z3, [1.0, 1.0], T4[:1])
+    with pytest.raises(ValueError):
+        assemble("val", ROWS, T1, z3[:1], [1.0, 1.0], T4)
+
+
+@pytest.mark.skipif(not RULES_ITEMS.exists(), reason="cargo build --release -p kestrel-nlu --example rules_items")
+def test_rules_runner_normalizes_like_a_request():
+    out = run_rules([{"id": "x", "text": "  Remind me to call Asha tomorrow. "},
+                     {"id": "y", "text": "Summarize my notes and create a task"}])
+    assert out[0]["outcome"] == "match" and out[0]["intent"] == "create_task" and not out[0]["conjunction"]
+    assert out[1]["outcome"] == "ambiguous" and out[1]["conjunction"]
+    assert all(r["us"] >= 0 for r in out)
