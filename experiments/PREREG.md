@@ -34,7 +34,7 @@ scaling cannot move the accuracy–cost frontier, so H2 is a statement about abs
 **Selected components (dev runs, 2026-10-17):** Tier-3 encoder multilingual-e5-small Q8_0 (ADR-014). Tier-4 / R0 SLM
 Gemma-4-E2B-it Q4_0 (ADR-016). Intents-v0 prompt = `datasets/contracts/tier4_intent_prompt.txt` + k = 2 shots per
 (label, language) from train (ADR-015). Constrained label decoding gives the Tier-4 confidence; its temperature is fitted
-on cal by BCE. CLINC150: the label set adds an explicit `oos` answer (ADR-016); the prompt is still to be fixed on dev.
+on cal by BCE. CLINC150: the label set adds an explicit `oos` answer (ADR-016); prompt = `datasets/contracts/tier4_clinc150_desc_prompt.txt` (one-line description per intent, rules) + k = 1 shot per intent from train, runner context 8192 (chosen on the 300 + 300 dev subsets over k = 2 and label names only, ADR-018). The CLINC150 cascade is Tier 3 → Tier 4 (the Kestrel rules cannot answer with CLINC150 labels).
 
 ## 2. Data (frozen inputs)
 

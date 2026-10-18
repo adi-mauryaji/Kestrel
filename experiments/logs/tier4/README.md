@@ -98,3 +98,23 @@ Subsets: a seeded sample of 300 from cal (0 OOS; cal has none) and 300 from val 
 - Open (Ch. 35 equal effort, before the PREREG freeze): CLINC150 R0 is not yet tuned the way Intents-v0 was.
   Candidates: k = 2 (300 shots, ~5–6k-token prefix, slower per request), or one-line intent descriptions written from
   the label names (no dataset text). Either one is tried on these same subsets and logged here.
+
+## CLINC150 R0 tuning: three variants on the same subsets (2026-10-18, ADR-018)
+
+Same 300 cal + 300 val subsets (37 val OOS) and Gemma-4-E2B Q4_0, with runner context 8192. Context size changes what
+fits, not the results. Dev timing, boost on, as found. Selection rule fixed beforehand (ADR-018): higher val accuracy.
+
+| Variant | Prefix tokens | cal acc | val acc | val macro-F1 | in scope | OOS recall | ECE raw → cal | mean / p95 ms |
+|---|---|---|---|---|---|---|---|---|
+| k = 1, label names (`tier4_clinc150_prompt.txt`) | ~3k (estimate; not logged) | 0.827 | 0.767 | 0.776 | 0.806 | 0.486 | 0.128 → 0.071 | 806 / 1197 |
+| k = 2, label names | 7341 | 0.887 | 0.820 | 0.855 | 0.894 | 0.297 | 0.116 → 0.080 | 1208 / 1814 |
+| **k = 1 + descriptions** (`tier4_clinc150_desc_prompt.txt`) | 5485 | 0.923 | **0.833** | 0.888 | **0.924** | 0.189 | 0.098 → 0.063 | 974 / 1416 |
+
+- **Chosen: k = 1 + descriptions.** It is the most accurate on val, both overall and in scope (0.924 vs the Tier-3 head's
+  0.960), and faster than k = 2. `b3_dev_clinc150_gemma-4-e2b-it-q4_0_k1_n300_tier4_clinc150_desc_prompt.json`.
+- The price is OOS: the better the in-scope prompt, the less often Gemma answers `oos` (0.486 → 0.297 → 0.189). Most
+  remaining errors are OOS items labelled `definition` (8) or `fun_fact` (8). Abstention below a Tier-4 threshold is what
+  can catch them.
+- Optimism: the description rules target the pairs the k = 1 run confused on this val subset, and the choice is made on
+  the same subset. The full-dev run (tier outputs, 3200 items) and the frozen test are the checks.
+- Priming the prefix takes 2–3 min at load (5485 tokens in 128 s). This is a load-time cost, not a per-request one.
