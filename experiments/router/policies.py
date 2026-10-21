@@ -3,14 +3,15 @@
     python experiments/router/policies.py [--dataset clinc150]   # reads tier_outputs_<dataset>.jsonl
 
 Every policy is a function of the per-item tier outputs logged once by tier_outputs.py:
-- R0 always Tier 4; R1 Tier 3 alone with a threshold;
+- R0 always Tier 4 (and, tuned, with one abstention threshold); R1 Tier 3 alone with a threshold;
 - R2 cascade 1 -> 3 -> 4 on raw confidences (rule match = 1.0, T = 1) with one shared threshold;
 - R2c the same cascade on calibrated confidences with one shared threshold (D9);
 - R3 calibrated, per-tier thresholds by grid search (Ch. 13.4); R-rand random escalation at R3's
   per-tier acceptance counts, expectation over seeds (D10).
 Calibration is fitted on cal: Tier-1 confidence = the rules' precision on cal, Tier-3 T = the head's
 (NLL on cal), Tier-4 T by BCE on cal. Thresholds are chosen on val, and the numbers reported on val
-are therefore optimistic; `crossfit` estimates by how much (2 folds by template family).
+are therefore optimistic; `crossfit` estimates by how much (2 folds by template family). A cascade's
+operating point is the cheapest with accuracy >= the better of tuned R0 and tuned R1, minus delta (ADR-019).
 
 Scoring (PREREG §3): in scope, right iff the label matches (abstaining is wrong); `unsupported`
 (the OOS label), right iff abstained or labelled unsupported; compound (ADR-010), right iff not
@@ -332,7 +333,24 @@ def _tau(p):
     return tuple(OFF if t is None else t for t in p["tau"])
 
 
-def crossfit(a: Answers, r0_acc_of, delta: float, signal=None, tiers=(1, 3, 4)) -> dict:
+def tuned_single(a: Answers, tier: int) -> dict:
+    """R0 (tier 4) or R1 (tier 3) with the one abstention threshold that maximises accuracy on `a`;
+    ties go to higher coverage (ADR-019). Abstaining only pays on out-of-scope items."""
+    def at(t):
+        tau = (OFF, t, OFF) if tier == 3 else (OFF, OFF, t)
+        return summary(a, route(a, tau, tiers=(tier,)), tau)
+
+    conf = a.c3 if tier == 3 else a.c4[a.m4]
+    return max((at(t) for t in _grid(conf)), key=lambda p: (p["acc"], p["coverage"]))
+
+
+def reference_acc(a: Answers) -> float:
+    """The accuracy a cascade's operating point must reach, before delta: the better of tuned R0 and
+    tuned R1 (ADR-019)."""
+    return max(tuned_single(a, 4)["acc"], tuned_single(a, 3)["acc"])
+
+
+def crossfit(a: Answers, ref_acc_of, delta: float, signal=None, tiers=(1, 3, 4)) -> dict:
     """Thresholds chosen on one half of val (split by template family), scored on the other, both ways."""
     fams = np.unique(a.family)
     rng = np.random.default_rng(0)
@@ -341,7 +359,7 @@ def crossfit(a: Answers, r0_acc_of, delta: float, signal=None, tiers=(1, 3, 4)) 
     ok, cost, n = 0.0, 0.0, 0
     for train in (fold, ~fold):
         at, ae = a.subset(train), a.subset(~train)
-        p = best_per_tier(at, {delta: r0_acc_of(at) - delta}, signal, tiers)[0][delta]
+        p = best_per_tier(at, {delta: ref_acc_of(at) - delta}, signal, tiers)[0][delta]
         r = route(ae, _tau(p), tiers, signal)
         ok += correct(ae, r.pred, r.tier).sum()
         cost += r.cost.sum()
@@ -363,10 +381,6 @@ def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 
 
     def r0(a):
         return route(a, (OFF, OFF, 0.0), tiers=(4,))
-
-    def r0_acc(a):
-        r = r0(a)
-        return float(correct(a, r.pred, r.tier).mean())
 
     # Per-tier quality on items whose gold label is a head class (CLINC150's OOS items have none).
     n_head = len(val[0]["t3"]["logits"])
@@ -390,9 +404,14 @@ def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 
     }
     rr0 = r0(raw)
     out["R0"] = summary(raw, rr0) | {"by_lang": by_lang(raw, rr0)}
+    r0t = tuned_single(cal_, 4)
+    out["R0_tuned"] = r0t | {"by_lang": by_lang(cal_, route(cal_, _tau(r0t), tiers=(4,)))}
     r1 = [summary(cal_, route(cal_, (OFF, t, OFF), tiers=(3,)), (OFF, t, OFF)) for t in _grid(cal_.c3)]
-    out["R1"] = {"always_answer": r1[0], "risk_at_coverage": risk_at_coverage(r1)}
-    floor = {d: out["R0"]["acc"] - d for d in DELTAS}
+    out["R1"] = {"always_answer": r1[0], "tuned": tuned_single(cal_, 3), "risk_at_coverage": risk_at_coverage(r1)}
+    # Every cascade's point must reach the better tuned single tier, minus delta (ADR-019); ties name R0.
+    ref = max((("R0_tuned", r0t["acc"]), ("R1_tuned", out["R1"]["tuned"]["acc"])), key=lambda x: x[1])
+    out["reference"] = {"system": ref[0], "acc": ref[1]}
+    floor = {d: ref[1] - d for d in DELTAS}
     for name, a in (("R2", raw), ("R2c", cal_)):
         out[name] = {"risk_at_coverage": risk_at_coverage(sweep_shared(a, tiers=tiers)), "points": {}}
         for s in SIGNALS[:2]:
@@ -409,7 +428,7 @@ def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 
                 continue
             r = route(cal_, _tau(p), tiers, s)
             res["points"][str(d)] = p | {"by_lang": by_lang(cal_, r), "r_rand": r_rand(cal_, r),
-                                         "crossfit": crossfit(cal_, r0_acc, d, s, tiers)}
+                                         "crossfit": crossfit(cal_, reference_acc, d, s, tiers)}
         out["R3"][str(s)] = res
     return out
 

@@ -25,7 +25,8 @@ compounds confidently: with no signal, the only way to keep them away from Tier 
 **Caveat:** the compound items are Claude-drafted templates that always use a conjunction. Human-written requests (the
 Request Lab) and CLINC150's single-intent items are the real test of this signal.
 
-Policies on val, n = 128 (R0 = 0.984, 126 of 128). Each row is the cheapest point with accuracy ≥ R0 − δ. τ is chosen
+Policies on val, n = 128 (R0 = 0.984, 126 of 128). Each row is the cheapest point with accuracy ≥ R0 − δ (ADR-019's reference, the better of tuned R0 and tuned
+R1, is the same 0.984 here: abstaining never helps R0 on Intents-v0). τ is chosen
 on val and scored on val, so the numbers are optimistic. "Cross-fit" chooses τ on one half of val (split by template
 family) and scores the other half, both ways.
 
@@ -127,12 +128,12 @@ The cascade is Tier 3 → Tier 4: the Kestrel rules cannot answer with CLINC150 
 | Tier 4 (Gemma, descriptions), in scope | acc 0.925, ECE 0.032 → 0.012 (T = 1.26), 988 ms |
 | R0 always Gemma | **0.844** (1434), 988 ms |
 | R1 Tier 3 alone, always answers | **0.847** (1440), 6 ms |
-| R3 + conjunction signal, δ = 0 (pre-registered rule) | 0.847 at 59 ms: τ3 = 0, so everything is accepted at Tier 3 except the 4.6% the signal sends to Tier 4. R-rand 0.846; cross-fit 0.846 |
+| R3 + conjunction signal, δ = 0 (rule before ADR-019) | 0.847 at 59 ms: τ3 = 0, so everything is accepted at Tier 3 except the 4.6% the signal sends to Tier 4. R-rand 0.846; cross-fit 0.846 |
 | Selective risk at coverage 0.80 (D4), errors of 1360 answered | R1 34 · R2 30 · **R2c 20** · R3 11 (no signal) / 15 (signal) |
 
 Readings (dev; not results):
 - **On CLINC150 the always-SLM baseline is no stronger than the encoder alone.** Gemma is 3.5 pp below the head in scope
-  and rarely answers `oos`. So the pre-registered rule (cheapest point with accuracy ≥ R0 − δ) picks a degenerate
+  and rarely answers `oos`. So the rule then pre-registered (cheapest point with accuracy ≥ R0 − δ) picks a degenerate
   cascade, Tier 3 only, and H1 would hold trivially. The signal's 78 false positives are its only Tier-4 traffic.
 - **H2 direction on CLINC150:** with one shared τ, calibration lowers selective risk at 80% coverage from 30 to 20
   errors (R2 → R2c). Per-tier τ (R3) brings it to 11. On Intents-v0 (n = 128) the two were 2 items apart.
@@ -148,12 +149,32 @@ Readings (dev; not results):
 | R3 without the signal, accuracy ≥ 0.93 | 0.930 (0.930) | 119 ms (121) | 0.13 | 0.908 |
 
   The cascade beats both single models in accuracy at about a fifth of R0's cost, and cross-fitting barely moves it
-  (n = 1700). These points come from rules the PREREG does not yet contain. They are exploratory unless the human
-  changes the rule before the freeze.
+  (n = 1700). These points come from rules the PREREG does not contain. They stay exploratory (ADR-019 chose
+  a different rule; see below).
 
-Open for the human (before the PREREG freeze):
-1. **Operating-point rule.** "Cheapest point within δ of R0" is degenerate on CLINC150. Alternatives: the most accurate
-   point within a cost budget (e.g. ρ × R0's cost), or Ch. 13.4's "cheapest with selective risk ≤ ε". Either could be
-   pre-registered, with the whole frontier reported regardless.
-2. **R0's abstention (Ch. 35 equal effort).** The cascade may abstain below τ4, but R0 as defined always answers. Since
-   OOS scoring rewards abstaining, a fair R0 may need its own tuned threshold (0.844 → 0.872 on val).
+### Decided 2026-10-21 (ADR-019): baselines that abstain; operating point against the best single baseline
+
+R0 and R1 each get one abstention threshold chosen on val for accuracy (Ch. 35 equal effort; abstaining is right on
+OOS, D3). A cascade's operating point is the cheapest with accuracy ≥ max(tuned R0, tuned R1) − δ, and H1c tests R3
+against the tuned R1. `python experiments/router/policies.py --dataset clinc150` (reads the .gz) now gives:
+
+| Val, n = 1700 | Accuracy | Mean cost | Tier-4 rate | Coverage |
+|---|---|---|---|---|
+| R0 tuned (τ4 = 0.580) | 0.872 | 988 ms | 1.00 | 0.908 |
+| R1 tuned (the reference) | **0.912** | 6 ms | 0 | 0.856 |
+| **R3 + signal, δ = 0** | **0.912** (cross-fit 0.914) | **140 ms** (141) | 0.14 | 0.928 |
+| R-rand at R3's escalation counts | 0.791 | 151 ms | | |
+| R3 without the signal, δ = 0 | 0.912 (0.912) | 86 ms (88) | 0.09 | |
+| R3 + signal, δ = 0.02 | 0.892 (0.888) | 104 ms (101) | 0.10 | |
+| R2 / R2c + signal (Tier 4 always answers, ADR-017) | no point until δ = 0.03 (0.882 at 224 / 207 ms) | | | |
+
+Readings (dev; not results):
+- The chosen point is no longer degenerate: τ3 = 0.601, τ4 = 0.814, so Tier 4 is a second opinion that may abstain.
+  It ties the tuned encoder alone in accuracy at 23× its cost, and beats tuned R0 by 4 pp at a seventh of its cost.
+  On CLINC150 the case for the SLM tier is therefore H1c (non-inferior to R1) plus the frontier above R1
+  (0.93 at ~175 ms, exploratory), not H1 alone.
+- R3 beats random escalation at matched cost by 12 pp (H1b's direction).
+- The signal costs 54 ms here (140 vs 86 ms), all of it the 78 false positives sent to Tier 4.
+- The cascade cannot abstain at Tier 3 without paying for Tier 4, while R1 abstains for free. A Tier-3 reject band
+  would be a new design (not decided).
+- Intents-v0 is unchanged (same R3 points; the regenerated config differs only in `chosen_on.reference` and the hash).

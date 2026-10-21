@@ -194,7 +194,10 @@
   "split": "val",
   "n": 128,
   "delta": 0.0,
-  "r0_acc": 0.984375,
+  "reference": {
+   "system": "R0_tuned",
+   "acc": 0.984375
+  },
   "acc": 0.984375,
   "cost_ms": 477.66254746874995,
   "crossfit": {
@@ -206,5 +209,5 @@
   "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
   "git_head_at_logging": "57ac751"
  },
- "config_sha256": "4da87c8c9e2ae8e3f44c05f922c1e134f82f3d2a8e44fe65b6a95007d74f328c"
+ "config_sha256": "6de80e17ab183155b3b3bdfa52dc9ccb544cf9858c40d869905cc96edd1646c6"
 }

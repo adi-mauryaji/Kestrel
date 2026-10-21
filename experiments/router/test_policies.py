@@ -3,15 +3,17 @@ import math
 import numpy as np
 import pytest
 
-from policies import OFF, Answers, best_point, correct, r_rand, route, rule_precision, sweep_shared
+from policies import (OFF, Answers, best_point, correct, r_rand, reference_acc, route, rule_precision, sweep_shared,
+                      tuned_single)
 
 CLASSES = ["create_task", "search_notes", "unsupported"]
 
 
-def _rec(gold, t1=None, t3=(0.0, 0.0, 0.0), t4="create_task", conj=False, lang="en", ms=(0.001, 10.0, 500.0)):
+def _rec(gold, t1=None, t3=(0.0, 0.0, 0.0), t4="create_task", conj=False, lang="en", ms=(0.001, 10.0, 500.0),
+         t4_logit=2.0):
     t1d = {"outcome": "match", "intent": t1} if t1 else {"outcome": "no_match"}
     t1d |= {"conjunction": conj, "us": ms[0] * 1e3}
-    t4d = {"error": "x"} if t4 is None else {"label": t4, "steps": [{"allowed": [0, 1], "logits": [2.0, 0.0],
+    t4d = {"error": "x"} if t4 is None else {"label": t4, "steps": [{"allowed": [0, 1], "logits": [t4_logit, 0.0],
                                                                     "chosen": 0}], "ms": ms[2]}
     return {"split": "val", "id": f"i{np.random.randint(1e9)}", "gold": gold, "lang": lang, "compound": "|" in gold,
             "t1": t1d, "t3": {"logits": list(t3), "ms": ms[1]}, "t4": t4d}
@@ -71,6 +73,32 @@ def test_scoring_rules_for_in_scope_out_of_scope_and_compound_items():
     # in scope: right / abstained; OOS: abstained / predicted unsupported; wrong label;
     # compound accepted below Tier 4 (wrong) / reaching Tier 4 (right, ADR-010).
     assert correct(a, pred, tier).tolist() == [True, False, True, True, False, False, True]
+
+
+def test_a_single_tier_baseline_abstains_where_that_raises_accuracy():
+    # Tier 4 is right and sure on two items, wrong and unsure on an out-of-scope one (ADR-019).
+    recs = [_rec("create_task", t4_logit=3.0), _rec("create_task", t4_logit=2.0), _rec("unsupported", t4_logit=0.5)]
+    a = _answers(recs)
+    p = tuned_single(a, 4)
+    assert p["acc"] == 1.0 and p["coverage"] == pytest.approx(2 / 3)
+    assert p["tau"][:2] == [None, None] and a.c4[2] < p["tau"][2] < a.c4[1]
+
+
+def test_a_single_tier_baseline_keeps_answering_when_abstaining_does_not_help():
+    # The unsure in-scope item is wrong whether Tier 3 answers or abstains, so coverage decides.
+    recs = [_rec("search_notes", t3=(0.0, 2.0, 0.0)), _rec("search_notes", t3=(0.0, 0.5, 0.0)),
+            _rec("create_task", t3=(0.0, 0.1, 0.0))]
+    p = tuned_single(_answers(recs), 3)
+    assert p["acc"] == pytest.approx(2 / 3) and p["coverage"] == 1.0 and p["tau"] == [None, 0.0, None]
+
+
+def test_the_operating_point_reference_is_the_better_tuned_single_tier():
+    # Tier 3 is right on both items; Tier 4 is wrong on the second, in scope, so abstaining cannot help it.
+    recs = [_rec("search_notes", t3=(0.0, 2.0, 0.0), t4="search_notes"),
+            _rec("create_task", t3=(2.0, 0.0, 0.0), t4="search_notes")]
+    a = _answers(recs)
+    assert tuned_single(a, 4)["acc"] == 0.5 and tuned_single(a, 3)["acc"] == 1.0
+    assert reference_acc(a) == 1.0
 
 
 def test_rule_precision_is_measured_on_matches_only():

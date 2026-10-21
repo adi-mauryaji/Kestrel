@@ -2,7 +2,8 @@
 
     python experiments/router/make_config.py --signal conjunction --delta 0.0
 
-Takes one R3 point from policies_<dataset>.json: the cheapest point on val with accuracy >= R0 - delta.
+Takes one R3 point from policies_<dataset>.json: the cheapest point on val with accuracy >= the better
+of tuned R0 and tuned R1, minus delta (ADR-019).
 It writes experiments/configs/router_<dataset>.json, which the Rust router reads with
 `RouterConfig::from_json`. The thresholds come from val only. `config_sha256` is the SHA-256 of the
 canonical JSON of every other field, so a run can record exactly which config it used.
@@ -88,7 +89,7 @@ def build(policies: dict, meta: dict, tier_outputs_sha256: str, runtime: dict, *
                    "tier4": {k: meta["tier4"][k] for k in ("model", "model_file", "prompt", "prompt_sha256",
                                                            "shots_per_label_and_language")}
                    | {"n_ctx": runtime["n_ctx"], "shots": runtime["shots"]}},
-        "chosen_on": {"split": "val", "n": policies["n_val"], "delta": delta, "r0_acc": policies["R0"]["acc"],
+        "chosen_on": {"split": "val", "n": policies["n_val"], "delta": delta, "reference": policies["reference"],
                       "acc": point["acc"], "cost_ms": point["cost"], "crossfit": point["crossfit"]},
         "provenance": {"tier_outputs_sha256": tier_outputs_sha256, "git_head_at_logging": meta["git_head"]},
     }

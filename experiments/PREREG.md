@@ -11,6 +11,7 @@ human's decisions so far (ADR-005, ADR-009–ADR-012). Items marked **[decide]**
 | RQ1 | **H1**: at a validation-chosen operating point the calibrated cascade is non-inferior in accuracy (margin δ) **and** faster than always-SLM | E1 | R3 vs R0 (R4 if built) | **primary** |
 | RQ2 | H2: calibrated confidences give lower selective risk at equal coverage than raw softmax. A replication in Kestrel's setting (C3, CAUC) | E2 | **R2c vs R2** (temperature on / off, same shared-τ policy; D9). R3 vs R2c (per-tier vs shared τ) is exploratory | secondary |
 | RQ1 | **H1b** (D10): at matched expected cost, R3 is more accurate than random escalation (R-rand) | E1 | R3 vs R-rand | secondary |
+| RQ1 | **H1c** (ADR-019): at the same operating point, R3 is non-inferior in accuracy (margin δ) to the single encoder with its tuned threshold | E1 | R3 vs R1 | secondary |
 | RQ3 | H3: adding Tier 3 to {1, 4} is a Pareto improvement; Tier 2 adds nothing beyond noise | E3 | tier sets {4}, {1,4}, {3,4}, {1,3,4} (+{1,2,3,4} only if Tier 2 is built) | secondary |
 | RQ6 | H6: the Q4-class quantization stays within δ₃ of Q8 while using less RAM and running faster | E6 | each shortlisted SLM × {Q4, Q8}; baseline = Q8 of the same model | secondary |
 | RQ7 | H7a: the calibrated cascade stays within δ of always-SLM **on Hinglish**; H7b: with one shared temperature, ECE is higher on Hinglish than on English | E1/E2 stratified by language | R3, R0, R2 | secondary |
@@ -22,6 +23,15 @@ per-tier temperature + per-tier τ tuned on validation (B5), **R-rand** random e
 rates (D10; expectation over ≥ 1000 seeds, offline), **R4** adaptive (only if built).
 B1 (rules only) is reported with coverage and precision. R0 and Tier 4 inside the cascade use the **same** prompt template,
 model, quantization, grammar and thread count.
+
+**[accepted 2026-10-21, ADR-019] Baselines that abstain, and the operating point.** R0 and R1 each get one abstention
+threshold (R0 on its calibrated Tier-4 confidence, R1 on the calibrated Tier-3 confidence), chosen on val to maximise
+accuracy (ties: higher coverage). This is the same tuning effort the cascade gets (Ch. 35 rule 3), and an abstention is
+correct on an OOS item (D3). The untuned R0 (always answers) is reported next to it; H1 and H7a use the tuned R0. The
+**operating point** of R3 for H1, H1b, H1c and H7a is the cheapest point on val (per-tier τ, with the routing signal)
+whose accuracy is ≥ max(acc(tuned R0), acc(tuned R1)) − δ; ties go to higher accuracy. The whole accuracy–cost frontier
+is reported regardless. Chosen after the CLINC150 dev runs, where the earlier rule (≥ R0 − δ, R0 always answering)
+picked Tier 3 alone; no test data was seen.
 
 **[accepted 2026-10-18, ADR-017] Routing signal and R2/R2c.** Every cascade (R2, R2c, R3, R-rand) sends a request that
 contains a conjunction token (`and`, `then`, `aur`, `phir`, `fir`; `kestrel_core::features::has_conjunction` on the
@@ -103,7 +113,8 @@ end-to-end measurements.
   Δlat = mean(lat_R3 − lat_R0) is < 0. 10 000 bootstrap resamples over items, seed 0. No α-splitting is needed for the
   primary. **[accepted 2026-10-17] D8:** primary dataset = CLINC150 test (n = 5500); Kestrel-Intents-v0 test (n = 252) enters the secondary
   family, because its CI will be wide.
-- **Secondary family** (Holm–Bonferroni at α = 0.05): H1b, H2, H3, H6, H7a, H7b (and H4, H5 if run). Paired correctness: exact
+- **Secondary family** (Holm–Bonferroni at α = 0.05): H1b, H1c, H2, H3, H6, H7a, H7b (and H4, H5 if run). H1c is tested
+  like H1's accuracy part: the lower bound of the 95% paired-bootstrap CI of mean(correct_R3 − correct_R1) is > −δ. Paired correctness: exact
   McNemar; latency: Wilcoxon signed-rank on per-item medians; effect sizes with CIs.
 - **RQ7:** Kestrel-Intents-v0 test stratified by `lang` (en / hi-en, 126 items each): per-language Δacc and Δlat CIs (H7a);
   per-language ECE with one temperature fitted on the pooled cal set, paired bootstrap of ECE(hi-en) − ECE(en) (H7b). Per-language
