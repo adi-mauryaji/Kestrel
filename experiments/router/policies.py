@@ -62,6 +62,14 @@ def read_tier_outputs(dataset: str, log_dir: Path = LOG_DIR):
     raise FileNotFoundError(f"{plain}[.gz]")
 
 
+def label_classes(meta: dict, dataset: str) -> list[str]:
+    """The class list answers are indexed by: the Tier-3 head's classes, plus the dataset's OOS label
+    at the end when the head has no class for it (CLINC150), so Tier 4's `oos` answer has an index."""
+    classes = meta["tier3"]["classes"]
+    oos_label = DATASETS[dataset][1]
+    return classes if oos_label in classes else classes + [oos_label]
+
+
 @dataclass
 class Answers:
     """Per-item arrays: each tier's top label (class index, -1 = none) and confidence, the measured
@@ -439,8 +447,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
     tiers, oos_label = DATASETS[args.dataset]
     recs, meta, outputs = read_tier_outputs(args.dataset)
-    classes = meta["tier3"]["classes"]
-    classes = classes if oos_label in classes else classes + [oos_label]
+    classes = label_classes(meta, args.dataset)
     out = {"dataset": args.dataset} | run(recs, classes, meta["tier3"]["temperature_cal"], oos_label, tiers)
     out["inputs"] = {"tier_outputs": outputs.name, "git_head_at_logging": meta["git_head"]}
     path = LOG_DIR / f"policies_{args.dataset}.json"

@@ -111,6 +111,12 @@ val items, and the result is compared with `policies.route` under the same confi
 So the offline simulation is a faithful model of the runtime on this config. Requests that stay below Tier 4 cost
 about 5 ms against ~800 ms for R0, far inside ρ = 0.1 (D6). These are dev timings; E1 measures under protocol v3.
 
+Re-checked 2026-10-21 after the label-generic runtime (ADR-019). `route-items` now routes in the index space of the
+config's label list (`models.tier4.labels`), and the rules reach it through `MapLabels`. The config gained that field
+(hash 31171dc6…). Result: **128 / 128 agree**, the same confidence gaps, accuracy 0.984. Wall time as found (boost 1,
+AC 1): mean 327 ms, p50 434, p95 723; Tier 3 ends 3.8 ms, Tier 4 ends 571 ms, faster than on 2026-10-18 under the same
+nominal settings. That difference is why dev timings are not E1. `runtime_check_intents_v0.json` now holds this run.
+
 ## CLINC150 dev: tier outputs and policies (2026-10-18, ADR-018)
 
 `python experiments/router/tier_outputs.py --dataset clinc150 --shots 1 --prompt tier4_clinc150_desc_prompt.txt
@@ -178,3 +184,19 @@ Readings (dev; not results):
 - The cascade cannot abstain at Tier 3 without paying for Tier 4, while R1 abstains for free. A Tier-3 reject band
   would be a new design (not decided).
 - Intents-v0 is unchanged (same R3 points; the regenerated config differs only in `chosen_on.reference` and the hash).
+
+### The Rust cascade on CLINC150 (2026-10-21, label-generic runtime)
+
+`python experiments/router/make_config.py --dataset clinc150` → `experiments/configs/router_clinc150.json` (tiers
+[3, 4], τ3 0.601, τ4 0.814, signal on, 150 shots, n_ctx 8192, labels `clinc150_labels.txt`, hash 66c56882…). Then
+`python experiments/router/check_runtime.py --dataset clinc150` → `runtime_check_clinc150.json` (~6 min, boost 1, AC 1).
+
+| | Result |
+|---|---|
+| Decisions (label + tier where routing ended) | **1700 / 1700 agree** |
+| Max confidence gap, runtime vs simulation | Tier 3 2.3e-6, Tier 4 4.4e-8 |
+| Accuracy | 0.912 runtime = 0.912 simulation |
+| Wall time per request (dev, as found) | mean 111 ms (simulated 140), p50 4.5, p95 817 |
+| By the tier where routing ended | Tier 3: 1462 items, 4.6 ms · Tier 4: 238, 764 ms |
+
+So E1 can run end to end on CLINC150, the primary dataset (D8), with the same binary and code path as Intents-v0.

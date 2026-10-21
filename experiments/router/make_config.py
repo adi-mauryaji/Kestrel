@@ -12,7 +12,7 @@ JSON rather than the blueprint's router.toml: reading TOML in Rust needs the `to
 dependency that the capability registry has not approved; serde_json is already pinned.
 
 The config is self-contained for the runtime (`kestrel route-items`): model file names, Tier 4's
-context size and few-shot examples (k per label and language from train, ADR-015), and per-tier cost
+label list (its answers, in order; ADR-019), context size and few-shot examples (k per label and language from train, ADR-015), and per-tier cost
 estimates (measured dev means, rounded up; the budget is not binding on dev).
 
 `tiers` lists the tiers the cascade is built from. A tier whose threshold came out "off" (it never
@@ -22,6 +22,7 @@ accepts) is left out, because a threshold in [0, 1] cannot express "never". `acc
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
@@ -45,6 +46,21 @@ def verify(cfg: dict) -> bool:
     return cfg.get("config_sha256") == config_hash(cfg)
 
 
+def outputs_sha256(path: Path) -> str:
+    """SHA-256 of the logged tier outputs' content, so the plain file and its committed .gz agree."""
+    return hashlib.sha256(gzip.open(path).read() if path.suffix == ".gz" else path.read_bytes()).hexdigest()
+
+
+def inputs(dataset: str):
+    """(policies, tier-output meta, tier-output path) of a dataset; the plain log if present, else
+    the committed .gz (CLINC150)."""
+    plain = LOG_DIR / f"tier_outputs_{dataset}.jsonl"
+    outputs = plain if plain.exists() else plain.with_name(plain.name + ".gz")
+    policies = json.loads((LOG_DIR / f"policies_{dataset}.json").read_text())
+    meta = json.loads((LOG_DIR / f"tier_outputs_{dataset}.meta.json").read_text())
+    return policies, meta, outputs
+
+
 def runtime_inputs(meta: dict) -> dict:
     """What the runtime needs beyond thresholds, recomputed the way tier_outputs.py ran Tier 3/4."""
     for sub in ("data", "analysis", "tier3", "tier4"):
@@ -59,7 +75,7 @@ def runtime_inputs(meta: dict) -> dict:
     train = load_splits(meta["dataset"])["train"]
     shots = select_shots(train, labels, meta["tier4"]["shots_per_label_and_language"])
     return {"encoder_file": load_encoder(meta["tier3"]["encoder"]).path.name, "n_ctx": n_ctx,
-            "shots": [{"text": s["text"], "label": s["label"]} for s in shots]}
+            "labels": labels_file.name, "shots": [{"text": s["text"], "label": s["label"]} for s in shots]}
 
 
 def build(policies: dict, meta: dict, tier_outputs_sha256: str, runtime: dict, *, signal, delta: float,
@@ -88,7 +104,7 @@ def build(policies: dict, meta: dict, tier_outputs_sha256: str, runtime: dict, *
                    | {"encoder_file": runtime["encoder_file"]},
                    "tier4": {k: meta["tier4"][k] for k in ("model", "model_file", "prompt", "prompt_sha256",
                                                            "shots_per_label_and_language")}
-                   | {"n_ctx": runtime["n_ctx"], "shots": runtime["shots"]}},
+                   | {"labels": runtime["labels"], "n_ctx": runtime["n_ctx"], "shots": runtime["shots"]}},
         "chosen_on": {"split": "val", "n": policies["n_val"], "delta": delta, "reference": policies["reference"],
                       "acc": point["acc"], "cost_ms": point["cost"], "crossfit": point["crossfit"]},
         "provenance": {"tier_outputs_sha256": tier_outputs_sha256, "git_head_at_logging": meta["git_head"]},
@@ -104,10 +120,8 @@ def main(argv=None):
     ap.add_argument("--delta", type=float, default=0.0)
     ap.add_argument("--budget-ms", type=int, default=10_000, help="not binding on dev (the simulation has none)")
     args = ap.parse_args(argv)
-    outputs = LOG_DIR / f"tier_outputs_{args.dataset}.jsonl"
-    policies = json.loads((LOG_DIR / f"policies_{args.dataset}.json").read_text())
-    meta = json.loads(outputs.with_suffix(".meta.json").read_text())
-    cfg = build(policies, meta, hashlib.sha256(outputs.read_bytes()).hexdigest(), runtime_inputs(meta),
+    policies, meta, outputs = inputs(args.dataset)
+    cfg = build(policies, meta, outputs_sha256(outputs), runtime_inputs(meta),
                 signal=None if args.signal == "none" else args.signal, delta=args.delta, budget_ms=args.budget_ms)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"router_{args.dataset}.json"

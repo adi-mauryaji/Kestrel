@@ -3,11 +3,12 @@
 //!     kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl      (needs --features llama)
 //!     kestrel ask CONFIG.json [TEXT...]                          (needs --features llama)
 //!
-//! route-items builds Tier 1 (rules), Tier 3 (encoder + head) and Tier 4 (SLM) from a generated
-//! router config (experiments/router/make_config.py), routes every {"id", "text"} item and writes
-//! one line per item: the decision, the trace and the wall time. Run it from the repository root:
-//! the config's model, head and prompt names are resolved under models/, experiments/artifacts/
-//! tier3/ and datasets/contracts/.
+//! route-items builds the config's tiers (Tier 1 rules, Tier 3 encoder + head, Tier 4 SLM) from a
+//! generated router config (experiments/router/make_config.py), routes every {"id", "text"} item
+//! and writes one line per item: the decision, the trace and the wall time. It answers in the
+//! config's label list (Kestrel-Intents-v0's 9 intents, CLINC150's 150 + oos; ADR-019). Run it from
+//! the repository root: the config's model, head, prompt and label names are resolved under
+//! models/, experiments/artifacts/tier3/ and datasets/contracts/.
 //!
 //! ask builds the same cascade and routes typed requests, showing each tier's answer, its
 //! confidence against the tier's accept threshold, its time and the decision (src/ask.rs).
@@ -18,6 +19,8 @@
 mod ask;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod labels;
 #[cfg(feature = "llama")]
 mod route_items;
 

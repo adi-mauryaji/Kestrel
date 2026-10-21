@@ -41,6 +41,7 @@
    "prompt": "tier4_intent_prompt.txt",
    "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
    "shots_per_label_and_language": 2,
+   "labels": "intents.txt",
    "n_ctx": 2048,
    "shots": [
     {
@@ -209,5 +210,5 @@
   "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
   "git_head_at_logging": "57ac751"
  },
- "config_sha256": "6de80e17ab183155b3b3bdfa52dc9ccb544cf9858c40d869905cc96edd1646c6"
+ "config_sha256": "31171dc6813dfa5e1a45e18134716f307b2c17ac7551e4a687a36900c115b5a3"
 }

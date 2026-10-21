@@ -1,13 +1,14 @@
 //! `kestrel route-items`: the real cascade (rules, encoder + head, SLM) over a JSONL file, built
 //! from a generated router config. Every request goes through `Request::new`, so each tier sees
-//! the same normalized text as in the Python dev runs.
+//! the same normalized text as in the Python dev runs. It routes in the index space of the
+//! config's label list, so the same code serves Kestrel-Intents-v0 and CLINC150 (ADR-019).
 
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
 use kestrel_core::normalize::normalize;
-use kestrel_core::{Intent, Request, Tier, TierModel};
+use kestrel_core::{Request, Tier, TierModel};
 use kestrel_inference::llama::{LlamaConfig, LlamaEncoder, LlamaSlm};
 use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
 use kestrel_inference::tier::GenerativeTier;
@@ -17,16 +18,19 @@ use kestrel_router::{Cascade, RouterConfig};
 use serde_json::Value;
 
 use crate::config::{self, RuntimeConfig};
+use crate::labels::{self, LabelList, LabelSpace, MapLabels};
 
 /// One Tier-4 request may take at most this long (the router's budget is the other bound).
 const TIER4_TIMEOUT: Duration = Duration::from_secs(60);
 /// One thread per physical core on the target laptop (ADR-011).
 const ENCODER_THREADS: i32 = 6;
 
-/// The loaded models and both views of the config; tiers borrow from it.
+/// The loaded models, both views of the config and its label list; tiers borrow from it.
 pub struct Models {
     pub router: RouterConfig,
     pub cfg: RuntimeConfig,
+    /// Tier 4's answers in order, from datasets/contracts/<models.tier4.labels>.
+    pub labels: Vec<String>,
     encoder: LlamaEncoder,
     slm: LlamaSlm,
 }
@@ -34,6 +38,9 @@ pub struct Models {
 impl Models {
     pub fn load(config_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
         let (router, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
+        let labels = labels::parse_list(&std::fs::read_to_string(
+            Path::new("datasets/contracts").join(&cfg.models.tier4.labels),
+        )?);
         let encoder = LlamaEncoder::load(
             &Path::new("models").join(&cfg.models.tier3.encoder_file),
             ENCODER_THREADS,
@@ -48,16 +55,19 @@ impl Models {
         Ok(Self {
             router,
             cfg,
+            labels,
             encoder,
             slm,
         })
     }
 
-    /// The config's tiers, each passed through `wrap` (identity for route-items), in a cascade.
-    pub fn cascade<'a>(
+    /// The config's tiers answering in `space`, each passed through `wrap` (identity for
+    /// route-items), in a cascade. The rules answer Kestrel intents, so they are mapped into it.
+    pub fn cascade<'a, S: LabelSpace>(
         &'a self,
-        wrap: impl Fn(Box<dyn TierModel + 'a>) -> Box<dyn TierModel + 'a>,
-    ) -> Result<Cascade<'a>, Box<dyn std::error::Error>> {
+        space: &'a S,
+        wrap: impl Fn(Box<dyn TierModel<S::Label> + 'a>) -> Box<dyn TierModel<S::Label> + 'a>,
+    ) -> Result<Cascade<'a, S::Label>, Box<dyn std::error::Error>> {
         let cfg = &self.cfg;
         let cost = |t: Tier| cfg.est_cost_ms[t.index()];
         let uses = |t: Tier| cfg.tiers.contains(&(t as u8));
@@ -86,20 +96,19 @@ impl Models {
             .collect();
         let prompt = ChatPrompt::new(format, &system).with_examples(shots);
 
-        let mut tiers: Vec<Box<dyn TierModel + 'a>> = Vec::new();
+        let mut tiers: Vec<Box<dyn TierModel<S::Label> + 'a>> = Vec::new();
         if uses(Tier::Rules) {
-            let rules = RuleSet::default_set();
-            tiers.push(wrap(Box::new(RulesTier::new(
-                rules,
-                cfg.calibration.tier1_confidence,
-                cost(Tier::Rules),
-            )?)));
+            // config::load refuses Tier 1 without its confidence.
+            let confidence = cfg.calibration.tier1_confidence.unwrap_or_default();
+            let rules = RulesTier::new(RuleSet::default_set(), confidence, cost(Tier::Rules))?;
+            tiers.push(wrap(Box::new(MapLabels::new(rules, space))));
         }
         if uses(Tier::Encoder) {
             tiers.push(wrap(Box::new(EncoderTier::new(
                 self.encoder.session()?,
                 head,
                 cost(Tier::Encoder),
+                |c| space.label(c),
             )?)));
         }
         if uses(Tier::Generative) {
@@ -107,7 +116,7 @@ impl Models {
             let tier = GenerativeTier::new(
                 &self.slm,
                 prompt,
-                &Intent::ALL,
+                &space.answers(),
                 t,
                 TIER4_TIMEOUT,
                 cost(Tier::Generative),
@@ -120,7 +129,8 @@ impl Models {
 
 pub fn run(config_path: &Path, items: &Path, out: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let models = Models::load(config_path)?;
-    let cascade = models.cascade(|t| t)?;
+    let space = LabelList::new(models.labels.clone())?;
+    let cascade = models.cascade(&space, |t| t)?;
 
     let mut w = BufWriter::new(std::fs::File::create(out)?);
     let mut n = 0u64;
@@ -131,7 +141,11 @@ pub fn run(config_path: &Path, items: &Path, out: &Path) -> Result<(), Box<dyn s
         let t0 = Instant::now();
         let (outcome, trace) = cascade.route(&Request::new(n, text));
         let ms = t0.elapsed().as_secs_f64() * 1e3;
-        writeln!(w, "{}", config::row(&item["id"], &outcome, &trace, ms))?;
+        writeln!(
+            w,
+            "{}",
+            config::row(&space, &item["id"], &outcome, &trace, ms)
+        )?;
     }
     w.flush()?;
     eprintln!("routed {n} items");

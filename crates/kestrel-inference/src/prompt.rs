@@ -26,7 +26,7 @@ impl ChatFormat {
     }
 
     /// (system turn opener, turn closer, user turn opener).
-    fn markers(self) -> (&'static str, &'static str, &'static str) {
+    pub(crate) fn markers(self) -> (&'static str, &'static str, &'static str) {
         match self {
             Self::Qwen3NoThink => ("<|im_start|>system\n", "<|im_end|>\n", "<|im_start|>user\n"),
             Self::Gemma4 => ("<|turn>system\n", "<turn|>\n", "<|turn>user\n"),

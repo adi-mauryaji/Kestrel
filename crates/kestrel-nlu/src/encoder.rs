@@ -6,7 +6,8 @@
 //! Changes from A.9: the bias length is checked (A.9 indexed `b[k]` unchecked, a panic on a short
 //! bias); the temperature must be finite and > 0; the cost is the measured p95 passed in, not a
 //! hard-coded 30 ms; head classes are label strings, so a CLINC150 head loads too, and
-//! `EncoderTier` checks they are Kestrel intents; the toy hashing embedder is test-only.
+//! `EncoderTier` maps each one into the cascade's label type (Kestrel intents, or a benchmark's
+//! label indices, ADR-019), refusing a class it cannot map; the toy hashing embedder is test-only.
 
 use std::fs;
 use std::path::Path;
@@ -138,16 +139,23 @@ impl LinearHead {
     }
 }
 
-pub struct EncoderTier<E: Embedder> {
+pub struct EncoderTier<E: Embedder, L = Intent> {
     embedder: E,
     head: LinearHead,
-    intents: Vec<Intent>,
+    /// Head class index -> label.
+    labels: Vec<L>,
     est_cost_ms: u32,
 }
 
-impl<E: Embedder> EncoderTier<E> {
+impl<E: Embedder, L> EncoderTier<E, L> {
     /// `est_cost_ms`: measured p95 of embed + head on the target machine (TierModel contract).
-    pub fn new(embedder: E, head: LinearHead, est_cost_ms: u32) -> Result<Self, KestrelError> {
+    /// `label_of` maps a head class name to the cascade's label (`Intent::from_label` for Kestrel).
+    pub fn new(
+        embedder: E,
+        head: LinearHead,
+        est_cost_ms: u32,
+        label_of: impl Fn(&str) -> Option<L>,
+    ) -> Result<Self, KestrelError> {
         if embedder.dim() != head.dim() {
             return Err(invalid(format!(
                 "embedder gives {} dims, head expects {}",
@@ -155,25 +163,21 @@ impl<E: Embedder> EncoderTier<E> {
                 head.dim()
             )));
         }
-        // Class labels are the Intent serde names (datasets/contracts/intents.txt).
-        let intents = head
+        let labels = head
             .classes()
             .iter()
-            .map(|c| {
-                serde_json::from_value::<Intent>(serde_json::Value::String(c.clone()))
-                    .map_err(|_| invalid(format!("head class {c:?} is not a Kestrel intent")))
-            })
+            .map(|c| label_of(c).ok_or_else(|| invalid(format!("head class {c:?} has no label"))))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             embedder,
             head,
-            intents,
+            labels,
             est_cost_ms,
         })
     }
 }
 
-impl<E: Embedder> TierModel for EncoderTier<E> {
+impl<E: Embedder, L: Copy> TierModel<L> for EncoderTier<E, L> {
     fn tier(&self) -> Tier {
         Tier::Encoder
     }
@@ -182,10 +186,10 @@ impl<E: Embedder> TierModel for EncoderTier<E> {
         self.est_cost_ms
     }
 
-    fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
+    fn classify(&self, req: &Request) -> Result<Vec<(L, f32)>, KestrelError> {
         let input = format!("{}{}", self.head.input_prefix(), req.text);
         let probs = self.head.probs(&self.embedder.embed(&input)?)?;
-        Ok(self.intents.iter().copied().zip(probs).collect())
+        Ok(self.labels.iter().copied().zip(probs).collect())
     }
 }
 
@@ -421,14 +425,30 @@ mod tests {
     }
 
     /// Class 0 = create_task keyed on "remind", class 1 = search_notes keyed on "search".
-    fn tier(temperature: f32, prefix: &str) -> EncoderTier<HashEmbedder> {
+    fn embedder_and_head(temperature: f32, prefix: &str) -> (HashEmbedder, LinearHead) {
         let e = HashEmbedder::new(64);
         let mut w = vec![0.0f32; 2 * 64];
         w[e.slot("remind")] = 4.0;
         w[64 + e.slot("search")] = 4.0;
         let classes = vec!["create_task".to_string(), "search_notes".to_string()];
         let head = LinearHead::new(classes, w, vec![0.0, 0.0], 64, temperature, prefix).unwrap();
-        EncoderTier::new(e, head, 12).unwrap()
+        (e, head)
+    }
+
+    fn tier(temperature: f32, prefix: &str) -> EncoderTier<HashEmbedder> {
+        let (e, head) = embedder_and_head(temperature, prefix);
+        EncoderTier::new(e, head, 12, Intent::from_label).unwrap()
+    }
+
+    #[test]
+    fn maps_head_classes_into_any_label_space() {
+        // A benchmark's labels are positions in its label list; `oos` has no head class.
+        let list = ["search_notes", "create_task", "oos"];
+        let (e, head) = embedder_and_head(1.0, "");
+        let t = EncoderTier::new(e, head, 12, |c| list.iter().position(|l| *l == c)).unwrap();
+        let out = t.classify(&Request::new(1, "remind me")).unwrap();
+        assert_eq!(out.iter().map(|(l, _)| *l).collect::<Vec<_>>(), [1, 0]);
+        assert!(out[0].1 > 0.9);
     }
 
     #[test]
@@ -468,12 +488,12 @@ mod tests {
     fn rejects_heads_whose_classes_are_not_kestrel_intents() {
         let classes = vec!["create_task".to_string(), "translate".to_string()];
         let head = LinearHead::new(classes, vec![0.0; 128], vec![0.0; 2], 64, 1.0, "").unwrap();
-        assert!(EncoderTier::new(HashEmbedder::new(64), head, 12).is_err());
+        assert!(EncoderTier::new(HashEmbedder::new(64), head, 12, Intent::from_label).is_err());
     }
 
     #[test]
     fn rejects_an_embedder_with_another_dimension() {
         let head = LinearHead::new(labels(2), vec![0.0; 128], vec![0.0; 2], 64, 1.0, "").unwrap();
-        assert!(EncoderTier::new(HashEmbedder::new(32), head, 12).is_err());
+        assert!(EncoderTier::new(HashEmbedder::new(32), head, 12, Intent::from_label).is_err());
     }
 }

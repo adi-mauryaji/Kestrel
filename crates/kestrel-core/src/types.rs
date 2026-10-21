@@ -50,6 +50,11 @@ impl Intent {
             Intent::Unsupported => "unsupported",
         }
     }
+
+    /// The intent whose label is `label` exactly, if any (the inverse of `label`).
+    pub fn from_label(label: &str) -> Option<Intent> {
+        Intent::ALL.into_iter().find(|i| i.label() == label)
+    }
 }
 
 /// Cascade tiers, cheapest first. The discriminant is the tier number (1..=4).
@@ -86,10 +91,11 @@ impl Request {
     }
 }
 
-/// A tier's answer. `confidence` is a calibrated probability (Ch. 13).
+/// A tier's answer. `confidence` is a calibrated probability (Ch. 13). The label type is Kestrel's
+/// `Intent` by default; a benchmark cascade uses an index into its label list (ADR-019).
 #[derive(Debug, Clone, PartialEq)]
-pub struct Prediction {
-    pub intent: Intent,
+pub struct Prediction<L = Intent> {
+    pub intent: L,
     pub confidence: f32,
     pub tier: Tier,
 }
@@ -119,6 +125,15 @@ mod tests {
         assert_eq!(r.id, 7);
         assert_eq!(r.raw, "  Remind ME to call Asha!");
         assert_eq!(r.text, "remind me to call asha");
+    }
+
+    #[test]
+    fn from_label_inverts_label_and_rejects_other_names() {
+        for intent in Intent::ALL {
+            assert_eq!(Intent::from_label(intent.label()), Some(intent));
+        }
+        assert_eq!(Intent::from_label("oos"), None);
+        assert_eq!(Intent::from_label("Search_Notes"), None);
     }
 
     #[test]

@@ -8,6 +8,11 @@
 //! - `Cascade::new` rejects thresholds outside [0, 1] and two models for one tier;
 //! - the budget sum cannot overflow (checked, not wrapping or saturating);
 //! - ties between intents go to the first one the tier listed, so routing is deterministic.
+//!
+//! The label type `L` is Kestrel's `Intent` by default; a benchmark cascade routes label indices
+//! (ADR-019). Routing never looks at a label, only at confidences, tiers and the request text.
+
+use std::fmt::Debug;
 
 use kestrel_core::features::has_conjunction;
 use kestrel_core::{Intent, KestrelError, Prediction, Request, Tier, TierModel};
@@ -61,11 +66,11 @@ pub enum AbstainReason {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Outcome {
-    Accepted(Prediction),
+pub enum Outcome<L = Intent> {
+    Accepted(Prediction<L>),
     /// `best` is the most confident prediction seen (calibrated, so comparable across tiers).
     Abstained {
-        best: Option<Prediction>,
+        best: Option<Prediction<L>>,
         reason: AbstainReason,
     },
 }
@@ -82,15 +87,15 @@ pub struct Trace {
     pub multi_intent: bool,
 }
 
-pub struct Cascade<'a> {
+pub struct Cascade<'a, L = Intent> {
     /// Sorted by tier, cheapest first; at most one model per tier.
-    tiers: Vec<Box<dyn TierModel + 'a>>,
+    tiers: Vec<Box<dyn TierModel<L> + 'a>>,
     cfg: RouterConfig,
 }
 
-impl<'a> Cascade<'a> {
+impl<'a, L: Debug> Cascade<'a, L> {
     pub fn new(
-        mut tiers: Vec<Box<dyn TierModel + 'a>>,
+        mut tiers: Vec<Box<dyn TierModel<L> + 'a>>,
         cfg: RouterConfig,
     ) -> Result<Self, KestrelError> {
         cfg.validate()?;
@@ -108,10 +113,10 @@ impl<'a> Cascade<'a> {
         &self.cfg
     }
 
-    pub fn route(&self, req: &Request) -> (Outcome, Trace) {
+    pub fn route(&self, req: &Request) -> (Outcome<L>, Trace) {
         let mut trace = Trace::default();
-        let mut best: Option<Prediction> = None;
-        let abstain = |best: Option<Prediction>, reason| Outcome::Abstained { best, reason };
+        let mut best: Option<Prediction<L>> = None;
+        let abstain = |best: Option<Prediction<L>>, reason| Outcome::Abstained { best, reason };
         // A request that may ask for several things must not be accepted as one intent below the
         // generative tier (ADR-010), so it skips those tiers, and abstains if that tier fails.
         trace.multi_intent = self.cfg.multi_intent_to_generative && has_conjunction(&req.text);
@@ -167,17 +172,17 @@ impl<'a> Cascade<'a> {
     }
 }
 
-/// A tier's most probable intent (the first listed on ties), or `None` for "no opinion".
+/// A tier's most probable label (the first listed on ties), or `None` for "no opinion".
 /// A probability outside [0, 1] breaks the `TierModel` contract, so it is an error.
-fn top_prediction(probs: Vec<(Intent, f32)>) -> Result<Option<(Intent, f32)>, KestrelError> {
-    let mut top: Option<(Intent, f32)> = None;
+fn top_prediction<L: Debug>(probs: Vec<(L, f32)>) -> Result<Option<(L, f32)>, KestrelError> {
+    let mut top: Option<(L, f32)> = None;
     for (intent, p) in probs {
         if !(0.0..=1.0).contains(&p) {
             return Err(KestrelError::Invalid(format!(
                 "probability {p} for {intent:?} is outside [0, 1]"
             )));
         }
-        if top.is_none_or(|(_, q)| p > q) {
+        if top.as_ref().is_none_or(|(_, q)| p > *q) {
             top = Some((intent, p));
         }
     }
@@ -268,6 +273,54 @@ mod tests {
             confidence,
             tier,
         }
+    }
+
+    /// A tier answering label indices, as a benchmark cascade does (ADR-019).
+    struct Indexed(Tier, Vec<(usize, f32)>);
+
+    impl TierModel<usize> for Indexed {
+        fn tier(&self) -> Tier {
+            self.0
+        }
+        fn est_cost_ms(&self) -> u32 {
+            5
+        }
+        fn classify(&self, _: &Request) -> Result<Vec<(usize, f32)>, KestrelError> {
+            Ok(self.1.clone())
+        }
+    }
+
+    #[test]
+    fn routes_any_label_type_the_same_way() {
+        let tiers: Vec<Box<dyn TierModel<usize>>> = vec![
+            Box::new(Indexed(Generative, vec![(150, 0.9)])),
+            Box::new(Indexed(Encoder, vec![(3, 0.5), (7, 0.5), (1, 0.2)])),
+        ];
+        let c: Cascade<'_, usize> = Cascade::new(tiers, cfg(2000)).unwrap();
+        let (out, tr) = c.route(&Request::new(1, "anything"));
+        assert_eq!(
+            out,
+            Outcome::Accepted(Prediction {
+                intent: 150,
+                confidence: 0.9,
+                tier: Generative
+            })
+        );
+        assert_eq!(tr.tiers_consulted, vec![Encoder, Generative]);
+        // Below threshold, the best guess is the first of the tied top labels.
+        let c = Cascade::new(
+            vec![Box::new(Indexed(Encoder, vec![(3, 0.5), (7, 0.5)])) as Box<dyn TierModel<usize>>],
+            cfg(2000),
+        )
+        .unwrap();
+        let (out, _) = c.route(&Request::new(1, "anything"));
+        assert!(matches!(
+            out,
+            Outcome::Abstained {
+                best: Some(Prediction { intent: 3, .. }),
+                ..
+            }
+        ));
     }
 
     #[test]
@@ -499,11 +552,11 @@ mod tests {
         for bad in [f32::NAN, -0.01, 1.01] {
             let mut c = cfg(2000);
             c.accept[Encoder.index()] = bad;
-            assert!(Cascade::new(vec![], c).is_err(), "{bad}");
+            assert!(Cascade::<Intent>::new(vec![], c).is_err(), "{bad}");
         }
         let mut edges = cfg(2000);
         edges.accept = [0.0, 1.0, 0.0, 1.0];
-        assert!(Cascade::new(vec![], edges).is_ok());
+        assert!(Cascade::<Intent>::new(vec![], edges).is_ok());
     }
 
     #[test]

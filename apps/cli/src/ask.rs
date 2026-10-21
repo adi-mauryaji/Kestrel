@@ -77,11 +77,17 @@ pub fn run(
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{BufRead, Write};
 
+    // The demo shows Kestrel intents, so the config must answer in them (not CLINC150's labels);
+    // checked before the models load.
+    let (_, cfg) = crate::config::load(&std::fs::read_to_string(config_path)?)?;
+    let list = std::path::Path::new("datasets/contracts").join(&cfg.models.tier4.labels);
+    let intents =
+        crate::labels::Intents::check(&crate::labels::parse_list(&std::fs::read_to_string(list)?))?;
     eprintln!("loading models (encoder, SLM) and priming the Tier-4 prompt...");
     let t0 = Instant::now();
     let models = crate::route_items::Models::load(config_path)?;
     let log = Log::default();
-    let cascade = models.cascade(|t| Box::new(Recorder::new(t, log.clone())))?;
+    let cascade = models.cascade(&intents, |t| Box::new(Recorder::new(t, log.clone())))?;
     let accept = models.router.accept;
     eprintln!(
         "ready in {:.1} s. tiers {:?}, accept thresholds T1 {:.3} T3 {:.3} T4 {:.3}, budget {} ms",

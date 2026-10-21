@@ -3,8 +3,8 @@ import math
 import numpy as np
 import pytest
 
-from policies import (OFF, Answers, best_point, correct, r_rand, reference_acc, route, rule_precision, sweep_shared,
-                      tuned_single)
+from policies import (OFF, Answers, best_point, correct, label_classes, r_rand, reference_acc, route, rule_precision,
+                      sweep_shared, tuned_single)
 
 CLASSES = ["create_task", "search_notes", "unsupported"]
 
@@ -99,6 +99,11 @@ def test_the_operating_point_reference_is_the_better_tuned_single_tier():
     a = _answers(recs)
     assert tuned_single(a, 4)["acc"] == 0.5 and tuned_single(a, 3)["acc"] == 1.0
     assert reference_acc(a) == 1.0
+
+
+def test_label_classes_put_the_oos_label_after_the_head_classes_when_the_head_lacks_it():
+    assert label_classes({"tier3": {"classes": ["a", "unsupported"]}}, "intents_v0") == ["a", "unsupported"]
+    assert label_classes({"tier3": {"classes": ["a", "b"]}}, "clinc150") == ["a", "b", "oos"]
 
 
 def test_rule_precision_is_measured_on_matches_only():
