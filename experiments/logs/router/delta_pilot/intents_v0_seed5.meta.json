@@ -1,0 +1,162 @@
+{
+ "dataset": "intents_v0",
+ "seed": 5,
+ "n": 57,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_intent_prompt.txt",
+ "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+ "n_ctx": 2048,
+ "shots_per_label_and_language": 2,
+ "shots": [
+  {
+   "text": "look up python decorators in my notes",
+   "label": "search_notes"
+  },
+  {
+   "text": "open project-plan.txt please",
+   "label": "read_document"
+  },
+  {
+   "text": "ping me next monday to water the plants",
+   "label": "create_task"
+  },
+  {
+   "text": "cancel the reminder to water the plants",
+   "label": "delete_task"
+  },
+  {
+   "text": "what's the gist of my notes about python decorators?",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "fyi, my sister's name is priya. remember it",
+   "label": "set_preference"
+  },
+  {
+   "text": "look up what i told you about my morning routine",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "bye",
+   "label": "chitchat"
+  },
+  {
+   "text": "check my inbox",
+   "label": "unsupported"
+  },
+  {
+   "text": "notes search karo, quarterly goals",
+   "label": "search_notes"
+  },
+  {
+   "text": "ideas.md pe jao",
+   "label": "read_document"
+  },
+  {
+   "text": "task add karo: assignment submit karna",
+   "label": "create_task"
+  },
+  {
+   "text": "yeh wala task trash karo: grocery lena",
+   "label": "delete_task"
+  },
+  {
+   "text": "recent notes ka summary",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mere profile mein add karo: main vegetarian hoon",
+   "label": "set_preference"
+  },
+  {
+   "text": "apni memory mein meri sister check karo",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "bore ho raha hoon",
+   "label": "chitchat"
+  },
+  {
+   "text": "thesis google karo",
+   "label": "unsupported"
+  },
+  {
+   "text": "can you dig up what i noted down about goa trip",
+   "label": "search_notes"
+  },
+  {
+   "text": "open reading-list.md",
+   "label": "read_document"
+  },
+  {
+   "text": "jot down that i need to prepare the slides",
+   "label": "create_task"
+  },
+  {
+   "text": "please delete reminder 3",
+   "label": "delete_task"
+  },
+  {
+   "text": "what did my last three notes say, in short?",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "make a note about me: asha's birthday is on 5 march",
+   "label": "set_preference"
+  },
+  {
+   "text": "what have i told you about my morning routine",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "i'm bored",
+   "label": "chitchat"
+  },
+  {
+   "text": "send an email to ravi saying i'll be late",
+   "label": "unsupported"
+  },
+  {
+   "text": "kya mere paas python decorators pe koi notes hai?",
+   "label": "search_notes"
+  },
+  {
+   "text": "thesis.md padh ke sunao",
+   "label": "read_document"
+  },
+  {
+   "text": "mujhe ravi ko report bhejna bhoolne mat dena",
+   "label": "create_task"
+  },
+  {
+   "text": "task 21 uda do",
+   "label": "delete_task"
+  },
+  {
+   "text": "thesis.md ka summary banao",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "ab metric units wala style follow karo",
+   "label": "set_preference"
+  },
+  {
+   "text": "maine meri morning routine ke baare mein kya bataya tha",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "tum kya kya kar sakte ho?",
+   "label": "chitchat"
+  },
+  {
+   "text": "internet pe python decorators search karo",
+   "label": "unsupported"
+  }
+ ],
+ "shots_shared_with_deployed": 2,
+ "seconds": 76.9,
+ "date": "2026-10-22T17:13:16+00:00",
+ "git_head": "3f1fd20",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

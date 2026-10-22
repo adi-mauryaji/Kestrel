@@ -1,0 +1,162 @@
+{
+ "dataset": "intents_v0",
+ "seed": 4,
+ "n": 57,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_intent_prompt.txt",
+ "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+ "n_ctx": 2048,
+ "shots_per_label_and_language": 2,
+ "shots": [
+  {
+   "text": "search notes: exam preparation",
+   "label": "search_notes"
+  },
+  {
+   "text": "open up my thesis.md file",
+   "label": "read_document"
+  },
+  {
+   "text": "remind me to review the pull request today at 5 pm",
+   "label": "create_task"
+  },
+  {
+   "text": "cancel the reminder to water the plants",
+   "label": "delete_task"
+  },
+  {
+   "text": "brief me on my notes about thesis",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "update my preferences: metric units",
+   "label": "set_preference"
+  },
+  {
+   "text": "which preferences have i set?",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "see you later",
+   "label": "chitchat"
+  },
+  {
+   "text": "google rust lifetimes",
+   "label": "unsupported"
+  },
+  {
+   "text": "quarterly goals wale koi notes hain kya",
+   "label": "search_notes"
+  },
+  {
+   "text": "todo.md naam ka doc kholo",
+   "label": "read_document"
+  },
+  {
+   "text": "naya task: ravi ko report bhejna",
+   "label": "create_task"
+  },
+  {
+   "text": "yeh wala task trash karo: slides banana",
+   "label": "delete_task"
+  },
+  {
+   "text": "goa trip ke notes ko kuch lines mein samjhao",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "please store karo ki meri sister ka naam priya hai",
+   "label": "set_preference"
+  },
+  {
+   "text": "mera preferred answer style kya hai?",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "theek hai",
+   "label": "chitchat"
+  },
+  {
+   "text": "ravi ko call lagao",
+   "label": "unsupported"
+  },
+  {
+   "text": "show notes tagged budget meeting",
+   "label": "search_notes"
+  },
+  {
+   "text": "open ideas.md please",
+   "label": "read_document"
+  },
+  {
+   "text": "reminder: send the report to ravi on 15 march",
+   "label": "create_task"
+  },
+  {
+   "text": "wipe task 42",
+   "label": "delete_task"
+  },
+  {
+   "text": "pls summarize python decorators notes",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "set my default to replies without emojis",
+   "label": "set_preference"
+  },
+  {
+   "text": "show my memory entries for asha",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "sorry, my mistake",
+   "label": "chitchat"
+  },
+  {
+   "text": "call priya",
+   "label": "unsupported"
+  },
+  {
+   "text": "notes mein rust lifetimes dekh lo",
+   "label": "search_notes"
+  },
+  {
+   "text": "ideas.md mein maine kya likha tha dekh sakta hoon?",
+   "label": "read_document"
+  },
+  {
+   "text": "mere tasks mein add kar do: assignment submit karna",
+   "label": "create_task"
+  },
+  {
+   "text": "task 12 delete karo",
+   "label": "delete_task"
+  },
+  {
+   "text": "rust lifetimes wale notes ka gist kya hai?",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "meri preference hai short answers",
+   "label": "set_preference"
+  },
+  {
+   "text": "asha ke baare mein kya yaad rakhne ko kaha tha",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "hello kaise ho",
+   "label": "chitchat"
+  },
+  {
+   "text": "mera inbox check karo",
+   "label": "unsupported"
+  }
+ ],
+ "shots_shared_with_deployed": 0,
+ "seconds": 71.3,
+ "date": "2026-10-22T17:11:59+00:00",
+ "git_head": "3f1fd20",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

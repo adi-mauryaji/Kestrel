@@ -1,0 +1,162 @@
+{
+ "dataset": "intents_v0",
+ "seed": 3,
+ "n": 57,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_intent_prompt.txt",
+ "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+ "n_ctx": 2048,
+ "shots_per_label_and_language": 2,
+ "shots": [
+  {
+   "text": "look up client call in my notes",
+   "label": "search_notes"
+  },
+  {
+   "text": "open up my todo.md file",
+   "label": "read_document"
+  },
+  {
+   "text": "new task: submit the assignment",
+   "label": "create_task"
+  },
+  {
+   "text": "delete task 21",
+   "label": "delete_task"
+  },
+  {
+   "text": "what's the gist of my notes about quarterly goals?",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "fyi, my sister's name is priya. remember it",
+   "label": "set_preference"
+  },
+  {
+   "text": "show my memory entries for my manager",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "you're awesome",
+   "label": "chitchat"
+  },
+  {
+   "text": "what's the population of pune?",
+   "label": "unsupported"
+  },
+  {
+   "text": "client call wale koi notes hain kya",
+   "label": "search_notes"
+  },
+  {
+   "text": "reading-list.md dikhao",
+   "label": "read_document"
+  },
+  {
+   "text": "naya task: asha ko call karna",
+   "label": "create_task"
+  },
+  {
+   "text": "task 7 clear kar do",
+   "label": "delete_task"
+  },
+  {
+   "text": "thesis notes summarize kar do pls",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mere liye note karo: main 6 baje uthta hoon",
+   "label": "set_preference"
+  },
+  {
+   "text": "dekho maine meri morning routine ke baare mein kya bataya tha",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "perfect, thanks bhai",
+   "label": "chitchat"
+  },
+  {
+   "text": "japan ka prime minister kaun hai?",
+   "label": "unsupported"
+  },
+  {
+   "text": "search my notes for client call",
+   "label": "search_notes"
+  },
+  {
+   "text": "can i see what i wrote in todo.md",
+   "label": "read_document"
+  },
+  {
+   "text": "jot down that i need to prepare the slides",
+   "label": "create_task"
+  },
+  {
+   "text": "trash the task to pay the electricity bill",
+   "label": "delete_task"
+  },
+  {
+   "text": "summarise my recent notes",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "go with replies without emojis from here on",
+   "label": "set_preference"
+  },
+  {
+   "text": "what have i told you about my sister",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "what can you do?",
+   "label": "chitchat"
+  },
+  {
+   "text": "book a flight to delhi",
+   "label": "unsupported"
+  },
+  {
+   "text": "maine exam preparation ke baare mein kahan likha tha",
+   "label": "search_notes"
+  },
+  {
+   "text": "document ideas.md open kar do",
+   "label": "read_document"
+  },
+  {
+   "text": "task note kar lo: gym membership renew karna",
+   "label": "create_task"
+  },
+  {
+   "text": "task 21 uda do",
+   "label": "delete_task"
+  },
+  {
+   "text": "goa trip ke notes ko kuch lines mein samjhao",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mere profile mein add karo: main vegetarian hoon",
+   "label": "set_preference"
+  },
+  {
+   "text": "yaad dilao mere manager ke baare mein kya pata hai tumhe",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "oops, ignore karo",
+   "label": "chitchat"
+  },
+  {
+   "text": "aaj ki news kya hai?",
+   "label": "unsupported"
+  }
+ ],
+ "shots_shared_with_deployed": 3,
+ "seconds": 73.9,
+ "date": "2026-10-22T17:10:48+00:00",
+ "git_head": "3f1fd20",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

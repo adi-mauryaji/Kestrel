@@ -1,0 +1,162 @@
+{
+ "dataset": "intents_v0",
+ "seed": 2,
+ "n": 57,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_intent_prompt.txt",
+ "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+ "n_ctx": 2048,
+ "shots_per_label_and_language": 2,
+ "shots": [
+  {
+   "text": "search notes: python decorators",
+   "label": "search_notes"
+  },
+  {
+   "text": "open up my todo.md file",
+   "label": "read_document"
+  },
+  {
+   "text": "ping me tomorrow to send the report to ravi",
+   "label": "create_task"
+  },
+  {
+   "text": "trash the task to pay the electricity bill",
+   "label": "delete_task"
+  },
+  {
+   "text": "what are the highlights of my thesis notes",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "always give me a formal tone",
+   "label": "set_preference"
+  },
+  {
+   "text": "list everything you remember about me",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "i'm feeling a bit tired today",
+   "label": "chitchat"
+  },
+  {
+   "text": "search the web for thesis",
+   "label": "unsupported"
+  },
+  {
+   "text": "kya mere paas client call pe koi notes hai?",
+   "label": "search_notes"
+  },
+  {
+   "text": "notes/meeting-2026-10-01.md dikhao",
+   "label": "read_document"
+  },
+  {
+   "text": "naya task: paudhon ko paani dena",
+   "label": "create_task"
+  },
+  {
+   "text": "reminder 21 delete kar do please",
+   "label": "delete_task"
+  },
+  {
+   "text": "exam preparation notes ke highlights kya hain",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mujhe hinglish mein replies pasand hai",
+   "label": "set_preference"
+  },
+  {
+   "text": "meri morning routine ki memory entries dikhao",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "mujhse baat karo",
+   "label": "chitchat"
+  },
+  {
+   "text": "internet pe goa trip search karo",
+   "label": "unsupported"
+  },
+  {
+   "text": "show notes tagged quarterly goals",
+   "label": "search_notes"
+  },
+  {
+   "text": "open the doc called notes/meeting-2026-10-01.md",
+   "label": "read_document"
+  },
+  {
+   "text": "put 'pay the electricity bill' on my to-do list",
+   "label": "create_task"
+  },
+  {
+   "text": "remove task number 42",
+   "label": "delete_task"
+  },
+  {
+   "text": "condense my rust lifetimes notes into a few lines",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "don't forget that asha's birthday is on 5 march",
+   "label": "set_preference"
+  },
+  {
+   "text": "show my memory entries for my manager",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "who made you?",
+   "label": "chitchat"
+  },
+  {
+   "text": "what's in the news today?",
+   "label": "unsupported"
+  },
+  {
+   "text": "woh note dhundo jisme maine thesis mention kiya tha",
+   "label": "search_notes"
+  },
+  {
+   "text": "thesis.md mein kya likha hai?",
+   "label": "read_document"
+  },
+  {
+   "text": "reminder: aaj raat asha ko call karna",
+   "label": "create_task"
+  },
+  {
+   "text": "task number 42 hata do",
+   "label": "delete_task"
+  },
+  {
+   "text": "last 3 meeting notes ka saar batao",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mere profile mein add karo: meri sister ka naam priya hai",
+   "label": "set_preference"
+  },
+  {
+   "text": "apni memory mein meri diet check karo",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "hello kaise ho",
+   "label": "chitchat"
+  },
+  {
+   "text": "mera inbox check karo",
+   "label": "unsupported"
+  }
+ ],
+ "shots_shared_with_deployed": 3,
+ "seconds": 79.6,
+ "date": "2026-10-22T17:09:34+00:00",
+ "git_head": "3f1fd20",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

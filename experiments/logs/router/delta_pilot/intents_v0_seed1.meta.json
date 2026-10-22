@@ -1,0 +1,162 @@
+{
+ "dataset": "intents_v0",
+ "seed": 1,
+ "n": 57,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_intent_prompt.txt",
+ "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+ "n_ctx": 2048,
+ "shots_per_label_and_language": 2,
+ "shots": [
+  {
+   "text": "any notes mentioning exam preparation?",
+   "label": "search_notes"
+  },
+  {
+   "text": "i want to read project-plan.txt",
+   "label": "read_document"
+  },
+  {
+   "text": "remind me to review the pull request today at 5 pm",
+   "label": "create_task"
+  },
+  {
+   "text": "remove task number 3",
+   "label": "delete_task"
+  },
+  {
+   "text": "summarize my notes on exam preparation",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "always give me a formal tone",
+   "label": "set_preference"
+  },
+  {
+   "text": "what do you remember about asha?",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "how do i use you",
+   "label": "chitchat"
+  },
+  {
+   "text": "what's 18 percent of 1200?",
+   "label": "unsupported"
+  },
+  {
+   "text": "mere notes mein research paper search karo",
+   "label": "search_notes"
+  },
+  {
+   "text": "mujhe todo.md padhna hai",
+   "label": "read_document"
+  },
+  {
+   "text": "task add karo: ravi ko report bhejna",
+   "label": "create_task"
+  },
+  {
+   "text": "reminder 7 khatam karo",
+   "label": "delete_task"
+  },
+  {
+   "text": "marketing plan ke notes ka summary do",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "fyi, meri car white swift hai. yaad rakhna",
+   "label": "set_preference"
+  },
+  {
+   "text": "meri morning routine ki memory entries dikhao",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "tumhe kisne banaya?",
+   "label": "chitchat"
+  },
+  {
+   "text": "jaipur ki koi headlines?",
+   "label": "unsupported"
+  },
+  {
+   "text": "what notes do i have on rust lifetimes",
+   "label": "search_notes"
+  },
+  {
+   "text": "open reading-list.md",
+   "label": "read_document"
+  },
+  {
+   "text": "don't let me forget to review the pull request",
+   "label": "create_task"
+  },
+  {
+   "text": "wipe task 7",
+   "label": "delete_task"
+  },
+  {
+   "text": "overview of everything in my rust lifetimes notes",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "make a note about me: my manager is ravi",
+   "label": "set_preference"
+  },
+  {
+   "text": "look up what i told you about asha",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "talk to me",
+   "label": "chitchat"
+  },
+  {
+   "text": "book a flight to jaipur",
+   "label": "unsupported"
+  },
+  {
+   "text": "budget meeting pe mere kya kya notes hain",
+   "label": "search_notes"
+  },
+  {
+   "text": "ideas.md mein kya likha hai?",
+   "label": "read_document"
+  },
+  {
+   "text": "task note kar lo: slides banana",
+   "label": "create_task"
+  },
+  {
+   "text": "task 3 list se nikaal do",
+   "label": "delete_task"
+  },
+  {
+   "text": "recent notes ka summary",
+   "label": "summarize_notes"
+  },
+  {
+   "text": "mere profile mein add karo: meri sister ka naam priya hai",
+   "label": "set_preference"
+  },
+  {
+   "text": "mere manager ke baare mein tumhe kya yaad hai?",
+   "label": "retrieve_memory"
+  },
+  {
+   "text": "help chahiye",
+   "label": "chitchat"
+  },
+  {
+   "text": "75 ka 18 percent kitna hai?",
+   "label": "unsupported"
+  }
+ ],
+ "shots_shared_with_deployed": 4,
+ "seconds": 74.8,
+ "date": "2026-10-22T17:08:14+00:00",
+ "git_head": "3f1fd20",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

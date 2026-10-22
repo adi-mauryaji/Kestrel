@@ -1,0 +1,114 @@
+{
+ "pilot_frac": 0.25,
+ "pilot_key": "delta-pilot",
+ "sesoi": 0.02,
+ "primary": "clinc150",
+ "datasets": {
+  "intents_v0": {
+   "n_cal": 25,
+   "n_val": 32,
+   "deployed_shots": {
+    "n_cal": 25,
+    "n_val": 32,
+    "temperature": 1.0,
+    "temperature_note": "NOT FITTED (calibration needs both correct and wrong items); T = 1 kept",
+    "untuned_acc": 1.0,
+    "tuned_acc": 1.0,
+    "tuned_coverage": 1.0,
+    "tuned_tau": 0.0
+   },
+   "seeds": {
+    "1": {
+     "n_cal": 25,
+     "n_val": 32,
+     "temperature": 1.2187215658021204,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 1.0,
+     "tuned_acc": 1.0,
+     "tuned_coverage": 1.0,
+     "tuned_tau": 0.0,
+     "shots_shared_with_deployed": 4,
+     "n_shots": 36,
+     "seconds": 74.8,
+     "boost": "1"
+    },
+    "2": {
+     "n_cal": 25,
+     "n_val": 32,
+     "temperature": 1.2950571159055182,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 1.0,
+     "tuned_acc": 1.0,
+     "tuned_coverage": 1.0,
+     "tuned_tau": 0.0,
+     "shots_shared_with_deployed": 3,
+     "n_shots": 36,
+     "seconds": 79.6,
+     "boost": "1"
+    },
+    "3": {
+     "n_cal": 25,
+     "n_val": 32,
+     "temperature": 1.0,
+     "temperature_note": "NOT FITTED (calibration needs both correct and wrong items); T = 1 kept",
+     "untuned_acc": 1.0,
+     "tuned_acc": 1.0,
+     "tuned_coverage": 1.0,
+     "tuned_tau": 0.0,
+     "shots_shared_with_deployed": 3,
+     "n_shots": 36,
+     "seconds": 73.9,
+     "boost": "1"
+    },
+    "4": {
+     "n_cal": 25,
+     "n_val": 32,
+     "temperature": 1.0,
+     "temperature_note": "NOT FITTED (calibration needs both correct and wrong items); T = 1 kept",
+     "untuned_acc": 1.0,
+     "tuned_acc": 1.0,
+     "tuned_coverage": 1.0,
+     "tuned_tau": 0.0,
+     "shots_shared_with_deployed": 0,
+     "n_shots": 36,
+     "seconds": 71.3,
+     "boost": "1"
+    },
+    "5": {
+     "n_cal": 25,
+     "n_val": 32,
+     "temperature": 1.4232725023855843,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 1.0,
+     "tuned_acc": 1.0,
+     "tuned_coverage": 1.0,
+     "tuned_tau": 0.0,
+     "shots_shared_with_deployed": 2,
+     "n_shots": 36,
+     "seconds": 76.9,
+     "boost": "1"
+    }
+   },
+   "tuned": {
+    "n_seeds": 5,
+    "mean": 1.0,
+    "sd": 0.0,
+    "two_sd": 0.0,
+    "sesoi": 0.02,
+    "delta": 0.02,
+    "binding": "sesoi"
+   },
+   "untuned": {
+    "n_seeds": 5,
+    "mean": 1.0,
+    "sd": 0.0,
+    "two_sd": 0.0,
+    "sesoi": 0.02,
+    "delta": 0.02,
+    "binding": "sesoi"
+   }
+  }
+ },
+ "delta": null,
+ "delta_note": "not set: clinc150 needs >= 3 logged seeds"
+}
