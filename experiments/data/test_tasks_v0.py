@@ -37,6 +37,19 @@ def test_items_carry_both_languages_and_the_default_expectations():
     assert clarify["plan"] is None and clarify["expect"]["outcome"] == "clarify"
 
 
+def test_hinglish_titles_keep_the_users_words():
+    # ADR-024: a per-language gold plan and expectation where the title comes from the request.
+    data = load()
+    rows = items(data["families"], assign_splits(data["families"]))
+    by = {(r["family"], r["lang"]): r for r in rows}
+    en, hi = by[("create-01", "en")], by[("create-01", "hi-en")]
+    assert en["plan"]["nodes"][0]["args"]["title"] == "call asha"
+    assert hi["plan"]["nodes"][0]["args"]["title"] == "asha ko call karna"
+    assert hi["expect"]["tasks_added"] == [{"title": "asha ko call karna", "due": "2026-10-23"}]
+    assert by[("cmp-03", "hi-en")]["expect"]["tasks_deleted"] == [1]  # merged over the shared expectation
+    assert by[("search-01", "hi-en")]["plan"] == by[("search-01", "en")]["plan"]
+
+
 @pytest.mark.parametrize("break_it, message", [
     (lambda d: d["families"].append(copy.deepcopy(d["families"][0])), "duplicate"),
     (lambda d: d["families"][0].pop("hi-en"), "hi-en"),
@@ -48,6 +61,9 @@ def test_items_carry_both_languages_and_the_default_expectations():
     (lambda d: next(f for f in d["families"] if f["id"] == "search-02")["expect"].update(read=["nope.md"]), "nope.md"),
     (lambda d: d["families"][0]["expect"].update(tasks_added=[{"title": "x", "due": "tomorrow"}]), "due"),
     (lambda d: d["malformed"][0].update(error=""), "bad-01"),
+    (lambda d: d["families"][0].update({"plan_hi-en": "not json"}), "plan_hi-en"),
+    (lambda d: d["families"][0].update({"expect_hi-en": {"surprise": 1}}), "surprise"),
+    (lambda d: next(f for f in d["families"] if f["id"] == "create-08").update({"plan_hi-en": "{}"}), "clarify"),
 ])
 def test_validation_catches_broken_families(break_it, message):
     data = load()

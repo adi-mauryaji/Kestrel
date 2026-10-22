@@ -103,8 +103,9 @@ fn every_gold_plan_reaches_its_expected_end_state() {
     let mut checked = 0;
     for item in jsonl("items.jsonl") {
         let fam = item["family"].as_str().unwrap().to_string();
-        if !seen.insert(fam.clone()) || item["plan"].is_null() {
-            continue; // one run per family: the plan does not depend on the language
+        let key = format!("{fam}{}{}", item["plan"], item["expect"]);
+        if !seen.insert(key) || item["plan"].is_null() {
+            continue; // one run per distinct plan: most families share one across languages
         }
         let exp = &item["expect"];
         let p = plan::parse(&item["plan"].to_string())
@@ -222,5 +223,5 @@ fn every_gold_plan_reaches_its_expected_end_state() {
         fs::remove_dir_all(&dir).unwrap();
         checked += 1;
     }
-    assert_eq!(checked, 42, "every family with a plan was run once"); // 44 families, 2 clarify
+    assert_eq!(checked, 51, "every distinct gold plan was run"); // 42 families with a plan + 9 Hinglish titles (ADR-024)
 }

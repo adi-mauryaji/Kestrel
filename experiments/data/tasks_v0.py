@@ -30,7 +30,9 @@ DATA = ROOT / "datasets" / "kestrel_tasks_v0"
 LANGS = ("en", "hi-en")
 CATEGORIES = ("create_task", "search_notes", "summarize_notes", "delete_task", "read_document",
               "set_preference", "retrieve_memory", "compound")
-FAMILY_KEYS = {"id", "category", "plan", "expect", "note", "author", "reviewed", *LANGS}
+# plan_hi-en / expect_hi-en: the Hinglish item's own gold plan and expectation overrides, where a
+# title comes from the request and so keeps the user's words (ADR-024).
+FAMILY_KEYS = {"id", "category", "plan", "expect", "plan_hi-en", "expect_hi-en", "note", "author", "reviewed", *LANGS}
 EXPECT_KEYS = {"outcome", "tasks_added", "tasks_deleted", "prefs_set", "read", "answer_contains"}
 OUTCOMES = ("done", "refused", "clarify")
 MALFORMED_KEYS = {"id", "why", "plan", "error"}
@@ -74,29 +76,33 @@ def validate(data: dict) -> list[str]:
                 errors.append(f"{fid}: {lang} needs at least one non-empty request")
         exp = f.get("expect", {})
         errors += [f"{fid}: unknown expect key {k}" for k in set(exp) - EXPECT_KEYS]
+        errors += [f"{fid}: unknown expect_hi-en key {k}" for k in set(f.get("expect_hi-en", {})) - EXPECT_KEYS]
         outcome = exp.get("outcome", "done")
         if outcome not in OUTCOMES:
             errors.append(f"{fid}: outcome {outcome!r}")
         if outcome == "clarify":
-            if "plan" in f:
+            if "plan" in f or "plan_hi-en" in f:
                 errors.append(f"{fid}: a clarify family has no plan")
         elif "plan" not in f:
             errors.append(f"{fid}: no plan")
-        else:
+        for key in ("plan", "plan_hi-en"):
+            if key not in f:
+                continue
             try:
-                plan = json.loads(f["plan"])
+                plan = json.loads(f[key])
                 if not isinstance(plan.get("nodes"), list):
-                    errors.append(f"{fid}: plan has no nodes list")
+                    errors.append(f"{fid}: {key} has no nodes list")
             except (json.JSONDecodeError, AttributeError) as e:
-                errors.append(f"{fid}: plan is not JSON ({e})")
-        for t in exp.get("tasks_added", []):
-            if not isinstance(t.get("title"), str) or not t["title"].strip():
-                errors.append(f"{fid}: tasks_added needs titles")
-            if "due" in t and not _is_date(t["due"]):
-                errors.append(f"{fid}: tasks_added due {t['due']!r} is not YYYY-MM-DD")
-        for name in exp.get("read", []):
-            if not (notes / name).is_file():
-                errors.append(f"{fid}: read names {name}, which is not a fixture note")
+                errors.append(f"{fid}: {key} is not JSON ({e})")
+        for e in (exp, f.get("expect_hi-en", {})):
+            for t in e.get("tasks_added", []):
+                if not isinstance(t.get("title"), str) or not t["title"].strip():
+                    errors.append(f"{fid}: tasks_added needs titles")
+                if "due" in t and not _is_date(t["due"]):
+                    errors.append(f"{fid}: tasks_added due {t['due']!r} is not YYYY-MM-DD")
+            for name in e.get("read", []):
+                if not (notes / name).is_file():
+                    errors.append(f"{fid}: read names {name}, which is not a fixture note")
     seen = Counter(m.get("id") for m in data["malformed"])
     errors += [f"duplicate malformed id {i}" for i, n in seen.items() if n > 1]
     for m in data["malformed"]:
@@ -120,12 +126,13 @@ def assign_splits(families, seed: int = 0) -> dict[str, str]:
 def items(families, splits) -> list[dict]:
     rows = []
     for f in sorted(families, key=lambda f: f["id"]):
-        exp = f["expect"]
-        expect = {"outcome": exp.get("outcome", "done"), "tasks_added": exp.get("tasks_added", []),
-                  "tasks_deleted": exp.get("tasks_deleted", []), "prefs_set": exp.get("prefs_set", {}),
-                  "read": exp.get("read", []), "answer_contains": exp.get("answer_contains")}
-        plan = json.loads(f["plan"]) if "plan" in f else None
         for lang in LANGS:
+            exp = f["expect"] | (f.get("expect_hi-en", {}) if lang == "hi-en" else {})
+            expect = {"outcome": exp.get("outcome", "done"), "tasks_added": exp.get("tasks_added", []),
+                      "tasks_deleted": exp.get("tasks_deleted", []), "prefs_set": exp.get("prefs_set", {}),
+                      "read": exp.get("read", []), "answer_contains": exp.get("answer_contains")}
+            key = "plan_hi-en" if lang == "hi-en" and "plan_hi-en" in f else "plan"
+            plan = json.loads(f[key]) if key in f else None
             for k, text in enumerate(f[lang]):
                 rows.append({"id": f"{f['id']}/{lang}/{k}", "family": f["id"], "category": f["category"],
                              "lang": lang, "text": text, "split": splits[f["id"]], "plan": plan, "expect": expect})
