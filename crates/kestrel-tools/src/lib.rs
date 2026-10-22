@@ -3,6 +3,7 @@
 //! The model only proposes; everything that decides or acts is plain code here.
 
 pub mod args;
+pub mod backend;
 pub mod plan;
 pub mod sandbox;
 pub mod tools;
