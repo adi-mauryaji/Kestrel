@@ -39,6 +39,11 @@ pub struct Models {
 type DynError = Box<dyn std::error::Error>;
 
 impl Models {
+    /// The generative model, if loaded (the planner shares it, ADR-025).
+    pub fn slm(&self) -> Option<&LlamaSlm> {
+        self.slm.as_ref()
+    }
+
     /// The models the config's own tiers need.
     pub fn load(config_path: &Path) -> Result<Self, DynError> {
         let (_, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;

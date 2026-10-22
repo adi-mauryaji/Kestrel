@@ -1,0 +1,260 @@
+{
+  "items": [
+    {
+      "attempts": [],
+      "family": "cmp-01",
+      "id": "cmp-01/en/0",
+      "lang": "en",
+      "ms": 0.161484,
+      "parts": [
+        {
+          "confidence": 1.0,
+          "intent": "summarize_notes",
+          "text": "summarize my last three meeting notes",
+          "tier": 1
+        },
+        {
+          "confidence": 1.0,
+          "intent": "create_task",
+          "text": "create a task list",
+          "tier": 1
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "summarize my last three meeting notes and create a task list"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-01",
+      "id": "cmp-01/hi-en/0",
+      "lang": "hi-en",
+      "ms": 687.036196,
+      "parts": [
+        {
+          "confidence": 1.0,
+          "intent": "summarize_notes",
+          "text": "meri last teen meeting notes summarize karo",
+          "tier": 1
+        },
+        {
+          "confidence": 0.9602713584899902,
+          "intent": "create_task",
+          "text": "unse task list bana do",
+          "tier": 4
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "meri last teen meeting notes summarize karo aur unse task list bana do"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-04",
+      "id": "cmp-04/en/0",
+      "lang": "en",
+      "ms": 699.3417,
+      "parts": [
+        {
+          "confidence": 0.959742546081543,
+          "intent": "create_task",
+          "text": "make tasks from my groceries note",
+          "tier": 4
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "make tasks from my groceries note"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-04",
+      "id": "cmp-04/hi-en/0",
+      "lang": "hi-en",
+      "ms": 707.1304630000001,
+      "parts": [
+        {
+          "confidence": 0.7118175029754639,
+          "intent": "create_task",
+          "text": "groceries note se tasks bana do",
+          "tier": 4
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "groceries note se tasks bana do"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-05",
+      "id": "cmp-05/en/0",
+      "lang": "en",
+      "ms": 596.586195,
+      "parts": [
+        {
+          "confidence": 0.9997413158416748,
+          "intent": "set_preference",
+          "text": "keep answers short",
+          "tier": 4
+        },
+        {
+          "confidence": 0.9999009370803833,
+          "intent": "summarize_notes",
+          "text": "summarize my latest note",
+          "tier": 3
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "keep answers short and summarize my latest note"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-05",
+      "id": "cmp-05/hi-en/0",
+      "lang": "hi-en",
+      "ms": 675.725293,
+      "parts": [
+        {
+          "confidence": 0.9989636540412903,
+          "intent": "set_preference",
+          "text": "jawab chhote rakho",
+          "tier": 4
+        },
+        {
+          "confidence": 0.9827508330345154,
+          "intent": "summarize_notes",
+          "text": "mera latest note summarize karo",
+          "tier": 3
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "jawab chhote rakho aur mera latest note summarize karo"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-07",
+      "id": "cmp-07/en/0",
+      "lang": "en",
+      "ms": 634.0142079999999,
+      "parts": [
+        {
+          "confidence": 1.0,
+          "intent": "retrieve_memory",
+          "text": "what do you remember about ravi",
+          "tier": 1
+        },
+        {
+          "confidence": 0.9993255138397217,
+          "intent": "read_document",
+          "text": "open the project plan",
+          "tier": 4
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "what do you remember about ravi, and open the project plan"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-07",
+      "id": "cmp-07/hi-en/0",
+      "lang": "hi-en",
+      "ms": 1356.517881,
+      "parts": [
+        {
+          "confidence": 0.9997065663337708,
+          "intent": "retrieve_memory",
+          "text": "ravi ke baare mein kya yaad hai",
+          "tier": 4
+        },
+        {
+          "confidence": 0.9996829628944397,
+          "intent": "read_document",
+          "text": "project plan kholo",
+          "tier": 4
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "ravi ke baare mein kya yaad hai, aur project plan kholo"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-10",
+      "id": "cmp-10/en/0",
+      "lang": "en",
+      "ms": 8.030567000000001,
+      "parts": [
+        {
+          "confidence": 0.9999380111694336,
+          "intent": "delete_task",
+          "text": "delete task 3",
+          "tier": 3
+        },
+        {
+          "confidence": 0.9997835755348206,
+          "intent": "delete_task",
+          "text": "also delete task 2",
+          "tier": 3
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "delete task 3 and also delete task 2"
+    },
+    {
+      "attempts": [],
+      "family": "cmp-10",
+      "id": "cmp-10/hi-en/0",
+      "lang": "hi-en",
+      "ms": 7.987035,
+      "parts": [
+        {
+          "confidence": 0.9996691942214966,
+          "intent": "delete_task",
+          "text": "task 3 delete karo",
+          "tier": 3
+        },
+        {
+          "confidence": 0.9994044303894043,
+          "intent": "delete_task",
+          "text": "task 2 delete karo",
+          "tier": 3
+        }
+      ],
+      "path": "templates",
+      "problems": [],
+      "success": true,
+      "text": "task 3 aur task 2 dono delete karo"
+    }
+  ],
+  "summary": {
+    "category": "compound",
+    "items": 10,
+    "ms_mean": {
+      "planner": null,
+      "templates": 537.2531022000001
+    },
+    "note": "dev timing on the laptop as found; parts routed by the Intents-v0 dev cascade (Tier 1/3/4)",
+    "paths": {
+      "clarify": 0,
+      "planner": 0,
+      "templates": 10
+    },
+    "planner": "split + templates, LM fallback (ADR-025)",
+    "router_config": "experiments/configs/router_intents_v0.json",
+    "split": "dev",
+    "success_rate": 1.0
+  }
+}

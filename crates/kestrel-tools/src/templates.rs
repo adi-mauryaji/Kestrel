@@ -43,7 +43,7 @@ pub struct Context<'a> {
 pub fn propose(intent: Intent, text: &str, ctx: &Context) -> Proposal {
     let words = words(text);
     match intent {
-        Intent::CreateTask => create_task(words, ctx.today),
+        Intent::CreateTask => create_task(words, ctx.today, ctx.documents),
         Intent::SearchNotes => match content(&words, SEARCH_STOP) {
             q if q.is_empty() => Proposal::Clarify("query"),
             q => one("s", "search_notes", json!({"query": q})),
@@ -75,7 +75,7 @@ pub fn propose(intent: Intent, text: &str, ctx: &Context) -> Proposal {
 
 /// The normalized request (as `Request::new` makes it) split into words, punctuation around
 /// each word removed.
-fn words(text: &str) -> Vec<String> {
+pub(crate) fn words(text: &str) -> Vec<String> {
     let trim = |c: char| matches!(c, ',' | ';' | ':' | '"' | '(' | ')' | '!' | '?' | '.');
     kestrel_core::normalize::normalize(text)
         .split_whitespace()
@@ -129,7 +129,7 @@ const BEFORE_DATE: [&str; 6] = ["by", "on", "for", "before", "till", "until"];
 const AFTER_DATE: [&str; 3] = ["ko", "tak", "se"];
 
 /// The first date phrase in `words`, removed from them.
-fn take_due(words: &mut Vec<String>, today: Date) -> Option<Date> {
+pub(crate) fn take_due(words: &mut Vec<String>, today: Date) -> Option<Date> {
     for i in 0..words.len() {
         let found: Option<(usize, Date)> = if starts(words, i, &["the", "day", "after", "tomorrow"])
         {
@@ -228,8 +228,11 @@ const HI_SUFFIXES: [(&[&str], bool); 14] = [
     (&["daalo"], false),
 ];
 
-fn create_task(mut words: Vec<String>, today: Date) -> Proposal {
+fn create_task(mut words: Vec<String>, today: Date, documents: &[String]) -> Proposal {
     let due = take_due(&mut words, today);
+    if let Some(chain) = tasks_from_notes(&words, due, documents) {
+        return chain;
+    }
     if let Some(p) = EN_PREFIXES.iter().find(|p| starts(&words, 0, p)) {
         words.drain(..p.len());
     }
@@ -513,6 +516,13 @@ fn summarize(words: &[String], documents: &[String]) -> Proposal {
     let Some(noun) = words.iter().position(|w| w == "notes" || w == "note") else {
         return Proposal::NeedsModel;
     };
+    then_summarize("f", "fetch_recent_notes", recent_args(words, noun))
+}
+
+/// fetch_recent_notes arguments for "... notes" at `noun`: the count after last / latest /
+/// recent (a singular "note" after one of them is 1, otherwise DEFAULT_RECENT), and the word
+/// before the noun as the tag unless it is a count or a stop word.
+fn recent_args(words: &[String], noun: usize) -> Value {
     let recency = words
         .iter()
         .position(|w| matches!(w.as_str(), "last" | "latest" | "recent"));
@@ -535,8 +545,47 @@ fn summarize(words: &[String], documents: &[String]) -> Proposal {
     if let Some(t) = tag {
         args["tag"] = json!(t);
     }
-    then_summarize("f", "fetch_recent_notes", args)
+    args
 }
+
+/// "tasks / a task list / the action items from my X note(s)" (en) or "X note se tasks bana do":
+/// the notes, then extract_action_items, then one task per item. A singular note or document is
+/// looked up by name; plural notes or a count fetch recent notes by tag. One task that merely
+/// mentions notes ("a task to review my notes") is not this.
+fn tasks_from_notes(words: &[String], due: Option<Date>, documents: &[String]) -> Option<Proposal> {
+    let has = |w: &str| words.iter().any(|x| x == w);
+    let pair = |a: &str, b: &str| (1..words.len()).any(|i| words[i - 1] == a && words[i] == b);
+    let many = has("tasks") || has("todos") || pair("task", "list") || pair("action", "items");
+    if !many || !(has("from") || has("se") || has("in")) {
+        return None;
+    }
+    let noun = words
+        .iter()
+        .position(|w| matches!(w.as_str(), "note" | "notes" | "document" | "doc"))?;
+    let singular = words[noun] != "notes";
+    let counted = words
+        .iter()
+        .any(|w| matches!(w.as_str(), "last" | "latest" | "recent"));
+    let (id, op, args) = match document(&words[..noun], NAME_STOP, documents) {
+        Some(path) if singular && !counted => ("r", "read_document", json!({"path": path})),
+        _ => ("f", "fetch_recent_notes", recent_args(words, noun)),
+    };
+    let mut create = json!({});
+    if let Some(d) = due {
+        create["due"] = json!(d.to_string());
+    }
+    Some(Proposal::Plan(json!({"nodes": [
+        {"id": id, "op": op, "args": args},
+        {"id": "x", "op": "extract_action_items", "deps": [id]},
+        {"id": "t", "op": "create_task", "args": create, "deps": ["x"]}]})))
+}
+
+/// Words around a note's name in "tasks from my X note" that are not part of the name.
+const NAME_STOP: &[&str] = &[
+    "make", "create", "turn", "add", "tasks", "task", "list", "todos", "from", "se", "in", "of",
+    "the", "my", "mere", "meri", "mera", "a", "an", "action", "items", "into", "bana", "do",
+    "banao", "karo", "wale", "wala", "wali", "all",
+];
 
 fn preference(words: &[String]) -> Option<(&'static str, &'static str)> {
     let any = |set: &[&str]| words.iter().any(|w| set.contains(&w.as_str()));
@@ -677,6 +726,57 @@ mod tests {
         assert_eq!(
             task("2026-12-01 ko passport renew karna yaad dilana"),
             t("passport renew karna", Some("2026-12-01"))
+        );
+    }
+
+    #[test]
+    fn tasks_from_a_note_extract_its_action_items() {
+        let chain = |text: &str| {
+            let p = plan(Intent::CreateTask, text);
+            let n = nodes(&p);
+            assert_eq!(
+                n.iter().map(|(op, _)| op.as_str()).collect::<Vec<_>>(),
+                ["read_document", "extract_action_items", "create_task"]
+                    .iter()
+                    .copied()
+                    .filter(|op| n.iter().any(|(o, _)| o == op))
+                    .collect::<Vec<_>>(),
+                "{text}"
+            );
+            p
+        };
+        let p = chain("make tasks from my groceries note");
+        assert_eq!(
+            nodes(&p)[0],
+            (
+                "read_document".into(),
+                json!({"path": "2026-10-18-groceries.md"})
+            )
+        );
+        assert_eq!(p["nodes"][1]["deps"], json!(["r"]));
+        assert_eq!(
+            (nodes(&p)[2].1.clone(), p["nodes"][2]["deps"].clone()),
+            (json!({}), json!(["x"]))
+        );
+        let p = chain("groceries note se tasks bana do");
+        assert_eq!(nodes(&p)[0].1, json!({"path": "2026-10-18-groceries.md"}));
+        let p = plan(
+            Intent::CreateTask,
+            "make tasks from my last two standup notes for tomorrow",
+        );
+        assert_eq!(
+            nodes(&p)[0],
+            (
+                "fetch_recent_notes".into(),
+                json!({"n": 2, "tag": "standup"})
+            )
+        );
+        assert_eq!(nodes(&p)[2].1, json!({"due": "2026-10-23"}));
+        // One task that mentions notes is still one task.
+        let p = plan(Intent::CreateTask, "add a task to review my notes");
+        assert_eq!(
+            nodes(&p),
+            [("create_task".into(), json!({"title": "review my notes"}))]
         );
     }
 

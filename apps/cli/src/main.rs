@@ -38,7 +38,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar] [OUT.json]";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -89,12 +89,23 @@ fn bench(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "llama")]
 fn plan_eval(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let check = args.iter().any(|a| a == "--check-grammar");
+    let flag = |f: &str| args.iter().any(|a| a == f);
     let out = args
         .iter()
         .find(|a| !a.starts_with("--"))
-        .map_or("experiments/logs/tasks/planner_dev.json", String::as_str);
-    planner::run(check, out.as_ref())
+        .map(String::as_str);
+    if flag("--hybrid") {
+        planner::run_hybrid(
+            out.unwrap_or("experiments/logs/tasks/planner_hybrid_dev.json")
+                .as_ref(),
+        )
+    } else {
+        planner::run(
+            flag("--check-grammar"),
+            out.unwrap_or("experiments/logs/tasks/planner_dev.json")
+                .as_ref(),
+        )
+    }
 }
 
 #[cfg(not(feature = "llama"))]

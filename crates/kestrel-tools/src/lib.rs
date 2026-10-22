@@ -4,6 +4,7 @@
 
 pub mod args;
 pub mod backend;
+pub mod compound;
 pub mod date;
 pub mod eval;
 pub mod grammar;
