@@ -5,5 +5,6 @@
 pub mod args;
 pub mod backend;
 pub mod plan;
+pub mod runner;
 pub mod sandbox;
 pub mod tools;

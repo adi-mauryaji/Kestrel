@@ -69,6 +69,10 @@ impl FixtureBackend {
         self.request = id;
     }
 
+    pub fn sandbox(&self) -> &Sandbox {
+        &self.sandbox
+    }
+
     pub fn tasks(&self) -> Vec<&Task> {
         self.tasks.values().collect()
     }
