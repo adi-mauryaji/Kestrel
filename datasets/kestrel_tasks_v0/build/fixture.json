@@ -1,0 +1,25 @@
+{
+ "memories": [
+  "Asha prefers calls after 6 pm",
+  "The q4 budget is due on 2026-10-31",
+  "Ravi is the project lead"
+ ],
+ "notes": "datasets/kestrel_tasks_v0/fixtures/notes",
+ "tasks": [
+  {
+   "id": 1,
+   "title": "call the plumber"
+  },
+  {
+   "due": "2026-11-01",
+   "id": 2,
+   "title": "renew passport"
+  },
+  {
+   "due": "2026-10-25",
+   "id": 3,
+   "title": "pay electricity bill"
+  }
+ ],
+ "today": "2026-10-22"
+}

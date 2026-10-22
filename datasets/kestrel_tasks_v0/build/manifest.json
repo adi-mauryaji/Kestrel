@@ -1,0 +1,43 @@
+{
+ "dataset": "kestrel-tasks-v0",
+ "status": "draft",
+ "seed": 0,
+ "families": 44,
+ "unreviewed_families": 44,
+ "malformed": 29,
+ "sources": {
+  "tasks.toml": "5b03a066bb8f9ae4411eec73058015dd0526a9c572588e1c70ff7b02c492166f",
+  "fixtures/notes": "86edc1b1af892d7cb88da63833ab5fcd1c8ccad501cc452c00c96e0c583a457c"
+ },
+ "items_sha256": "1808c9d7fea16bc7936f7babf52c8a229f31a6e8aeecc9e245b7d097e7b20a07",
+ "splits": {
+  "dev": {
+   "families": 21,
+   "items": 42,
+   "by_category": {
+    "compound": 10,
+    "create_task": 8,
+    "delete_task": 4,
+    "read_document": 4,
+    "retrieve_memory": 2,
+    "search_notes": 6,
+    "set_preference": 2,
+    "summarize_notes": 6
+   }
+  },
+  "test": {
+   "families": 23,
+   "items": 46,
+   "by_category": {
+    "compound": 10,
+    "create_task": 8,
+    "delete_task": 4,
+    "read_document": 4,
+    "retrieve_memory": 4,
+    "search_notes": 6,
+    "set_preference": 4,
+    "summarize_notes": 6
+   }
+  }
+ }
+}
