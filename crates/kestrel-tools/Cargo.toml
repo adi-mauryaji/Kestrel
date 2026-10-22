@@ -1,0 +1,15 @@
+[package]
+name = "kestrel-tools"
+description = "Kestrel local tools: allowlisted ToolCall, argument validation, path sandbox, plan validation and execution (Ch. 14-16)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kestrel-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

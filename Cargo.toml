@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu", "crates/kestrel-router"]
+members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu", "crates/kestrel-router", "crates/kestrel-tools"]
 
 [workspace.package]
 version = "0.1.0"
@@ -15,6 +15,7 @@ kestrel-core = { path = "crates/kestrel-core" }
 kestrel-inference = { path = "crates/kestrel-inference" }
 kestrel-nlu = { path = "crates/kestrel-nlu" }
 kestrel-router = { path = "crates/kestrel-router" }
+kestrel-tools = { path = "crates/kestrel-tools" }
 # Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
 llama-cpp-2 = "=0.1.157"

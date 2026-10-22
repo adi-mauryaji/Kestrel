@@ -244,6 +244,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kestrel-tools"
+version = "0.1.0"
+dependencies = [
+ "kestrel-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
