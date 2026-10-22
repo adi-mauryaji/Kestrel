@@ -1,0 +1,618 @@
+{
+ "dataset": "clinc150",
+ "seed": 3,
+ "n": 800,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_clinc150_desc_prompt.txt",
+ "prompt_sha256": "b3b069ba4a0161104a43b9b1ae99a813589e90611e225aaad8e2859e5f5abaaa",
+ "n_ctx": 8192,
+ "shots_per_label_and_language": 1,
+ "shots": [
+  {
+   "text": "does mcdonalds take reservations",
+   "label": "accept_reservations"
+  },
+  {
+   "text": "my capital one account has a hold; why",
+   "label": "account_blocked"
+  },
+  {
+   "text": "set an alarm for lunch and another for dinner",
+   "label": "alarm"
+  },
+  {
+   "text": "has the application i put in for a new visa been processed",
+   "label": "application_status"
+  },
+  {
+   "text": "please say my credit card's apr",
+   "label": "apr"
+  },
+  {
+   "text": "so are you real",
+   "label": "are_you_a_bot"
+  },
+  {
+   "text": "could you check my bank balance for me",
+   "label": "balance"
+  },
+  {
+   "text": "how much is my current water bill for",
+   "label": "bill_balance"
+  },
+  {
+   "text": "whats the deadline for amex payment",
+   "label": "bill_due"
+  },
+  {
+   "text": "get me a flight from ft lauderale to houston on southwest",
+   "label": "book_flight"
+  },
+  {
+   "text": "what's a good hotel to stay at in chicago",
+   "label": "book_hotel"
+  },
+  {
+   "text": "can you help me solve a math problem",
+   "label": "calculator"
+  },
+  {
+   "text": "have i scheduled anything on march 2nd on my calendar",
+   "label": "calendar"
+  },
+  {
+   "text": "make not of my appointment for tomorrow on my calendar",
+   "label": "calendar_update"
+  },
+  {
+   "text": "i need to know the total calories for a chicken caesar salad",
+   "label": "calories"
+  },
+  {
+   "text": "abort",
+   "label": "cancel"
+  },
+  {
+   "text": "cancel my reservation for dinner",
+   "label": "cancel_reservation"
+  },
+  {
+   "text": "i need you to get me a rental car in nashville",
+   "label": "car_rental"
+  },
+  {
+   "text": "please help me figure out why my card was declined yesterday",
+   "label": "card_declined"
+  },
+  {
+   "text": "could you list out the carry-on restrictions for american airlines",
+   "label": "carry_on"
+  },
+  {
+   "text": "switch to female voice",
+   "label": "change_accent"
+  },
+  {
+   "text": "from now on, your name will be buttercup",
+   "label": "change_ai_name"
+  },
+  {
+   "text": "please respond in english",
+   "label": "change_language"
+  },
+  {
+   "text": "please make it so you say your words more slowly",
+   "label": "change_speed"
+  },
+  {
+   "text": "my friends call me carrie",
+   "label": "change_user_name"
+  },
+  {
+   "text": "set the volume to 4 now",
+   "label": "change_volume"
+  },
+  {
+   "text": "can you verify mike has a reservation at black rock at 6 pm",
+   "label": "confirm_reservation"
+  },
+  {
+   "text": "how long to cook a frozen pizza",
+   "label": "cook_time"
+  },
+  {
+   "text": "i want to know my spending limit",
+   "label": "credit_limit"
+  },
+  {
+   "text": "can i increase my credit limit to 700 dollars",
+   "label": "credit_limit_change"
+  },
+  {
+   "text": "i wish to know my credit score",
+   "label": "credit_score"
+  },
+  {
+   "text": "how do i find my present location right now, please",
+   "label": "current_location"
+  },
+  {
+   "text": "my damage card will not work",
+   "label": "damaged_card"
+  },
+  {
+   "text": "show me a calendar",
+   "label": "date"
+  },
+  {
+   "text": "tell me what flange means",
+   "label": "definition"
+  },
+  {
+   "text": "i'd like my paychecks direct deposited in my navyfed checking account",
+   "label": "direct_deposit"
+  },
+  {
+   "text": "how would i walk to the liberty bell from here",
+   "label": "directions"
+  },
+  {
+   "text": "how long to get to the airport in la",
+   "label": "distance"
+  },
+  {
+   "text": "would you let me know if you are a cat or dog person",
+   "label": "do_you_have_pets"
+  },
+  {
+   "text": "how many pesos in one dollar us",
+   "label": "exchange_rate"
+  },
+  {
+   "text": "how soon does my visa card expire",
+   "label": "expiration_date"
+  },
+  {
+   "text": "i need you to find my phone",
+   "label": "find_phone"
+  },
+  {
+   "text": "is there an update on flight dl123",
+   "label": "flight_status"
+  },
+  {
+   "text": "are you able to flip a two sided coin",
+   "label": "flip_coin"
+  },
+  {
+   "text": "what is the fridge life of spahghetti",
+   "label": "food_last"
+  },
+  {
+   "text": "my bank account must be frozen",
+   "label": "freeze_account"
+  },
+  {
+   "text": "i want to hear an interesting fact about dinosaurs",
+   "label": "fun_fact"
+  },
+  {
+   "text": "what do i have left in the gas tank",
+   "label": "gas"
+  },
+  {
+   "text": "what type of gas do i need to use in this car",
+   "label": "gas_type"
+  },
+  {
+   "text": "thanks for chatting, later",
+   "label": "goodbye"
+  },
+  {
+   "text": "are you doing ok",
+   "label": "greeting"
+  },
+  {
+   "text": "how long will i stand in line at carl jr's",
+   "label": "how_busy"
+  },
+  {
+   "text": "what's your age",
+   "label": "how_old_are_you"
+  },
+  {
+   "text": "how do i make sure my credit doesn't fall",
+   "label": "improve_credit_score"
+  },
+  {
+   "text": "what is my total annual income",
+   "label": "income"
+  },
+  {
+   "text": "i need to swap salt for baking soda",
+   "label": "ingredient_substitution"
+  },
+  {
+   "text": "what ingredients are in cake",
+   "label": "ingredients_list"
+  },
+  {
+   "text": "i'm wondering what health plan i'm on",
+   "label": "insurance"
+  },
+  {
+   "text": "i need to get on a new united healthcare insurance plan",
+   "label": "insurance_change"
+  },
+  {
+   "text": "could you find my interest rate for me",
+   "label": "interest_rate"
+  },
+  {
+   "text": "does my card charge a fee for use in indonesia",
+   "label": "international_fees"
+  },
+  {
+   "text": "do i need an international visa to go to tibet",
+   "label": "international_visa"
+  },
+  {
+   "text": "how do i properly give my car a jump",
+   "label": "jump_start"
+  },
+  {
+   "text": "when was my car last worked on",
+   "label": "last_maintenance"
+  },
+  {
+   "text": "i was on american airlines flight ab123 out of houston and i can't find my luggage",
+   "label": "lost_luggage"
+  },
+  {
+   "text": "call my best friend",
+   "label": "make_call"
+  },
+  {
+   "text": "i dont know",
+   "label": "maybe"
+  },
+  {
+   "text": "suggest food from italy to me",
+   "label": "meal_suggestion"
+  },
+  {
+   "text": "define the meaning of life",
+   "label": "meaning_of_life"
+  },
+  {
+   "text": "how do i convert inches and centimeters",
+   "label": "measurement_conversion"
+  },
+  {
+   "text": "please list my meetings for today from 8:00 am to 2:00 pm",
+   "label": "meeting_schedule"
+  },
+  {
+   "text": "please tell me the minimum i can pay on my electric bill",
+   "label": "min_payment"
+  },
+  {
+   "text": "average mpg",
+   "label": "mpg"
+  },
+  {
+   "text": "direct me to the application for a new credit card",
+   "label": "new_card"
+  },
+  {
+   "text": "when will we have another day off",
+   "label": "next_holiday"
+  },
+  {
+   "text": "can you move to the next song",
+   "label": "next_song"
+  },
+  {
+   "text": "no, that information is wrong",
+   "label": "no"
+  },
+  {
+   "text": "do you know the nutritional info for macaroni and cheese",
+   "label": "nutrition_info"
+  },
+  {
+   "text": "what is the way i can change my oil",
+   "label": "oil_change_how"
+  },
+  {
+   "text": "what date should i next change my oil",
+   "label": "oil_change_when"
+  },
+  {
+   "text": "submit order for everything",
+   "label": "order"
+  },
+  {
+   "text": "how do i go about getting more checks since i ran out of them",
+   "label": "order_checks"
+  },
+  {
+   "text": "can you update me on my last amazon orders",
+   "label": "order_status"
+  },
+  {
+   "text": "i'd like to make a payment on my credit card bill",
+   "label": "pay_bill"
+  },
+  {
+   "text": "will i get my paycheck soon",
+   "label": "payday"
+  },
+  {
+   "text": "i have no idea what the pin is for my checking account",
+   "label": "pin_change"
+  },
+  {
+   "text": "play music by the beatles",
+   "label": "play_music"
+  },
+  {
+   "text": "do they use any special type of plug in spain that you need a converter for",
+   "label": "plug_type"
+  },
+  {
+   "text": "i've saved what number of days of vacation",
+   "label": "pto_balance"
+  },
+  {
+   "text": "can you put in a pto request for the 5th of june to june 8th",
+   "label": "pto_request"
+  },
+  {
+   "text": "i want to know the status of my day off request",
+   "label": "pto_request_status"
+  },
+  {
+   "text": "how many days was i sick or on vacation",
+   "label": "pto_used"
+  },
+  {
+   "text": "i need instructions on how to make shepherd's pie please",
+   "label": "recipe"
+  },
+  {
+   "text": "how do i cash the reward for city",
+   "label": "redeem_rewards"
+  },
+  {
+   "text": "can you read my list back to me",
+   "label": "reminder"
+  },
+  {
+   "text": "set a reminder for the movie",
+   "label": "reminder_update"
+  },
+  {
+   "text": "i must have you repeat that",
+   "label": "repeat"
+  },
+  {
+   "text": "it takes how long to mail me a new card",
+   "label": "replacement_card_duration"
+  },
+  {
+   "text": "i see a fraudulent transaction from netflix on my account",
+   "label": "report_fraud"
+  },
+  {
+   "text": "report discover card as lost",
+   "label": "report_lost_card"
+  },
+  {
+   "text": "go ahead and go back to the original settings",
+   "label": "reset_settings"
+  },
+  {
+   "text": "can i make a reservation for 3 at state bird for 8:30, please",
+   "label": "restaurant_reservation"
+  },
+  {
+   "text": "what are the reviews like for la camelia",
+   "label": "restaurant_reviews"
+  },
+  {
+   "text": "what's the best place for some thai in new york city",
+   "label": "restaurant_suggestion"
+  },
+  {
+   "text": "what is my points total for my mastercard",
+   "label": "rewards_balance"
+  },
+  {
+   "text": "role a 10 sided die for me",
+   "label": "roll_dice"
+  },
+  {
+   "text": "tell me if i am able to rollover my 401k",
+   "label": "rollover_401k"
+  },
+  {
+   "text": "i need to know my routing number",
+   "label": "routing"
+  },
+  {
+   "text": "is there a special place where i can schedule to check my tires out",
+   "label": "schedule_maintenance"
+  },
+  {
+   "text": "schedule a meeting with carrie and lisa",
+   "label": "schedule_meeting"
+  },
+  {
+   "text": "give tim my current location from the gps",
+   "label": "share_location"
+  },
+  {
+   "text": "what do i have on my list for shopping",
+   "label": "shopping_list"
+  },
+  {
+   "text": "maybe we can put blank cds on my list for shopping",
+   "label": "shopping_list_update"
+  },
+  {
+   "text": "turn lights on in my master bathroom",
+   "label": "smart_home"
+  },
+  {
+   "text": "how many a's can you find in the word happiness",
+   "label": "spelling"
+  },
+  {
+   "text": "i spent a lot on vacations recently",
+   "label": "spending_history"
+  },
+  {
+   "text": "will you please end the connection to my phone",
+   "label": "sync_device"
+  },
+  {
+   "text": "what percentage of my income is taken out for taxes",
+   "label": "taxes"
+  },
+  {
+   "text": "how about you tell me a joke",
+   "label": "tell_joke"
+  },
+  {
+   "text": "can you text marissa and tell them to stop calling me",
+   "label": "text"
+  },
+  {
+   "text": "i really appreciate your help, thank you",
+   "label": "thank_you"
+  },
+  {
+   "text": "what time is it in the central standard timezone",
+   "label": "time"
+  },
+  {
+   "text": "set a timer for two minutes",
+   "label": "timer"
+  },
+  {
+   "text": "what timezone is france in",
+   "label": "timezone"
+  },
+  {
+   "text": "when should i replace my tires next if i last replaced them on the 1st",
+   "label": "tire_change"
+  },
+  {
+   "text": "can you check the air in my tires",
+   "label": "tire_pressure"
+  },
+  {
+   "text": "do i have anything on my todo list about shoveling snow",
+   "label": "todo_list"
+  },
+  {
+   "text": "cleaning needs to go on my list of things to do",
+   "label": "todo_list_update"
+  },
+  {
+   "text": "i must know what the traffic typically like at 3:30 on the route to phoenix",
+   "label": "traffic"
+  },
+  {
+   "text": "what transactions have i made on liquor in the past month",
+   "label": "transactions"
+  },
+  {
+   "text": "put $20000 into my checking account from my savings account",
+   "label": "transfer"
+  },
+  {
+   "text": "can you translate bowl into russian for me",
+   "label": "translate"
+  },
+  {
+   "text": "is it safe to travel to russia",
+   "label": "travel_alert"
+  },
+  {
+   "text": "tell my bank i am traveling out of country",
+   "label": "travel_notification"
+  },
+  {
+   "text": "what's the best place to travel to this time of year",
+   "label": "travel_suggestion"
+  },
+  {
+   "text": "can i get an uber for 4 to the mall",
+   "label": "uber"
+  },
+  {
+   "text": "add what's playing on my favorite playlist",
+   "label": "update_playlist"
+  },
+  {
+   "text": "what is the name you call me saved as",
+   "label": "user_name"
+  },
+  {
+   "text": "do i need certain shots before flying to eithiopia",
+   "label": "vaccines"
+  },
+  {
+   "text": "can i get a w-2 from the post office",
+   "label": "w2"
+  },
+  {
+   "text": "how is it outside",
+   "label": "weather"
+  },
+  {
+   "text": "what are your favorite things to do",
+   "label": "what_are_your_hobbies"
+  },
+  {
+   "text": "which types of questions can i ask you",
+   "label": "what_can_i_ask_you"
+  },
+  {
+   "text": "hello, may i get your name",
+   "label": "what_is_your_name"
+  },
+  {
+   "text": "what's the name of this tune",
+   "label": "what_song"
+  },
+  {
+   "text": "tell me where you were born",
+   "label": "where_are_you_from"
+  },
+  {
+   "text": "whisper from now on",
+   "label": "whisper_mode"
+  },
+  {
+   "text": "who do you report to",
+   "label": "who_do_you_work_for"
+  },
+  {
+   "text": "who formed you",
+   "label": "who_made_you"
+  },
+  {
+   "text": "it's true",
+   "label": "yes"
+  }
+ ],
+ "shots_shared_with_deployed": 1,
+ "seconds": 700.2,
+ "date": "2026-10-22T17:58:26+00:00",
+ "git_head": "2815a93",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}

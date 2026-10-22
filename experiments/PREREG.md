@@ -136,6 +136,11 @@ end-to-end measurements.
   pilot cal items, one abstention τ on the pilot val items (ADR-019), tuned-R0 accuracy on the pilot val items. One δ for every
   hypothesis, from CLINC150 (primary, D8); Intents-v0's SD is reported next to it. Smallest effect of interest: **0.02**
   (to be confirmed with the mentor). Code and logs: `experiments/router/delta_pilot.py`, `experiments/logs/router/delta_pilot*`.
+- **ε₁–ε₃ (Ch. 23 gates for an updated head):** **[accepted 2026-10-22, ADR-022]** not set in Week 8. They gate updated
+  Tier-3 heads, which only E4/E5 produce; both are outside the minimum system (Ch. 53) and early in the drop order
+  (Ch. 52.1). If E4/E5 stay in scope, the ε values are set from a pilot and written here before either runs. ε₂ needs E5's
+  stage matrix, and the head (convex lbfgs, no random state) has no seed variance, so that pilot must first name its
+  variance source (e.g. bootstrap resamples of train).
 
 ## 6. Analysis plan
 
@@ -166,7 +171,7 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ, δ₃ (after the pilot).
 δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
-2026-10-22 (ADR-020); δ's value waits for the pilot's CLINC150 seeds.
+2026-10-22 (ADR-020); δ's value waits for the pilot's CLINC150 seeds. ε₁–ε₃: deferred to before E4/E5 (ADR-022).
 **Contribution framing (accepted 2026-10-17):** a measured evaluation study ("we evaluate / replicate … on-device"); the
 calibrated cascade is not claimed as new; the code-mixed Hinglish evaluation is the distinctive part.
 

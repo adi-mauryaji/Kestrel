@@ -1,0 +1,618 @@
+{
+ "dataset": "clinc150",
+ "seed": 1,
+ "n": 800,
+ "model": "gemma-4-e2b-it-q4_0",
+ "prompt": "tier4_clinc150_desc_prompt.txt",
+ "prompt_sha256": "b3b069ba4a0161104a43b9b1ae99a813589e90611e225aaad8e2859e5f5abaaa",
+ "n_ctx": 8192,
+ "shots_per_label_and_language": 1,
+ "shots": [
+  {
+   "text": "how many culver's take reservations",
+   "label": "accept_reservations"
+  },
+  {
+   "text": "i need to know why my bank account is blocking all of activity",
+   "label": "account_blocked"
+  },
+  {
+   "text": "set an alarm to work out and another to go home",
+   "label": "alarm"
+  },
+  {
+   "text": "is it likely my credit card application has processed yet",
+   "label": "application_status"
+  },
+  {
+   "text": "what is my apr for my credit card",
+   "label": "apr"
+  },
+  {
+   "text": "so are you real",
+   "label": "are_you_a_bot"
+  },
+  {
+   "text": "i wish to know the balance of my bank of american account",
+   "label": "balance"
+  },
+  {
+   "text": "what is my dte bill this month",
+   "label": "bill_balance"
+  },
+  {
+   "text": "what's the due date for my american express payment",
+   "label": "bill_due"
+  },
+  {
+   "text": "get me a flight from ft lauderale to houston on southwest",
+   "label": "book_flight"
+  },
+  {
+   "text": "will you help me book a place to stay from monday to friday in pittsburgh",
+   "label": "book_hotel"
+  },
+  {
+   "text": "what is 55 times 300",
+   "label": "calculator"
+  },
+  {
+   "text": "do i have any appointments on tuesday",
+   "label": "calendar"
+  },
+  {
+   "text": "delete the hair appointment i had scheduled on may 1st pleae",
+   "label": "calendar_update"
+  },
+  {
+   "text": "how many calories are in chicken breast",
+   "label": "calories"
+  },
+  {
+   "text": "please abort the current task",
+   "label": "cancel"
+  },
+  {
+   "text": "cancel the reservation i made for 8 pm at black rock",
+   "label": "cancel_reservation"
+  },
+  {
+   "text": "i want to rent a bmw suv for dallas from march 2 to 6th",
+   "label": "car_rental"
+  },
+  {
+   "text": "i wanna know why my card was declined",
+   "label": "card_declined"
+  },
+  {
+   "text": "how many carry ons can i take on a flight with united to lax",
+   "label": "carry_on"
+  },
+  {
+   "text": "switch to female voice",
+   "label": "change_accent"
+  },
+  {
+   "text": "change the ai name to a new one",
+   "label": "change_ai_name"
+  },
+  {
+   "text": "is it ok if i start speaking to you in german",
+   "label": "change_language"
+  },
+  {
+   "text": "please increase the speed of your talking",
+   "label": "change_speed"
+  },
+  {
+   "text": "i'd rather have you call be ray ray",
+   "label": "change_user_name"
+  },
+  {
+   "text": "raise the volume to 4 please",
+   "label": "change_volume"
+  },
+  {
+   "text": "i would like to try and confirm that i have a reservation at kelly's for moreno",
+   "label": "confirm_reservation"
+  },
+  {
+   "text": "what is the proper time to cook steak for",
+   "label": "cook_time"
+  },
+  {
+   "text": "what is the credit limit",
+   "label": "credit_limit"
+  },
+  {
+   "text": "can i increase the credit limit for my wells fargo credit card",
+   "label": "credit_limit_change"
+  },
+  {
+   "text": "where can i check my credit rating",
+   "label": "credit_score"
+  },
+  {
+   "text": "what are the gps coordinates where i am located",
+   "label": "current_location"
+  },
+  {
+   "text": "i want to report a broken card",
+   "label": "damaged_card"
+  },
+  {
+   "text": "show me the date",
+   "label": "date"
+  },
+  {
+   "text": "what is an anachronism",
+   "label": "definition"
+  },
+  {
+   "text": "how do i get direct deposit for my paycheck",
+   "label": "direct_deposit"
+  },
+  {
+   "text": "how do i get to the mall by bus",
+   "label": "directions"
+  },
+  {
+   "text": "how long will it take me to drive to my destination",
+   "label": "distance"
+  },
+  {
+   "text": "would you say you like cats or dogs",
+   "label": "do_you_have_pets"
+  },
+  {
+   "text": "how many canadian dollars can i get for 5 us dollars",
+   "label": "exchange_rate"
+  },
+  {
+   "text": "tell me when my visa card will have expired",
+   "label": "expiration_date"
+  },
+  {
+   "text": "give me a hand finding my mobile device",
+   "label": "find_phone"
+  },
+  {
+   "text": "when's my flight boarding",
+   "label": "flight_status"
+  },
+  {
+   "text": "go ahead and flip a coin",
+   "label": "flip_coin"
+  },
+  {
+   "text": "how long can i have pizza in the fridge",
+   "label": "food_last"
+  },
+  {
+   "text": "can you block my chase account right away please",
+   "label": "freeze_account"
+  },
+  {
+   "text": "please tell me trivia about hamburgers",
+   "label": "fun_fact"
+  },
+  {
+   "text": "how much farther can i drive on the gas i have",
+   "label": "gas"
+  },
+  {
+   "text": "tell me the type of fuel my car takes",
+   "label": "gas_type"
+  },
+  {
+   "text": "i have to say goodbye",
+   "label": "goodbye"
+  },
+  {
+   "text": "ai, how are you doing",
+   "label": "greeting"
+  },
+  {
+   "text": "how busy is teddy bigger burder around 5",
+   "label": "how_busy"
+  },
+  {
+   "text": "how old are you now",
+   "label": "how_old_are_you"
+  },
+  {
+   "text": "how do i improve my credit score",
+   "label": "improve_credit_score"
+  },
+  {
+   "text": "what has my income been like",
+   "label": "income"
+  },
+  {
+   "text": "can i swap coconut milk for condensed milk",
+   "label": "ingredient_substitution"
+  },
+  {
+   "text": "what do i need to make chicken noodle casserole",
+   "label": "ingredients_list"
+  },
+  {
+   "text": "give me information on my health plan",
+   "label": "insurance"
+  },
+  {
+   "text": "i would like to make changes to my insurance policy",
+   "label": "insurance_change"
+  },
+  {
+   "text": "what is the interest rate on my money market account",
+   "label": "interest_rate"
+  },
+  {
+   "text": "what's the transaction fee for my boa card in orlando, fl",
+   "label": "international_fees"
+  },
+  {
+   "text": "does international travel always require a visa",
+   "label": "international_visa"
+  },
+  {
+   "text": "how do i jump start a battery",
+   "label": "jump_start"
+  },
+  {
+   "text": "my car was looked at when",
+   "label": "last_maintenance"
+  },
+  {
+   "text": "i'm waiting for my luggage in the airport now but it's been a while and it's still not arrived",
+   "label": "lost_luggage"
+  },
+  {
+   "text": "ring steven",
+   "label": "make_call"
+  },
+  {
+   "text": "i'm unsure of the answer",
+   "label": "maybe"
+  },
+  {
+   "text": "can you give me a thai dinner suggestion",
+   "label": "meal_suggestion"
+  },
+  {
+   "text": "what is the meaning of this life",
+   "label": "meaning_of_life"
+  },
+  {
+   "text": "how many liters are in 500 gallons",
+   "label": "measurement_conversion"
+  },
+  {
+   "text": "have i got any meetings today with sara",
+   "label": "meeting_schedule"
+  },
+  {
+   "text": "what's the minimum amount for my electric bill",
+   "label": "min_payment"
+  },
+  {
+   "text": "can you give me the car's mpg for the city",
+   "label": "mpg"
+  },
+  {
+   "text": "is it possible to get a new credit card",
+   "label": "new_card"
+  },
+  {
+   "text": "i need to know when i will next have the day off",
+   "label": "next_holiday"
+  },
+  {
+   "text": "go to the next song on the playlist",
+   "label": "next_song"
+  },
+  {
+   "text": "the information is wrong",
+   "label": "no"
+  },
+  {
+   "text": "what's the nutritional info for lasagna",
+   "label": "nutrition_info"
+  },
+  {
+   "text": "how can my oil be changed in my car",
+   "label": "oil_change_how"
+  },
+  {
+   "text": "what is the time frame for changing oil",
+   "label": "oil_change_when"
+  },
+  {
+   "text": "i'm low on mouthwash so create an order for me",
+   "label": "order"
+  },
+  {
+   "text": "i recently ran out of checks, so i wanna get some new ones",
+   "label": "order_checks"
+  },
+  {
+   "text": "has my ordered arrived",
+   "label": "order_status"
+  },
+  {
+   "text": "help me pay my electric bill",
+   "label": "pay_bill"
+  },
+  {
+   "text": "when do i get paid",
+   "label": "payday"
+  },
+  {
+   "text": "i seem to have lost the pin for my retirement account",
+   "label": "pin_change"
+  },
+  {
+   "text": "can you play your guitar right now",
+   "label": "play_music"
+  },
+  {
+   "text": "what are those european plugs called",
+   "label": "plug_type"
+  },
+  {
+   "text": "how many holiday days do i have left to use",
+   "label": "pto_balance"
+  },
+  {
+   "text": "could you submit a pto request for me for dates april 21 to 30, please",
+   "label": "pto_request"
+  },
+  {
+   "text": "how's my day off request looking",
+   "label": "pto_request_status"
+  },
+  {
+   "text": "find out for me how many days off i have taken in total at this point",
+   "label": "pto_used"
+  },
+  {
+   "text": "can you find me a recipe for honey ham",
+   "label": "recipe"
+  },
+  {
+   "text": "what do i do if i want to use my credit card points",
+   "label": "redeem_rewards"
+  },
+  {
+   "text": "i want to hear everything on my reminder list",
+   "label": "reminder"
+  },
+  {
+   "text": "could you make me a reminder to do the floors",
+   "label": "reminder_update"
+  },
+  {
+   "text": "repeat that last response",
+   "label": "repeat"
+  },
+  {
+   "text": "how long until you send me a replacement card",
+   "label": "replacement_card_duration"
+  },
+  {
+   "text": "i may have had fraud committed on my account",
+   "label": "report_fraud"
+  },
+  {
+   "text": "i can't seem to find my gold card and want it reported as lost",
+   "label": "report_lost_card"
+  },
+  {
+   "text": "change back to your initial settings please",
+   "label": "reset_settings"
+  },
+  {
+   "text": "can you make a reservation for me at the restaurant",
+   "label": "restaurant_reservation"
+  },
+  {
+   "text": "what are the reviews for mountain mikes",
+   "label": "restaurant_reviews"
+  },
+  {
+   "text": "can you recommend an indian restaurant",
+   "label": "restaurant_suggestion"
+  },
+  {
+   "text": "what is the amount of rewards points on my visa card",
+   "label": "rewards_balance"
+  },
+  {
+   "text": "the dice need to be rolled",
+   "label": "roll_dice"
+  },
+  {
+   "text": "i just got this new job but i need help with my 401k rollover",
+   "label": "rollover_401k"
+  },
+  {
+   "text": "provide me the routing number for my fed account",
+   "label": "routing"
+  },
+  {
+   "text": "find me a mechanic",
+   "label": "schedule_maintenance"
+  },
+  {
+   "text": "add a new meeting with tom for 6pm",
+   "label": "schedule_meeting"
+  },
+  {
+   "text": "inform bill and craig of my location",
+   "label": "share_location"
+  },
+  {
+   "text": "what does my shopping list involve",
+   "label": "shopping_list"
+  },
+  {
+   "text": "i would like to put carrots on my list for shopping",
+   "label": "shopping_list_update"
+  },
+  {
+   "text": "i would appreciate it if you help me turn the car on",
+   "label": "smart_home"
+  },
+  {
+   "text": "spell potato",
+   "label": "spelling"
+  },
+  {
+   "text": "have i have been spending a lot of money on shoes",
+   "label": "spending_history"
+  },
+  {
+   "text": "pair with my phone please",
+   "label": "sync_device"
+  },
+  {
+   "text": "how much is the irs going to get from me",
+   "label": "taxes"
+  },
+  {
+   "text": "tell me something funny now",
+   "label": "tell_joke"
+  },
+  {
+   "text": "send text message to",
+   "label": "text"
+  },
+  {
+   "text": "thank you for the information",
+   "label": "thank_you"
+  },
+  {
+   "text": "when is it right now",
+   "label": "time"
+  },
+  {
+   "text": "could you start a timer for me",
+   "label": "timer"
+  },
+  {
+   "text": "time zone in miami is like what",
+   "label": "timezone"
+  },
+  {
+   "text": "would i need new tires if my last purchase was in may of 2018",
+   "label": "tire_change"
+  },
+  {
+   "text": "do my tires seem too low on air",
+   "label": "tire_pressure"
+  },
+  {
+   "text": "the tasks for today, what are they",
+   "label": "todo_list"
+  },
+  {
+   "text": "i want you to clear out my to do list",
+   "label": "todo_list_update"
+  },
+  {
+   "text": "i need to know what the traffic is like on the way to phoenix",
+   "label": "traffic"
+  },
+  {
+   "text": "let me check my transaction on my citi card",
+   "label": "transactions"
+  },
+  {
+   "text": "take $40 and transfer it to account a from b",
+   "label": "transfer"
+  },
+  {
+   "text": "what words would i use to tell someone i am lost if i were japanese",
+   "label": "translate"
+  },
+  {
+   "text": "is there a travel alert for [country]",
+   "label": "travel_alert"
+  },
+  {
+   "text": "i'm going to be in thailand from october 15th until october 23rd",
+   "label": "travel_notification"
+  },
+  {
+   "text": "what's a good place to travel to",
+   "label": "travel_suggestion"
+  },
+  {
+   "text": "i would like an uber going to atlantic city, new jersey",
+   "label": "uber"
+  },
+  {
+   "text": "add this song to my jazz playlist",
+   "label": "update_playlist"
+  },
+  {
+   "text": "tell me what you believe my name to be",
+   "label": "user_name"
+  },
+  {
+   "text": "will i need immunization for a trip to turkey",
+   "label": "vaccines"
+  },
+  {
+   "text": "can i get my w-2 online",
+   "label": "w2"
+  },
+  {
+   "text": "what's the temperature like in tampa",
+   "label": "weather"
+  },
+  {
+   "text": "what do you like to do in your spare time",
+   "label": "what_are_your_hobbies"
+  },
+  {
+   "text": "what are you able to answer",
+   "label": "what_can_i_ask_you"
+  },
+  {
+   "text": "what did your friends call you",
+   "label": "what_is_your_name"
+  },
+  {
+   "text": "what is the song that is currently playing",
+   "label": "what_song"
+  },
+  {
+   "text": "can you tell me your place of origin",
+   "label": "where_are_you_from"
+  },
+  {
+   "text": "volume to whisper voice",
+   "label": "whisper_mode"
+  },
+  {
+   "text": "where else do you work",
+   "label": "who_do_you_work_for"
+  },
+  {
+   "text": "who was the inventor of ai",
+   "label": "who_made_you"
+  },
+  {
+   "text": "yes, that is right",
+   "label": "yes"
+  }
+ ],
+ "shots_shared_with_deployed": 2,
+ "seconds": 725.0,
+ "date": "2026-10-22T17:34:23+00:00",
+ "git_head": "bff5a67",
+ "boost": "1",
+ "note": "accuracy pilot; timings are not measurements"
+}
