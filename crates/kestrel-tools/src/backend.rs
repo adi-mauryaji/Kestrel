@@ -13,6 +13,7 @@ use std::path::{Path, PathBuf};
 
 use kestrel_core::KestrelError;
 
+use crate::args::iso_date;
 use crate::sandbox::Sandbox;
 use crate::tools::{Backend, Note, ToolOutput, ValidatedCall};
 
@@ -81,13 +82,18 @@ impl FixtureBackend {
         &self.prefs
     }
 
-    /// The `n` most recent notes (by name), optionally only those tagged `tag`.
+    /// The `n` most recent dated notes (`YYYY-MM-DD-...`, by name), optionally only those tagged
+    /// `tag`. Undated documents are never "recent", but search and read_document still find them.
     pub fn recent(&self, n: u32, tag: Option<&str>) -> Result<Vec<Note>, KestrelError> {
         let tag = tag.map(str::to_lowercase);
+        let dated = |e: &Entry| {
+            let f = e.file_name.as_str();
+            f.get(..10).is_some_and(|d| iso_date(d).is_ok()) && f.get(10..11) == Some("-")
+        };
         let mut notes: Vec<Entry> = self
             .notes()
             .into_iter()
-            .filter(|e| tag.as_ref().is_none_or(|t| e.tags.contains(t)))
+            .filter(|e| dated(e) && tag.as_ref().is_none_or(|t| e.tags.contains(t)))
             .collect();
         notes.sort_by(|a, b| b.newest_first_key().cmp(&a.newest_first_key()));
         Ok(notes.into_iter().take(n as usize).map(|e| e.note).collect())
@@ -338,6 +344,44 @@ mod tests {
             ["2026-10-22-groceries.txt"]
         );
         assert!(b.recent(5, Some("nothing")).unwrap().is_empty());
+    }
+
+    #[test]
+    fn only_dated_notes_are_recent_but_documents_stay_searchable() {
+        let d = notes_dir("g");
+        fs::create_dir(d.join("docs")).unwrap();
+        fs::write(
+            d.join("docs/project-plan.md"),
+            "tags: meeting\nThe project plan.",
+        )
+        .unwrap();
+        fs::write(
+            d.join("2026-1-5-bad-date.md"),
+            "tags: meeting\nnot a date prefix",
+        )
+        .unwrap();
+        let mut b = FixtureBackend::new(Sandbox::new(&[d]).unwrap());
+        let recent: Vec<String> = b
+            .recent(10, Some("meeting"))
+            .unwrap()
+            .into_iter()
+            .map(|n| n.name)
+            .collect();
+        assert_eq!(recent.len(), 3, "{recent:?}");
+        assert!(
+            recent
+                .iter()
+                .all(|n| !n.contains("project-plan") && !n.contains("bad-date"))
+        );
+        let out = b
+            .run(&ValidatedCall::SearchNotes {
+                query: "project plan".into(),
+                limit: 10,
+            })
+            .unwrap();
+        assert!(
+            matches!(out, ToolOutput::Notes(ref n) if n.len() == 1 && n[0].name == "docs/project-plan.md")
+        );
     }
 
     #[test]
