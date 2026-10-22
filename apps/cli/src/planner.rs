@@ -26,8 +26,9 @@ pub const WEEKDAYS: [&str; 7] = [
     "sunday",
 ];
 
-/// The plan prompt with {today}, {weekday}, {calendar} (the next 7 days), {tomorrow}, {day_after}.
-pub fn render_system(template: &str, today: Date) -> String {
+/// The plan prompt with {today}, {weekday}, {calendar} (the next 7 days), {tomorrow}, {day_after},
+/// {documents} (the note and document names) and {tags} (the tags in use).
+pub fn render_system(template: &str, today: Date, documents: &[String], tags: &[String]) -> String {
     let name = |d: Date| WEEKDAYS[d.weekday() as usize];
     let calendar: Vec<String> = (1..=7)
         .map(|k| today.add_days(k))
@@ -39,6 +40,8 @@ pub fn render_system(template: &str, today: Date) -> String {
         .replace("{calendar}", &calendar.join(", "))
         .replace("{tomorrow}", &today.add_days(1).to_string())
         .replace("{day_after}", &today.add_days(2).to_string())
+        .replace("{documents}", &documents.join(", "))
+        .replace("{tags}", &tags.join(", "))
 }
 
 /// (request, plan in canonical form) pairs, with {tomorrow} filled in.
@@ -72,7 +75,7 @@ pub fn run(check_grammar: bool, out: &std::path::Path) -> Result<(), Box<dyn std
     use kestrel_inference::llama::{LlamaConfig, LlamaSlm};
     use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
     use kestrel_tools::eval::{self, Fixture};
-    use kestrel_tools::grammar::{ROOT, gbnf};
+    use kestrel_tools::grammar::{ROOT, gbnf, gbnf_with};
     use kestrel_tools::plan;
     use serde_json::json;
 
@@ -93,15 +96,28 @@ pub fn run(check_grammar: bool, out: &std::path::Path) -> Result<(), Box<dyn std
             ..LlamaConfig::default()
         },
     )?;
-    let grammar = gbnf();
+    let documents = fixture.documents();
+    let tags = fixture.tags();
+    // The planner may name only existing documents; the open grammar is for template plans.
+    let grammar = gbnf_with(&documents);
 
     if check_grammar {
+        let open = gbnf();
         let (mut seen, mut bad) = (HashSet::new(), Vec::new());
         for item in items.iter().filter(|i| !i["plan"].is_null()) {
             let text = canonical(&item["plan"])?;
-            if seen.insert(text.clone()) && !slm.grammar_admits(&grammar, ROOT, &text)? {
+            let compound = item["category"] == "compound";
+            if seen.insert(text.clone())
+                && (!slm.grammar_admits(&open, ROOT, &text)?
+                    || (compound && !slm.grammar_admits(&grammar, ROOT, &text)?))
+            {
                 bad.push(item["id"].clone());
             }
+        }
+        let outside =
+            r#"{"nodes": [{"id": "r", "op": "read_document", "args": {"path": "/etc/passwd"}}]}"#;
+        if slm.grammar_admits(&grammar, ROOT, outside)? {
+            return Err("the planner grammar admits a path outside the documents".into());
         }
         // And the check is not vacuous: plans the grammar must refuse.
         let refuse = [
@@ -136,6 +152,8 @@ pub fn run(check_grammar: bool, out: &std::path::Path) -> Result<(), Box<dyn std
     let system = render_system(
         &std::fs::read_to_string("datasets/contracts/tier4_plan_prompt.txt")?,
         fixture.today,
+        &documents,
+        &tags,
     );
     let examples = render_examples(
         &std::fs::read_to_string("datasets/contracts/tier4_plan_examples.jsonl")?,
@@ -257,12 +275,16 @@ mod tests {
 
     #[test]
     fn the_system_prompt_gets_the_date_and_the_coming_days() {
-        let t = "Today is {today} ({weekday}). Coming days: {calendar}. Kal = {tomorrow}, parso = {day_after}.";
+        let t = "Today is {today} ({weekday}). Coming days: {calendar}. Kal = {tomorrow}, parso = {day_after}. \
+                 Docs: {documents}. Tags: {tags}.";
+        let docs = ["docs/a.md".to_string(), "b.md".to_string()];
+        let tags = ["meeting".to_string(), "travel".to_string()];
         assert_eq!(
-            render_system(t, today()),
+            render_system(t, today(), &docs, &tags),
             "Today is 2026-10-22 (thursday). Coming days: friday 2026-10-23, saturday 2026-10-24, \
              sunday 2026-10-25, monday 2026-10-26, tuesday 2026-10-27, wednesday 2026-10-28, \
-             thursday 2026-10-29. Kal = 2026-10-23, parso = 2026-10-24."
+             thursday 2026-10-29. Kal = 2026-10-23, parso = 2026-10-24. Docs: docs/a.md, b.md. \
+             Tags: meeting, travel."
         );
     }
 
@@ -270,7 +292,7 @@ mod tests {
     fn the_committed_contract_renders_completely() {
         let t = std::fs::read_to_string(format!("{ROOT}/datasets/contracts/tier4_plan_prompt.txt"))
             .unwrap();
-        let s = render_system(&t, today());
+        let s = render_system(&t, today(), &["x.md".into()], &["meeting".into()]);
         // A placeholder is "{" + lowercase letters or "_" + "}"; the JSON example is not one.
         let left: Vec<&str> = s
             .split('{')

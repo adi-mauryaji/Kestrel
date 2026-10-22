@@ -39,6 +39,7 @@ fn value_rule(key: &str) -> &'static str {
         "n" | "limit" | "id" => "num",
         "due" => "date",
         "key" => "key",
+        "path" => "path",
         _ => "str",
     }
 }
@@ -48,7 +49,25 @@ fn lit(s: &str) -> String {
     format!(r#""\"{s}\"""#)
 }
 
+/// The open grammar: any path (the sandbox decides at run time).
 pub fn gbnf() -> String {
+    gbnf_with(&[])
+}
+
+/// With `documents` (the names under the sandbox roots), `read_document` can only name one of
+/// them, so a model cannot make up a path; names that are not plain path characters are left out.
+pub fn gbnf_with(documents: &[String]) -> String {
+    let plain = |d: &&String| {
+        !d.is_empty()
+            && d.chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/' | ' '))
+    };
+    let names: Vec<String> = documents.iter().filter(plain).map(|d| lit(d)).collect();
+    let path = if names.is_empty() {
+        "path ::= str".to_string()
+    } else {
+        format!("path ::= {}", names.join(" | "))
+    };
     let mut rules = vec![
         format!(
             r#"root ::= "{{" ws {} ws ":" ws "[" ws node (ws "," ws node){{0,{}}} ws "]" ws "}}""#,
@@ -117,6 +136,7 @@ pub fn gbnf() -> String {
         r#"key ::= "\"" [a-z] [a-z0-9_]{0,31} "\"""#.to_string(),
         r#"date ::= "\"" [0-9]{4} "-" [0-9]{2} "-" [0-9]{2} "\"""#.to_string(),
         r#"str ::= "\"" char{1,200} "\"""#.to_string(),
+        path,
         r#"char ::= [^"\\\x7F\x00-\x1F] | [\\] ["\\/]"#.to_string(),
         r#"ws ::= " "?"#.to_string(),
     ]);
@@ -217,6 +237,29 @@ mod tests {
                 "rule name {name}"
             );
         }
+    }
+
+    #[test]
+    fn with_known_documents_a_path_can_only_name_one_of_them() {
+        assert!(
+            gbnf().contains("\npath ::= str\n"),
+            "the open grammar takes any path"
+        );
+        let docs = [
+            "docs/project-plan.md".to_string(),
+            "2026-10-18-groceries.md".to_string(),
+        ];
+        let g = gbnf_with(&docs);
+        assert!(
+            g.contains(r#"path ::= "\"docs/project-plan.md\"" | "\"2026-10-18-groceries.md\"""#),
+            "{g}"
+        );
+        // A name the grammar could not spell safely is left out, never written raw.
+        let odd = gbnf_with(&["a\"b.md".to_string(), "ok.md".to_string()]);
+        assert!(
+            odd.contains(r#"path ::= "\"ok.md\"""#) && !odd.contains("a\\\"b"),
+            "{odd}"
+        );
     }
 
     #[test]

@@ -21,7 +21,7 @@ def test_every_op_is_described_once_at_the_start_of_a_line():
 
 def test_the_placeholders_are_the_ones_the_runtime_fills():
     import re
-    assert set(re.findall(r"\{([a-z_]+)\}", PROMPT)) == {"today", "weekday", "calendar", "tomorrow", "day_after"}
+    assert set(re.findall(r"\{([a-z_]+)\}", PROMPT)) == {"today", "weekday", "calendar", "tomorrow", "day_after", "documents", "tags"}
     for ex in EXAMPLES:
         assert set(re.findall(r"\{([a-z_]+)\}", json.dumps(ex))) <= {"tomorrow"}, ex
 

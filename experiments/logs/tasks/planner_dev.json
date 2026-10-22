@@ -1,0 +1,212 @@
+{
+  "items": [
+    {
+      "attempts": [
+        {
+          "ms": 12086.683018,
+          "plan": "{\"nodes\": [{\"id\": \"f\", \"op\": \"fetch_recent_notes\", \"args\": {\"n\": 3, \"tag\": \"meeting\"}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"f\"]}, {\"id\": \"x\", \"op\": \"extract_action_items\", \"deps\": [\"f\"]}]}",
+          "tokens": 77
+        }
+      ],
+      "family": "cmp-01",
+      "gold_match": false,
+      "id": "cmp-01/en/0",
+      "lang": "en",
+      "problems": [
+        "tasks [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\"))], expected [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\")), (\"send the q4 budget draft to finance\", None), (\"email the budget to asha\", None), (\"fix the flaky build\", None)]"
+      ],
+      "success": false,
+      "text": "summarize my last three meeting notes and create a task list",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 12098.619267,
+          "plan": "{\"nodes\": [{\"id\": \"f\", \"op\": \"fetch_recent_notes\", \"args\": {\"n\": 3, \"tag\": \"meeting\"}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"f\"]}, {\"id\": \"x\", \"op\": \"extract_action_items\", \"deps\": [\"f\"]}]}",
+          "tokens": 77
+        }
+      ],
+      "family": "cmp-01",
+      "gold_match": false,
+      "id": "cmp-01/hi-en/0",
+      "lang": "hi-en",
+      "problems": [
+        "tasks [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\"))], expected [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\")), (\"send the q4 budget draft to finance\", None), (\"email the budget to asha\", None), (\"fix the flaky build\", None)]"
+      ],
+      "success": false,
+      "text": "meri last teen meeting notes summarize karo aur unse task list bana do",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 9889.996398,
+          "plan": "{\"nodes\": [{\"id\": \"r\", \"op\": \"read_document\", \"args\": {\"path\": \"2026-10-18-groceries.md\"}}, {\"id\": \"x\", \"op\": \"extract_action_items\", \"deps\": [\"r\"]}]}",
+          "tokens": 64
+        }
+      ],
+      "family": "cmp-04",
+      "gold_match": false,
+      "id": "cmp-04/en/0",
+      "lang": "en",
+      "problems": [
+        "tasks [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\"))], expected [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\")), (\"buy milk\", None), (\"buy eggs\", None)]"
+      ],
+      "success": false,
+      "text": "make tasks from my groceries note",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 9915.32232,
+          "plan": "{\"nodes\": [{\"id\": \"r\", \"op\": \"read_document\", \"args\": {\"path\": \"2026-10-18-groceries.md\"}}, {\"id\": \"x\", \"op\": \"extract_action_items\", \"deps\": [\"r\"]}]}",
+          "tokens": 64
+        }
+      ],
+      "family": "cmp-04",
+      "gold_match": false,
+      "id": "cmp-04/hi-en/0",
+      "lang": "hi-en",
+      "problems": [
+        "tasks [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\"))], expected [(\"call the plumber\", None), (\"renew passport\", Some(\"2026-11-01\")), (\"pay electricity bill\", Some(\"2026-10-25\")), (\"buy milk\", None), (\"buy eggs\", None)]"
+      ],
+      "success": false,
+      "text": "groceries note se tasks bana do",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 8683.402787,
+          "plan": "{\"nodes\": [{\"id\": \"f\", \"op\": \"fetch_recent_notes\", \"args\": {\"n\": 1, \"tag\": \"personal\"}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"f\"]}]}",
+          "tokens": 55
+        }
+      ],
+      "family": "cmp-05",
+      "gold_match": false,
+      "id": "cmp-05/en/0",
+      "lang": "en",
+      "problems": [
+        "preferences {}, expected {\"answer_length\": \"short\"}",
+        "read [\"2026-10-18-groceries.md\"], expected [\"meetings/2026-10-22-planning.md\"]"
+      ],
+      "success": false,
+      "text": "keep answers short and summarize my latest note",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 7610.377239,
+          "plan": "{\"nodes\": [{\"id\": \"f\", \"op\": \"fetch_recent_notes\", \"args\": {\"n\": 5}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"f\"]}]}",
+          "tokens": 48
+        }
+      ],
+      "family": "cmp-05",
+      "gold_match": false,
+      "id": "cmp-05/hi-en/0",
+      "lang": "hi-en",
+      "problems": [
+        "preferences {}, expected {\"answer_length\": \"short\"}",
+        "read [\"meetings/2026-10-22-planning.md\", \"meetings/2026-10-21-retro.md\", \"meetings/2026-10-20-standup.md\", \"2026-10-19-travel.md\", \"2026-10-18-groceries.md\"], expected [\"meetings/2026-10-22-planning.md\"]"
+      ],
+      "success": false,
+      "text": "jawab chhote rakho aur mera latest note summarize karo",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 12520.448617,
+          "plan": "{\"nodes\": [{\"id\": \"r\", \"op\": \"retrieve_memory\", \"args\": {\"terms\": \"ravi\"}}, {\"id\": \"d\", \"op\": \"read_document\", \"args\": {\"path\": \"docs/project-plan.md\"}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"r\", \"d\"]}]}",
+          "tokens": 80
+        }
+      ],
+      "family": "cmp-07",
+      "gold_match": false,
+      "id": "cmp-07/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "text": "what do you remember about ravi, and open the project plan",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 12574.22846,
+          "plan": "{\"nodes\": [{\"id\": \"r\", \"op\": \"retrieve_memory\", \"args\": {\"terms\": \"ravi\"}}, {\"id\": \"d\", \"op\": \"read_document\", \"args\": {\"path\": \"docs/project-plan.md\"}}, {\"id\": \"s\", \"op\": \"summarize\", \"deps\": [\"r\", \"d\"]}]}",
+          "tokens": 80
+        }
+      ],
+      "family": "cmp-07",
+      "gold_match": false,
+      "id": "cmp-07/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "text": "ravi ke baare mein kya yaad hai, aur project plan kholo",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 8227.972369,
+          "plan": "{\"nodes\": [{\"id\": \"d1\", \"op\": \"delete_task\", \"args\": {\"id\": 3}}, {\"id\": \"d2\", \"op\": \"delete_task\", \"args\": {\"id\": 2}}]}",
+          "tokens": 52
+        }
+      ],
+      "family": "cmp-10",
+      "gold_match": false,
+      "id": "cmp-10/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "text": "delete task 3 and also delete task 2",
+      "valid": true,
+      "valid_first": true
+    },
+    {
+      "attempts": [
+        {
+          "ms": 8200.910194,
+          "plan": "{\"nodes\": [{\"id\": \"d1\", \"op\": \"delete_task\", \"args\": {\"id\": 3}}, {\"id\": \"d2\", \"op\": \"delete_task\", \"args\": {\"id\": 2}}]}",
+          "tokens": 52
+        }
+      ],
+      "family": "cmp-10",
+      "gold_match": false,
+      "id": "cmp-10/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "text": "task 3 aur task 2 dono delete karo",
+      "valid": true,
+      "valid_first": true
+    }
+  ],
+  "summary": {
+    "category": "compound",
+    "first_attempt_ms_mean": 10180.796066899999,
+    "gold_match_rate": 0.0,
+    "items": 10,
+    "model": "models/gemma-4-E2B-it-Q4_0.gguf",
+    "note": "dev timing on the laptop as found; text ops are the deterministic MarkedItems",
+    "prefix_tokens": 1207,
+    "prime_s": 23.135799358,
+    "split": "dev",
+    "success_rate": 0.4,
+    "valid_first_rate": 1.0,
+    "valid_rate": 1.0
+  }
+}

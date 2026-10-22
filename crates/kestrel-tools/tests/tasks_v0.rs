@@ -79,6 +79,12 @@ fn the_fixture_lists_every_note_and_document() {
     let fixture = Fixture::load(&build("fixture.json"), Path::new(ROOT)).unwrap();
     let docs = fixture.documents();
     assert_eq!(docs.len(), 12, "{docs:?}");
+    assert_eq!(
+        fixture.tags(),
+        [
+            "books", "budget", "meeting", "personal", "project", "retro", "travel", "vendor"
+        ]
+    );
     assert!(
         docs.contains(&"docs/project-plan.md".to_string())
             && docs.contains(&"2026-10-18-groceries.md".to_string())

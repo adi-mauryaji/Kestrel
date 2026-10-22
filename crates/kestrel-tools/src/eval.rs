@@ -65,6 +65,30 @@ impl Fixture {
         })
     }
 
+    /// The tags of the notes (first line `tags: a, b`), sorted, each once.
+    pub fn tags(&self) -> Vec<String> {
+        let mut tags: Vec<String> = self
+            .documents()
+            .iter()
+            .filter_map(|d| fs::read_to_string(self.notes.join(d)).ok())
+            .filter_map(|t| {
+                t.lines()
+                    .next()
+                    .and_then(|l| l.strip_prefix("tags:"))
+                    .map(str::to_string)
+            })
+            .flat_map(|l| {
+                l.split(',')
+                    .map(|t| t.trim().to_lowercase())
+                    .collect::<Vec<_>>()
+            })
+            .filter(|t| !t.is_empty())
+            .collect();
+        tags.sort();
+        tags.dedup();
+        tags
+    }
+
     /// Every note and document name under the notes folder (relative, '/'-separated, sorted).
     pub fn documents(&self) -> Vec<String> {
         let mut out = Vec::new();
