@@ -1,0 +1,413 @@
+{
+  "items": [
+    {
+      "category": "create_task",
+      "family": "create-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-01/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-01/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-02/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-02/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-03/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-03/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-06",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-06/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "create_task",
+      "family": "create-06",
+      "gold_match": true,
+      "got": "plan",
+      "id": "create-06/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "delete_task",
+      "family": "del-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "del-03/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "delete_task",
+      "family": "del-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "del-03/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "delete_task",
+      "family": "del-04",
+      "gold_match": true,
+      "got": "clarify:task id",
+      "id": "del-04/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "delete_task",
+      "family": "del-04",
+      "gold_match": true,
+      "got": "clarify:task id",
+      "id": "del-04/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "retrieve_memory",
+      "family": "mem-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "mem-03/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "retrieve_memory",
+      "family": "mem-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "mem-03/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "set_preference",
+      "family": "pref-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "pref-01/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "set_preference",
+      "family": "pref-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "pref-01/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "read_document",
+      "family": "read-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "read-01/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "read_document",
+      "family": "read-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "read-01/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "read_document",
+      "family": "read-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "read-03/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "read_document",
+      "family": "read-03",
+      "gold_match": true,
+      "got": "plan",
+      "id": "read-03/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-02/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-02/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-05",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-05/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-05",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-05/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-06",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-06/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "search_notes",
+      "family": "search-06",
+      "gold_match": true,
+      "got": "plan",
+      "id": "search-06/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-01/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-01",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-01/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-02/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-02",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-02/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-04",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-04/en/0",
+      "lang": "en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    },
+    {
+      "category": "summarize_notes",
+      "family": "sum-04",
+      "gold_match": true,
+      "got": "plan",
+      "id": "sum-04/hi-en/0",
+      "lang": "hi-en",
+      "problems": [],
+      "success": true,
+      "valid": true
+    }
+  ],
+  "summary": {
+    "by": {
+      "create_task": {
+        "gold_match": 8,
+        "n": 8,
+        "success": 8
+      },
+      "delete_task": {
+        "gold_match": 4,
+        "n": 4,
+        "success": 4
+      },
+      "lang:en": {
+        "gold_match": 16,
+        "n": 16,
+        "success": 16
+      },
+      "lang:hi-en": {
+        "gold_match": 16,
+        "n": 16,
+        "success": 16
+      },
+      "read_document": {
+        "gold_match": 4,
+        "n": 4,
+        "success": 4
+      },
+      "retrieve_memory": {
+        "gold_match": 2,
+        "n": 2,
+        "success": 2
+      },
+      "search_notes": {
+        "gold_match": 6,
+        "n": 6,
+        "success": 6
+      },
+      "set_preference": {
+        "gold_match": 2,
+        "n": 2,
+        "success": 2
+      },
+      "summarize_notes": {
+        "gold_match": 6,
+        "n": 6,
+        "success": 6
+      }
+    },
+    "compound_items_left_to_tier4": 10,
+    "gold_match_rate": 1.0,
+    "items": 32,
+    "note": "rules written from the dev requests; the test split is evaluated once after the freeze",
+    "routing": "oracle: the gold category is the intent",
+    "split": "dev",
+    "success_rate": 1.0,
+    "valid_rate": 1.0
+  }
+}
