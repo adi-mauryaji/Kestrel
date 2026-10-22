@@ -81,7 +81,7 @@ pub fn load(text: &str) -> Result<(RouterConfig, RuntimeConfig), KestrelError> {
     Ok((router, rt))
 }
 
-fn reason(r: AbstainReason) -> &'static str {
+pub fn reason(r: AbstainReason) -> &'static str {
     match r {
         AbstainReason::LowConfidence => "low_confidence",
         AbstainReason::BudgetExhausted => "budget_exhausted",

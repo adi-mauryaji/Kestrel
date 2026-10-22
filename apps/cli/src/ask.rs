@@ -4,6 +4,9 @@
 //!
 //!     kestrel ask CONFIG.json            one request per line from stdin ("quit" or EOF ends)
 //!     kestrel ask CONFIG.json TEXT...    route TEXT once
+//!
+//! With KESTREL_TELEMETRY=<file>, each request also appends a content-free record there
+//! (src/telemetry.rs: tier path and times, decision, RSS; never the text or a label).
 
 use std::cell::RefCell;
 use std::fmt::Write as _;
@@ -98,6 +101,15 @@ pub fn run(
         accept[3],
         models.router.latency_budget_ms
     );
+    let telemetry_path = std::env::var_os("KESTREL_TELEMETRY");
+    let mut sink =
+        crate::telemetry::Sink::open(telemetry_path.as_deref().map(std::path::Path::new));
+    if sink.is_on() {
+        eprintln!(
+            "content-free telemetry appended to {:?}",
+            telemetry_path.unwrap_or_default()
+        );
+    }
 
     let mut n = 0;
     let mut ask = |text: &str| {
@@ -111,6 +123,20 @@ pub fn run(
             "{}",
             render(&req, &log.borrow(), &outcome, &trace, accept, ms)
         );
+        if sink.is_on() {
+            let unix_s = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs());
+            let peak = kestrel_bench::rss::peak_rss_kib();
+            sink.write(&crate::telemetry::record(
+                &log.borrow(),
+                &outcome,
+                &trace,
+                ms,
+                unix_s,
+                peak,
+            ));
+        }
     };
     if let Some(text) = once {
         ask(text);
