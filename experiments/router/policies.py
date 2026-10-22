@@ -10,8 +10,10 @@ Every policy is a function of the per-item tier outputs logged once by tier_outp
   per-tier acceptance counts, expectation over seeds (D10).
 Calibration is fitted on cal: Tier-1 confidence = the rules' precision on cal, Tier-3 T = the head's
 (NLL on cal), Tier-4 T by BCE on cal. Thresholds are chosen on val, and the numbers reported on val
-are therefore optimistic; `crossfit` estimates by how much (2 folds by template family). A cascade's
-operating point is the cheapest with accuracy >= the better of tuned R0 and tuned R1, minus delta (ADR-019).
+are therefore optimistic; `crossfit` estimates by how much (2 folds by template family). A cascade's operating
+point is the cheapest with accuracy >= the better of tuned R0 and tuned R1, minus a selection tolerance
+(ADR-019). The pre-registered tolerance is 0 (ADR-021: δ is only the test margin); the other DELTAS map
+the frontier and are exploratory.
 
 Scoring (PREREG §3): in scope, right iff the label matches (abstaining is wrong); `unsupported`
 (the OOS label), right iff abstained or labelled unsupported; compound (ADR-010), right iff not

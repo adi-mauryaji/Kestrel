@@ -32,6 +32,12 @@ correct on an OOS item (D3). The untuned R0 (always answers) is reported next to
 whose accuracy is ≥ max(acc(tuned R0), acc(tuned R1)) − δ; ties go to higher accuracy. The whole accuracy–cost frontier
 is reported regardless. Chosen after the CLINC150 dev runs, where the earlier rule (≥ R0 − δ, R0 always answering)
 picked Tier 3 alone; no test data was seen.
+**[accepted 2026-10-22, ADR-021] Selection tolerance 0.** The operating point is the cheapest point on val whose accuracy
+is ≥ max(acc(tuned R0), acc(tuned R1)), with no − δ: δ is only the test margin. A point chosen at max − δ sits on the
+margin's edge, so its non-inferiority test fails even if test behaves exactly like val (dev check at δ = 0.02: CLINC150
+R3 − tuned R1 = −0.020 on val with a test CI half-width ≈ 0.007, so H1c's lower bound ≈ −0.027; Intents-v0 R3 − tuned R0
+= −0.016, lower bound ≈ −0.031). Points cheaper than the operating point stay on the reported frontier as exploratory.
+Dev points (unchanged configs): CLINC150 0.912 at 140 ms, Intents-v0 0.984 at 478 ms.
 
 **[accepted 2026-10-18, ADR-017] Routing signal and R2/R2c.** Every cascade (R2, R2c, R3, R-rand) sends a request that
 contains a conjunction token (`and`, `then`, `aur`, `phir`, `fir`; `kestrel_core::features::has_conjunction` on the

@@ -3,7 +3,8 @@
     python experiments/router/make_config.py --signal conjunction --delta 0.0
 
 Takes one R3 point from policies_<dataset>.json: the cheapest point on val with accuracy >= the better
-of tuned R0 and tuned R1, minus delta (ADR-019).
+of tuned R0 and tuned R1, minus `--delta`, a selection tolerance (ADR-019). The pre-registered
+tolerance is 0, the default (ADR-021: δ is only the test margin).
 It writes experiments/configs/router_<dataset>.json, which the Rust router reads with
 `RouterConfig::from_json`. The thresholds come from val only. `config_sha256` is the SHA-256 of the
 canonical JSON of every other field, so a run can record exactly which config it used.
@@ -131,7 +132,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dataset", default="intents_v0")
     ap.add_argument("--signal", default="conjunction", choices=["none", "conjunction"])
-    ap.add_argument("--delta", type=float, default=0.0)
+    ap.add_argument("--delta", type=float, default=0.0, help="selection tolerance; pre-registered 0 (ADR-021)")
     ap.add_argument("--budget-ms", type=int, default=10_000, help="not binding on dev (the simulation has none)")
     ap.add_argument("--policy", default="R3", choices=["R3", "R0", "R1"],
                     help="R0 / R1: the tuned baseline for E1 -> router_<dataset>_r0.json / _r1.json")
