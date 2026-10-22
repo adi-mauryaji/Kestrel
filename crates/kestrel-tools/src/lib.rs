@@ -6,6 +6,7 @@ pub mod args;
 pub mod backend;
 pub mod date;
 pub mod eval;
+pub mod grammar;
 pub mod plan;
 pub mod runner;
 pub mod sandbox;

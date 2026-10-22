@@ -268,6 +268,60 @@ impl LlamaSession<'_> {
     }
 }
 
+impl LlamaSession<'_> {
+    /// Greedy generation that can only follow the GBNF `grammar` (rule `root`), e.g. a plan
+    /// (kestrel-tools `grammar::gbnf`, ADR-023). `prefix` (instructions and examples, the same
+    /// for every request) stays in the KV cache; `suffix` is the request and the answer cue.
+    /// Returns the text and the stats.
+    #[allow(clippy::too_many_arguments)]
+    pub fn generate_constrained(
+        &mut self,
+        prefix: &str,
+        suffix: &str,
+        grammar: &str,
+        root: &str,
+        p: &GenParams,
+        cancel: &CancelToken,
+        deadline: &Deadline,
+    ) -> Result<(String, GenStats), KestrelError> {
+        let sampler = LlamaSampler::chain_simple([
+            LlamaSampler::grammar(&self.slm.model, grammar, root)
+                .map_err(|e| invalid(format!("grammar: {e}")))?,
+            LlamaSampler::greedy(),
+        ]);
+        let mut out = String::new();
+        let stats = self.decode_loop(
+            Some(prefix),
+            suffix,
+            sampler,
+            p,
+            cancel,
+            deadline,
+            &mut |t| out.push_str(t),
+        )?;
+        Ok((out, stats))
+    }
+}
+
+impl LlamaSlm {
+    /// Whether every token of `text` (tokenized without BOS) is allowed by `grammar` from its
+    /// start: checks that a grammar admits a known-good output, e.g. every gold plan.
+    pub fn grammar_admits(
+        &self,
+        grammar: &str,
+        root: &str,
+        text: &str,
+    ) -> Result<bool, KestrelError> {
+        let mut s = LlamaSampler::grammar(&self.model, grammar, root)
+            .map_err(|e| invalid(format!("grammar: {e}")))?;
+        let tokens = self
+            .model
+            .str_to_token(text, AddBos::Never)
+            .map_err(|e| invalid(format!("tokenize: {e}")))?;
+        Ok(tokens.into_iter().all(|t| s.try_accept(t).is_ok()))
+    }
+}
+
 impl Generator for LlamaSession<'_> {
     fn generate(
         &mut self,
@@ -277,41 +331,86 @@ impl Generator for LlamaSession<'_> {
         deadline: &Deadline,
         on_token: &mut dyn FnMut(&str),
     ) -> Result<GenStats, KestrelError> {
-        let start = Instant::now();
-        let elapsed_ms = || start.elapsed().as_secs_f64() * 1e3;
         if p.temperature != 0.0 {
             return Err(invalid(
                 "only greedy decoding (temperature 0) is implemented",
             ));
         }
+        self.decode_loop(
+            None,
+            prompt,
+            LlamaSampler::greedy(),
+            p,
+            cancel,
+            deadline,
+            on_token,
+        )
+    }
+}
+
+impl LlamaSession<'_> {
+    /// Prefill `prompt`, then sample with `sampler` until end of generation, a stop sequence or
+    /// `max_tokens`; cancel and deadline are polled before every token.
+    /// Without `prefix`, the whole `rest` is prefilled into an empty cache (nothing from an
+    /// earlier request remains). With it, the prefix stays in the KV cache across calls, as in
+    /// `classify`, and only `rest` is decoded after it.
+    #[allow(clippy::too_many_arguments)]
+    fn decode_loop(
+        &mut self,
+        prefix: Option<&str>,
+        rest: &str,
+        mut sampler: LlamaSampler,
+        p: &GenParams,
+        cancel: &CancelToken,
+        deadline: &Deadline,
+        on_token: &mut dyn FnMut(&str),
+    ) -> Result<GenStats, KestrelError> {
+        let start = Instant::now();
+        let elapsed_ms = || start.elapsed().as_secs_f64() * 1e3;
         let slm = self.slm;
-        let prompt_tokens = slm.tokenize(prompt)?;
+        let (prefix_tokens, rest_tokens) = match prefix {
+            Some(pre) => (
+                slm.tokenize(pre)?,
+                slm.model
+                    .str_to_token(rest, AddBos::Never)
+                    .map_err(|e| invalid(format!("tokenize: {e}")))?,
+            ),
+            None => (Vec::new(), slm.tokenize(rest)?),
+        };
         let n_ctx = slm.cfg.n_ctx as usize;
-        if prompt_tokens.is_empty() || prompt_tokens.len() + p.max_tokens > n_ctx {
+        let need = prefix_tokens.len() + rest_tokens.len() + p.max_tokens;
+        if rest_tokens.is_empty() || need > n_ctx {
             return Err(invalid(format!(
                 "prompt ({} tokens) + max_tokens ({}) must fit the context ({n_ctx})",
-                prompt_tokens.len(),
+                prefix_tokens.len() + rest_tokens.len(),
                 p.max_tokens
             )));
         }
 
+        check(cancel, deadline, Tier::Generative)?;
+        if prefix.is_some() {
+            self.load_prefix(prefix_tokens)?;
+        } else {
+            self.ctx.clear_kv_cache(); // nothing from the previous request may leak into this one
+            self.cached.clear();
+        }
+        let base = self.cached.len();
         let ctx = &mut self.ctx;
-        ctx.clear_kv_cache(); // nothing from the previous request may leak into this one
-        self.cached.clear();
 
-        // Prefill: the whole prompt in one batch; logits only for the last position.
+        // Prefill: the rest of the prompt in one batch; logits only for the last position.
         let mut batch = LlamaBatch::new(n_ctx, 1);
-        let last = prompt_tokens.len() - 1;
-        for (i, &t) in prompt_tokens.iter().enumerate() {
-            batch.add(t, i as i32, &[0], i == last).map_err(rt)?;
+        let last = rest_tokens.len() - 1;
+        for (i, &t) in rest_tokens.iter().enumerate() {
+            batch
+                .add(t, (base + i) as i32, &[0], i == last)
+                .map_err(rt)?;
         }
         check(cancel, deadline, Tier::Generative)?;
         ctx.decode(&mut batch).map_err(rt)?;
 
-        let mut sampler = LlamaSampler::greedy();
         let mut utf8 = Utf8Stream::new();
         let (mut ttft, mut out, mut n) = (None, String::new(), 0usize);
-        let mut pos = prompt_tokens.len() as i32;
+        let mut pos = (base + rest_tokens.len()) as i32;
         let stopped_by = loop {
             check(cancel, deadline, Tier::Generative)?; // within one token of a cancel
             if n >= p.max_tokens {

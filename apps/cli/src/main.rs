@@ -15,6 +15,9 @@
 //!
 //! bench-items is E1's inner loop (src/bench_items.rs, ADR-020): several configs (R0, R1, R3)
 //! over one shared instance of each tier, every item repeated with the systems rotated.
+//!
+//! plan-eval is Week 9d (src/planner.rs, ADR-023): the Tier-4 planner under the plan grammar on
+//! Kestrel-Tasks-v0 dev compound requests, or `--check-grammar` on every gold plan.
 
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
@@ -26,6 +29,8 @@ mod bench_items;
 mod config;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod planner;
 #[cfg(feature = "llama")]
 mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -33,7 +38,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -41,6 +46,7 @@ fn main() -> ExitCode {
         Some("route-items") => route(&args[1..]),
         Some("ask") => ask(&args[1..]),
         Some("bench-items") => bench(&args[1..]),
+        Some("plan-eval") => plan_eval(&args[1..]),
         _ => Err(USAGE.into()),
     };
     match result {
@@ -79,6 +85,21 @@ fn bench(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
     let configs: Vec<&std::path::Path> = configs.iter().map(|c| c.as_ref()).collect();
     bench_items::run(items.as_ref(), out.as_ref(), &configs)
+}
+
+#[cfg(feature = "llama")]
+fn plan_eval(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let check = args.iter().any(|a| a == "--check-grammar");
+    let out = args
+        .iter()
+        .find(|a| !a.starts_with("--"))
+        .map_or("experiments/logs/tasks/planner_dev.json", String::as_str);
+    planner::run(check, out.as_ref())
+}
+
+#[cfg(not(feature = "llama"))]
+fn plan_eval(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    route(&[])
 }
 
 #[cfg(not(feature = "llama"))]

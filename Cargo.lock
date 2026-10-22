@@ -200,6 +200,7 @@ dependencies = [
  "kestrel-inference",
  "kestrel-nlu",
  "kestrel-router",
+ "kestrel-tools",
  "serde",
  "serde_json",
 ]

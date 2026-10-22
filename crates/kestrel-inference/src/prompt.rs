@@ -81,6 +81,17 @@ impl ChatPrompt {
         }
     }
 
+    /// After `prefix() + suffix(first)`: the model's `answer`, then a new user turn `user` and the
+    /// answer cue, e.g. the one re-prompt after an invalid plan (Ch. 16).
+    pub fn follow_up(&self, answer: &str, user: &str) -> String {
+        let (_, _, user_turn) = self.format.markers();
+        format!(
+            "{answer}{}\n{user_turn}{}",
+            self.end_of_answer(),
+            self.suffix(user)
+        )
+    }
+
     /// The token text that ends an answer; it closes every label in the label trie.
     pub fn end_of_answer(&self) -> &'static str {
         match self.format {
@@ -129,6 +140,24 @@ mod tests {
             .with_examples(vec![("hi".into(), "chitchat".into())]);
         assert_eq!(p.prefix() + &p.suffix("remind me to call asha"), rendered);
         assert_eq!(p.end_of_answer(), "<turn|>");
+    }
+
+    #[test]
+    fn a_follow_up_closes_the_answer_and_opens_the_next_user_turn() {
+        // The same rendered Gemma template: the model's answer, then a new user turn and the cue.
+        let p = ChatPrompt::new(ChatFormat::Gemma4, "Pick a label.");
+        let first = p.prefix() + &p.suffix("hi");
+        let whole = first + &p.follow_up("chitchat", "remind me to call asha");
+        assert_eq!(
+            whole,
+            "<|turn>system\nPick a label.<turn|>\n<|turn>user\nhi<turn|>\n<|turn>model\nchitchat<turn|>\n\
+             <|turn>user\nremind me to call asha<turn|>\n<|turn>model\n"
+        );
+        let q = ChatPrompt::new(ChatFormat::Qwen3NoThink, "s");
+        assert!(
+            q.follow_up("a", "b")
+                .starts_with("a<|im_end|>\n<|im_start|>user\nb<|im_end|>")
+        );
     }
 
     #[test]
