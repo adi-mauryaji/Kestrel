@@ -1,0 +1,156 @@
+{
+ "experiment": "E1",
+ "dataset": "intents_v0",
+ "split": "val",
+ "limit": 20,
+ "chunk": 1,
+ "chunks": 1,
+ "items": 20,
+ "latency_items": 20,
+ "warmup_items": [
+  "read-08/hi-en/0/1",
+  "recall-04/hi-en/0/1",
+  "create-02/en/0/0",
+  "summarize-14/hi-en/0/0",
+  "summarize-01/hi-en/0/0"
+ ],
+ "item_ids": [
+  "oos-weather-01/en/0/1",
+  "chat-02/en/0/0",
+  "create-19/en/0/0",
+  "cmp-01/en/0/1",
+  "read-07/hi-en/0/0",
+  "recall-19/hi-en/0/0",
+  "create-19/en/0/1",
+  "oos-weather-01/hi-en/0/2",
+  "pref-20/en/0/0",
+  "pref-20/hi-en/0/1",
+  "pref-06/hi-en/0/0",
+  "oos-device-02/hi-en/0/0",
+  "oos-device-01/en/0/0",
+  "oos-weather-02/hi-en/0/0",
+  "search-16/hi-en/0/1",
+  "pref-06/hi-en/0/1",
+  "summarize-18/hi-en/0/1",
+  "search-16/en/0/1",
+  "cmp-04/en/0/1",
+  "read-07/en/0/0"
+ ],
+ "systems": {
+  "R0": {
+   "config": "experiments/configs/router_intents_v0_r0.json",
+   "config_sha256": "4075b0f9bc8d3f90c946d07c03068ab3afa364d26c1a778694a7c41b9af4c034",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R1": {
+   "config": "experiments/configs/router_intents_v0_r1.json",
+   "config_sha256": "a5f901eeb222c99c45d17c149fed7110f7be1d5eb141fd3c6c0fb6ffb1238ced",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R3": {
+   "config": "experiments/configs/router_intents_v0.json",
+   "config_sha256": "31171dc6813dfa5e1a45e18134716f307b2c17ac7551e4a687a36900c115b5a3",
+   "status": "DEV: chosen on val with delta = 0.0; delta is not set yet (PREREG §5), so this is not frozen"
+  }
+ },
+ "command": [
+  "taskset",
+  "-c",
+  "0,2,4,6,8,10",
+  "/home/Adi_mauryaji/Kestrel/target/release/kestrel",
+  "bench-items",
+  "items.jsonl (temporary)",
+  "/home/Adi_mauryaji/Kestrel/experiments/logs/E1/intents_v0_val_n20/chunk1of1_20261022T151409Z/rows.jsonl",
+  "experiments/configs/router_intents_v0_r0.json",
+  "experiments/configs/router_intents_v0_r1.json",
+  "experiments/configs/router_intents_v0.json"
+ ],
+ "pinned_cpus": [
+  0,
+  2,
+  4,
+  6,
+  8,
+  10
+ ],
+ "outside_cpus": [
+  1,
+  3,
+  5,
+  7,
+  9,
+  11
+ ],
+ "allowed": [
+  "battery",
+  "boost",
+  "governor"
+ ],
+ "pre": {
+  "ac_online": false,
+  "battery_pct": "81",
+  "governor": "powersave",
+  "boost": "1",
+  "load1": 4.81787109375,
+  "temp_c": 62.375
+ },
+ "cooldown": {
+  "seconds": 30.0,
+  "busy_pct": 2.021379980563654,
+  "extra_wait_s": 10,
+  "temp_c": 48.0
+ },
+ "wall_s": 151.1,
+ "exit_code": 0,
+ "child_maxrss_mib": 3640.703125,
+ "rows": 315,
+ "rep_disagreements": [],
+ "sampling": {
+  "n": 15,
+  "mhz_pinned_mean": 2128.6188555555555,
+  "temp_c_max": 61.375,
+  "busy_outside_pct_max": 53.81292573517196
+ },
+ "problems": [
+  "background busy 13.8% > 10.0% over 1 min from t = 90.0 s (rule 2)"
+ ],
+ "valid": false,
+ "valid_note": "a run with any --allow is a dry run, never valid for E1",
+ "environment": {
+  "git_head": "9e7e12bd6b8b6a78014f3e0ec3ce08a3d7d29a22",
+  "git_dirty": true,
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo_lock_sha256": "a97ef93e9f012acb5ff1f48c0ba776e108a318676cd8dc8cd9e3bb83d9123b57",
+  "kestrel_sha256": "253d59cd12afb53bfc455953e5e28dd735f796de8981a92394f0f54d5ace2d0b",
+  "python": "3.14.7",
+  "kernel": "7.2.6-200.fc44.x86_64",
+  "cpu": "AMD Ryzen 5 5500U with Radeon Graphics"
+ },
+ "dev_check": {
+  "R0": {
+   "n": 20,
+   "agree": 20,
+   "mismatches": [],
+   "conf_max_abs_diff": {
+    "4": 2.988561809136314e-08
+   }
+  },
+  "R1": {
+   "n": 20,
+   "agree": 20,
+   "mismatches": [],
+   "conf_max_abs_diff": {
+    "3": 4.355444974124545e-07
+   }
+  },
+  "R3": {
+   "n": 20,
+   "agree": 20,
+   "mismatches": [],
+   "conf_max_abs_diff": {
+    "4": 2.988561809136314e-08,
+    "3": 1.5987060653088747e-07
+   }
+  }
+ }
+}

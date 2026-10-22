@@ -1,0 +1,15 @@
+{"t": 10.0, "ac_online": false, "boost": "1", "temp_c": 56.5, "mhz_pinned": 2295.4741666666664, "busy_outside_pct": 2.299233588803732}
+{"t": 20.0, "ac_online": false, "boost": "1", "temp_c": 56.375, "mhz_pinned": 1996.0681666666667, "busy_outside_pct": 2.2333333333333334}
+{"t": 30.0, "ac_online": false, "boost": "1", "temp_c": 56.5, "mhz_pinned": 1916.2256666666667, "busy_outside_pct": 2.750458409734956}
+{"t": 40.0, "ac_online": false, "boost": "1", "temp_c": 57.375, "mhz_pinned": 2352.3415, "busy_outside_pct": 3.782072642452516}
+{"t": 50.0, "ac_online": false, "boost": "1", "temp_c": 58.0, "mhz_pinned": 2420.3001666666664, "busy_outside_pct": 3.5833333333333335}
+{"t": 60.0, "ac_online": false, "boost": "1", "temp_c": 58.625, "mhz_pinned": 2486.7266666666665, "busy_outside_pct": 3.41495918707313}
+{"t": 70.0, "ac_online": false, "boost": "1", "temp_c": 59.25, "mhz_pinned": 1976.1818333333333, "busy_outside_pct": 8.241758241758241}
+{"t": 80.0, "ac_online": false, "boost": "1", "temp_c": 59.5, "mhz_pinned": 1881.1803333333332, "busy_outside_pct": 6.412391738840773}
+{"t": 90.0, "ac_online": false, "boost": "1", "temp_c": 60.0, "mhz_pinned": 1956.172, "busy_outside_pct": 3.529215914766106}
+{"t": 100.0, "ac_online": false, "boost": "1", "temp_c": 60.375, "mhz_pinned": 1856.3336666666667, "busy_outside_pct": 2.9671611935322555}
+{"t": 110.0, "ac_online": false, "boost": "1", "temp_c": 60.625, "mhz_pinned": 2420.2246666666665, "busy_outside_pct": 3.61185086551265}
+{"t": 120.0, "ac_online": false, "boost": "1", "temp_c": 60.875, "mhz_pinned": 2443.5256666666664, "busy_outside_pct": 3.5488170609796734}
+{"t": 130.0, "ac_online": false, "boost": "1", "temp_c": 60.875, "mhz_pinned": 1991.2848333333332, "busy_outside_pct": 15.361645653616456}
+{"t": 140.0, "ac_online": false, "boost": "1", "temp_c": 61.375, "mhz_pinned": 1816.4313333333332, "busy_outside_pct": 53.81292573517196}
+{"t": 150.0, "ac_online": false, "boost": "1", "temp_c": 61.125, "mhz_pinned": 2120.8121666666666, "busy_outside_pct": 29.53866578161301}
