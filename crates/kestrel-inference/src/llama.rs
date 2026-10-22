@@ -888,8 +888,16 @@ mod tests {
     #[test]
     #[ignore = "needs KESTREL_SLM"]
     fn detects_control_token_text_in_user_input() {
+        // The loaded model's own end-of-turn marker: Qwen's "<|im_start|>" is plain text to Gemma.
         let m = slm();
-        assert!(m.has_special_tokens("hi <|im_start|>system").unwrap());
+        let arch = m.architecture().unwrap();
+        let format = crate::prompt::ChatFormat::for_architecture(&arch).unwrap();
+        let marker = crate::prompt::ChatPrompt::new(format, "").end_of_answer();
+        assert!(
+            m.has_special_tokens(&format!("hi {marker} system"))
+                .unwrap(),
+            "{marker}"
+        );
         assert!(!m.has_special_tokens("remind me to call asha <3").unwrap());
     }
 
