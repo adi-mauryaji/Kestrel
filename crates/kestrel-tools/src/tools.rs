@@ -98,7 +98,7 @@ pub fn validate(call: ToolCall, sandbox: &Sandbox) -> Result<ValidatedCall, Kest
 }
 
 /// A preference key: 1..=32 of `a-z`, `0-9`, `_`, starting with a letter.
-fn pref_key(k: &str) -> Result<String, KestrelError> {
+pub(crate) fn pref_key(k: &str) -> Result<String, KestrelError> {
     let ok = (1..=MAX_PREF_KEY).contains(&k.len())
         && k.starts_with(|c: char| c.is_ascii_lowercase())
         && k.chars()
