@@ -75,18 +75,26 @@ def fit_conf_temperature(steps_list, correct) -> float:
     return float(np.exp(res.x))
 
 
-def select_shots(train_rows, labels, k: int) -> list[dict]:
+def select_shots(train_rows, labels, k: int, seed: int | None = None) -> list[dict]:
     """k few-shot examples per (label, language) from the training split, each from a different
     template family (first families by name, first item by id). Round-robin order over labels,
-    so the examples nearest the request are not all one label."""
+    so the examples nearest the request are not all one label. With `seed`, families and items
+    are taken in seeded hash order instead: the δ pilot's few-shot draw (ADR-020)."""
     # CLINC150 rows have no language or family: one language, each item its own family.
     langs = sorted({r.get("lang") for r in train_rows}, key=str)
     family = lambda r: r.get("family", r["id"])  # noqa: E731
     picks = {}
     for label in labels:
         for lang in langs:
-            cands = sorted((r for r in train_rows if r["label"] == label and r.get("lang") == lang),
-                           key=lambda r: (family(r), r["id"]))
+            cands = [r for r in train_rows if r["label"] == label and r.get("lang") == lang]
+            if seed is None:
+                order = lambda r: (family(r), r["id"])  # noqa: E731
+            else:
+                key = f"{seed}:{label}:{lang}"
+                fam_rank = {f: i for i, f in enumerate(seeded_order(sorted({family(r) for r in cands}), key))}
+                id_rank = {x: i for i, x in enumerate(seeded_order([r["id"] for r in cands], key))}
+                order = lambda r: (fam_rank[family(r)], id_rank[r["id"]])  # noqa: E731
+            cands.sort(key=order)
             chosen, families = [], set()
             for r in cands:
                 if family(r) not in families:

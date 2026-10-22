@@ -195,6 +195,7 @@ version = "0.1.0"
 name = "kestrel-cli"
 version = "0.1.0"
 dependencies = [
+ "kestrel-bench",
  "kestrel-core",
  "kestrel-inference",
  "kestrel-nlu",

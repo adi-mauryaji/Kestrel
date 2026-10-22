@@ -15,6 +15,7 @@ path = "src/main.rs"
 llama = ["kestrel-inference/llama"]
 
 [dependencies]
+kestrel-bench.workspace = true
 kestrel-core.workspace = true
 kestrel-inference.workspace = true
 kestrel-nlu.workspace = true

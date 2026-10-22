@@ -10,6 +10,8 @@ POLICIES = {
     "calibration": {"rule_precision_cal": 1.0, "t3": 0.69, "t4": 0.85},
     "cost_ms_mean": {"t1": 0.003, "t3": 5.8, "t4": 812.1},
     "R0": {"acc": 0.984},
+    "R0_tuned": {"acc": 0.98, "cost": 812.0, "tau": [None, None, 0.58]},
+    "R1": {"tuned": {"acc": 0.91, "cost": 5.6, "tau": [None, 0.78, None]}},
     "reference": {"system": "R0_tuned", "acc": 0.984},
     "R3": {
         "conjunction": {"points": {"0.0": {"acc": 0.984, "cost": 478.0, "tau": [0.0, 0.96, 0.0],
@@ -40,6 +42,25 @@ def test_build_turns_the_chosen_point_into_router_thresholds():
     assert cfg["models"]["tier3"]["encoder_file"] == "e5.gguf"
     assert cfg["models"]["tier4"]["n_ctx"] == 2048 and cfg["models"]["tier4"]["shots"] == RUNTIME["shots"]
     assert cfg["models"]["tier4"]["labels"] == "intents.txt"  # Tier 4's answers, ADR-019
+
+
+@pytest.mark.parametrize("policy, tiers, accept", [("R0", [4], [1.0, 1.0, 1.0, 0.58]),
+                                                   ("R1", [3], [1.0, 1.0, 0.78, 1.0])])
+def test_r0_and_r1_configs_are_one_tier_with_its_tuned_threshold(policy, tiers, accept):
+    # ADR-019/020: E1 runs the baselines from their own configs, sharing every model field with R3.
+    cfg = build(POLICIES, META, "s", RUNTIME, signal="conjunction", delta=0.0, policy=policy)
+    r3 = build(POLICIES, META, "s", RUNTIME, signal="conjunction", delta=0.0)
+    assert cfg["policy"] == policy and cfg["tiers"] == tiers and cfg["accept"] == accept
+    assert cfg["multi_intent_to_generative"] is False  # one tier: there is nothing to skip
+    assert cfg["models"] == r3["models"] and cfg["calibration"] == r3["calibration"]
+    assert cfg["est_cost_ms"] == r3["est_cost_ms"]
+    assert cfg["chosen_on"]["rule"].startswith("tuned_single") and "delta" not in cfg["chosen_on"]
+    assert verify(cfg)
+
+
+def test_build_refuses_an_unknown_policy():
+    with pytest.raises(ValueError, match="policy"):
+        build(POLICIES, META, "s", RUNTIME, signal="conjunction", delta=0.0, policy="R2")
 
 
 def test_the_outputs_hash_is_of_the_content_whether_plain_or_gzipped(tmp_path):
@@ -84,3 +105,9 @@ def test_the_committed_config_is_current_and_unedited(dataset):
                     signal="conjunction", delta=committed["chosen_on"]["delta"],
                     budget_ms=committed["latency_budget_ms"])
     assert rebuilt == committed
+    for policy in ("R0", "R1"):
+        baseline = json.loads((OUT_DIR / f"router_{dataset}_{policy.lower()}.json").read_text())
+        assert verify(baseline)
+        assert build(policies, meta, outputs_sha256(outputs), runtime_inputs(meta), signal="conjunction",
+                     delta=committed["chosen_on"]["delta"], budget_ms=committed["latency_budget_ms"],
+                     policy=policy) == baseline

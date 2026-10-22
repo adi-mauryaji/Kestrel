@@ -72,6 +72,12 @@ tuning) instead of being unused.
   **[accepted 2026-10-17] D5**, reliability diagrams. Accuracy-on-answered is reported next to end-to-end accuracy.
 - **Latency:** end-to-end wall time per request on a monotonic clock (`kestrel-bench::measure`); per item, the median over
   ≥ 5 timed repetitions after 5 warm-up requests is the unit; mean, median and p95 (nearest rank) over items.
+  **[accepted 2026-10-22, ADR-020]** Kestrel-Intents-v0 test: all 252 items × 5 repetitions. CLINC150 test: 5 timed
+  repetitions on a fixed 20% latency subset (1100 items, seeded hash order of the ids, key `e1-latency`) and 1 timed run on
+  every other item; Δlat (H1, H1b) and ρ use the subset, accuracy uses all 5500 items. (Full repetitions would cost
+  ≈ 10.5 h of full CPU against ≈ 3.8 h, and H1's latency part is not close at dev numbers.) The decision of the first timed
+  repetition is the one scored; every repetition's decision is logged and any disagreement is reported (greedy decoding:
+  none expected).
 - **Peak RSS:** `VmHWM` per process at the end of a run, MiB, with every GGUF model loaded **without mmap** (D12), so
   `VmHWM` is the real footprint; `RssAnon` and `RssFile` are logged next to it. **Energy: not measured** — the only counter (RAPL) is root-only on
   this machine; tables use the Ch. 37.4 template sentence.
@@ -84,10 +90,22 @@ Machine: Ryzen 5 5500U (6C/12T), 14.95 GiB RAM, Fedora (kernel 7.2.6), Python 3.
 the user's Docker containers stopped; ≥ 5 min cooldown and CPU ≤ 50 °C before starting; warm page cache (stated). Systems are
 interleaved (A, B, A, B, …).
 
+**[accepted 2026-10-22, ADR-020] E1 harness.** One process loads the models once and builds R0, R1 and R3 from their own
+configs, which must agree on every model, prompt, shot and temperature field (one shared Tier-3 and Tier-4 instance, so
+R0 and the cascade's Tier 4 are the same object). Per item and repetition the systems run in rotated order (item *i*,
+repetition *r* starts at system (*i* + *r*) mod 3). Each row records the decision, the tier where routing ended, the
+confidence, the wall time and each consulted tier's time. The test items, in a fixed seeded order, are cut into chunks of
+about one hour; each chunk is one session with its own pre-checks and 5 warm-up requests per system (fixed train items),
+and is the unit the invalidation rules below apply to: an invalid chunk is rerun completely. During a chunk, AC, boost,
+the pinned CPUs' frequency and temperature, and the busy share of the CPUs outside the pinning mask are sampled every
+10 s. Peak RSS per system comes from one short process per config that loads only that system's models.
+
 **Invalidation rules (pre-declared; an invalidated run is rerun completely and logged):**
 1. AC power lost or boost on at any point (the harness stops the run).
-2. Background CPU busy > 10% in any cooldown window.
-3. Mean frequency of the pinned CPUs for a process deviates > 10% from that session's median for the same model and test.
+2. Background CPU busy > 10% in any cooldown window (E1: also the mean busy share of the CPUs outside the mask over any
+   1-min window of a chunk).
+3. Mean frequency of the pinned CPUs for a process deviates > 10% from that session's median for the same model and test
+   (E1: a chunk's mean vs the median over that dataset's chunks).
 4. CPU temperature > 95 °C after any process.
 5. A crash or a model-file hash mismatch.
 
@@ -105,6 +123,13 @@ end-to-end measurements.
 - **δ (non-inferiority margin):** set after the Week-8 pilot (20–30% of dev data, ≥ 3 seeds) as
   `max(2 × seed-to-seed SD of R0 accuracy, smallest effect of interest agreed with the advisor)`. **TBD — must be written here
   before the test sets are touched.** δ₃ (E6) is set the same way.
+  **[accepted 2026-10-22, ADR-020] Pilot design.** R0 decodes greedily, so a seed draws R0's few-shot examples from train
+  (`select_shots(..., seed)`: k per label and language, distinct families), the one arbitrary choice inside R0; item-sampling
+  noise is left to the bootstrap CI. Pilot items: a fixed 25% of cal and of val per dataset (seeded hash order, key
+  `delta-pilot`). Seeds 1–5; per seed, Tier 4 on the pilot items with the selected prompt, model and context, T by BCE on the
+  pilot cal items, one abstention τ on the pilot val items (ADR-019), tuned-R0 accuracy on the pilot val items. One δ for every
+  hypothesis, from CLINC150 (primary, D8); Intents-v0's SD is reported next to it. Smallest effect of interest: **0.02**
+  (to be confirmed with the mentor). Code and logs: `experiments/router/delta_pilot.py`, `experiments/logs/router/delta_pilot*`.
 
 ## 6. Analysis plan
 
@@ -121,6 +146,8 @@ end-to-end measurements.
   escalation rate to Tier 4 and mean latency are reported **descriptively** (D11; no test). A per-language temperature is
   **exploratory**. The small n per language is a stated limitation.
 - **Seeds:** ≥ 5 per trained component (Tier-3 heads); all reported. Thresholds and temperatures are tuned on val / cal only.
+  **[2026-10-22, ADR-020]** The Tier-3 head is a convex softmax regression fitted by lbfgs with no random state, so head
+  seeds give identical heads and there is nothing to vary; the seeded component is R0's few-shot draw (δ pilot, §5).
 - Anything decided after seeing test data is reported as **exploratory**.
 
 ## 7. Stopping
@@ -132,6 +159,8 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ, δ₃ (after the pilot).
+δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
+2026-10-22 (ADR-020); δ's value waits for the pilot's CLINC150 seeds.
 **Contribution framing (accepted 2026-10-17):** a measured evaluation study ("we evaluate / replicate … on-device"); the
 calibrated cascade is not claimed as new; the code-mixed Hinglish evaluation is the distinctive part.
 

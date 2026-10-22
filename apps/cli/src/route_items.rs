@@ -31,70 +31,72 @@ pub struct Models {
     pub cfg: RuntimeConfig,
     /// Tier 4's answers in order, from datasets/contracts/<models.tier4.labels>.
     pub labels: Vec<String>,
-    encoder: LlamaEncoder,
-    slm: LlamaSlm,
+    /// Loaded only when Tier 3 / Tier 4 is wanted, so a one-tier system's RSS is its own.
+    encoder: Option<LlamaEncoder>,
+    slm: Option<LlamaSlm>,
 }
 
+type DynError = Box<dyn std::error::Error>;
+
 impl Models {
-    pub fn load(config_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+    /// The models the config's own tiers need.
+    pub fn load(config_path: &Path) -> Result<Self, DynError> {
+        let (_, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
+        Self::load_for(config_path, &cfg.tiers)
+    }
+
+    /// The models that `tiers` need (bench-items: the union of its configs' tiers).
+    pub fn load_for(config_path: &Path, tiers: &[u8]) -> Result<Self, DynError> {
         let (router, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
         let labels = labels::parse_list(&std::fs::read_to_string(
             Path::new("datasets/contracts").join(&cfg.models.tier4.labels),
         )?);
-        let encoder = LlamaEncoder::load(
-            &Path::new("models").join(&cfg.models.tier3.encoder_file),
-            ENCODER_THREADS,
-        )?;
-        let slm = LlamaSlm::load(
-            &Path::new("models").join(&cfg.models.tier4.model_file),
-            LlamaConfig {
-                n_ctx: cfg.models.tier4.n_ctx,
-                ..LlamaConfig::default()
-            },
-        )?;
+        let encoder = tiers.contains(&3).then(|| {
+            LlamaEncoder::load(
+                &Path::new("models").join(&cfg.models.tier3.encoder_file),
+                ENCODER_THREADS,
+            )
+        });
+        let slm = tiers.contains(&4).then(|| {
+            LlamaSlm::load(
+                &Path::new("models").join(&cfg.models.tier4.model_file),
+                LlamaConfig {
+                    n_ctx: cfg.models.tier4.n_ctx,
+                    ..LlamaConfig::default()
+                },
+            )
+        });
         Ok(Self {
             router,
             cfg,
             labels,
-            encoder,
-            slm,
+            encoder: encoder.transpose()?,
+            slm: slm.transpose()?,
         })
     }
 
     /// The config's tiers answering in `space`, each passed through `wrap` (identity for
-    /// route-items), in a cascade. The rules answer Kestrel intents, so they are mapped into it.
+    /// route-items), in a cascade.
     pub fn cascade<'a, S: LabelSpace>(
         &'a self,
         space: &'a S,
         wrap: impl Fn(Box<dyn TierModel<S::Label> + 'a>) -> Box<dyn TierModel<S::Label> + 'a>,
-    ) -> Result<Cascade<'a, S::Label>, Box<dyn std::error::Error>> {
+    ) -> Result<Cascade<'a, S::Label>, DynError> {
+        let tiers = self.tiers(space, wrap, &self.cfg.tiers)?;
+        Ok(Cascade::new(tiers, self.router.clone())?)
+    }
+
+    /// The tiers numbered in `which`, cheapest first, answering in `space` and each passed
+    /// through `wrap`. The rules answer Kestrel intents, so they are mapped into `space`.
+    pub fn tiers<'a, S: LabelSpace>(
+        &'a self,
+        space: &'a S,
+        wrap: impl Fn(Box<dyn TierModel<S::Label> + 'a>) -> Box<dyn TierModel<S::Label> + 'a>,
+        which: &[u8],
+    ) -> Result<Vec<Box<dyn TierModel<S::Label> + 'a>>, DynError> {
         let cfg = &self.cfg;
         let cost = |t: Tier| cfg.est_cost_ms[t.index()];
-        let uses = |t: Tier| cfg.tiers.contains(&(t as u8));
-
-        let head = LinearHead::load(
-            &Path::new("experiments/artifacts/tier3").join(&cfg.models.tier3.head),
-        )?;
-        if (head.temperature() - cfg.calibration.tier3_temperature).abs() > 1e-6 {
-            return Err(format!(
-                "head temperature {} differs from the config's {}",
-                head.temperature(),
-                cfg.calibration.tier3_temperature
-            )
-            .into());
-        }
-        let arch = self.slm.architecture()?;
-        let format =
-            ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
-        let system = std::fs::read_to_string(
-            Path::new("datasets/contracts").join(&cfg.models.tier4.prompt),
-        )?;
-        // Shots are stored raw; the dev runs normalized them like requests.
-        let shots = cfg.models.tier4.shots.iter();
-        let shots = shots
-            .map(|s| (normalize(&s.text), s.label.clone()))
-            .collect();
-        let prompt = ChatPrompt::new(format, &system).with_examples(shots);
+        let uses = |t: Tier| which.contains(&(t as u8));
 
         let mut tiers: Vec<Box<dyn TierModel<S::Label> + 'a>> = Vec::new();
         if uses(Tier::Rules) {
@@ -104,30 +106,57 @@ impl Models {
             tiers.push(wrap(Box::new(MapLabels::new(rules, space))));
         }
         if uses(Tier::Encoder) {
+            let encoder = self
+                .encoder
+                .as_ref()
+                .ok_or("Tier 3 wanted, encoder not loaded")?;
+            let head = LinearHead::load(
+                &Path::new("experiments/artifacts/tier3").join(&cfg.models.tier3.head),
+            )?;
+            if (head.temperature() - cfg.calibration.tier3_temperature).abs() > 1e-6 {
+                return Err(format!(
+                    "head temperature {} differs from the config's {}",
+                    head.temperature(),
+                    cfg.calibration.tier3_temperature
+                )
+                .into());
+            }
             tiers.push(wrap(Box::new(EncoderTier::new(
-                self.encoder.session()?,
+                encoder.session()?,
                 head,
                 cost(Tier::Encoder),
                 |c| space.label(c),
             )?)));
         }
         if uses(Tier::Generative) {
-            let t = cfg.calibration.tier4_temperature;
+            let slm = self.slm.as_ref().ok_or("Tier 4 wanted, SLM not loaded")?;
+            let arch = slm.architecture()?;
+            let format = ChatFormat::for_architecture(&arch)
+                .ok_or(format!("no chat format for {arch:?}"))?;
+            let system = std::fs::read_to_string(
+                Path::new("datasets/contracts").join(&cfg.models.tier4.prompt),
+            )?;
+            // Shots are stored raw; the dev runs normalized them like requests.
+            let shots = cfg.models.tier4.shots.iter();
+            let shots = shots
+                .map(|s| (normalize(&s.text), s.label.clone()))
+                .collect();
+            let prompt = ChatPrompt::new(format, &system).with_examples(shots);
             let tier = GenerativeTier::new(
-                &self.slm,
+                slm,
                 prompt,
                 &space.answers(),
-                t,
+                cfg.calibration.tier4_temperature,
                 TIER4_TIMEOUT,
                 cost(Tier::Generative),
             )?;
             tiers.push(wrap(Box::new(tier)));
         }
-        Ok(Cascade::new(tiers, self.router.clone())?)
+        Ok(tiers)
     }
 }
 
-pub fn run(config_path: &Path, items: &Path, out: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(config_path: &Path, items: &Path, out: &Path) -> Result<(), DynError> {
     let models = Models::load(config_path)?;
     let space = LabelList::new(models.labels.clone())?;
     let cascade = models.cascade(&space, |t| t)?;

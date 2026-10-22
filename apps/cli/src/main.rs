@@ -12,11 +12,16 @@
 //!
 //! ask builds the same cascade and routes typed requests, showing each tier's answer, its
 //! confidence against the tier's accept threshold, its time and the decision (src/ask.rs).
+//!
+//! bench-items is E1's inner loop (src/bench_items.rs, ADR-020): several configs (R0, R1, R3)
+//! over one shared instance of each tier, every item repeated with the systems rotated.
 
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod ask;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -26,13 +31,14 @@ mod route_items;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let result = match args.first().map(String::as_str) {
         Some("route-items") => route(&args[1..]),
         Some("ask") => ask(&args[1..]),
+        Some("bench-items") => bench(&args[1..]),
         _ => Err(USAGE.into()),
     };
     match result {
@@ -61,8 +67,25 @@ fn ask(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     ask::run(config.as_ref(), (!text.is_empty()).then_some(text.as_str()))
 }
 
+#[cfg(feature = "llama")]
+fn bench(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let [items, out, configs @ ..] = args else {
+        return Err(USAGE.into());
+    };
+    if configs.is_empty() {
+        return Err(USAGE.into());
+    }
+    let configs: Vec<&std::path::Path> = configs.iter().map(|c| c.as_ref()).collect();
+    bench_items::run(items.as_ref(), out.as_ref(), &configs)
+}
+
 #[cfg(not(feature = "llama"))]
 fn ask(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    route(&[])
+}
+
+#[cfg(not(feature = "llama"))]
+fn bench(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     route(&[])
 }
 

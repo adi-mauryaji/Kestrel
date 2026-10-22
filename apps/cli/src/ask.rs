@@ -13,30 +13,31 @@ use std::time::Instant;
 use kestrel_core::{Intent, KestrelError, Request, Tier, TierModel};
 use kestrel_router::{AbstainReason, Outcome, Trace};
 
-/// What one tier answered for one request: its top intent (or no opinion), or the error.
+/// What one tier answered for one request: its top label (or no opinion), or the error.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Step {
+pub struct Step<L = Intent> {
     pub tier: Tier,
-    pub result: Result<Option<(Intent, f32)>, String>,
+    pub result: Result<Option<(L, f32)>, String>,
     pub ms: f64,
 }
 
 /// Shared by every recorder of one cascade; cleared before each request.
-pub type Log = Rc<RefCell<Vec<Step>>>;
+pub type Log<L = Intent> = Rc<RefCell<Vec<Step<L>>>>;
 
-/// A tier that notes each answer in `log` and passes it on untouched.
-pub struct Recorder<'a> {
-    inner: Box<dyn TierModel + 'a>,
-    log: Log,
+/// A tier that notes each answer in `log` and passes it on untouched. Any label type, so
+/// `bench-items` records per-tier times in a benchmark's label space too.
+pub struct Recorder<'a, L = Intent> {
+    inner: Box<dyn TierModel<L> + 'a>,
+    log: Log<L>,
 }
 
-impl<'a> Recorder<'a> {
-    pub fn new(inner: Box<dyn TierModel + 'a>, log: Log) -> Self {
+impl<'a, L> Recorder<'a, L> {
+    pub fn new(inner: Box<dyn TierModel<L> + 'a>, log: Log<L>) -> Self {
         Self { inner, log }
     }
 }
 
-impl TierModel for Recorder<'_> {
+impl<L: Copy> TierModel<L> for Recorder<'_, L> {
     fn tier(&self) -> Tier {
         self.inner.tier()
     }
@@ -45,21 +46,20 @@ impl TierModel for Recorder<'_> {
         self.inner.est_cost_ms()
     }
 
-    fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
+    fn classify(&self, req: &Request) -> Result<Vec<(L, f32)>, KestrelError> {
         let t0 = Instant::now();
         let out = self.inner.classify(req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
-        let result =
-            match &out {
-                // The router takes the first of equal probabilities; so does this.
-                Ok(probs) => Ok(probs
-                    .iter()
-                    .fold(None, |top: Option<(Intent, f32)>, &(i, p)| match top {
-                        Some((_, q)) if q >= p => top,
-                        _ => Some((i, p)),
-                    })),
-                Err(e) => Err(e.to_string()),
-            };
+        let result = match &out {
+            // The router takes the first of equal probabilities; so does this.
+            Ok(probs) => Ok(probs
+                .iter()
+                .fold(None, |top: Option<(L, f32)>, &(i, p)| match top {
+                    Some((_, q)) if q >= p => top,
+                    _ => Some((i, p)),
+                })),
+            Err(e) => Err(e.to_string()),
+        };
         self.log.borrow_mut().push(Step {
             tier: self.tier(),
             result,

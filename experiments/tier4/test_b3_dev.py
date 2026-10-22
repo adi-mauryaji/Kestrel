@@ -67,6 +67,34 @@ def test_select_shots_works_without_language_or_family_fields():
     assert [s["text"] for s in shots] == ["a 0", "b 0", "a 1", "b 1"]
 
 
+def test_a_seed_draws_other_train_families_with_the_same_shape():
+    # The δ pilot's "seed" (ADR-020): which train examples go into the prompt.
+    from b3_dev import select_shots
+    from splits import load_splits
+
+    train = load_splits("intents_v0")["train"]
+    labels = sorted({r["label"] for r in train})
+    canonical = select_shots(train, labels, k=2)
+    s1, s1_again, s2 = (select_shots(train, labels, k=2, seed=s) for s in (1, 1, 2))
+    assert s1 == s1_again and s1 != s2 and s1 != canonical
+    assert [s["label"] for s in s1] == [s["label"] for s in canonical]  # same round-robin order
+    by_text = {r["text"]: r for r in train}
+    fams = {}
+    for s in s1:
+        r = by_text[s["text"]]
+        assert r["label"] == s["label"]
+        fams.setdefault((s["label"], r["lang"]), []).append(r["family"])
+    assert all(len(set(f)) == 2 for f in fams.values())
+
+
+def test_a_seed_picks_any_item_when_every_item_is_its_own_family():
+    from b3_dev import select_shots
+
+    rows = [{"id": f"x/{lab}/{i:02d}", "text": f"{lab} {i}", "label": lab} for lab in ("a", "b") for i in range(50)]
+    draws = {tuple(s["text"] for s in select_shots(rows, ["a", "b"], k=1, seed=s)) for s in range(1, 11)}
+    assert len(draws) > 5  # not stuck on the first item by name, as the canonical selection is
+
+
 def test_subset_is_a_fixed_seeded_sample():
     from b3_dev import subset
 
