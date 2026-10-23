@@ -1,0 +1,369 @@
+{
+ "experiment": "E1",
+ "split": "test",
+ "dev": false,
+ "valid": true,
+ "runs": [
+  "experiments/logs/E1/intents_v0_test/chunk1of1_20261023T172231Z"
+ ],
+ "configs": {
+  "R0": {
+   "config": "experiments/configs/router_intents_v0_r0.json",
+   "config_sha256": "0686ef5b2b8570e67a8e6cc143777da45506098af190ea5c2bdccc2686bf8b81",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)"
+  },
+  "R1": {
+   "config": "experiments/configs/router_intents_v0_r1.json",
+   "config_sha256": "4192ba5185c74a66e1b6ea841ad4e709c0cbc7803530ffd70cf592fce84c07ac",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)"
+  },
+  "R3": {
+   "config": "experiments/configs/router_intents_v0.json",
+   "config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5)"
+  }
+ },
+ "problems": {},
+ "delta_source": "experiments/logs/router/delta_pilot.json",
+ "rss_source": "no rss.py summary of these configs",
+ "dataset": "intents_v0",
+ "n_items": 252,
+ "n_latency_items": 252,
+ "delta": 0.02632771902249294,
+ "n_boot": 10000,
+ "seed": 0,
+ "clusters": "family",
+ "n_clusters": 44,
+ "systems": {
+  "R0": {
+   "n": 252,
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "accuracy_answered": 1.0,
+   "macro_f1": 1.0,
+   "compound_accuracy": 1.0,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 252,
+    "mean": 688.8539628293652,
+    "median": 669.5258495,
+    "p95": 915.784458
+   },
+   "peak_rss_mib": null
+  },
+  "R0 untuned": {
+   "n": 252,
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "accuracy_answered": 1.0,
+   "macro_f1": 1.0,
+   "compound_accuracy": 1.0,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 252,
+    "mean": 688.8539628293652,
+    "median": 669.5258495,
+    "p95": 915.784458
+   },
+   "peak_rss_mib": null
+  },
+  "R1": {
+   "n": 252,
+   "accuracy": 0.7023809523809523,
+   "coverage": 1.0,
+   "accuracy_answered": 0.7023809523809523,
+   "macro_f1": 0.8604015226351117,
+   "compound_accuracy": 0.0,
+   "tier4_share": 0.0,
+   "latency_ms": {
+    "n": 252,
+    "mean": 5.954496845238094,
+    "median": 5.623412999999999,
+    "p95": 9.353783
+   },
+   "peak_rss_mib": null
+  },
+  "R3": {
+   "n": 252,
+   "accuracy": 0.9682539682539683,
+   "coverage": 1.0,
+   "accuracy_answered": 0.9682539682539683,
+   "macro_f1": 0.9891523538939953,
+   "compound_accuracy": 0.875,
+   "tier4_share": 0.5357142857142857,
+   "latency_ms": {
+    "n": 252,
+    "mean": 381.54023897222226,
+    "median": 521.721377,
+    "p95": 916.958892
+   },
+   "peak_rss_mib": null
+  }
+ },
+ "h1": {
+  "accuracy": {
+   "diff": -0.031746031746031744,
+   "ci95": [
+    -0.06854838709677419,
+    -0.00390625
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": false,
+   "p_noninferior": 1.0,
+   "mcnemar": {
+    "n01": 8,
+    "n10": 0,
+    "p": 0.0078125
+   },
+   "item_level": {
+    "ci95": [
+     -0.05555555555555555,
+     -0.011904761904761904
+    ],
+    "p_noninferior": 1.0
+   }
+  },
+  "latency": {
+   "diff_ms": -307.3137238571428,
+   "ci95": [
+    -384.98924378594313,
+    -228.62761306967855
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 4.1759559522509386e-14,
+   "dz": -0.9054091661330949,
+   "item_level": {
+    "ci95": [
+     -349.49857781795635,
+     -265.88213597500004
+    ],
+    "p_below": 0.0
+   }
+  },
+  "outcome": "inconclusive",
+  "supported": false,
+  "p_iut": 1.0
+ },
+ "h1c": {
+  "accuracy": {
+   "diff": 0.26587301587301587,
+   "ci95": [
+    0.15447154471544716,
+    0.3837279069767441
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 67,
+    "p": 1.3552527156068805e-20
+   },
+   "item_level": {
+    "ci95": [
+     0.21428571428571427,
+     0.32142857142857145
+    ],
+    "p_noninferior": 0.0
+   }
+  },
+  "p": 0.0,
+  "outcome": "after Holm (secondary family)"
+ },
+ "h1b": {
+  "seeds": 1000,
+  "r3_acc": 0.9682539682539683,
+  "rrand": {
+   "acc": 0.911813492063492,
+   "acc_sd": 0.010178607011293347,
+   "tier4_rate": 0.5357142857142857
+  },
+  "accuracy": {
+   "diff": 0.05644047619047619,
+   "ci95": [
+    0.021003130299176356,
+    0.09755106854838708
+   ],
+   "above": true,
+   "p_above": 0.0002,
+   "item_level": {
+    "ci95": [
+     0.03527658730158731,
+     0.07935734126984126
+    ],
+    "p_above": 0.0
+   }
+  },
+  "p": 0.0002,
+  "cost_model_ms": {
+   "latency_subset": {
+    "n": 252,
+    "r3": 381.6612597936508,
+    "rrand": 384.57230583319074
+   },
+   "all_items": {
+    "n": 252,
+    "r3": 381.6612597936508,
+    "rrand": 384.57230583319074
+   }
+  },
+  "outcome": "after Holm (secondary family)"
+ },
+ "signal_false_positive": {
+  "all": 0.0,
+  "en": 0.0,
+  "hi-en": 0.0
+ },
+ "by_lang": {
+  "en": {
+   "n": 126,
+   "n_latency": 126,
+   "accuracy": {
+    "diff": -0.05555555555555555,
+    "ci95": [
+     -0.128,
+     0.0
+    ],
+    "margin": 0.02632771902249294,
+    "noninferior": false,
+    "p_noninferior": 1.0,
+    "mcnemar": {
+     "n01": 7,
+     "n10": 0,
+     "p": 0.015625
+    },
+    "item_level": {
+     "ci95": [
+      -0.09523809523809523,
+      -0.015873015873015872
+     ],
+     "p_noninferior": 1.0
+    }
+   },
+   "latency": {
+    "diff_ms": -392.4499205238095,
+    "ci95": [
+     -481.5534927597334,
+     -298.5704875210246
+    ],
+    "faster": true,
+    "p_below": 0.0,
+    "wilcoxon_p": 2.181342831188446e-13,
+    "dz": -1.169045084242938,
+    "item_level": {
+     "ci95": [
+      -450.2480577363095,
+      -333.03708388095237
+     ],
+     "p_below": 0.0
+    }
+   },
+   "R3_tier4_share": 0.40476190476190477,
+   "R3_mean_ms": 291.08379411904764,
+   "R0_mean_ms": 683.5337146428573
+  },
+  "hi-en": {
+   "n": 126,
+   "n_latency": 126,
+   "accuracy": {
+    "diff": -0.007936507936507936,
+    "ci95": [
+     -0.024390243902439025,
+     0.0
+    ],
+    "margin": 0.02632771902249294,
+    "noninferior": true,
+    "p_noninferior": 0.0356,
+    "mcnemar": {
+     "n01": 1,
+     "n10": 0,
+     "p": 1.0
+    },
+    "item_level": {
+     "ci95": [
+      -0.023809523809523808,
+      0.0
+     ],
+     "p_noninferior": 0.0372
+    }
+   },
+   "latency": {
+    "diff_ms": -222.17752719047616,
+    "ci95": [
+     -309.86751066018826,
+     -139.85401293491057
+    ],
+    "faster": true,
+    "p_below": 0.0,
+    "wilcoxon_p": 0.007058432763420674,
+    "dz": -0.6888588922901419,
+    "item_level": {
+     "ci95": [
+      -278.60725834523805,
+      -168.26889255416668
+     ],
+     "p_below": 0.0
+    }
+   },
+   "R3_tier4_share": 0.6666666666666666,
+   "R3_mean_ms": 471.9966838253969,
+   "R0_mean_ms": 694.174211015873
+  }
+ },
+ "h7a": {
+  "n": 126,
+  "n_latency": 126,
+  "accuracy": {
+   "diff": -0.007936507936507936,
+   "ci95": [
+    -0.024390243902439025,
+    0.0
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0356,
+   "mcnemar": {
+    "n01": 1,
+    "n10": 0,
+    "p": 1.0
+   },
+   "item_level": {
+    "ci95": [
+     -0.023809523809523808,
+     0.0
+    ],
+    "p_noninferior": 0.0372
+   }
+  },
+  "latency": {
+   "diff_ms": -222.17752719047616,
+   "ci95": [
+    -309.86751066018826,
+    -139.85401293491057
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 0.007058432763420674,
+   "dz": -0.6888588922901419,
+   "item_level": {
+    "ci95": [
+     -278.60725834523805,
+     -168.26889255416668
+    ],
+    "p_below": 0.0
+   }
+  },
+  "R3_tier4_share": 0.6666666666666666,
+  "R3_mean_ms": 471.9966838253969,
+  "R0_mean_ms": 694.174211015873
+ },
+ "rho": {
+  "target": 0.1,
+  "n_below_tier4": 117,
+  "r3_median_below_tier4_ms": 5.185168,
+  "r0_median_ms": 669.5258495,
+  "met": true
+ },
+ "rep_disagreements": []
+}
