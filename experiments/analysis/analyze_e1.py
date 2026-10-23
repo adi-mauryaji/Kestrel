@@ -17,14 +17,18 @@ Macro-F1 is over single-intent items (compound items are scored apart, as in the
 Latency unit: the per-item median over its repetitions, latency subset only (ADR-020); accuracy
 uses every item.
 
+Bootstrap (ADR-029): 10 000 paired resamples, seed 0, of the items on CLINC150 and of the template
+families on Kestrel-Intents-v0 (its items are not independent), with the item-level CI and p
+alongside there.
+
 Reported: Table R1 (R0 tuned and untuned, R1, R3; RSS comes from the per-config runs, not from here),
-H1 (intersection-union: the 95% paired-bootstrap CI of Δacc = R3 - R0 lies above -δ AND that of
-Δlat lies below 0; 10 000 resamples, seed 0), H1c (R3 vs R1, non-inferiority), per language H7a
-(Δacc, Δlat) and D11 (R3's Tier-4 share and mean latency), ρ, the routing signal's false-positive
-rate on single-intent items, and on CLINC150 test the D1 sensitivity analysis (items whose text also
-occurs in another set dropped). Every comparison carries its bootstrap p (kestrel_stats, two-sided
-scale) and the exact McNemar / Wilcoxon p for the secondary family. H1b (R-rand) needs every tier's
-output on every item and is not computed here yet.
+H1 (intersection-union: the 95% CI of Δacc = R3 - R0 lies above -δ AND that of Δlat lies below 0;
+its outcome supported / not supported / inconclusive), H1c (R3 vs R1, non-inferiority), per language
+H7a (Δacc, Δlat) and D11 (R3's Tier-4 share and mean latency), ρ, the routing signal's
+false-positive rate on single-intent items, and on CLINC150 test the D1 sensitivity analysis (items
+whose text also occurs in another set dropped). Secondary hypotheses carry their p (two-sided scale);
+their outcomes come after Holm over the whole secondary family, once every experiment has its p.
+H1b (R-rand) needs every tier's output on every item and is not computed here yet.
 
 Out: experiments/logs/E1/analysis_<run name>.json and the tables on stdout.
 """
@@ -42,13 +46,14 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "experiments" / "e1"))
 from run_e1 import LOG_DIR, REPS, chunk_plan, freq_problems, item_latency, load_items, rep_disagreements  # noqa: E402
-from kestrel_stats import (N_BOOT, bootstrap_means, cohens_dz, intersection_union_p, mcnemar_exact,  # noqa: E402
-                           p_below, p_noninferior, percentile_ci, wilcoxon_paired)
+from kestrel_stats import (N_BOOT, bootstrap_means, cohens_dz, combine, intersection_union_p,  # noqa: E402
+                           mcnemar_exact, outcome, p_below, p_noninferior, percentile_ci, wilcoxon_paired)
 from metrics import macro_f1, per_item_correct  # noqa: E402
 
 SYSTEMS = ("R0", "R1", "R3")
 REPORTED = ("R0", "R0 untuned", "R1", "R3")
 OOS = {"intents_v0": "unsupported", "clinc150": "oos"}
+CLUSTERS = {"intents_v0": "family"}  # ADR-029: the bootstrap resamples this field's groups
 RHO = 0.1  # D6
 INVALIDATED = "INVALIDATED.json"
 DELTA_LOG = ROOT / "experiments" / "logs" / "router" / "delta_pilot.json"
@@ -134,31 +139,45 @@ def nearest_rank(x, p: int) -> float:
     return float(s[max(-(-p * s.size // 100), 1) - 1])
 
 
-def _boot(d, n_boot: int, seed: int):
-    boots = bootstrap_means(d, n_boot, seed)
+def _boot(d, n_boot: int, seed: int, clusters=None):
+    boots = bootstrap_means(d, n_boot, seed, clusters)
     lo, hi = percentile_ci(boots)
     return float(np.mean(d)), lo, hi, boots
 
 
-def noninferiority(ok_a, ok_b, delta: float, n_boot: int, seed: int) -> dict:
-    """Accuracy of A vs B: the 95% paired-bootstrap CI of mean(correct_A - correct_B) against -delta."""
-    m, lo, hi, boots = _boot(ok_a.astype(float) - ok_b, n_boot, seed)
+def noninferiority(ok_a, ok_b, delta: float, n_boot: int, seed: int, clusters=None) -> dict:
+    """Accuracy of A vs B: the 95% paired-bootstrap CI of mean(correct_A - correct_B) against -delta;
+    with clusters, resampled by cluster and the item-level CI and p alongside."""
+    d = ok_a.astype(float) - ok_b
+    m, lo, hi, boots = _boot(d, n_boot, seed, clusters)
     n01, n10, p = mcnemar_exact(ok_a, ok_b)
-    return {"diff": m, "ci95": [lo, hi], "margin": delta, "noninferior": lo > -delta,
-            "p_noninferior": p_noninferior(boots, delta), "mcnemar": {"n01": n01, "n10": n10, "p": p}}
+    out = {"diff": m, "ci95": [lo, hi], "margin": delta, "noninferior": lo > -delta,
+           "p_noninferior": p_noninferior(boots, delta), "mcnemar": {"n01": n01, "n10": n10, "p": p}}
+    if clusters is not None:
+        _, lo, hi, boots = _boot(d, n_boot, seed)
+        out["item_level"] = {"ci95": [lo, hi], "p_noninferior": p_noninferior(boots, delta)}
+    return out
 
 
-def speed(ms_a, ms_b, n_boot: int, seed: int) -> dict:
+def speed(ms_a, ms_b, n_boot: int, seed: int, clusters=None) -> dict:
     """Latency of A vs B: A is faster iff the 95% CI of mean(lat_A - lat_B) lies below 0."""
-    m, lo, hi, boots = _boot(ms_a - ms_b, n_boot, seed)
-    return {"diff_ms": m, "ci95": [lo, hi], "faster": hi < 0, "p_below": p_below(boots),
-            "wilcoxon_p": wilcoxon_paired(ms_a, ms_b), "dz": cohens_dz(ms_a, ms_b)}
+    d = ms_a - ms_b
+    m, lo, hi, boots = _boot(d, n_boot, seed, clusters)
+    out = {"diff_ms": m, "ci95": [lo, hi], "faster": hi < 0, "p_below": p_below(boots),
+           "wilcoxon_p": wilcoxon_paired(ms_a, ms_b), "dz": cohens_dz(ms_a, ms_b)}
+    if clusters is not None:
+        _, lo, hi, boots = _boot(d, n_boot, seed)
+        out["item_level"] = {"ci95": [lo, hi], "p_below": p_below(boots)}
+    return out
 
 
-def _h1(ok, ms, keep, timed, delta, n_boot, seed) -> dict:
-    acc = noninferiority(ok["R3"][keep], ok["R0"][keep], delta, n_boot, seed)
-    lat = speed(ms["R3"][keep & timed], ms["R0"][keep & timed], n_boot, seed)
-    return {"accuracy": acc, "latency": lat, "supported": acc["noninferior"] and lat["faster"],
+def _h1(ok, ms, keep, timed, delta, n_boot, seed, fam) -> dict:
+    sub = lambda mask: None if fam is None else fam[mask]  # noqa: E731
+    acc = noninferiority(ok["R3"][keep], ok["R0"][keep], delta, n_boot, seed, sub(keep))
+    lat = speed(ms["R3"][keep & timed], ms["R0"][keep & timed], n_boot, seed, sub(keep & timed))
+    verdict = combine(outcome(acc["noninferior"], acc["diff"], acc["ci95"], above=True, bound=-delta),
+                      outcome(lat["faster"], lat["diff_ms"], lat["ci95"], above=False))
+    return {"accuracy": acc, "latency": lat, "outcome": verdict, "supported": verdict == "supported",
             "p_iut": intersection_union_p(acc["p_noninferior"], lat["p_below"])}
 
 
@@ -209,13 +228,16 @@ def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_id
     timed = np.array([i in latency_ids for i in ids])
     ms = {s: np.array([lat[(i, s.split()[0])] if t else np.nan for i, t in zip(ids, timed)]) for s in dec}
     every = np.ones(len(ids), bool)
+    fam = np.array([g[CLUSTERS[dataset]] for g in gold_rows]) if dataset in CLUSTERS else None
+    sub = lambda mask: None if fam is None else fam[mask]  # noqa: E731
 
     report = {"dataset": dataset, "n_items": len(ids), "n_latency_items": int(timed.sum()), "delta": delta,
-              "n_boot": n_boot, "seed": seed,
+              "n_boot": n_boot, "seed": seed, "clusters": CLUSTERS.get(dataset),
+              "n_clusters": None if fam is None else len(set(fam)),
               "systems": {s: _summary(dec[s], ok[s], gold_rows, ms[s], oos) for s in REPORTED},
-              "h1": _h1(ok, ms, every, timed, delta, n_boot, seed)}
-    h1c = noninferiority(ok["R3"], ok["R1"], delta, n_boot, seed)
-    report["h1c"] = {"accuracy": h1c, "supported": h1c["noninferior"]}
+              "h1": _h1(ok, ms, every, timed, delta, n_boot, seed, fam)}
+    h1c = noninferiority(ok["R3"], ok["R1"], delta, n_boot, seed, fam)
+    report["h1c"] = {"accuracy": h1c, "p": h1c["p_noninferior"], "outcome": "after Holm (secondary family)"}
 
     langs = sorted({g["lang"] for g in gold_rows if "lang" in g})
     single = [i for i in ids if "|" not in gold[i]["label"]]
@@ -229,8 +251,8 @@ def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_id
             t = keep & timed
             report["by_lang"][lang] = {
                 "n": int(keep.sum()), "n_latency": int(t.sum()),
-                "accuracy": noninferiority(ok["R3"][keep], ok["R0"][keep], delta, n_boot, seed),
-                "latency": speed(ms["R3"][t], ms["R0"][t], n_boot, seed) if t.any() else None,
+                "accuracy": noninferiority(ok["R3"][keep], ok["R0"][keep], delta, n_boot, seed, sub(keep)),
+                "latency": speed(ms["R3"][t], ms["R0"][t], n_boot, seed, sub(t)) if t.any() else None,
                 "R3_tier4_share": np.mean([4 in r["consulted"] for r, k in zip(dec["R3"], keep) if k]),
                 "R3_mean_ms": ms["R3"][t].mean() if t.any() else None,
                 "R0_mean_ms": ms["R0"][t].mean() if t.any() else None}
@@ -246,7 +268,7 @@ def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_id
     if dups:
         keep = np.array([i not in dup_ids for i in ids])
         report["sensitivity_d1"] = {"n_items": int(keep.sum()), "dropped": dups,
-                                    "h1": _h1(ok, ms, keep, timed, delta, n_boot, seed)}
+                                    "h1": _h1(ok, ms, keep, timed, delta, n_boot, seed, fam)}
     report["rep_disagreements"] = [list(k) for k in rep_disagreements(timed_rows)]
     return _clean(report)
 
@@ -273,8 +295,9 @@ def render(rep: dict) -> str:
     out = []
     if rep.get("dev"):
         out.append("**DEV: dry runs (never valid), not E1 results.**\n")
+    unit = f"{rep['n_clusters']} {rep['clusters']} clusters" if rep["clusters"] else "items"
     out.append(f"## E1 · {rep['dataset']} {rep['split']} · {rep['n_items']} items, {rep['n_latency_items']} timed"
-               f" · δ = {rep['delta']:.4f}\n")
+               f" · δ = {rep['delta']:.4f} · bootstrap over {unit}\n")
     out.append("| System | Accuracy | Macro-F1 | Coverage | Acc. answered | Compound | Mean ms | Median ms | p95 ms "
                "| Reaching Tier 4 |")
     out.append("|---|---|---|---|---|---|---|---|---|---|")
@@ -286,11 +309,13 @@ def render(rep: dict) -> str:
     h = rep["h1"]
     out.append(f"\n**H1** R3 vs tuned R0: Δacc {_ci(h['accuracy'], 'diff', '+.4f')} (> −δ: "
                f"{h['accuracy']['noninferior']}), Δlat {_ci(h['latency'], 'diff_ms', '+.1f')} ms (< 0: "
-               f"{h['latency']['faster']}) → **{'supported' if h['supported'] else 'not supported'}** "
-               f"(IUT p {h['p_iut']:.4f})")
+               f"{h['latency']['faster']}) → **{h['outcome']}** (IUT p {h['p_iut']:.4f})")
+    if "item_level" in h["accuracy"]:
+        (alo, ahi), (llo, lhi) = h["accuracy"]["item_level"]["ci95"], h["latency"]["item_level"]["ci95"]
+        out.append(f"  item-level CIs: Δacc [{alo:+.4f}, {ahi:+.4f}], Δlat [{llo:+.1f}, {lhi:+.1f}] ms")
     c = rep["h1c"]["accuracy"]
-    out.append(f"**H1c** R3 vs tuned R1: Δacc {_ci(c, 'diff', '+.4f')} → "
-               f"{'non-inferior' if c['noninferior'] else 'not shown non-inferior'} (p {c['p_noninferior']:.4f})")
+    out.append(f"**H1c** R3 vs tuned R1: Δacc {_ci(c, 'diff', '+.4f')} (> −δ: {c['noninferior']}), p "
+               f"{rep['h1c']['p']:.4f}; outcome after Holm over the secondary family")
     for lang, v in rep.get("by_lang", {}).items():
         dlat = f"{_ci(v['latency'], 'diff_ms', '+.1f')} ms" if v["latency"] else "— (no timed items)"
         out.append(f"- {lang} (n {v['n']}): Δacc {_ci(v['accuracy'], 'diff', '+.4f')}, Δlat {dlat}; R3 reaching "
@@ -303,8 +328,8 @@ def render(rep: dict) -> str:
                + ", ".join(f"{k} {_f(v, '.1%')}" for k, v in rep["signal_false_positive"].items()))
     if "sensitivity_d1" in rep:
         d = rep["sensitivity_d1"]["h1"]
-        out.append(f"D1 sensitivity ({rep['sensitivity_d1']['n_items']} items): Δacc {_ci(d['accuracy'], 'diff', '+.4f')}"
-                   f" → H1 {'supported' if d['supported'] else 'not supported'}")
+        out.append(f"D1 sensitivity ({rep['sensitivity_d1']['n_items']} items): Δacc "
+                   f"{_ci(d['accuracy'], 'diff', '+.4f')} → H1 {d['outcome']}")
     out.append(f"Repetitions disagreeing: {len(rep['rep_disagreements'])}")
     return "\n".join(out)
 

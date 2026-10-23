@@ -1,7 +1,7 @@
 import pytest
 
-from run_e1 import (CHUNKS, LATENCY_FRAC, REPS, chunk_plan, freq_problems, guard_test, item_latency, per_cpu_times, plan,
-                    rep_disagreements, stop_reason, busy_outside, warmup_items, window_problems)
+from run_e1 import (CHUNKS, LATENCY_FRAC, REPS, chunk_plan, freq_problems, guard_test, item_latency, per_cpu_times,
+                    plan, rep_disagreements, stop_reason, busy_outside, warmup_items, window_problems)
 
 
 def test_plan_cuts_a_seeded_order_into_chunks_and_marks_the_latency_subset():

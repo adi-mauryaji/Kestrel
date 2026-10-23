@@ -11,6 +11,10 @@ Adapted from A.15:
   p of a claim made of several parts, because Holm needs a p for every hypothesis in the secondary
   family and A.15 has only CIs for the non-inferiority ones. They are on the two-sided scale: p <
   alpha <=> the (1 - alpha) percentile CI excludes the bound (up to one resample at the boundary).
+- A cluster (family) bootstrap (ADR-029): Kestrel-Intents-v0 items come from template families, so
+  a resample draws families, each bringing all its items, and the statistic is taken over the
+  drawn items. Singleton clusters give exactly the item bootstrap.
+- `outcome` / `combine`: ADR-029's supported / not supported / inconclusive.
 - Shape checks raise ValueError (A.15's assert disappears under python -O).
 - `forgetting` lives in metrics.py; `user_level_split` is not needed (Personas-v0 splits by persona).
 """
@@ -39,30 +43,50 @@ def _paired(a, b) -> np.ndarray:
 
 
 def _resamples(n: int, n_boot: int, seed: int):
-    """Item-index resamples (with replacement), BLOCK rows at a time, from one seeded generator."""
+    """Index resamples (with replacement) of n units, BLOCK rows at a time, from one seeded generator."""
     rng = np.random.default_rng(seed)
     for start in range(0, n_boot, BLOCK):
         yield rng.integers(0, n, size=(min(BLOCK, n_boot - start), n))
 
 
-def bootstrap_means(d, n_boot: int = N_BOOT, seed: int = 0) -> np.ndarray:
-    """Mean of d over each of n_boot resamples of the items."""
+def _cluster_index(clusters, n: int) -> tuple[np.ndarray, int]:
+    """(cluster number of each item, number of clusters); clusters are numbered in sorted label order."""
+    labels = np.asarray(clusters)
+    if labels.shape != (n,):
+        raise ValueError(f"{labels.size} cluster labels for {n} items")
+    uniq, inv = np.unique(labels, return_inverse=True)
+    return inv, uniq.size
+
+
+def bootstrap_means(d, n_boot: int = N_BOOT, seed: int = 0, clusters=None) -> np.ndarray:
+    """Mean of d over each of n_boot resamples of the items, or, with `clusters` (one label per item),
+    of the clusters: a resample draws as many clusters as there are, and its mean is over their items."""
     d = _vector(d)
-    return np.concatenate([d[idx].mean(axis=1) for idx in _resamples(d.size, n_boot, seed)])
+    if clusters is None:
+        return np.concatenate([d[idx].mean(axis=1) for idx in _resamples(d.size, n_boot, seed)])
+    inv, g = _cluster_index(clusters, d.size)
+    sums, sizes = np.bincount(inv, weights=d, minlength=g), np.bincount(inv, minlength=g)
+    return np.concatenate([sums[idx].sum(axis=1) / sizes[idx].sum(axis=1) for idx in _resamples(g, n_boot, seed)])
 
 
-def bootstrap(stat, *arrays, n_boot: int = N_BOOT, seed: int = 0) -> np.ndarray:
-    """stat(*resampled arrays) for each of n_boot resamples of the ITEMS: row i of every array is item
-    i, and a resample takes the same rows from all of them (e.g. confidences and correctness for a
-    selective-risk difference). Same resamples as bootstrap_means for the same n and seed."""
+def bootstrap(stat, *arrays, n_boot: int = N_BOOT, seed: int = 0, clusters=None) -> np.ndarray:
+    """stat(*resampled arrays) for each of n_boot resamples of the ITEMS (or clusters, as in
+    bootstrap_means): row i of every array is item i, and a resample takes the same rows from all of
+    them (e.g. confidences and correctness for a selective-risk difference). Same resamples as
+    bootstrap_means for the same items, clusters and seed."""
     arrays = [np.asarray(a) for a in arrays]
     if not arrays or arrays[0].ndim == 0 or len(arrays[0]) == 0:
         raise ValueError("bootstrap needs at least one non-empty array")
     n = len(arrays[0])
     if any(len(a) != n for a in arrays):
         raise ValueError(f"arrays differ in length: {[len(a) for a in arrays]}")
-    return np.array([stat(*(a[row] for a in arrays)) for idx in _resamples(n, n_boot, seed) for row in idx],
-                    float)
+    if clusters is None:
+        rows = (row for idx in _resamples(n, n_boot, seed) for row in idx)
+    else:
+        inv, g = _cluster_index(clusters, n)
+        members = [np.flatnonzero(inv == k) for k in range(g)]
+        rows = (np.concatenate([members[k] for k in row]) for idx in _resamples(g, n_boot, seed) for row in idx)
+    return np.array([stat(*(a[row] for a in arrays)) for row in rows], float)
 
 
 def percentile_ci(boots, alpha: float = 0.05) -> tuple[float, float]:
@@ -70,10 +94,11 @@ def percentile_ci(boots, alpha: float = 0.05) -> tuple[float, float]:
     return float(lo), float(hi)
 
 
-def paired_bootstrap_ci(a, b, n_boot: int = N_BOOT, alpha: float = 0.05, seed: int = 0):
-    """(mean(a - b), lo, hi): percentile bootstrap CI over paired items (resample ITEMS, not systems)."""
+def paired_bootstrap_ci(a, b, n_boot: int = N_BOOT, alpha: float = 0.05, seed: int = 0, clusters=None):
+    """(mean(a - b), lo, hi): percentile bootstrap CI over paired items (resample ITEMS, or their
+    clusters, never systems)."""
     d = _paired(a, b)
-    lo, hi = percentile_ci(bootstrap_means(d, n_boot, seed), alpha)
+    lo, hi = percentile_ci(bootstrap_means(d, n_boot, seed, clusters), alpha)
     return float(d.mean()), lo, hi
 
 
@@ -141,3 +166,26 @@ def holm(pvals, alpha: float = 0.05) -> tuple[np.ndarray, np.ndarray]:
         running = max(running, (m - rank) * p[i])
         adj[i] = min(1.0, running)
     return adj, adj <= alpha
+
+
+OUTCOMES = ("supported", "not supported", "inconclusive")
+
+
+def outcome(significant: bool, diff: float, ci, *, above: bool, bound: float = 0.0) -> str:
+    """ADR-029 for one claim, "diff > bound" (above) or "diff < bound": supported iff the test is
+    significant (Holm-adjusted for the secondary family) with the effect on the claimed side; not
+    supported iff the 95% CI lies wholly on the other side (non-inferiority, bound -delta: upper bound
+    < -delta); inconclusive otherwise."""
+    if significant and (diff > bound if above else diff < bound):
+        return "supported"
+    wrong_side = ci[1] < bound if above else ci[0] > bound
+    return "not supported" if wrong_side else "inconclusive"
+
+
+def combine(*parts: str) -> str:
+    """A claim with parts: supported iff every part is, not supported iff any part is."""
+    if not parts or any(p not in OUTCOMES for p in parts):
+        raise ValueError(f"parts must be outcomes {OUTCOMES}, got {parts}")
+    if all(p == "supported" for p in parts):
+        return "supported"
+    return "not supported" if "not supported" in parts else "inconclusive"

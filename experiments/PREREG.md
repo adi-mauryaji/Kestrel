@@ -195,6 +195,31 @@ end-to-end measurements.
   seeds give identical heads and there is nothing to vary; the seeded component is R0's few-shot draw (δ pilot, §5).
 - Anything decided after seeing test data is reported as **exploratory**.
 
+**[accepted 2026-10-23, ADR-029] Tests and outcomes per hypothesis.** Written before any test run. The text above names
+the tests but not how a CI-based hypothesis gets the p that Holm needs, nor when an outcome is "inconclusive". Code:
+`experiments/analysis/kestrel_stats.py`, `analyze_e1.py`.
+- **One p per secondary hypothesis, on the two-sided scale**, so that p < 0.05 ⇔ the 95% CI excludes the bound (H1's
+  own rule). A non-inferiority part: the bootstrap p = 2 × the share of resamples at or below −δ (`p_noninferior`;
+  McNemar cannot test a margin). A directional part: the test named above, two-sided, counted only if the observed
+  effect points the hypothesized way (exact McNemar for paired correctness, Wilcoxon on per-item median latency,
+  Wilcoxon over E5's 15 paired runs, order × seed). A statistic that is not a mean of paired 0/1 outcomes: the bootstrap
+  p of its paired difference (`p_above` / `p_below`). A claim with parts takes its largest part's p (intersection–union).
+- **Per hypothesis:** H1b p_above(acc R3 − acc R-rand; R-rand's per-item correctness is an expectation, not 0/1) ·
+  H1c p_noninferior(R3 − R1) · H2 p_below(risk@0.80 R2c − R2) · H3 IUT of accuracy {1,3,4} vs {1,4} non-inferior at δ and
+  Wilcoxon on cost · H4 exact McNemar K5 vs off (E4, PROPOSED) · H5 Wilcoxon, average forgetting replay vs naive over
+  the 15 paired runs (EWC vs naive reported, outside the family) · H6 IUT of accuracy within δ₃ and Wilcoxon on latency
+  (RAM is one VmHWM per process: lower as measured, not tested) · H7a p_noninferior(R3 − R0 on hi-en) · H7b
+  p_above(ECE(hi-en) − ECE(en)) over family resamples (a family brings its items in both languages).
+- **Outcomes** (Ch. 52, Week 14): **supported** = Holm-adjusted p < 0.05 with the effect in the hypothesized direction
+  (H1: both CI conditions); **not supported** = the 95% CI lies wholly on the wrong side (superiority or speed: it
+  excludes 0 the other way; non-inferiority: its upper bound is < −δ); **inconclusive** otherwise. A claim with parts is
+  supported iff every part is, and not supported iff any part is.
+- **Clustered items (Kestrel-Intents-v0).** Items come from template families (val: 128 items from 24 families), so
+  items of one family are not independent and an item bootstrap's CIs are too narrow. On Intents-v0 every bootstrap
+  resamples families (each drawn family brings all its items; the statistic is the mean over the drawn items), and its
+  p-values come from that bootstrap; the item-level numbers are reported alongside. CLINC150 (independent crowd-sourced
+  utterances) is unchanged.
+
 ## 7. Stopping
 
 Sample sizes are the frozen test sets above. No optional stopping. Every run, including failed and invalidated ones, is
@@ -204,6 +229,7 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ₃ (before E6).
+Tests per hypothesis, outcomes, and the family bootstrap on Kestrel-Intents-v0: accepted 2026-10-23 (ADR-029, §6).
 δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
 2026-10-22 (ADR-020); **δ = 0.0263** from the pilot's 5 CLINC150 seeds (2026-10-23, §5). ε₁–ε₃: rules fixed before E5
 (ADR-027, §5); values from their pilots.

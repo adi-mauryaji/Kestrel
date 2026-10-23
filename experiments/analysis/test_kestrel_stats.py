@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 
-from kestrel_stats import (bootstrap, bootstrap_means, cohens_dz, holm, intersection_union_p, mcnemar_exact, p_above,
-                           p_below, p_noninferior, paired_bootstrap_ci, percentile_ci, wilcoxon_paired)
+from kestrel_stats import (bootstrap, bootstrap_means, cohens_dz, combine, holm, intersection_union_p, mcnemar_exact,
+                           outcome, p_above, p_below, p_noninferior, paired_bootstrap_ci, percentile_ci,
+                           wilcoxon_paired)
 
 
 def test_bootstrap_ci_matches_normal_theory_on_paired_data():
@@ -154,3 +155,60 @@ def test_intersection_union_p_is_the_largest_component():
     assert intersection_union_p(0.01, 0.2, 0.03) == 0.2
     with pytest.raises(ValueError):
         intersection_union_p()
+
+
+def test_singleton_clusters_are_the_item_bootstrap():
+    d = np.random.default_rng(6).normal(size=120)
+    assert np.allclose(bootstrap_means(d, n_boot=1200, seed=2, clusters=np.arange(120)),
+                       bootstrap_means(d, n_boot=1200, seed=2))
+
+
+def test_cluster_bootstrap_resamples_whole_families():
+    # 20 families of 5 identical items: the family bootstrap is the bootstrap of the 20 family means,
+    # and the item bootstrap, which treats 100 items as independent, is about sqrt(5) too narrow.
+    fam_means = np.random.default_rng(7).normal(size=20)
+    d = np.repeat(fam_means, 5)
+    labels = np.repeat([f"f{k:02d}" for k in range(20)], 5)
+    fam = bootstrap_means(d, seed=0, clusters=labels)
+    assert np.allclose(fam, bootstrap_means(fam_means, seed=0))
+    width = lambda b: np.subtract(*percentile_ci(b)[::-1])  # noqa: E731
+    assert width(fam) / width(bootstrap_means(d, seed=0)) == pytest.approx(np.sqrt(5), rel=0.15)
+    assert np.allclose(bootstrap(np.mean, d, n_boot=600, seed=1, clusters=labels),
+                       bootstrap_means(d, n_boot=600, seed=1, clusters=labels))
+    _, lo, hi = paired_bootstrap_ci(d, np.zeros(100), clusters=labels)
+    assert (lo, hi) == pytest.approx(percentile_ci(fam))
+
+
+def test_unequal_families_weight_items_not_families():
+    # One resample = the drawn families' items pooled: with families of sizes 1 and 3, every draw's mean
+    # is the item mean of what was drawn, never the mean of family means.
+    d = np.array([1.0, 0.0, 0.0, 0.0])
+    labels = np.array(["a", "b", "b", "b"])
+    vals = set(np.round(bootstrap_means(d, n_boot=200, seed=0, clusters=labels), 6))
+    assert vals <= {1.0, 0.0, 0.25}  # aa, bb, ab / ba
+
+
+def test_clusters_must_label_every_item():
+    with pytest.raises(ValueError):
+        bootstrap_means(np.ones(4), clusters=["a", "b"])
+
+
+def test_outcome_rule_adr_029():
+    # Non-inferiority (diff > -delta), delta = 0.02.
+    assert outcome(True, 0.0, (-0.01, 0.01), above=True, bound=-0.02) == "supported"
+    assert outcome(False, -0.01, (-0.04, 0.02), above=True, bound=-0.02) == "inconclusive"
+    assert outcome(False, -0.05, (-0.07, -0.03), above=True, bound=-0.02) == "not supported"
+    # Faster (diff < 0).
+    assert outcome(True, -300.0, (-400.0, -200.0), above=False) == "supported"
+    assert outcome(False, 5.0, (1.0, 9.0), above=False) == "not supported"
+    # A two-sided test can be significant the wrong way: never "supported".
+    assert outcome(True, 5.0, (1.0, 9.0), above=False) == "not supported"
+    assert outcome(True, 0.01, (-0.001, 0.02), above=False) == "inconclusive"
+
+
+def test_a_claim_with_parts():
+    assert combine("supported", "supported") == "supported"
+    assert combine("supported", "inconclusive") == "inconclusive"
+    assert combine("inconclusive", "not supported") == "not supported"
+    with pytest.raises(ValueError):
+        combine("maybe")

@@ -127,7 +127,7 @@ def scenario(n=40, r3_wrong=0, latency_every=1):
         i = f"it{k:02d}"
         lang = "hi-en" if k % 2 == 0 else "en"
         label = "unsupported" if k % 10 == 0 else "a|b" if k % 10 == 5 else "a"
-        gold[i] = {"id": i, "label": label, "lang": lang}
+        gold[i] = {"id": i, "label": label, "lang": lang, "family": f"fam{k // 5}"}  # 8 families of 5
         timed = k % latency_every == 0
         reps = 5 if timed else 1
         if timed:
@@ -177,20 +177,46 @@ def test_h1_is_the_intersection_union_of_noninferiority_and_speed():
     h1 = run(rows, gold, lat)["h1"]
     assert h1["accuracy"]["diff"] == 0.0 and h1["accuracy"]["noninferior"]
     assert h1["latency"]["diff_ms"] == pytest.approx((31 * 6 + 4 * 806 + 5 * 800) / 40 - 800)
-    assert h1["latency"]["faster"] and h1["supported"]
+    assert h1["latency"]["faster"] and h1["supported"] and h1["outcome"] == "supported"
     assert h1["p_iut"] == max(h1["accuracy"]["p_noninferior"], h1["latency"]["p_below"])
 
+    rows, gold, lat = scenario(r3_wrong=32)  # R3 wrong on every in-scope item it answers at Tier 3
+    h1 = run(rows, gold, lat)["h1"]
+    assert h1["accuracy"]["ci95"][1] < -0.0263 and h1["latency"]["faster"]
+    assert h1["outcome"] == "not supported" and not h1["supported"]
+
+
+def ok_vector(rows, gold, system):
+    return [item_correct(r, gold[r["id"]], "unsupported")
+            for r in sorted(rows, key=lambda r: r["id"]) if r["system"] == system and r["rep"] == 1]
+
+
+def test_intents_v0_resamples_template_families_with_items_alongside():
     rows, gold, lat = scenario(r3_wrong=8)
     rep = run(rows, gold, lat)
-    h1 = rep["h1"]
-    assert h1["accuracy"]["diff"] == pytest.approx(-8 / 40)
-    assert not h1["accuracy"]["noninferior"] and not h1["supported"] and h1["latency"]["faster"]
-    # The CI is the plain paired bootstrap of the per-item correctness, seed 0.
-    ok = lambda s: [item_correct(r, gold[r["id"]], "unsupported")  # noqa: E731
-                    for r in sorted(rows, key=lambda r: r["id"]) if r["system"] == s and r["rep"] == 1]
-    _, lo, hi = paired_bootstrap_ci(ok("R3"), ok("R0"), n_boot=500, seed=0)
-    assert h1["accuracy"]["ci95"] == [pytest.approx(lo), pytest.approx(hi)]
+    acc = rep["h1"]["accuracy"]
+    assert rep["clusters"] == "family" and acc["diff"] == pytest.approx(-8 / 40)
+    a, b = ok_vector(rows, gold, "R3"), ok_vector(rows, gold, "R0")
+    fam = [gold[i]["family"] for i in sorted(gold)]
+    _, lo, hi = paired_bootstrap_ci(a, b, n_boot=500, seed=0, clusters=fam)
+    assert acc["ci95"] == [pytest.approx(lo), pytest.approx(hi)]
+    _, lo, hi = paired_bootstrap_ci(a, b, n_boot=500, seed=0)
+    assert acc["item_level"]["ci95"] == [pytest.approx(lo), pytest.approx(hi)]
+    # The 8 errors sit in 3 of the 8 families: resampling families widens the interval.
+    assert np.diff(acc["ci95"])[0] > np.diff(acc["item_level"]["ci95"])[0]
+    assert "item_level" in rep["h1"]["latency"] and "item_level" in rep["by_lang"]["hi-en"]["accuracy"]
     assert rep["h1c"]["accuracy"]["diff"] == pytest.approx(32 / 40 - 36 / 40)  # R3 - R1
+    assert rep["h1c"]["p"] == rep["h1c"]["accuracy"]["p_noninferior"]
+
+
+def test_clinc150_resamples_items():
+    rows, gold, lat = scenario()
+    for g in gold.values():
+        g["label"] = "oos" if g["label"] == "unsupported" else g["label"]
+        del g["family"]
+    rep = analyze(rows, gold, lat, dataset="clinc150", delta=0.0263, n_boot=500)
+    assert rep["clusters"] is None and "item_level" not in rep["h1"]["accuracy"]
+    assert rep["systems"]["R0"]["accuracy"] == 1.0
 
 
 def test_latency_uses_only_the_latency_subset():
