@@ -2,8 +2,13 @@
 //! wrapped in a `Recorder`, so the cascade itself runs unchanged; the recorder notes the tier's
 //! top answer and wall time, and `render` lays them out next to the tier's accept threshold.
 //!
-//!     kestrel ask CONFIG.json            one request per line from stdin ("quit" or EOF ends)
-//!     kestrel ask CONFIG.json TEXT...    route TEXT once
+//!     kestrel ask [--no-memory] CONFIG.json          one request per line ("quit" or EOF ends)
+//!     kestrel ask [--no-memory] CONFIG.json TEXT...  route TEXT once
+//!
+//! Memory (src/personal.rs, Week 10): before routing, a correction is handled (a durable one asks
+//! "Save: ...? [y/N]") and other requests show their memory context; after routing, an accepted
+//! set_preference is stored. The file is the one `kestrel memory` uses; if it cannot be opened,
+//! one notice and no personalization (Ch. 8.3). One-shot mode cannot ask, so it saves nothing.
 //!
 //! With KESTREL_TELEMETRY=<file>, each request also appends a content-free record there
 //! (src/telemetry.rs: tier path and times, decision, RSS; never the text or a label).
@@ -77,6 +82,7 @@ impl<L: Copy> TierModel<L> for Recorder<'_, L> {
 pub fn run(
     config_path: &std::path::Path,
     once: Option<&str>,
+    memory: Option<&std::path::Path>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{BufRead, Write};
 
@@ -111,11 +117,23 @@ pub fn run(
         );
     }
 
+    let mut personal = crate::personal::Personal::open(memory);
     let mut n = 0;
-    let mut ask = |text: &str| {
+    let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
         n += 1;
         log.borrow_mut().clear();
         let req = Request::new(n, text);
+        let unix_s = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
+        match personal.before(&req, now, confirm) {
+            crate::personal::Before::Correction(lines) => {
+                lines.iter().for_each(|l| println!("{l}"));
+                return;
+            }
+            crate::personal::Before::Route(lines) => lines.iter().for_each(|l| println!("{l}")),
+        }
         let t0 = Instant::now();
         let (outcome, trace) = cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
@@ -123,10 +141,10 @@ pub fn run(
             "{}",
             render(&req, &log.borrow(), &outcome, &trace, accept, ms)
         );
+        for l in personal.after(&req, &outcome, now) {
+            println!("{l}");
+        }
         if sink.is_on() {
-            let unix_s = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_or(0, |d| d.as_secs());
             let peak = kestrel_bench::rss::peak_rss_kib();
             sink.write(&crate::telemetry::record(
                 &log.borrow(),
@@ -139,7 +157,10 @@ pub fn run(
         }
     };
     if let Some(text) = once {
-        ask(text);
+        ask(text, &mut |q| {
+            println!("{q} (one-shot mode cannot ask)");
+            false
+        });
         return Ok(());
     }
     eprintln!("type a request (English or Hinglish); \"quit\" or Ctrl-D ends");
@@ -159,7 +180,22 @@ pub fn run(
         if echo {
             println!("{}", line.trim());
         }
-        ask(line.trim());
+        let mut confirm = |q: &str| {
+            print!("{q} [y/N] ");
+            let _ = std::io::stdout().flush();
+            let mut answer = String::new();
+            if stdin.read_line(&mut answer).unwrap_or(0) == 0 {
+                return false;
+            }
+            if echo {
+                println!("{}", answer.trim());
+            }
+            matches!(
+                answer.trim().to_lowercase().as_str(),
+                "y" | "yes" | "haan" | "ha"
+            )
+        };
+        ask(line.trim(), &mut confirm);
         println!();
     }
 }

@@ -11,7 +11,8 @@
 //! models/, experiments/artifacts/tier3/ and datasets/contracts/.
 //!
 //! ask builds the same cascade and routes typed requests, showing each tier's answer, its
-//! confidence against the tier's accept threshold, its time and the decision (src/ask.rs).
+//! confidence against the tier's accept threshold, its time and the decision (src/ask.rs); with
+//! memory (src/personal.rs): corrections, the memory context, stated preferences.
 //!
 //! bench-items is E1's inner loop (src/bench_items.rs, ADR-020): several configs (R0, R1, R3)
 //! over one shared instance of each tier, every item repeated with the systems rotated.
@@ -33,6 +34,8 @@ mod config;
 mod labels;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod personal;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
 #[cfg(feature = "llama")]
 mod route_items;
@@ -41,7 +44,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -72,11 +75,19 @@ fn route(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "llama")]
 fn ask(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let (memory, args) = match args.split_first() {
+        Some((flag, rest)) if flag == "--no-memory" => (None, rest),
+        _ => (Some(memory::default_db(&|k| std::env::var_os(k))?), args),
+    };
     let Some((config, text)) = args.split_first() else {
         return Err(USAGE.into());
     };
     let text = text.join(" ");
-    ask::run(config.as_ref(), (!text.is_empty()).then_some(text.as_str()))
+    ask::run(
+        config.as_ref(),
+        (!text.is_empty()).then_some(text.as_str()),
+        memory.as_deref(),
+    )
 }
 
 #[cfg(feature = "llama")]

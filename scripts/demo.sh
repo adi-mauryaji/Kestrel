@@ -20,6 +20,8 @@ up only when that tier is not confident enough:
 
 Each line shows the tier's guess, its calibrated confidence vs. that tier's threshold,
 whether it accepted or escalated, and its time. Everything runs offline on this laptop.
+Memory: a fresh demo memory file each run (not your own); corrections ask before saving,
+and what is saved shows up, with where it came from, before the next request is routed.
 
 Intents: search_notes, read_document, create_task, delete_task, summarize_notes,
          set_preference, retrieve_memory, chitchat, unsupported (anything else)
@@ -29,6 +31,8 @@ Try:  remind me to pay rent on friday            (rules)
       what did I say about my landlord last week  (escalates to the SLM)
       add milk and delete the dentist task        (two requests at once: straight to the SLM)
       book me a flight to delhi                   (unsupported)
+      I prefer short answers                      (a stated preference: saved)
+      No, I prefer detailed answers unless I'm in a hurry   (a correction: asks, then saves)
 
 TXT
-exec "$BIN" ask "$CONFIG"
+KESTREL_MEMORY="$(mktemp -d)/memory.db" exec "$BIN" ask "$CONFIG"

@@ -30,7 +30,9 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
 
 /// $KESTREL_MEMORY, else $XDG_DATA_HOME/kestrel/memory.db, else
 /// $HOME/.local/share/kestrel/memory.db (empty variables count as unset).
-fn default_db(var: &dyn Fn(&str) -> Option<OsString>) -> Result<PathBuf, Box<dyn Error>> {
+pub(crate) fn default_db(
+    var: &dyn Fn(&str) -> Option<OsString>,
+) -> Result<PathBuf, Box<dyn Error>> {
     let var = |k: &str| var(k).filter(|v| !v.is_empty());
     if let Some(p) = var("KESTREL_MEMORY") {
         return Ok(p.into());
@@ -43,7 +45,7 @@ fn default_db(var: &dyn Fn(&str) -> Option<OsString>) -> Result<PathBuf, Box<dyn
 }
 
 /// Opens the memory file, creating a missing directory 0700 (an existing one is left as it is).
-fn open(path: &Path) -> Result<Memory, Box<dyn Error>> {
+pub(crate) fn open(path: &Path) -> Result<Memory, Box<dyn Error>> {
     if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty())
         && !dir.exists()
     {
