@@ -18,6 +18,8 @@
 //!
 //! plan-eval is Week 9d (src/planner.rs, ADR-023): the Tier-4 planner under the plan grammar on
 //! Kestrel-Tasks-v0 dev compound requests, or `--check-grammar` on every gold plan.
+//!
+//! memory is Week 10 (src/memory.rs): list, approve, delete and export the memory file; no model.
 
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
@@ -29,6 +31,7 @@ mod bench_items;
 mod config;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
+mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
 #[cfg(feature = "llama")]
@@ -38,7 +41,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -47,6 +50,7 @@ fn main() -> ExitCode {
         Some("ask") => ask(&args[1..]),
         Some("bench-items") => bench(&args[1..]),
         Some("plan-eval") => plan_eval(&args[1..]),
+        Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
         _ => Err(USAGE.into()),
     };
     match result {

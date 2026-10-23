@@ -18,6 +18,7 @@ llama = ["kestrel-inference/llama"]
 kestrel-bench.workspace = true
 kestrel-core.workspace = true
 kestrel-inference.workspace = true
+kestrel-memory.workspace = true
 kestrel-nlu.workspace = true
 kestrel-router.workspace = true
 kestrel-tools.workspace = true

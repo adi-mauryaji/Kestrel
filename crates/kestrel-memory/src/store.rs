@@ -399,6 +399,12 @@ impl Memory {
             .map_err(|e| KestrelError::Storage(e.to_string()))
     }
 
+    /// Rebuilds the file without its freed pages (Ch. 19.2 "VACUUM on request"). Old copies may
+    /// still exist on the disk itself (Ch. 17.3).
+    pub fn vacuum(&self) -> Result<(), KestrelError> {
+        self.conn.execute_batch("VACUUM").map_err(storage)
+    }
+
     pub fn audit(&self) -> Result<Vec<Event>, KestrelError> {
         let mut st = self
             .conn
@@ -906,6 +912,32 @@ mod tests {
         }
         let m = Memory::open(&path).unwrap();
         assert_eq!(visible(&m, "answer", 1)[0].value, "concise");
+    }
+
+    #[test]
+    fn vacuum_gives_freed_pages_back() {
+        // Ch. 19.2: VACUUM on request rebuilds the file without the freed pages.
+        let path = temp_db("vacuum");
+        let mut m = Memory::open(&path).unwrap();
+        let value = "x".repeat(400);
+        let mut ids = Vec::new();
+        for i in 0..200 {
+            let key = format!("fact_{i}");
+            let d = Draft::new(Kind::Fact, &key, &value);
+            ids.push(m.propose(&d, Source::UserExplicit, 0).unwrap().id());
+        }
+        for id in ids {
+            m.delete(id, 1).unwrap();
+        }
+        let size = |p: &Path| std::fs::metadata(p).unwrap().len();
+        let before = size(&path);
+        m.vacuum().unwrap();
+        // ~124 KiB of mostly freed pages -> the schema and 400 audit rows (~36 KiB here).
+        assert!(size(&path) < before / 2, "{} -> {}", before, size(&path));
+        assert!(
+            m.audit().unwrap().len() == 400,
+            "the audit survives a vacuum"
+        );
     }
 
     #[cfg(unix)]
