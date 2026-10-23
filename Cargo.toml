@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-nlu", "crates/kestrel-router", "crates/kestrel-tools"]
+members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-router", "crates/kestrel-tools"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,7 @@ license = "MIT OR Apache-2.0"
 kestrel-bench = { path = "crates/kestrel-bench" }
 kestrel-core = { path = "crates/kestrel-core" }
 kestrel-inference = { path = "crates/kestrel-inference" }
+kestrel-memory = { path = "crates/kestrel-memory" }
 kestrel-nlu = { path = "crates/kestrel-nlu" }
 kestrel-router = { path = "crates/kestrel-router" }
 kestrel-tools = { path = "crates/kestrel-tools" }
@@ -20,6 +21,10 @@ kestrel-tools = { path = "crates/kestrel-tools" }
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
 llama-cpp-2 = "=0.1.157"
 llama-cpp-sys-2 = "=0.1.157"
+# SQLite compiled in (bundled 3.53.2, FTS5); only kestrel-memory uses it (Ch. 24.4, ADR-026).
+# rusqlite asks for libsqlite3-sys "^0.38.2", so the sys crate is pinned too.
+libsqlite3-sys = "=0.38.2"
+rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 
