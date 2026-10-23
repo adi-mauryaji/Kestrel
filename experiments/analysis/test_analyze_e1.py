@@ -111,17 +111,20 @@ def test_nearest_rank_matches_kestrel_bench():
     assert nearest_rank(np.arange(1, 21, dtype=float)[::-1], 95) == 19.0  # rank ceil(0.95 * 20) = 19
 
 
-def rows_for(system, i, intent, tier, base_ms, consulted, reps=5, best=None, multi=False):
+def rows_for(system, i, intent, tier, base_ms, steps, reps=5, best=None, multi=False):
+    """`steps`: (tier, label, ms) per consulted tier, as kestrel bench-items logs them."""
+    steps = [{"tier": t, "label": lab, "confidence": None if lab is None else 0.9, "ms": ms} for t, lab, ms in steps]
     return [{"system": system, "id": i, "intent": intent, "tier": tier, "ms": base_ms + JITTER[r - 1], "rep": r,
-             "confidence": 0.9 if intent else None, "consulted": consulted, "best": best, "multi_intent": multi,
-             "warmup": False} for r in range(1, reps + 1)]
+             "confidence": 0.9 if intent else None, "consulted": [st["tier"] for st in steps], "steps": steps,
+             "best": best, "multi_intent": multi, "warmup": False} for r in range(1, reps + 1)]
 
 
 def scenario(n=40, r3_wrong=0, latency_every=1):
     """Intents-like items: k % 10 == 0 out of scope (hi-en), k % 10 == 5 compound (en), else "a"; even k hi-en.
-    R0: Tier 4 at 800 ms, abstains on out-of-scope (best guess "a"). R1: Tier 3 at 5 ms, accepts compounds.
-    R3: Tier 3 at 6 ms; out-of-scope escalates and abstains at 806 ms; compounds (and item 1, a signal false
-    positive) go straight to Tier 4 at 800 ms; the first `r3_wrong` in-scope items get "b" at Tier 3."""
+    Tier 4 says "a" everywhere; Tier 3 says "a", or "b" on the first `r3_wrong` in-scope items R3 answers
+    there, and R1 and R3 see the same Tier 3. R0: Tier 4 at 800 ms, abstains on out-of-scope (best guess
+    "a"). R1: Tier 3 at 5 ms, accepts compounds. R3: Tier 3 at 6 ms; out-of-scope escalates and abstains at
+    806 ms; compounds (and item 1, a signal false positive) go straight to Tier 4 at 800 ms."""
     gold, rows, lat_ids, wrong = {}, [], set(), 0
     for k in range(n):
         i = f"it{k:02d}"
@@ -133,16 +136,18 @@ def scenario(n=40, r3_wrong=0, latency_every=1):
         if timed:
             lat_ids.add(i)
         oos, comp = label == "unsupported", label == "a|b"
-        rows += rows_for("R0", i, None if oos else "a", 4, 800, [4], reps, best={"intent": "a"} if oos else None)
-        rows += rows_for("R1", i, None if oos else "a", 3, 5, [3], reps)
+        bad = not (oos or comp or k == 1) and wrong < r3_wrong
+        wrong += bad
+        t3 = "b" if bad else "a"
+        rows += rows_for("R0", i, None if oos else "a", 4, 800, [(4, "a", 800)], reps,
+                         best={"intent": "a"} if oos else None)
+        rows += rows_for("R1", i, None if oos else t3, 3, 5, [(3, t3, 5)], reps)
         if comp or k == 1:
-            rows += rows_for("R3", i, "a", 4, 800, [4], reps, multi=True)
+            rows += rows_for("R3", i, "a", 4, 800, [(4, "a", 800)], reps, multi=True)
         elif oos:
-            rows += rows_for("R3", i, None, 4, 806, [1, 3, 4], reps)
+            rows += rows_for("R3", i, None, 4, 806, [(1, None, 0.0), (3, "a", 6), (4, "a", 800)], reps)
         else:
-            bad = wrong < r3_wrong
-            wrong += bad
-            rows += rows_for("R3", i, "b" if bad else "a", 3, 6, [1, 3], reps)
+            rows += rows_for("R3", i, t3, 3, 6, [(1, None, 0.0), (3, t3, 6)], reps)
     if latency_every > 1:  # untimed items: one wild repetition that must not enter any latency number
         for r in rows:
             if r["id"] not in lat_ids:
@@ -205,7 +210,7 @@ def test_intents_v0_resamples_template_families_with_items_alongside():
     # The 8 errors sit in 3 of the 8 families: resampling families widens the interval.
     assert np.diff(acc["ci95"])[0] > np.diff(acc["item_level"]["ci95"])[0]
     assert "item_level" in rep["h1"]["latency"] and "item_level" in rep["by_lang"]["hi-en"]["accuracy"]
-    assert rep["h1c"]["accuracy"]["diff"] == pytest.approx(32 / 40 - 36 / 40)  # R3 - R1
+    assert rep["h1c"]["accuracy"]["diff"] == pytest.approx(32 / 40 - 28 / 40)  # R3 - R1 (both see the 8 "b")
     assert rep["h1c"]["p"] == rep["h1c"]["accuracy"]["p_noninferior"]
 
 
@@ -270,3 +275,25 @@ def test_render_names_the_systems_and_h1():
     rows, gold, lat = scenario()
     text = render(run(rows, gold, lat) | {"dataset": "intents_v0", "split": "val", "dev": True, "valid": False})
     assert "R0 untuned" in text and "H1" in text and "DEV" in text
+
+
+def test_h1b_random_escalation_at_r3s_acceptance_counts():
+    rows, gold, lat = scenario()
+    h = run(rows, gold, lat)["h1b"]
+    # Tier 3 accepts 31 of the 35 items reaching it at random (X of the 4 out-of-scope ones, E[X] = 124/35, all
+    # wrong); the 9 left go to Tier 4, which accepts 5 at random: E[wrong] = E[X] * 8/9 + 24/9.
+    assert h["r3_acc"] == 1.0
+    assert h["rrand"]["acc"] == pytest.approx(1 - (124 / 35 * 8 / 9 + 24 / 9) / 40, abs=0.01)
+    assert h["accuracy"]["diff"] == pytest.approx(1 - h["rrand"]["acc"])
+    for part in ("all_items", "latency_subset"):  # every item is timed here, and every Tier 4 call costs 800 ms
+        assert h["cost_model_ms"][part]["r3"] == pytest.approx(h["cost_model_ms"][part]["rrand"])
+    assert h["p"] == h["accuracy"]["p_above"] and "item_level" in h["accuracy"]
+
+
+def test_h1b_needs_tier_answers_that_reproduce_r3():
+    rows, gold, lat = scenario()
+    for r in rows:
+        if r["system"] == "R1" and r["id"] == "it02":
+            r["steps"][0]["label"] = "b"  # R3 accepted "a" from the same Tier 3
+    with pytest.raises(ValueError, match="it02"):
+        run(rows, gold, lat)

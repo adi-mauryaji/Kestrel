@@ -26,9 +26,12 @@ H1 (intersection-union: the 95% CI of Δacc = R3 - R0 lies above -δ AND that of
 its outcome supported / not supported / inconclusive), H1c (R3 vs R1, non-inferiority), per language
 H7a (Δacc, Δlat) and D11 (R3's Tier-4 share and mean latency), ρ, the routing signal's
 false-positive rate on single-intent items, and on CLINC150 test the D1 sensitivity analysis (items
-whose text also occurs in another set dropped). Secondary hypotheses carry their p (two-sided scale);
-their outcomes come after Holm over the whole secondary family, once every experiment has its p.
-H1b (R-rand) needs every tier's output on every item and is not computed here yet.
+whose text also occurs in another set dropped), and H1b: R3 vs random escalation at R3's per-tier
+acceptance counts (D10, policies.r_rand over 1000 seeds), rebuilt from the rows (Tier 1 from R3's
+first step, Tier 3 from R1 and Tier 4 from R0, which consult their tier on every item; costs from
+those steps' times), refused unless those answers give back R3's logged decisions. Secondary
+hypotheses carry their p (two-sided scale); their outcomes come after Holm over the whole secondary
+family, once every experiment has its p.
 
 Out: experiments/logs/E1/analysis_<run name>.json and the tables on stdout.
 """
@@ -47,14 +50,16 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "experiments" / "e1"))
 from run_e1 import LOG_DIR, REPS, chunk_plan, freq_problems, item_latency, load_items, rep_disagreements  # noqa: E402
 from kestrel_stats import (N_BOOT, bootstrap_means, cohens_dz, combine, intersection_union_p,  # noqa: E402
-                           mcnemar_exact, outcome, p_below, p_noninferior, percentile_ci, wilcoxon_paired)
+                           mcnemar_exact, outcome, p_above, p_below, p_noninferior, percentile_ci, wilcoxon_paired)
 from metrics import macro_f1, per_item_correct  # noqa: E402
+from policies import DATASETS, Answers, correct, r_rand, replay  # noqa: E402
 
 SYSTEMS = ("R0", "R1", "R3")
 REPORTED = ("R0", "R0 untuned", "R1", "R3")
 OOS = {"intents_v0": "unsupported", "clinc150": "oos"}
 CLUSTERS = {"intents_v0": "family"}  # ADR-029: the bootstrap resamples this field's groups
 RHO = 0.1  # D6
+RRAND_SEEDS = 1000  # D10
 INVALIDATED = "INVALIDATED.json"
 DELTA_LOG = ROOT / "experiments" / "logs" / "router" / "delta_pilot.json"
 
@@ -171,6 +176,82 @@ def speed(ms_a, ms_b, n_boot: int, seed: int, clusters=None) -> dict:
     return out
 
 
+def superiority(x_a, x_b, n_boot: int, seed: int, clusters=None) -> dict:
+    """A more accurate than B, for per-item correctness that may be an expectation (R-rand): the 95% CI
+    of mean(x_A - x_B) above 0; with clusters, resampled by cluster and the item-level CI and p alongside."""
+    d = np.asarray(x_a, float) - x_b
+    m, lo, hi, boots = _boot(d, n_boot, seed, clusters)
+    out = {"diff": m, "ci95": [lo, hi], "above": lo > 0, "p_above": p_above(boots)}
+    if clusters is not None:
+        _, lo, hi, boots = _boot(d, n_boot, seed)
+        out["item_level"] = {"ci95": [lo, hi], "p_above": p_above(boots)}
+    return out
+
+
+def _step(row: dict, tier: int):
+    return next((st for st in row["steps"] if st["tier"] == tier), None)
+
+
+def step_times(rows) -> dict[tuple[str, str, int], float]:
+    """(id, system, tier) -> the median over the repetitions of that tier's step time."""
+    ms = defaultdict(list)
+    for r in rows:
+        if not r["warmup"]:
+            for st in r["steps"]:
+                ms[(r["id"], r["system"], st["tier"])].append(st["ms"])
+    return {k: float(np.median(v)) for k, v in ms.items()}
+
+
+def tier_answers(dec: dict, gold_rows, step_ms: dict, oos: str) -> tuple[Answers, dict]:
+    """policies.Answers from the E1 rows: Tier 1 = R3's first step, Tier 3 = R1's, Tier 4 = R0's (R1
+    and R0 consult their tier on every item); costs = those steps' per-item median times."""
+    t1 = [_step(r, 1) for r in dec["R3"]]
+    t3 = [_step(r, 3) for r in dec["R1"]]
+    t4 = [_step(r, 4) for r in dec["R0"]]
+    names = ({g["label"] for g in gold_rows if "|" not in g["label"]} | {oos}
+             | {st["label"] for st in t1 + t3 + t4 if st and st.get("label") is not None}
+             | {r["intent"] for r in dec["R3"] if r["intent"] is not None})
+    idx = {c: k for k, c in enumerate(sorted(names))}
+    lab = lambda st: idx[st["label"]] if st and st.get("label") is not None else -1  # noqa: E731
+    ids = [g["id"] for g in gold_rows]
+    n = len(ids)
+    flag = np.array([bool(r["multi_intent"]) for r in dec["R3"]])
+    y1, y3, y4 = (np.array([lab(st) for st in t]) for t in (t1, t3, t4))
+    a = Answers(gold=np.array([-2 if "|" in g["label"] else idx[g["label"]] for g in gold_rows]),
+                compound=np.array(["|" in g["label"] for g in gold_rows]),
+                oos=np.array([g["label"] == oos for g in gold_rows]), conj=flag, amb=np.zeros(n, bool),
+                lang=np.array([g.get("lang", "") for g in gold_rows]),
+                family=np.array([g.get("family", g["id"]) for g in gold_rows]),
+                m1=y1 >= 0, y1=y1, c1=np.zeros(n), y3=y3, c3=np.zeros(n), m4=y4 >= 0, y4=y4, c4=np.zeros(n),
+                k1=np.array([step_ms.get((i, "R3", 1), 0.0) for i in ids]),
+                k3=np.array([step_ms[(i, "R1", 3)] for i in ids]),
+                k4=np.array([step_ms[(i, "R0", 4)] for i in ids]), oos_idx=idx[oos])
+    return a, idx
+
+
+def h1b(dec: dict, gold_rows, step_ms: dict, ok_r3, timed, *, dataset: str, n_boot: int, seed: int,
+        fam=None, seeds: int = RRAND_SEEDS) -> dict:
+    """H1b (D10): R3 vs random escalation with R3's per-tier acceptance counts, from the E1 rows."""
+    oos = OOS[dataset]
+    a, idx = tier_answers(dec, gold_rows, step_ms, oos)
+    accepted = lambda k: np.array([r["intent"] is not None and r["tier"] == k for r in dec["R3"]])  # noqa: E731
+    det = replay(a, accepted(1), a.conj, accepted(3), accepted(4), DATASETS[dataset][0])
+    logged = [(-1 if r["intent"] is None else idx[r["intent"]], r["tier"]) for r in dec["R3"]]
+    bad = [g["id"] for g, (p, t), dp, dt in zip(gold_rows, logged, det.pred, det.tier) if (p, t) != (dp, dt)]
+    if bad:
+        raise ValueError(f"R3's logged decisions are not what the per-tier answers give: {bad[:5]}")
+    if not np.array_equal(correct(a, det.pred, det.tier), ok_r3):
+        raise ValueError("policies.correct and item_correct disagree on R3")
+    rr = r_rand(a, det, seeds, per_item=True)
+    acc = superiority(ok_r3, rr["item_correct"], n_boot, seed, fam)
+    return {"seeds": seeds, "r3_acc": ok_r3.mean(),
+            "rrand": {k: rr[k] for k in ("acc", "acc_sd", "tier4_rate")}, "accuracy": acc, "p": acc["p_above"],
+            # Equal escalation counts match the cost over all items, not on a subset (descriptive).
+            "cost_model_ms": {name: {"n": int(m.sum()), "r3": det.cost[m].mean(), "rrand": rr["item_cost"][m].mean()}
+                              for name, m in (("latency_subset", timed), ("all_items", np.ones(len(timed), bool)))},
+            "outcome": "after Holm (secondary family)"}
+
+
 def _h1(ok, ms, keep, timed, delta, n_boot, seed, fam) -> dict:
     sub = lambda mask: None if fam is None else fam[mask]  # noqa: E731
     acc = noninferiority(ok["R3"][keep], ok["R0"][keep], delta, n_boot, seed, sub(keep))
@@ -238,6 +319,8 @@ def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_id
               "h1": _h1(ok, ms, every, timed, delta, n_boot, seed, fam)}
     h1c = noninferiority(ok["R3"], ok["R1"], delta, n_boot, seed, fam)
     report["h1c"] = {"accuracy": h1c, "p": h1c["p_noninferior"], "outcome": "after Holm (secondary family)"}
+    report["h1b"] = h1b(dec, gold_rows, step_times(timed_rows), ok["R3"], timed, dataset=dataset, n_boot=n_boot,
+                        seed=seed, fam=fam)
 
     langs = sorted({g["lang"] for g in gold_rows if "lang" in g})
     single = [i for i in ids if "|" not in gold[i]["label"]]
@@ -316,6 +399,11 @@ def render(rep: dict) -> str:
     c = rep["h1c"]["accuracy"]
     out.append(f"**H1c** R3 vs tuned R1: Δacc {_ci(c, 'diff', '+.4f')} (> −δ: {c['noninferior']}), p "
                f"{rep['h1c']['p']:.4f}; outcome after Holm over the secondary family")
+    b = rep["h1b"]
+    cost = b["cost_model_ms"]["all_items"]
+    out.append(f"**H1b** R3 vs R-rand ({b['seeds']} seeds, acc {b['rrand']['acc']:.3f}): Δacc "
+               f"{_ci(b['accuracy'], 'diff', '+.4f')}, p {b['p']:.4f}; cost model over all items R3 {cost['r3']:.1f} "
+               f"vs R-rand {cost['rrand']:.1f} ms; outcome after Holm")
     for lang, v in rep.get("by_lang", {}).items():
         dlat = f"{_ci(v['latency'], 'diff_ms', '+.1f')} ms" if v["latency"] else "— (no timed items)"
         out.append(f"- {lang} (n {v['n']}): Δacc {_ci(v['accuracy'], 'diff', '+.4f')}, Δlat {dlat}; R3 reaching "

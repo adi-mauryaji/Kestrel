@@ -3,8 +3,8 @@ import math
 import numpy as np
 import pytest
 
-from policies import (OFF, Answers, best_point, correct, label_classes, r_rand, reference_acc, route, rule_precision,
-                      sweep_shared, tuned_single)
+from policies import (OFF, Answers, best_point, correct, label_classes, r_rand, reference_acc, replay, route,
+                      rule_precision, sweep_shared, tuned_single)
 
 CLASSES = ["create_task", "search_notes", "unsupported"]
 
@@ -276,3 +276,29 @@ def test_the_best_reachable_point_is_the_highest_floor_a_tier_set_meets():
     top = max(p["acc"] for p in pts)
     p = best_reachable(a, None, (1, 4), start=top + 0.05, step=0.005)
     assert p["acc"] >= top - 0.005 - 1e-12 and p == best_point(pts, p["floor"]) | {"floor": p["floor"]}
+
+
+def test_replay_rebuilds_a_route_from_its_acceptances():
+    recs = [_rec("create_task", t1="create_task"), _rec("search_notes", t3=(0.0, 5.0, 0.0)),
+            _rec("search_notes", t3=(0.0, 0.1, 0.0)), _rec("create_task|search_notes", t3=(9.0, 0.0, 0.0), conj=True)]
+    a = _answers(recs)
+    r = route(a, (0.5, 0.8, 0.0), signal="conjunction")
+    again = replay(a, r.acc1, r.flag, r.acc3, r.acc4)
+    for f in ("pred", "tier", "cost", "flag", "pool1", "acc1", "reach3", "acc3", "reach4", "acc4"):
+        assert np.array_equal(getattr(again, f), getattr(r, f)), f
+    assert again.use == r.use
+    # Acceptances outside what the cascade lets a tier see are ignored (item 0 is accepted at Tier 1).
+    assert np.array_equal(replay(a, r.acc1, r.flag, r.acc3 | np.array([True, False, False, False]), r.acc4).pred,
+                          r.pred)
+
+
+def test_random_escalation_per_item_expectations():
+    recs = [_rec("create_task", t3=(5.0, 0.0, 0.0)), _rec("search_notes", t3=(0.0, 0.2, 0.0)),
+            _rec("search_notes", t3=(0.0, 0.1, 0.0)), _rec("create_task", t3=(0.0, 0.3, 0.0))]
+    a = _answers(recs)
+    det = route(a, (0.5, 0.8, 0.0))
+    rr = r_rand(a, det, seeds=200, per_item=True)
+    assert rr["item_correct"].shape == rr["item_cost"].shape == (4,)
+    assert rr["acc"] == pytest.approx(rr["item_correct"].mean())
+    assert rr["cost"] == pytest.approx(rr["item_cost"].mean())
+    assert "item_correct" not in r_rand(a, det, seeds=5)  # the logged summary stays as it was

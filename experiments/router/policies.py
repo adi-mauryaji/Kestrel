@@ -197,11 +197,22 @@ def best_point(points: list[dict], floor: float):
     return min(ok, key=lambda p: (p["cost"], -p["acc"])) if ok else None
 
 
-def r_rand(a: Answers, det: Routed, seeds: int = 1000) -> dict:
+def replay(a: Answers, acc1, flag, acc3, acc4, tiers=(1, 3, 4)) -> Routed:
+    """A cascade whose acceptances were logged by a real run (E1) instead of thresholded here: what each
+    tier accepted, among the requests that reached it. This is the `det` r_rand needs for such a run."""
+    use = tuple(k in tiers for k in (1, 3, 4))
+    pool1 = use[0] & a.m1 & ~flag
+    return _finish(a, pool1 & acc1, pool1, flag, use, lambda reach3: reach3 & acc3,
+                   lambda reach4: reach4 & a.m4 & acc4)
+
+
+def r_rand(a: Answers, det: Routed, seeds: int = 1000, per_item: bool = False) -> dict:
     """D10: at each tier accept a uniformly random set of the requests it could accept, as many as
-    `det` accepted there; everything else escalates as in `det`. Means over seeds."""
+    `det` accepted there; everything else escalates as in `det`. Means over seeds. With `per_item`,
+    also each item's expected correctness and cost (arrays for paired tests, not for the logs)."""
     n1, n3, n4 = int(det.acc1.sum()), int(det.acc3.sum()), int(det.acc4.sum())
     acc, cost, t4 = [], [], []
+    ok_sum, cost_sum = np.zeros(len(a.gold)), np.zeros(len(a.gold))
     for s in range(seeds):
         rng = np.random.default_rng(s)
 
@@ -214,11 +225,17 @@ def r_rand(a: Answers, det: Routed, seeds: int = 1000) -> dict:
         acc1 = pick(det.pool1, n1)
         r = _finish(a, acc1, det.pool1, det.flag, det.use, lambda reach3: pick(reach3, n3),
                     lambda reach4: pick(reach4 & a.m4, n4))
-        acc.append(correct(a, r.pred, r.tier).mean())
+        ok = correct(a, r.pred, r.tier)
+        acc.append(ok.mean())
         cost.append(r.cost.mean())
         t4.append((r.tier == 4).mean())
-    return {"seeds": seeds, "acc": float(np.mean(acc)), "acc_sd": float(np.std(acc)), "cost": float(np.mean(cost)),
-            "tier4_rate": float(np.mean(t4))}
+        ok_sum += ok
+        cost_sum += r.cost
+    out = {"seeds": seeds, "acc": float(np.mean(acc)), "acc_sd": float(np.std(acc)), "cost": float(np.mean(cost)),
+           "tier4_rate": float(np.mean(t4))}
+    if per_item:
+        out |= {"item_correct": ok_sum / seeds, "item_cost": cost_sum / seeds}
+    return out
 
 
 def summary(a: Answers, r: Routed, tau=None) -> dict:

@@ -170,6 +170,45 @@
   "p": 0.0,
   "outcome": "after Holm (secondary family)"
  },
+ "h1b": {
+  "seeds": 1000,
+  "r3_acc": 1.0,
+  "rrand": {
+   "acc": 0.9494,
+   "acc_sd": 0.03463581960918493,
+   "tier4_rate": 0.5499999999999999
+  },
+  "accuracy": {
+   "diff": 0.0506,
+   "ci95": [
+    0.0,
+    0.13493333333333332
+   ],
+   "above": false,
+   "p_above": 0.2322,
+   "item_level": {
+    "ci95": [
+     0.0,
+     0.1272
+    ],
+    "p_above": 0.2404
+   }
+  },
+  "p": 0.2322,
+  "cost_model_ms": {
+   "latency_subset": {
+    "n": 20,
+    "r3": 413.27903610000004,
+    "rrand": 423.4880344558495
+   },
+   "all_items": {
+    "n": 20,
+    "r3": 413.27903610000004,
+    "rrand": 423.4880344558495
+   }
+  },
+  "outcome": "after Holm (secondary family)"
+ },
  "signal_false_positive": {
   "all": 0.0,
   "en": 0.0,
