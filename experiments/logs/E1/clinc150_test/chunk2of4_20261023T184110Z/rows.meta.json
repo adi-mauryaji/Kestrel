@@ -1,0 +1,26 @@
+{
+  "items": 1380,
+  "load_s": 119.349941067,
+  "peak_rss_mib": 3787.40234375,
+  "requests": 7212,
+  "rss_anon_mib_at_end": 3778.828125,
+  "rss_file_mib_at_end": 8.57421875,
+  "systems": [
+    {
+      "config_sha256": "8bc02e20f5ad593d5a4f8a2cc4672018e668c3a9adbc3338a8066f14c688d8a9",
+      "policy": "R0"
+    },
+    {
+      "config_sha256": "c55657a532ca4fe02d30d2ee2938f91641564651fa9415d7cefd2b0fae2247d8",
+      "policy": "R1"
+    },
+    {
+      "config_sha256": "216385772928ab36fe63171af0a2f2d2ec4822b74e51a2683fdc29cc7e11ff12",
+      "policy": "R3"
+    }
+  ],
+  "tiers_loaded": [
+    3,
+    4
+  ]
+}
