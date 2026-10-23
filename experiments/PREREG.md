@@ -59,6 +59,7 @@ on cal by BCE. CLINC150: the label set adds an explicit `oos` answer (ADR-016); 
 | Kestrel-Intents-v0 | train 604 / cal 100 / val 128 / **test 252** | full set `5de96809…e37ca314`; per-split in `datasets/kestrel_intents_v0/splits/manifest.json` | split by template family (EN + Hinglish together); OOS split by domain (test domains music, sports unseen); compound items in val/test only. Synthetic, Claude-drafted, human-reviewed — label as synthetic in every table |
 | CLINC150 (full) | train 15000 / cal 1500 / val 1700 (200 OOS) / **test 5500 (1000 OOS)** | raw SHA-256 `36923c37…`; per-split in `datasets/clinc150/manifest.json` | official test intact; 24 texts occur in two sets (4 with conflicting labels; 14 test items) |
 | Kestrel-Tasks-v0, -Personas-v0 | — | not built yet | added to this file before E4/E6 run |
+| CLINC150 domains (E5) | the 150 in-scope intents of the rows above, grouped | `domains.json` SHA-256 `b947b579…` at the same pinned commit (datasets/MANIFEST.toml) | 10 domains × 15 intents; E5's stages (§4, ADR-027) |
 
 **[accepted 2026-10-17] D1:** CLINC150 test keeps its 14 items whose text also appears in train/cal/val (primary, comparable with the
 literature) and a sensitivity analysis drops them. **[accepted 2026-10-17] D2:** the 100 official *train* OOS items join val (threshold
@@ -115,6 +116,19 @@ the pinned CPUs' frequency and temperature, and the busy share of the CPUs outsi
 4. CPU temperature > 95 °C after any process.
 5. A crash or a model-file hash mismatch.
 
+**E5 (head updates; accuracy only, so no latency protocol) — [accepted 2026-10-23, ADR-027], written before any sweep
+result.** Data: CLINC150 in-scope items, e5 Q8_0 embeddings from the Week-5 cache (runtime route); the 10 domains of the
+pinned `domains.json` (datasets/MANIFEST.toml), 5 stages × 2 domains in 3 seeded domain orders (`e5-order:1..3`), each
+stage's train items for the update, every stage's items for the matrix R[i][j]. Methods: naive, replay (`per_class` stored
+items of every earlier class), online EWC (summed diagonal Fisher, W only); controls joint (upper bound) and stage0 (lower
+bound) at naive's selected lr / epochs. Minibatch SGD (batch 64) with seeds 1–5. Budget: 12 configurations per method; naive's
+lr × epochs grid {0.3, 1, 3, 10} × {2, 5, 10} contains every pair the mitigations use ({1, 3} × {5, 10}; replay
+`per_class` {5, 20, 50}; EWC λ {10, 100, 300}, from the measured Fisher scale). An EWC step with lr × λ × max F ≥ 2 is refused
+as unstable and its configuration is not eligible. Dev selection: per method, the best mean average accuracy on val over
+its 15 runs; ties → the earlier configuration. Reported per method: average accuracy, average forgetting, BWT (Ch. 22.3),
+update seconds and buffer bytes, mean ± SD over the 15 runs, and every R matrix (`experiments/logs/E5/sweep_dev.json`).
+The test-set run (Week 14) uses the selected configurations unchanged.
+
 ## 5. Targets from E0 (Ch. 6.4)
 
 E0 session 1 under this protocol (20261011T101743Z; sessions 2–3 pending): Qwen3-1.7B Q4 prefill 90.6 tok/s, decode 18.2
@@ -141,6 +155,12 @@ end-to-end measurements.
   (Ch. 52.1). If E4/E5 stay in scope, the ε values are set from a pilot and written here before either runs. ε₂ needs E5's
   stage matrix, and the head (convex lbfgs, no random state) has no seed variance, so that pilot must first name its
   variance source (e.g. bootstrap resamples of train).
+  **[accepted 2026-10-23, ADR-027] Variance source and rules, written before any E5 sweep result.** ε₁ (macro-F1 drop on
+  the frozen regression suite) and ε₃ (ECE rise) = 2 × the sample SD over 5 bootstrap resamples of CLINC150 train, each
+  retraining the Tier-3 head with Week 5's C (100), T fitted on cal, scored on val in-scope with 15 ECE bins
+  (`experiments/continual/epsilon_pilot.py`, seed 0). ε₂ (average forgetting) = 2 × the sample SD of the selected naive
+  configuration's average forgetting over its 15 E5 dev runs (§4, `e5_sweep.py`). Values: **ε₁ = TBD, ε₃ = TBD, ε₂ = TBD**
+  (filled from the logs; the rules do not change once they are read).
 
 ## 6. Analysis plan
 
