@@ -1,0 +1,44 @@
+{
+ "dataset": "intents_v0",
+ "split": "test",
+ "n": {
+  "test": 252
+ },
+ "date": "2026-10-23T15:07:40+00:00",
+ "git_head": "59640f4",
+ "config": "experiments/configs/router_intents_v0.json",
+ "config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
+ "tier1": {
+  "rules": "kestrel_nlu::rules::RuleSet::default_set"
+ },
+ "tier3": {
+  "encoder": "multilingual-e5-small-q8_0",
+  "encoder_sha256": "9a2039af4b03dccd1d7e59a915679bc7997b61714a2b9174f43512ed1b0095c5",
+  "head": "intents_v0-multilingual-e5-small-q8_0",
+  "head_bin_sha256": "214e846ef491ccfb98d6bdf0a9d1e4f75a66e426c76ff03e170971367f4001ef",
+  "classes": [
+   "search_notes",
+   "read_document",
+   "create_task",
+   "delete_task",
+   "summarize_notes",
+   "set_preference",
+   "retrieve_memory",
+   "chitchat",
+   "unsupported"
+  ],
+  "temperature_cal": 0.6878183484077454,
+  "cache_gap_max_abs": 0.0
+ },
+ "tier4": {
+  "model": "gemma-4-e2b-it-q4_0",
+  "prompt": "tier4_intent_prompt.txt",
+  "prompt_sha256": "8e8373115a4d5fcfeff80f7d78a0ea97caa91c28d856533afbcb1a9f1f638660",
+  "shots": 36,
+  "n_ctx": 2048,
+  "errors": 0
+ },
+ "timing": {
+  "note": "not a measurement: E2 uses the confidences; E3 takes costs from E1's rows"
+ }
+}
