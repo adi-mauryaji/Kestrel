@@ -306,3 +306,11 @@ Definitions fixed at the freeze (written before any test data was seen):
 - **Order of work:** the analysis code of E2 and E3 is committed before any E2, E3 or E1 test result is read.
 - **Holm:** the secondary family keeps H4 and H6. Until they have their p, the secondary hypotheses' adjusted p and
   outcomes are interim and marked as such. H1 (primary, no Holm) is final when E1 is complete.
+
+**Clarification v1.0.1 (2026-10-23, after the freeze, logged; ADR-032).** The secondary family's datasets: §6 named
+the dataset only for H1 (D8). H1b, H1c and H2 enter **once per dataset**, so the family is H1 (Intents-v0), H1b
+(CLINC150, Intents-v0), H1c (both), H2 (both), H3, H4, H5, H6, H7a and H7b: **13 members**, Holm at 0.05. H1 on CLINC150
+stays the primary, outside the family. Disclosure: when this was decided, the E5 test result and E2 on Kestrel-Intents-v0
+test (H2: R2c's risk at 0.80 above R2's) had been seen; no CLINC150 E1 or E2 result existed and E1 had not run. The
+choice keeps every result already seen in the family. Until H4 and H6 have their p, they enter with p = 1: Holm's
+adjusted p cannot rise when another p falls, so an interim "supported" stays supported.
