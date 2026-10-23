@@ -13,6 +13,7 @@
 use std::path::Path;
 
 use kestrel_core::{Intent, Request};
+use kestrel_learning::alias;
 use kestrel_learning::correction::{self, Action};
 use kestrel_memory::{Draft, Kind, Memory, Source};
 use kestrel_router::Outcome;
@@ -34,8 +35,9 @@ pub enum Store {
 pub enum Before {
     /// A correction: handled here, not routed. The lines say what was done.
     Correction(Vec<String>),
-    /// Route the request; these lines (the memory context, or a notice) come first.
-    Route(Vec<String>),
+    /// Route `text` (the request with the user's aliases resolved, ADR-028); these lines (the
+    /// memory context, or a notice) come first.
+    Route { lines: Vec<String>, text: String },
 }
 
 pub struct Personal {
@@ -66,6 +68,25 @@ impl Personal {
         now: i64,
         confirm: &mut dyn FnMut(&str) -> bool,
     ) -> Before {
+        // A taught alias first: "no, by short notes I mean ..." is teaching, not a style correction.
+        if let Some(a) = alias::detect(&req.text) {
+            let Store::On(m) = &mut self.store else {
+                return Before::Correction(vec![format!(
+                    "memory unavailable: \"{}\" = \"{}\" is not kept",
+                    a.phrase, a.target
+                )]);
+            };
+            if !confirm(&alias::question(&a)) {
+                return Before::Correction(vec!["not saved".into()]);
+            }
+            return Before::Correction(vec![match alias::save(m, &a, now) {
+                Ok(_) => format!(
+                    "saved: when you say \"{}\" you mean \"{}\"",
+                    a.phrase, a.target
+                ),
+                Err(e) => format!("not saved: {e}"),
+            }]);
+        }
         match correction::detect(&req.text) {
             Action::NotACorrection => {}
             Action::ApplyOnce(c) => {
@@ -95,6 +116,7 @@ impl Personal {
             }
         }
         let mut lines = Vec::new();
+        let mut text = req.text.clone();
         match &self.store {
             Store::Off(why) if !self.told => {
                 self.told = true;
@@ -103,15 +125,27 @@ impl Personal {
             Store::Off(_) => {}
             Store::On(m) => {
                 let words = |s: &str| s.split_whitespace().count();
-                match m.context(&req.text, now, CONTEXT_K, CONTEXT_WORDS, &words) {
-                    Ok(ctx) => lines.extend(ctx.text.lines().map(|l| format!("memory: {l}"))),
+                let found = m
+                    .context(&req.text, now, CONTEXT_K, CONTEXT_WORDS, &words)
+                    .and_then(|ctx| Ok((ctx, alias::aliases(m, now)?)));
+                match found {
+                    Ok((ctx, aliases)) => {
+                        // Aliases are applied, not shown as context lines.
+                        let shown = ctx.text.lines().filter(|l| !l.contains("] alias_"));
+                        lines.extend(shown.map(|l| format!("memory: {l}")));
+                        let resolved = alias::resolve(&req.text, &aliases);
+                        if resolved != req.text {
+                            lines.push(format!("with your aliases: {resolved}"));
+                            text = resolved;
+                        }
+                    }
                     Err(e) => lines.push(format!(
                         "memory unavailable ({e}); this request goes without it"
                     )),
                 }
             }
         }
-        Before::Route(lines)
+        Before::Route { lines, text }
     }
 
     /// Stores the preference of a request accepted as `set_preference` (the template planner's key
@@ -168,6 +202,13 @@ mod tests {
                 .map(|i| (i.key, i.value, i.source))
                 .collect(),
             Store::Off(_) => vec![],
+        }
+    }
+
+    fn route(lines: Vec<&str>, text: &str) -> Before {
+        Before::Route {
+            lines: lines.into_iter().map(String::from).collect(),
+            text: text.into(),
         }
     }
 
@@ -229,7 +270,10 @@ mod tests {
     fn a_stated_preference_is_stored_and_shapes_the_next_context() {
         let mut p = Personal::open(Some(&db("pref")));
         let req = Request::new(1, "I prefer short answers");
-        assert_eq!(p.before(&req, NOW, &mut |_| true), Before::Route(vec![]));
+        assert_eq!(
+            p.before(&req, NOW, &mut |_| true),
+            route(vec![], "i prefer short answers")
+        );
         assert_eq!(
             p.after(&req, &accepted(Intent::SetPreference, 0.99), NOW),
             ["saved: answer_length = short"]
@@ -241,9 +285,10 @@ mod tests {
         let next = Request::new(2, "summarize my last three meeting notes");
         assert_eq!(
             p.before(&next, NOW + 60, &mut |_| true),
-            Before::Route(vec![
-                "memory: [pref|user_explicit|2026-10-23] answer_length: short".into()
-            ])
+            route(
+                vec!["memory: [pref|user_explicit|2026-10-23] answer_length: short"],
+                "summarize my last three meeting notes"
+            )
         );
     }
 
@@ -270,14 +315,14 @@ mod tests {
         std::fs::write(&blocker, b"x").unwrap();
         let mut p = Personal::open(Some(&blocker.join("memory.db")));
         let req = Request::new(1, "summarize my notes");
-        let Before::Route(first) = p.before(&req, NOW, &mut |_| true) else {
+        let Before::Route { lines: first, .. } = p.before(&req, NOW, &mut |_| true) else {
             panic!("routed")
         };
         assert_eq!(first.len(), 1);
         assert!(first[0].starts_with("memory unavailable"), "{first:?}");
         assert_eq!(
             p.before(&req, NOW, &mut |_| true),
-            Before::Route(vec![]),
+            route(vec![], "summarize my notes"),
             "said once"
         );
         let fix = Request::new(2, "No, I prefer concise answers");
@@ -297,9 +342,60 @@ mod tests {
     #[test]
     fn memory_can_be_switched_off() {
         let mut p = Personal::open(None);
-        let Before::Route(lines) = p.before(&Request::new(1, "hi"), NOW, &mut |_| true) else {
+        let Before::Route { lines, .. } = p.before(&Request::new(1, "hi"), NOW, &mut |_| true)
+        else {
             panic!("routed")
         };
         assert_eq!(lines, ["memory off (--no-memory)"]);
+    }
+
+    #[test]
+    fn a_taught_alias_is_saved_after_a_yes_and_resolves_later_requests() {
+        let mut p = Personal::open(Some(&db("alias")));
+        let teach = Request::new(1, "When I say standup doc, I mean team sync");
+        let mut asked = Vec::new();
+        let out = p.before(&teach, NOW, &mut |q| {
+            asked.push(q.to_string());
+            true
+        });
+        assert_eq!(
+            asked,
+            ["Save: when you say \"standup doc\" you mean \"team sync\"?"]
+        );
+        assert_eq!(
+            out,
+            Before::Correction(vec![
+                "saved: when you say \"standup doc\" you mean \"team sync\"".into()
+            ])
+        );
+        let next = Request::new(2, "open my standup doc");
+        assert_eq!(
+            p.before(&next, NOW + 60, &mut |_| true),
+            route(
+                vec!["with your aliases: open my team sync"],
+                "open my team sync"
+            )
+        );
+        let no = Request::new(3, "by the gang I mean riya and kabir");
+        assert_eq!(
+            p.before(&no, NOW, &mut |_| false),
+            Before::Correction(vec!["not saved".into()])
+        );
+    }
+
+    #[test]
+    fn without_memory_an_alias_is_not_kept() {
+        let mut p = Personal::open(None);
+        let out = p.before(
+            &Request::new(1, "by the gang I mean riya and kabir"),
+            NOW,
+            &mut |_| panic!("nothing to save into"),
+        );
+        assert_eq!(
+            out,
+            Before::Correction(vec![
+                "memory unavailable: \"the gang\" = \"riya and kabir\" is not kept".into()
+            ])
+        );
     }
 }

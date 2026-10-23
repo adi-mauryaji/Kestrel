@@ -5,9 +5,9 @@
 //!     kestrel ask [--no-memory] CONFIG.json          one request per line ("quit" or EOF ends)
 //!     kestrel ask [--no-memory] CONFIG.json TEXT...  route TEXT once
 //!
-//! Memory (src/personal.rs, Week 10): before routing, a correction is handled (a durable one asks
-//! "Save: ...? [y/N]") and other requests show their memory context; after routing, an accepted
-//! set_preference is stored. The file is the one `kestrel memory` uses; if it cannot be opened,
+//! Memory (src/personal.rs, Week 10, ADR-028): before routing, a taught alias or a correction is
+//! handled (a durable one asks "Save: ...? [y/N]"); other requests show their memory context and
+//! are routed with the user's aliases resolved; after routing, an accepted set_preference is stored. The file is the one `kestrel memory` uses; if it cannot be opened,
 //! one notice and no personalization (Ch. 8.3). One-shot mode cannot ask, so it saves nothing.
 //!
 //! With KESTREL_TELEMETRY=<file>, each request also appends a content-free record there
@@ -122,18 +122,22 @@ pub fn run(
     let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
         n += 1;
         log.borrow_mut().clear();
-        let req = Request::new(n, text);
+        let said = Request::new(n, text);
         let unix_s = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
         let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
-        match personal.before(&req, now, confirm) {
+        // The request routed is the one with the user's aliases resolved.
+        let req = match personal.before(&said, now, confirm) {
             crate::personal::Before::Correction(lines) => {
                 lines.iter().for_each(|l| println!("{l}"));
                 return;
             }
-            crate::personal::Before::Route(lines) => lines.iter().for_each(|l| println!("{l}")),
-        }
+            crate::personal::Before::Route { lines, text } => {
+                lines.iter().for_each(|l| println!("{l}"));
+                Request::new(n, &text)
+            }
+        };
         let t0 = Instant::now();
         let (outcome, trace) = cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
