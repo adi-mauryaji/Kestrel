@@ -1,6 +1,6 @@
 import pytest
 
-from metrics import accuracy, ece, macro_f1, per_item_correct
+from metrics import accuracy, ece, forgetting, macro_f1, per_item_correct
 
 A = None  # an abstention
 
@@ -52,3 +52,22 @@ def test_ece_rejects_bad_input():
         ece([1.2], [True], n_bins=10)
     with pytest.raises(ValueError):
         ece([], [], n_bins=10)
+
+
+def test_forgetting_hand_computed():
+    # R[i][j] = accuracy on task j after stage i. Task 0 peaks at 0.95 after stage 1, so its
+    # forgetting (0.35) and its backward transfer (0.6 - 0.9 = -0.3) differ.
+    r = [[0.90, 0.00, 0.00],
+         [0.95, 0.80, 0.10],
+         [0.60, 0.50, 0.90]]
+    out = forgetting(r)
+    assert out["avg_accuracy"] == pytest.approx((0.6 + 0.5 + 0.9) / 3)
+    assert out["avg_forgetting"] == pytest.approx((0.35 + 0.30) / 2)
+    assert out["bwt"] == pytest.approx((-0.30 - 0.30) / 2)
+
+
+def test_forgetting_of_one_stage_and_bad_shapes():
+    assert forgetting([[0.7]]) == {"avg_accuracy": 0.7, "avg_forgetting": 0.0, "bwt": 0.0}
+    for bad in ([], [[0.5, 0.5]], [[0.5], [0.5, 0.5]]):
+        with pytest.raises(ValueError):
+            forgetting(bad)

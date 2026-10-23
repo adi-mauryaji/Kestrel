@@ -68,3 +68,21 @@ def ece(confidences, correct, *, n_bins):
     n = len(confidences)
     return sum(count[b] / n * abs(hits[b] / count[b] - conf_sum[b] / count[b])
                for b in range(n_bins) if count[b])
+
+
+def forgetting(r):
+    """Continual-learning summary of an accuracy matrix (Ch. 22.3, A.15). r[i][j] = accuracy on
+    task j after training stage i, T x T. avg_accuracy = mean of the last row; avg_forgetting = mean
+    over j < T-1 of (max over l < T-1 of r[l][j]) - r[T-1][j] (Chaudhry et al. 2018); bwt = mean over
+    j < T-1 of r[T-1][j] - r[j][j] (Lopez-Paz & Ranzato 2017). With one stage both are 0."""
+    t = len(r)
+    if t == 0 or any(len(row) != t for row in r):
+        raise ValueError("r must be a non-empty square matrix (stages x tasks)")
+    last = r[-1]
+    f = [max(r[l][j] for l in range(t - 1)) - last[j] for j in range(t - 1)]
+    b = [last[j] - r[j][j] for j in range(t - 1)]
+
+    def mean(v):
+        return sum(v) / len(v) if v else 0.0
+
+    return {"avg_accuracy": mean(last), "avg_forgetting": mean(f), "bwt": mean(b)}

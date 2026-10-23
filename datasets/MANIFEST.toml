@@ -15,3 +15,17 @@ sha256   = "36923c3705a59e08fe9c3883d8bc2dd966ef93e22cb78ac41171782a698d56e0"
 license  = "CC BY 3.0 Unported (repo LICENSE file). The blueprint cites CC BY 4.0 from the UCI listing; we use the repo copy."
 citation = "Larson et al. 2019. An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction. EMNLP-IJCNLP."
 verified = "2026-10-11"
+
+[[dataset]]
+name     = "clinc150-domains"
+variant  = "domains"
+repo     = "clinc/oos-eval"
+revision = "828f8093932c8fe6ca7936c3d2e52903b1c523de"
+file     = "clinc150/domains.json"
+url      = "https://raw.githubusercontent.com/clinc/oos-eval/828f8093932c8fe6ca7936c3d2e52903b1c523de/data/domains.json"
+bytes    = 3818
+sha256   = "b947b579d3b8e74b06f93b01083d8efaff2888b43a3e362533bd88a6e1211b3a"
+# 10 domains x 15 intents (the 150 in-scope intents of data_full.json): E5's stages (Ch. 22.2, ADR-027).
+license  = "CC BY 3.0 Unported (repo LICENSE file), as clinc150."
+citation = "Larson et al. 2019. An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction. EMNLP-IJCNLP."
+verified = "2026-10-23"
