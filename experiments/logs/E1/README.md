@@ -53,3 +53,12 @@ on the 5 warm-up train items, pinned as in E1, and writes `rss/<dataset>_<UTC>/s
 Table R1's RSS column from the latest summary whose config hashes match the chunks'. Memory does not depend on power or
 clock settings, so it needs no AC session, but it is run on the frozen configs (Week 13). A smoke run on 2026-10-23
 (R1, Intents-v0, candidate config) gave 277 MiB with only Tier 3 loaded; it was not kept.
+
+## Test runs (2026-10-23/24, PREREG v1 frozen, tag `exp-E1-frozen`)
+
+Kestrel-Intents-v0 (1 chunk) and CLINC150 (4 chunks), every chunk **valid** on its first run: AC, battery 100%, boost
+0, governor `performance`, 5-min cooldowns ≤ 50 °C, background busy within the 10% one-minute limit (worst 10-s sample
+17.8%, CLINC150 chunk 2), pinned-CPU means 2070.4–2070.7 MHz in all five chunks (rule 3 clean), max 73.8 °C, no
+repetition disagreeing. A sleep inhibitor kept the laptop awake overnight. Peak RSS per system:
+`rss/<dataset>_20261023T21*Z/summary.json`. Analysis: `analysis_<dataset>_test.json`; tables in
+`experiments/RESULTS.md`.

@@ -149,3 +149,20 @@ Across sessions 1–2 (CV of the session means, `experiments/analysis/e0_summary
    the two are not directly comparable (see session 1, note 4).
 
 Session 3 (morning) is still due for the 3-session check (Week 2 "T").
+
+## Session 3 of 3 (20261023T163212Z): night, boost off, pinned
+
+2026-10-23, 21:57–22:47 IST, after a 5-min idle cooldown and CPU ≤ 50 °C (the session followed a 1.3-h full-CPU
+run). Protocol v3 + ADR-012: AC, battery 100%, tuned `throughput-performance`, governor `performance`, boost 0, mask
+`555`, no containers. Invalidation rules (PREREG §4): AC-off/boost-on rows 0 of 120; background busy mean 1.14%, max
+5.7%; pinned CPU frequency in SLM tests 2003–2057 MHz, worst deviation from the session median 0.95%; max temperature
+63.6 °C. **Valid.**
+
+## Repeatability across sessions 1–3 (Week 2 "T")
+
+`python experiments/analysis/e0_summary.py` on the three final-protocol sessions (20261011T101743Z, 20261017T132649Z,
+20261023T163212Z; afternoon, evening, night): the CV of the session means is **≤ 1.0% for every SLM's prefill and
+decode** (Gemma-4-E2B Q4_0 pp128 0.8%, tg64 1.0%; the others 0.1–0.5%) and **0.2% for the chosen encoder**
+(multilingual-e5-small Q8_0 pp32). Higher only where the quantity is short or unused: startup times 0.7–9.0% (1–3.6 s
+processes), bge-small-en-v1.5 pp32 9.8% (not selected, ADR-014). Throughput on this machine under the protocol is
+repeatable well within the precision the latency results need.
