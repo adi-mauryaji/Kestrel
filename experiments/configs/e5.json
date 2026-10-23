@@ -1,0 +1,111 @@
+{
+ "experiment": "E5 (H5; ADR-027)",
+ "status": "CANDIDATE",
+ "selected": {
+  "naive": {
+   "lr": 10.0,
+   "epochs": 10
+  },
+  "replay": {
+   "per_class": 50,
+   "lr": 3.0,
+   "epochs": 10
+  },
+  "ewc": {
+   "lam": 100.0,
+   "lr": 3.0,
+   "epochs": 10
+  },
+  "joint": {
+   "lr": 10.0,
+   "epochs": 10
+  },
+  "stage0": {
+   "lr": 10.0,
+   "epochs": 10
+  }
+ },
+ "orders": {
+  "1": [
+   [
+    "auto_and_commute",
+    "meta"
+   ],
+   [
+    "banking",
+    "work"
+   ],
+   [
+    "travel",
+    "kitchen_and_dining"
+   ],
+   [
+    "credit_cards",
+    "small_talk"
+   ],
+   [
+    "utility",
+    "home"
+   ]
+  ],
+  "2": [
+   [
+    "home",
+    "work"
+   ],
+   [
+    "meta",
+    "kitchen_and_dining"
+   ],
+   [
+    "travel",
+    "credit_cards"
+   ],
+   [
+    "small_talk",
+    "utility"
+   ],
+   [
+    "auto_and_commute",
+    "banking"
+   ]
+  ],
+  "3": [
+   [
+    "utility",
+    "work"
+   ],
+   [
+    "travel",
+    "small_talk"
+   ],
+   [
+    "meta",
+    "kitchen_and_dining"
+   ],
+   [
+    "banking",
+    "credit_cards"
+   ],
+   [
+    "home",
+    "auto_and_commute"
+   ]
+  ]
+ },
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "selection": "best mean avg_accuracy on val among complete configs; ties -> earlier",
+ "data": "clinc150 dev, e5 Q8_0 cache, train -> val",
+ "eps": {
+  "eps1_macro_f1": 0.004775660616751176,
+  "eps2_forgetting": 0.01592973991490801,
+  "eps3_ece": 0.0029051078653289787
+ },
+ "test_note": "the CLINC150 test items are embedded through the runtime encoder at the test run (Week 14)"
+}

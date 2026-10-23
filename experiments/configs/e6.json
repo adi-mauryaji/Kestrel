@@ -1,0 +1,54 @@
+{
+ "experiment": "E6 (H6)",
+ "status": "BLOCKED",
+ "blocked_by": [
+  "Kestrel-Tasks-v0 review and freeze (it is a draft)",
+  "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
+  "the PREREG E6 metrics item (plan validity / end state, ADR-023), the title-scoring rule and which planning path E6 scores (LM-only or ADR-025's hybrid)"
+ ],
+ "grid": [
+  {
+   "model": "qwen3-1.7b-q4_k_m",
+   "file": "Qwen3-1.7B-Q4_K_M.gguf",
+   "quant": "Q4_K_M",
+   "sha256": "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5"
+  },
+  {
+   "model": "qwen3-1.7b-q8_0",
+   "file": "Qwen3-1.7B-Q8_0.gguf",
+   "quant": "Q8_0",
+   "sha256": "9860780f3a1fab1f8f909a1b549ea3e62c22d19ab1a492b3a1026b38c5bd3ec3"
+  },
+  {
+   "model": "gemma-4-e2b-it-q4_0",
+   "file": "gemma-4-E2B-it-Q4_0.gguf",
+   "quant": "Q4_0",
+   "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52"
+  },
+  {
+   "model": "gemma-4-e2b-it-q8_0",
+   "file": "gemma-4-E2B-it-Q8_0.gguf",
+   "quant": "Q8_0",
+   "sha256": "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+  },
+  {
+   "model": "qwen3-4b-q4_k_m",
+   "file": "Qwen3-4B-Q4_K_M.gguf",
+   "quant": "Q4_K_M",
+   "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+  },
+  {
+   "model": "qwen3-4b-q8_0",
+   "file": "Qwen3-4B-Q8_0.gguf",
+   "quant": "Q8_0",
+   "sha256": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300"
+  }
+ ],
+ "baseline": "Q8_0 of the same model",
+ "threads": "6, one per physical core (PREREG §4)",
+ "n_ctx": {
+  "LM-only planner (apps/cli/src/planner.rs)": 4096,
+  "Tier 4 in the Intents-v0 cascade (router config)": 2048
+ },
+ "dataset": "kestrel-tasks-v0 test"
+}

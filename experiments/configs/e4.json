@@ -1,0 +1,39 @@
+{
+ "experiment": "E4 (H4; ADR-028)",
+ "status": "BLOCKED",
+ "blocked_by": [
+  "Kestrel-Personas-v0 review and freeze (it is a draft)",
+  "the human's acceptance of the PROPOSED E4 protocol (PREREG §4)"
+ ],
+ "dataset": {
+  "name": "kestrel-personas-v0",
+  "status": "draft",
+  "test_personas": [
+   "p2",
+   "p3",
+   "p5",
+   "p6"
+  ],
+  "items_sha256": "b45969a4df6bfc7181d4012cbf9a87437fcd20c7cb588fb3ce3b55b9f9bb29a6",
+  "events_sha256": "79df0ce04656fe76262c3676df98b642261630a655cd9710c4962d4cbbb74ecc"
+ },
+ "conditions": [
+  "off",
+  "K1",
+  "K3",
+  "K5"
+ ],
+ "routing": {
+  "primary": "gold intents",
+  "secondary": {
+   "config": "experiments/configs/router_intents_v0.json",
+   "config_sha256": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
+   "tiers": [
+    1,
+    3
+   ]
+  }
+ },
+ "judge": "kestrel_tools::eval (Kestrel-Tasks-v0's)",
+ "command": "kestrel e4-eval --split test"
+}

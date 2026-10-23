@@ -1,0 +1,137 @@
+{
+ "week": 12,
+ "note": "candidates chosen on dev; FROZEN at the PREREG freeze (Week 13)",
+ "experiments": {
+  "E1": {
+   "status": "CANDIDATE",
+   "files": [
+    "experiments/configs/router_intents_v0.json",
+    "experiments/configs/router_intents_v0_r0.json",
+    "experiments/configs/router_intents_v0_r1.json",
+    "experiments/configs/router_clinc150.json",
+    "experiments/configs/router_clinc150_r0.json",
+    "experiments/configs/router_clinc150_r1.json"
+   ],
+   "config_sha256": {
+    "experiments/configs/router_intents_v0.json": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
+    "experiments/configs/router_intents_v0_r0.json": "8660fb24564b430cecd4e83f32521c28ed068a76f071b4391f938864530c11a0",
+    "experiments/configs/router_intents_v0_r1.json": "d54b41394c07f9cf2e92193318f61cfb735e6a01698049b603cebe356bca800f",
+    "experiments/configs/router_clinc150.json": "c5e29930229ae3d28e00069c1931cfb8fc833f068c79cccbe516097898d7535d",
+    "experiments/configs/router_clinc150_r0.json": "b3143aa8c295a762291e488b8ed30f7783f4bfa02928174f7e31f1743183d78d",
+    "experiments/configs/router_clinc150_r1.json": "12719e904b5be18a2a8aa66ee5f889f0871c84690a44f0259223860ccdb34c93"
+   }
+  },
+  "E2": {
+   "status": "CANDIDATE",
+   "systems": "R2 (temperatures 1) vs R2c (the R3 configs' temperatures), one shared tau over the cascade",
+   "metric": "selective risk at coverage 0.80 and AURC on the test outputs (PREREG §3, D4); no threshold is chosen",
+   "temperatures": {
+    "intents_v0": {
+     "tier1_confidence": 1.0,
+     "tier3_temperature": 0.6878183484077454,
+     "tier4_temperature": 0.8468265450584489
+    },
+    "clinc150": {
+     "tier1_confidence": null,
+     "tier3_temperature": 0.6658952236175537,
+     "tier4_temperature": 1.262911713794347
+    }
+   }
+  },
+  "E3": {
+   "status": "CANDIDATE",
+   "files": [
+    "experiments/configs/e3_candidates.json"
+   ]
+  },
+  "E4": {
+   "status": "BLOCKED",
+   "blocked_by": [
+    "Kestrel-Personas-v0 review and freeze (it is a draft)",
+    "the human's acceptance of the PROPOSED E4 protocol (PREREG §4)"
+   ],
+   "files": [
+    "experiments/configs/e4.json"
+   ]
+  },
+  "E5": {
+   "status": "CANDIDATE",
+   "files": [
+    "experiments/configs/e5.json"
+   ]
+  },
+  "E6": {
+   "status": "BLOCKED",
+   "blocked_by": [
+    "Kestrel-Tasks-v0 review and freeze (it is a draft)",
+    "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
+    "the PREREG E6 metrics item (plan validity / end state, ADR-023), the title-scoring rule and which planning path E6 scores (LM-only or ADR-025's hybrid)"
+   ],
+   "files": [
+    "experiments/configs/e6.json"
+   ],
+   "grid": [
+    {
+     "model": "qwen3-1.7b-q4_k_m",
+     "file": "Qwen3-1.7B-Q4_K_M.gguf",
+     "quant": "Q4_K_M",
+     "sha256": "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5"
+    },
+    {
+     "model": "qwen3-1.7b-q8_0",
+     "file": "Qwen3-1.7B-Q8_0.gguf",
+     "quant": "Q8_0",
+     "sha256": "9860780f3a1fab1f8f909a1b549ea3e62c22d19ab1a492b3a1026b38c5bd3ec3"
+    },
+    {
+     "model": "gemma-4-e2b-it-q4_0",
+     "file": "gemma-4-E2B-it-Q4_0.gguf",
+     "quant": "Q4_0",
+     "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52"
+    },
+    {
+     "model": "gemma-4-e2b-it-q8_0",
+     "file": "gemma-4-E2B-it-Q8_0.gguf",
+     "quant": "Q8_0",
+     "sha256": "996d08777aadc6bfd3c7375ef70ba25a0f55240075860754fdb18d6d860aa63a"
+    },
+    {
+     "model": "qwen3-4b-q4_k_m",
+     "file": "Qwen3-4B-Q4_K_M.gguf",
+     "quant": "Q4_K_M",
+     "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"
+    },
+    {
+     "model": "qwen3-4b-q8_0",
+     "file": "Qwen3-4B-Q8_0.gguf",
+     "quant": "Q8_0",
+     "sha256": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300"
+    }
+   ]
+  }
+ },
+ "files": {
+  "experiments/configs/router_intents_v0.json": "4c5ca0f4e5800dea4644f86f13dd8a73223c793fe7cf9a29e1d6efc25862054e",
+  "experiments/configs/router_intents_v0_r0.json": "1c127fe52f40725a4236942b86d99ec3771bf20889a411dab12a433fbdb23c3d",
+  "experiments/configs/router_intents_v0_r1.json": "3be6234c6b2f7f68a59fcabc465370d24930bbe07acb6b36a8592f8265fa813a",
+  "experiments/configs/router_clinc150.json": "927c41e971d9247b13aa2f366a35935fe915318ab2983b98ee9b6bda0c8cfa81",
+  "experiments/configs/router_clinc150_r0.json": "63caa492c03b00bdc1a45c25c8620ff837d2d7e85e124647ce651587451b5d58",
+  "experiments/configs/router_clinc150_r1.json": "d0b938361d7c4337e4148b6bfec939aef952988f98e061d62291ad3bce88d59d",
+  "experiments/configs/e3_candidates.json": "61b86eb9d17f69c1b43f5b8729adfa71507a2d1757c2ee0ca9787139d6c91d6e",
+  "experiments/configs/e4.json": "0dc499d5800f6ae21963bf29ff6eb3883a68ff24196646e0a8cb0923bdf7655b",
+  "experiments/configs/e5.json": "14769a3e97b2812fdce1b44f606e01775cf193b0557221e0bed8e98c6bc17553",
+  "experiments/configs/e6.json": "95f0da395f3dcd93992b1523304cd88331df1e98864934bf84b7e59e723cecc7",
+  "datasets/kestrel_tasks_v0/build/manifest.json": "eb322b1ddec186216054cc87698cd684a56c229b023e3cf8c1783574693ec5bf",
+  "datasets/kestrel_tasks_v0/build/items.jsonl": "fdd51fd20ceec7872893992d9b7bfda8ccc1364aa61d3ff683ff1642627eb7e5",
+  "datasets/kestrel_memory_v0/build/manifest.json": "c82ed91998ccbd8ba858a8b85ae22ad41c6d7635a8f0532c6f8b46c6569b2e5e",
+  "datasets/kestrel_memory_v0/build/store.jsonl": "94556d986d629922547ab29f38c457c8cc7f00055facfd2271e1c7aa6185e2ed",
+  "datasets/kestrel_memory_v0/build/queries.jsonl": "5c56a2724ba21fa67844fdc999a7a98342934ec685bec45689f860a3f6c473eb",
+  "datasets/kestrel_personas_v0/build/manifest.json": "79cdf56d7662c5fa4538cec18aa060323bac6cccfcf71938f3c81ab6fd69a8be",
+  "datasets/kestrel_personas_v0/build/items.jsonl": "b45969a4df6bfc7181d4012cbf9a87437fcd20c7cb588fb3ce3b55b9f9bb29a6",
+  "datasets/kestrel_personas_v0/build/events.jsonl": "79df0ce04656fe76262c3676df98b642261630a655cd9710c4962d4cbbb74ecc",
+  "models/MANIFEST.toml": "1f0fa90b4457c101f8f8e05513ceceb5372963a819f8864b071df860f003a95b",
+  "datasets/MANIFEST.toml": "73c11d012ce1994b21c6a6e0aa4007ce1a91cf1e0bb8960fb329f5fabd21927c",
+  "experiments/logs/E5/sweep_dev.json": "89ded071139e206540c38574a5657ee1989ccaa96c2506eb6bc314ad672d5bdc",
+  "experiments/logs/E5/epsilon_pilot.json": "aba86c2e816a5168c05bc80766325b85a16e0c1678bfe8b16a8548b77cd424fc"
+ }
+}
