@@ -37,7 +37,8 @@ What the numbers say (dev):
   this is written up.
 - **Replay works, and its cost is the buffer.** At lr 3 / 10 epochs: 5 per class → 0.378 (0.9 MB), 20 → 0.884 (3.7 MB),
   50 → 0.926 (9.3 MB), against joint's 0.933. The selected configuration is the grid's corner and the trend continues past it
-  (100 per class is all the data, i.e. joint). Undertrained replay (lr 1, 5 epochs) shows the recency bias seen in the probe:
-  old stages near 0 even with 50 per class stored (0.761 at lr 1 / 5 epochs vs 0.926).
+  (100 per class is all the data, i.e. joint). Replay also needs training: with a small buffer and little training it keeps
+  the probe's recency bias (5 per class, lr 1 / 5 epochs: 0.153, forgetting 0.850, old stages near 0); with 50 per class the
+  same training gives 0.761 (forgetting 0.093) against 0.926 at lr 3 / 10 epochs.
 - Replay at 50 per class stores half of every earlier class's training items: a privacy cost under Ch. 23.1 ("store
   (text hash or short text, label) … bounded buffer"), to be stated next to the accuracy.
