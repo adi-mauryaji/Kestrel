@@ -103,3 +103,22 @@ def test_an_unstable_ewc_step_raises_instead_of_scoring_garbage():
         run_sequence("ewc", train, evals, d=20, k=9, cfg={"lr": 0.5, "epochs": 3, "lam": 1e7}, seed=0)
     ok = run_sequence("ewc", train, evals, d=20, k=9, cfg={"lr": 0.5, "epochs": 3, "lam": 1e3}, seed=0)
     assert ok["avg_accuracy"] > 0.5
+
+
+def test_confusion_says_where_old_items_go():
+    # Ch. 22.4 (c): label-space interference. After each stage, a stage's items are correct,
+    # predicted as a class of a newer stage, or as another class of its own or an older stage.
+    train, evals = toy_tasks(n_tasks=3, classes_per_task=3, seed=0)
+    cfg = {"lr": 0.5, "epochs": 10, "per_class": 10, "confusion": True}
+    naive = run_sequence("naive", train, evals, d=20, k=9, cfg=cfg, seed=0)
+    replay = run_sequence("replay", train, evals, d=20, k=9, cfg=cfg, seed=0)
+    C = naive["C"]
+    assert len(C) == 3 and all(len(row) == 3 for row in C)
+    for row in C:
+        for cell in row:
+            assert abs(cell["correct"] + cell["newer"] + cell["older"] - 1) < 1e-9
+    assert C[0][0]["newer"] == 0.0, "nothing is newer than stage 0 after stage 0"
+    assert C[2][2]["newer"] == 0.0
+    assert C[2][0]["correct"] == pytest.approx(naive["R"][2][0])
+    assert C[2][0]["newer"] >= replay["C"][2][0]["newer"], "replay pulls old items back from new classes"
+    assert "C" not in run_sequence("naive", train, evals, d=20, k=9, cfg={"lr": 0.5, "epochs": 2}, seed=0)

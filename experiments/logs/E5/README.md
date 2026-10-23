@@ -42,3 +42,23 @@ What the numbers say (dev):
   same training gives 0.761 (forgetting 0.093) against 0.926 at lr 3 / 10 epochs.
 - Replay at 50 per class stores half of every earlier class's training items: a privacy cost under Ch. 23.1 ("store
   (text hash or short text, label) … bounded buffer"), to be stated next to the accuracy.
+
+## Forgetting or interference? (2026-10-23, Week 12) — `confusion_dev.json`
+
+`python experiments/continual/e5_confusion.py --jobs 5` (81 s): the four selected configurations rerun with the same
+orders and seeds, recording where each stage's items go after every stage (Ch. 22.4). The stage sets are fixed across
+stages, so (a) a test shift is excluded by design; joint and stage0 are the bounds (b); this is (c), label-space
+interference. Shares of the old stages' items, mean over old stages and 15 runs:
+
+| Method | After the last stage: correct / into newer classes / other wrong | After the next stage |
+|---|---|---|
+| naive | 0.003 / **0.997** / 0.000 | 0.011 / **0.989** / 0.000 |
+| EWC | 0.000 / **1.000** / 0.000 | 0.001 / **0.999** / 0.000 |
+| replay (50 per class) | 0.936 / 0.013 / 0.051 | 0.926 / 0.011 / 0.062 |
+| joint | 0.938 / 0.014 / 0.048 | 0.948 / 0.003 / 0.050 |
+
+Naive's and EWC's "forgetting" is interference: one update later, nearly every old item is predicted as one of the newest
+stage's classes, and almost none drift to another old class. Their old logits lose to the new classes', which says nothing
+yet about whether the old-class information is gone from the weights (a task-masked accuracy, argmax within a stage's own
+classes, would tell; not run). Replay's remaining errors have joint's shape (~1% into newer classes, ~5% ordinary
+confusions), so it removes the interference rather than trading it for another error.

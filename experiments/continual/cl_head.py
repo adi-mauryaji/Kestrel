@@ -98,9 +98,11 @@ def per_class_sample(X, y, n: int, seed: int):
 
 
 def run_sequence(strategy: str, train, evals, *, d: int, k: int, cfg: dict, seed: int) -> dict:
-    """train / evals: one (X, y) per stage. cfg: lr, epochs (+ batch), per_class (replay), lam (ewc).
-    Returns the matrix R[i][j] (accuracy on stage j's eval items after stage i), its forgetting
-    summary, update seconds and the replay buffer's size."""
+    """train / evals: one (X, y) per stage. cfg: lr, epochs (+ batch), per_class (replay), lam (ewc),
+    confusion (bool). Returns the matrix R[i][j] (accuracy on stage j's eval items after stage i), its
+    forgetting summary, update seconds and the replay buffer's size; with confusion also C[i][j]: the
+    shares of stage j's items that are correct, predicted as a class of a newer stage (or a class no
+    stage has trained), or as another class of stage j or older (Ch. 22.4's interference check)."""
     if strategy not in STRATEGIES:
         raise KeyError(f"unknown strategy {strategy!r}")
 
@@ -108,7 +110,10 @@ def run_sequence(strategy: str, train, evals, *, d: int, k: int, cfg: dict, seed
         h.fit(X, y, epochs=cfg["epochs"], lr=cfg["lr"], batch=cfg.get("batch", 64), seed=seed * 1000 + t,
               ewc=ewc)
 
-    h, R, seconds = Head(d, k), [], 0.0
+    h, R, C, seconds = Head(d, k), [], [], 0.0
+    stage_of = np.full(k, len(train))  # a class no stage trains counts as newer than every stage
+    for t, (_, y) in reversed(list(enumerate(train))):
+        stage_of[np.unique(y)] = t
     buf_X, buf_y, ewc = [], [], None
     for t, (X, y) in enumerate(train):
         t0 = time.perf_counter()
@@ -135,8 +140,19 @@ def run_sequence(strategy: str, train, evals, *, d: int, k: int, cfg: dict, seed
             fit(h, X, y, t)
         seconds += time.perf_counter() - t0
         R.append([h.accuracy(Xe, ye) for Xe, ye in evals])
+        if cfg.get("confusion"):
+            C.append([_where(h.logits(Xe).argmax(axis=1), ye, stage_of, j) for j, (Xe, ye) in enumerate(evals)])
     items = int(sum(len(v) for v in buf_y))
-    return {"R": R, "seconds": seconds, "buffer_items": items, "buffer_bytes": items * (d * 4 + 8), **forgetting(R)}
+    out = {"R": R, "seconds": seconds, "buffer_items": items, "buffer_bytes": items * (d * 4 + 8), **forgetting(R)}
+    return out | ({"C": C} if cfg.get("confusion") else {})
+
+
+def _where(pred, y, stage_of, j: int) -> dict:
+    """Shares of stage j's items: correct, wrong into a newer stage's classes, wrong otherwise."""
+    right = pred == y
+    newer = ~right & (stage_of[pred] > j)
+    return {"correct": float(right.mean()), "newer": float(newer.mean()),
+            "older": float((~right & ~newer).mean())}
 
 
 def toy_tasks(n_tasks: int = 3, classes_per_task: int = 3, d: int = 20, n: int = 200, seed: int = 0):
