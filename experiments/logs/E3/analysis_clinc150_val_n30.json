@@ -1,0 +1,103 @@
+{
+ "experiment": "E3",
+ "split": "val",
+ "dev": true,
+ "runs": [
+  "experiments/logs/E1/clinc150_val_n30/chunk1of1_20261022T150952Z"
+ ],
+ "e3_candidates": "experiments/configs/e3_candidates.json",
+ "dataset": "clinc150",
+ "n_items": 30,
+ "n_latency_items": 6,
+ "delta": 0.02632771902249294,
+ "signal": "conjunction",
+ "clusters": null,
+ "full_set": "{3,4}",
+ "reproduces_r3": true,
+ "sets": {
+  "{4}": {
+   "tiers": [
+    4
+   ],
+   "tau": [
+    null,
+    null,
+    0.5804145610909865
+   ],
+   "chosen": "best_reachable",
+   "accuracy": 0.9,
+   "coverage": 0.9333333333333333,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.0,
+    "4": 1.0
+   },
+   "cost_ms": {
+    "n": 6,
+    "mean": 890.5042235,
+    "median": 1023.596609,
+    "p95": 1062.893622
+   }
+  },
+  "{3,4}": {
+   "tiers": [
+    3,
+    4
+   ],
+   "tau": [
+    null,
+    0.6009338585560773,
+    0.8141819886106859
+   ],
+   "chosen": "point",
+   "accuracy": 0.9333333333333333,
+   "coverage": 0.9,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.8,
+    "4": 0.2
+   },
+   "cost_ms": {
+    "n": 6,
+    "mean": 275.4186143333333,
+    "median": 5.5356615,
+    "p95": 1068.058151
+   }
+  }
+ },
+ "h3": {
+  "a": "{3,4}",
+  "b": "{4}",
+  "claim": "{3,4} is non-inferior in accuracy and cheaper than {4}",
+  "accuracy": {
+   "diff": 0.03333333333333333,
+   "ci95": [
+    -0.06666666666666667,
+    0.13333333333333333
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": false,
+   "p_noninferior": 0.372,
+   "mcnemar": {
+    "n01": 1,
+    "n10": 2,
+    "p": 1.0
+   }
+  },
+  "cost": {
+   "diff_ms": -615.0856091666667,
+   "ci95": [
+    -966.2674681666664,
+    -262.37999383333346
+   ],
+   "faster": true,
+   "p_below": 0.004,
+   "wilcoxon_p": 0.15625,
+   "dz": -1.2108597560884755
+  },
+  "p": 0.372,
+  "family": "reported, outside the family",
+  "outcome": null
+ },
+ "area_under_cost_accuracy_curve": "not computed: one frozen point per set"
+}

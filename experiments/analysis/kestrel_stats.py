@@ -69,6 +69,20 @@ def bootstrap_means(d, n_boot: int = N_BOOT, seed: int = 0, clusters=None) -> np
     return np.concatenate([sums[idx].sum(axis=1) / sizes[idx].sum(axis=1) for idx in _resamples(g, n_boot, seed)])
 
 
+def resample_weights(n: int, n_boot: int = N_BOOT, seed: int = 0, clusters=None):
+    """Blocks of resample weights, the same draws as bootstrap_means: row r, column i = how often item i
+    is in resample r (with clusters: how often its cluster was drawn). A statistic that is a ratio of
+    weighted sums (coverage and risk at every threshold at once) is then a few matrix products."""
+    if clusters is None:
+        inv, g = np.arange(n), n
+    else:
+        inv, g = _cluster_index(clusters, n)
+    for idx in _resamples(g, n_boot, seed):
+        k = idx.shape[0]
+        counts = np.bincount((idx + g * np.arange(k)[:, None]).ravel(), minlength=k * g).reshape(k, g)
+        yield counts[:, inv].astype(np.float32)
+
+
 def bootstrap(stat, *arrays, n_boot: int = N_BOOT, seed: int = 0, clusters=None) -> np.ndarray:
     """stat(*resampled arrays) for each of n_boot resamples of the ITEMS (or clusters, as in
     bootstrap_means): row i of every array is item i, and a resample takes the same rows from all of

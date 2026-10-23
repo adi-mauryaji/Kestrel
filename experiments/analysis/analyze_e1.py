@@ -217,7 +217,8 @@ def step_times(rows) -> dict[tuple[str, str, int], float]:
 
 def tier_answers(dec: dict, gold_rows, step_ms: dict, oos: str) -> tuple[Answers, dict]:
     """policies.Answers from the E1 rows: Tier 1 = R3's first step, Tier 3 = R1's, Tier 4 = R0's (R1
-    and R0 consult their tier on every item); costs = those steps' per-item median times."""
+    and R0 consult their tier on every item), with their logged (calibrated) confidences; costs = those
+    steps' per-item median times."""
     t1 = [_step(r, 1) for r in dec["R3"]]
     t3 = [_step(r, 3) for r in dec["R1"]]
     t4 = [_step(r, 4) for r in dec["R0"]]
@@ -226,6 +227,8 @@ def tier_answers(dec: dict, gold_rows, step_ms: dict, oos: str) -> tuple[Answers
              | {r["intent"] for r in dec["R3"] if r["intent"] is not None})
     idx = {c: k for k, c in enumerate(sorted(names))}
     lab = lambda st: idx[st["label"]] if st and st.get("label") is not None else -1  # noqa: E731
+    conf = lambda st: (float(st["confidence"])  # noqa: E731
+                       if lab(st) >= 0 and st.get("confidence") is not None else 0.0)
     ids = [g["id"] for g in gold_rows]
     n = len(ids)
     flag = np.array([bool(r["multi_intent"]) for r in dec["R3"]])
@@ -235,7 +238,8 @@ def tier_answers(dec: dict, gold_rows, step_ms: dict, oos: str) -> tuple[Answers
                 oos=np.array([g["label"] == oos for g in gold_rows]), conj=flag, amb=np.zeros(n, bool),
                 lang=np.array([g.get("lang", "") for g in gold_rows]),
                 family=np.array([g.get("family", g["id"]) for g in gold_rows]),
-                m1=y1 >= 0, y1=y1, c1=np.zeros(n), y3=y3, c3=np.zeros(n), m4=y4 >= 0, y4=y4, c4=np.zeros(n),
+                m1=y1 >= 0, y1=y1, c1=np.array([conf(st) for st in t1]), y3=y3, c3=np.array([conf(st) for st in t3]),
+                m4=y4 >= 0, y4=y4, c4=np.array([conf(st) for st in t4]),
                 k1=np.array([step_ms.get((i, "R3", 1), 0.0) for i in ids]),
                 k3=np.array([step_ms[(i, "R1", 3)] for i in ids]),
                 k4=np.array([step_ms[(i, "R0", 4)] for i in ids]), oos_idx=idx[oos])
@@ -305,20 +309,24 @@ def _clean(x):
     return x
 
 
+def rep1(rows, gold: dict) -> tuple[list[str], dict, list[dict], dict]:
+    """(ids sorted, {system: its first-repetition rows in id order}, gold rows, {(system, id): row})."""
+    first = {(r["system"], r["id"]): r for r in rows if not r["warmup"] and r["rep"] == 1}
+    ids = sorted(gold)
+    missing = [f"{s} {i}" for i in ids for s in SYSTEMS if (s, i) not in first]
+    if missing:
+        raise ValueError(f"no decision for {missing[:5]}{' ...' if len(missing) > 5 else ''}")
+    return ids, {s: [first[(s, i)] for i in ids] for s in SYSTEMS}, [gold[i] for i in ids], first
+
+
 def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_ids=frozenset(),
             n_boot: int = N_BOOT, seed: int = 0, rss: dict | None = None) -> dict:
     """Everything E1 reports for one dataset and split, from the chunks' rows and the gold items."""
     oos = OOS[dataset]
     timed_rows = [r for r in rows if not r["warmup"]]
-    first = {(r["system"], r["id"]): r for r in timed_rows if r["rep"] == 1}
-    ids = sorted(gold)
-    missing = [f"{s} {i}" for i in ids for s in SYSTEMS if (s, i) not in first]
-    if missing:
-        raise ValueError(f"no decision for {missing[:5]}{' ...' if len(missing) > 5 else ''}")
+    ids, dec, gold_rows, first = rep1(timed_rows, gold)
     lat = item_latency(timed_rows)
-    dec = {s: [first[(s, i)] for i in ids] for s in SYSTEMS}
     dec["R0 untuned"] = [untuned(r) for r in dec["R0"]]
-    gold_rows = [gold[i] for i in ids]
     ok = {s: np.array([item_correct(r, g, oos) for r, g in zip(d, gold_rows)]) for s, d in dec.items()}
     timed = np.array([i in latency_ids for i in ids])
     ms = {s: np.array([lat[(i, s.split()[0])] if t else np.nan for i, t in zip(ids, timed)]) for s in dec}
@@ -438,6 +446,28 @@ def render(rep: dict) -> str:
     return "\n".join(out)
 
 
+def load_runs(dataset: str, split: str, limit: int | None = None, *, dev: bool = False, record: bool = False) -> dict:
+    """The selected chunks of one dataset and split, checked (rule 3, configs, plan), with their rows and gold."""
+    name = f"{dataset}_{split}" + (f"_n{limit}" if limit else "")
+    run_dir = LOG_DIR / name
+    dirs = select_runs(run_dir, dev=dev)
+    manifests = [json.loads((d / "manifest.json").read_text()) for d in dirs]
+    rule3 = chunk_problems(manifests, [d.name for d in dirs])
+    if rule3 and not dev:
+        if record:
+            record_invalid(run_dir, rule3)
+        raise SystemExit("rule 3:\n- " + "\n- ".join(f"{k}: {v}" for k, v in rule3.items())
+                         + ("\nrecorded in INVALIDATED.json: rerun those chunks" if record
+                            else "\nrecord them with --record-invalid, then rerun those chunks"))
+    configs = check_systems(manifests, frozen=split == "test")
+    used, plan = chunk_plan(load_items(dataset, split), dataset, limit)
+    check_items(manifests, plan)
+    rows = [json.loads(line) for d in dirs for line in (d / "rows.jsonl").read_text().splitlines()]
+    return {"name": name, "dirs": dirs, "manifests": manifests, "rule3": rule3, "configs": configs, "used": used,
+            "rows": rows, "gold": {r["id"]: r for r in used},
+            "latency_ids": {it["id"] for c in plan for it in c if it["reps"] == REPS}}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dataset", required=True, choices=sorted(OOS))
@@ -450,26 +480,13 @@ def main(argv=None):
     if args.split == "test" and (args.dev or args.limit):
         ap.error("--dev and --limit are for val dry runs")
 
-    name = f"{args.dataset}_{args.split}" + (f"_n{args.limit}" if args.limit else "")
-    run_dir = LOG_DIR / name
-    dirs = select_runs(run_dir, dev=args.dev)
-    manifests = [json.loads((d / "manifest.json").read_text()) for d in dirs]
-    rule3 = chunk_problems(manifests, [d.name for d in dirs])
-    if rule3 and not args.dev:
-        if args.record_invalid:
-            record_invalid(run_dir, rule3)
-        raise SystemExit("rule 3:\n- " + "\n- ".join(f"{k}: {v}" for k, v in rule3.items())
-                         + ("\nrecorded in INVALIDATED.json: rerun those chunks" if args.record_invalid
-                            else "\nrecord them with --record-invalid, then rerun those chunks"))
-    configs = check_systems(manifests, frozen=args.split == "test")
+    run = load_runs(args.dataset, args.split, args.limit, dev=args.dev, record=args.record_invalid)
+    name, dirs, manifests, rule3, configs = run["name"], run["dirs"], run["manifests"], run["rule3"], run["configs"]
     rss = rss_for(args.dataset, configs)
-    used, plan = chunk_plan(load_items(args.dataset, args.split), args.dataset, args.limit)
-    check_items(manifests, plan)
-    rows = [json.loads(line) for d in dirs for line in (d / "rows.jsonl").read_text().splitlines()]
     delta = json.loads(DELTA_LOG.read_text())["delta"]
-    report = analyze(rows, {r["id"]: r for r in used}, {it["id"] for c in plan for it in c if it["reps"] == REPS},
-                     dataset=args.dataset, delta=delta, dup_ids=dup_ids(args.dataset, args.split, used),
-                     n_boot=args.n_boot, rss=rss and rss["peak_rss_mib"])
+    report = analyze(run["rows"], run["gold"], run["latency_ids"], dataset=args.dataset, delta=delta,
+                     dup_ids=dup_ids(args.dataset, args.split, run["used"]), n_boot=args.n_boot,
+                     rss=rss and rss["peak_rss_mib"])
     problems = {d.name: m["problems"] + ([rule3[d.name]] if d.name in rule3 else [])
                 for d, m in zip(dirs, manifests) if m["problems"] or d.name in rule3}
     report = {"experiment": "E1", "split": args.split, "dev": args.dev,

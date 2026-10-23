@@ -1,0 +1,168 @@
+{
+ "experiment": "E3",
+ "split": "val",
+ "dev": true,
+ "runs": [
+  "experiments/logs/E1/intents_v0_val_n20/chunk1of1_20261022T151409Z"
+ ],
+ "e3_candidates": "experiments/configs/e3_candidates.json",
+ "dataset": "intents_v0",
+ "n_items": 20,
+ "n_latency_items": 20,
+ "delta": 0.02632771902249294,
+ "signal": "conjunction",
+ "clusters": "family",
+ "full_set": "{1,3,4}",
+ "reproduces_r3": true,
+ "sets": {
+  "{4}": {
+   "tiers": [
+    4
+   ],
+   "tau": [
+    null,
+    null,
+    0.0
+   ],
+   "chosen": "point",
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.0,
+    "4": 1.0
+   },
+   "cost_ms": {
+    "n": 20,
+    "mean": 745.68345355,
+    "median": 759.8160945,
+    "p95": 942.8685489999999
+   }
+  },
+  "{1,4}": {
+   "tiers": [
+    1,
+    4
+   ],
+   "tau": [
+    0.0,
+    null,
+    0.0
+   ],
+   "chosen": "point",
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.0,
+    "4": 1.0
+   },
+   "cost_ms": {
+    "n": 20,
+    "mean": 745.68576405,
+    "median": 759.8187694999999,
+    "p95": 942.871235
+   }
+  },
+  "{3,4}": {
+   "tiers": [
+    3,
+    4
+   ],
+   "tau": [
+    null,
+    0.9641464612566548,
+    0.0
+   ],
+   "chosen": "point",
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.45,
+    "4": 0.55
+   },
+   "cost_ms": {
+    "n": 20,
+    "mean": 413.2767256000001,
+    "median": 572.714521,
+    "p95": 950.451344
+   }
+  },
+  "{1,3,4}": {
+   "tiers": [
+    1,
+    3,
+    4
+   ],
+   "tau": [
+    0.0,
+    0.9641464612566548,
+    0.0
+   ],
+   "chosen": "point",
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.45,
+    "4": 0.55
+   },
+   "cost_ms": {
+    "n": 20,
+    "mean": 413.27903610000004,
+    "median": 572.717136,
+    "p95": 950.4540299999999
+   }
+  }
+ },
+ "h3": {
+  "a": "{1,3,4}",
+  "b": "{1,4}",
+  "claim": "{1,3,4} is non-inferior in accuracy and cheaper than {1,4}",
+  "accuracy": {
+   "diff": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 0,
+    "p": 1.0
+   },
+   "item_level": {
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "p_noninferior": 0.0
+   }
+  },
+  "cost": {
+   "diff_ms": -332.40672795,
+   "ci95": [
+    -496.9350689265373,
+    -133.26389598609632
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 0.07776744228559361,
+   "dz": -0.8550632642315736,
+   "item_level": {
+    "ci95": [
+     -476.75822010499996,
+     -169.8145276612501
+    ],
+    "p_below": 0.0
+   }
+  },
+  "p": 0.0,
+  "family": "secondary (Holm)",
+  "outcome": "after Holm (secondary family)"
+ },
+ "area_under_cost_accuracy_curve": "not computed: one frozen point per set"
+}

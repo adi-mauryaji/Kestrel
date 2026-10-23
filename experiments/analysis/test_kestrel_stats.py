@@ -3,7 +3,7 @@ import pytest
 
 from kestrel_stats import (bootstrap, bootstrap_means, cohens_dz, combine, holm, intersection_union_p, mcnemar_exact,
                            outcome, p_above, p_below, p_noninferior, paired_bootstrap_ci, percentile_ci,
-                           wilcoxon_paired)
+                           resample_weights, wilcoxon_paired)
 
 
 def test_bootstrap_ci_matches_normal_theory_on_paired_data():
@@ -212,3 +212,14 @@ def test_a_claim_with_parts():
     assert combine("inconclusive", "not supported") == "not supported"
     with pytest.raises(ValueError):
         combine("maybe")
+
+
+def test_resample_weights_are_the_same_draws_as_the_bootstrap():
+    d = np.random.default_rng(8).normal(size=60)
+    w = np.vstack(list(resample_weights(60, n_boot=1200, seed=4)))
+    assert w.shape == (1200, 60) and np.all(w.sum(axis=1) == 60)
+    assert np.allclose(w @ d / w.sum(axis=1), bootstrap_means(d, n_boot=1200, seed=4))
+    labels = np.repeat(np.arange(12), 5)
+    wc = np.vstack(list(resample_weights(60, n_boot=600, seed=4, clusters=labels)))
+    assert np.allclose(wc @ d / wc.sum(axis=1), bootstrap_means(d, n_boot=600, seed=4, clusters=labels))
+    assert np.all(wc.reshape(600, 12, 5).std(axis=2) == 0)  # a family's items are drawn together

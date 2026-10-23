@@ -112,8 +112,9 @@ def test_nearest_rank_matches_kestrel_bench():
 
 
 def rows_for(system, i, intent, tier, base_ms, steps, reps=5, best=None, multi=False):
-    """`steps`: (tier, label, ms) per consulted tier, as kestrel bench-items logs them."""
-    steps = [{"tier": t, "label": lab, "confidence": None if lab is None else 0.9, "ms": ms} for t, lab, ms in steps]
+    """`steps`: (tier, label, ms[, confidence]) per consulted tier, as kestrel bench-items logs them."""
+    steps = [{"tier": st[0], "label": st[1], "ms": st[2],
+              "confidence": None if st[1] is None else (st[3] if len(st) > 3 else 0.9)} for st in steps]
     return [{"system": system, "id": i, "intent": intent, "tier": tier, "ms": base_ms + JITTER[r - 1], "rep": r,
              "confidence": 0.9 if intent else None, "consulted": [st["tier"] for st in steps], "steps": steps,
              "best": best, "multi_intent": multi, "warmup": False} for r in range(1, reps + 1)]
@@ -139,15 +140,16 @@ def scenario(n=40, r3_wrong=0, latency_every=1):
         bad = not (oos or comp or k == 1) and wrong < r3_wrong
         wrong += bad
         t3 = "b" if bad else "a"
-        rows += rows_for("R0", i, None if oos else "a", 4, 800, [(4, "a", 800)], reps,
+        c3, c4 = (0.5, 0.3) if oos else (0.95, 0.9)  # out of scope: unsure at Tier 3 and Tier 4
+        rows += rows_for("R0", i, None if oos else "a", 4, 800, [(4, "a", 800, c4)], reps,
                          best={"intent": "a"} if oos else None)
-        rows += rows_for("R1", i, None if oos else t3, 3, 5, [(3, t3, 5)], reps)
+        rows += rows_for("R1", i, None if oos else t3, 3, 5, [(3, t3, 5, c3)], reps)
         if comp or k == 1:
-            rows += rows_for("R3", i, "a", 4, 800, [(4, "a", 800)], reps, multi=True)
+            rows += rows_for("R3", i, "a", 4, 800, [(4, "a", 800, c4)], reps, multi=True)
         elif oos:
-            rows += rows_for("R3", i, None, 4, 806, [(1, None, 0.0), (3, "a", 6), (4, "a", 800)], reps)
+            rows += rows_for("R3", i, None, 4, 806, [(1, None, 0.0), (3, "a", 6, c3), (4, "a", 800, c4)], reps)
         else:
-            rows += rows_for("R3", i, t3, 3, 6, [(1, None, 0.0), (3, t3, 6)], reps)
+            rows += rows_for("R3", i, t3, 3, 6, [(1, None, 0.0), (3, t3, 6, c3)], reps)
     if latency_every > 1:  # untimed items: one wild repetition that must not enter any latency number
         for r in rows:
             if r["id"] not in lat_ids:
