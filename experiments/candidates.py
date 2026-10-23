@@ -56,9 +56,10 @@ def _json(rel: str, root: Path = ROOT):
 def e4() -> dict:
     personas = _json("datasets/kestrel_personas_v0/build/manifest.json")
     router = _json(f"{CONFIGS}/router_intents_v0.json")
-    return {"experiment": "E4 (H4; ADR-028)", "status": "BLOCKED",
-            "blocked_by": ["Kestrel-Personas-v0 review and freeze (it is a draft)",
-                           "the human's acceptance of the PROPOSED E4 protocol (PREREG §4)"],
+    return {"experiment": "E4 (H4; ADR-028, protocol ADR-030)", "status": "BLOCKED",
+            "blocked_by": ["Kestrel-Personas-v0 review and freeze (it is a draft)"],
+            "test": "K5 vs off on the 60 exact personalized test requests: bootstrap p over the 20 test aliases, "
+                    "each with its 3 exact requests (ADR-030); no regression: general success at K5 >= off - delta",
             "dataset": {"name": "kestrel-personas-v0", "status": personas["status"], "test_personas":
                         sorted(p for p, s in personas["personas"].items() if s == "test"),
                         "items_sha256": personas["items_sha256"], "events_sha256": personas["events_sha256"]},
@@ -89,11 +90,13 @@ def e6() -> dict:
     return {"experiment": "E6 (H6)", "status": "BLOCKED",
             "blocked_by": ["Kestrel-Tasks-v0 review and freeze (it is a draft)",
                            "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
-                           "the PREREG E6 metrics item (plan validity / end state, ADR-023), the title-scoring rule "
-                           "and which planning path E6 scores (LM-only or ADR-025's hybrid)"],
+                           "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring "
+                           "rule"],
+            "planner": "LM-only (apps/cli/src/planner.rs), the model file swapped per grid entry (ADR-030); "
+                       "ADR-025's hybrid is reported for gemma-4-e2b-it-q4_0 only, outside H6",
             "grid": grid, "baseline": "Q8_0 of the same model", "threads": "6, one per physical core (PREREG §4)",
-            "n_ctx": {"LM-only planner (apps/cli/src/planner.rs)": 4096,
-                      "Tier 4 in the Intents-v0 cascade (router config)": router["models"]["tier4"]["n_ctx"]},
+            "n_ctx": {"LM-only planner (scored)": 4096,
+                      "Tier 4 in the hybrid's Intents-v0 cascade (reported only)": router["models"]["tier4"]["n_ctx"]},
             "dataset": "kestrel-tasks-v0 test"}
 
 
@@ -124,10 +127,11 @@ def build(write: bool = True) -> dict:
                    "test outputs (PREREG §3, D4); no threshold is chosen", "temperatures": temps},
             "E3": {"status": "CANDIDATE", "files": [f"{CONFIGS}/e3_candidates.json"]},
             "E4": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e4.json"])["blocked_by"],
-                   "files": [f"{CONFIGS}/e4.json"]},
+                   "test": json.loads(texts[f"{CONFIGS}/e4.json"])["test"], "files": [f"{CONFIGS}/e4.json"]},
             "E5": {"status": "CANDIDATE", "files": [f"{CONFIGS}/e5.json"]},
             "E6": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e6.json"])["blocked_by"],
-                   "files": [f"{CONFIGS}/e6.json"], "grid": e6_grid},
+                   "planner": json.loads(texts[f"{CONFIGS}/e6.json"])["planner"], "files": [f"{CONFIGS}/e6.json"],
+                   "grid": e6_grid},
         },
         "files": files,
     }

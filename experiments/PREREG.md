@@ -129,13 +129,15 @@ its 15 runs; ties → the earlier configuration. Reported per method: average ac
 update seconds and buffer bytes, mean ± SD over the 15 runs, and every R matrix (`experiments/logs/E5/sweep_dev.json`).
 The test-set run (Week 14) uses the selected configurations unchanged.
 
-**E4 (personalization; accuracy only) — PROPOSED 2026-10-23 by Claude (ADR-028), not yet accepted by the human.**
+**E4 (personalization; accuracy only) — [accepted 2026-10-23, ADR-028 design, ADR-030 protocol].**
 Kestrel-Personas-v0 test personas (p2, p3, p5, p6; synthetic). Conditions: off and memory after K = 1, 3, 5 taught aliases
 (each persona's events in order, through alias detection and a yes); requests planned by the template planner with gold
 intents (primary) and, as a secondary check, routed by Tier 1 + Tier 3 of the frozen Intents-v0 router (an abstention
 fails). Success = Kestrel-Tasks-v0's judge on a fresh copy of the fixture notes. Primary H4 test: the 60 exact personalized
-test requests, K = 5 vs off, exact McNemar, in the secondary family (Holm, §6); variants (20) and K = 1 / 3 reported, not
-tested. No regression: general-request success (40) at K = 5 ≥ off − δ (δ = 0.0263, §5). Reported per persona and as the
+test requests, K = 5 vs off, in the secondary family (Holm, §6). The requests come in triples (3 exact requests per taught
+alias), so, as for the families in §6 (ADR-029), the p is the bootstrap p_above of mean(success K5 − success off) over the
+20 test aliases (each brings its 3 requests), not an item-level McNemar (ADR-030); McNemar is reported alongside. Variants
+(20) and K = 1 / 3 reported, not tested. No regression: general-request success (40) at K = 5 ≥ off − δ (δ = 0.0263, §5). Reported per persona and as the
 mean over personas, with the per-language split. `kestrel e4-eval --split test`.
 
 ## 5. Targets from E0 (Ch. 6.4)
@@ -204,9 +206,13 @@ the tests but not how a CI-based hypothesis gets the p that Holm needs, nor when
   effect points the hypothesized way (exact McNemar for paired correctness, Wilcoxon on per-item median latency,
   Wilcoxon over E5's 15 paired runs, order × seed). A statistic that is not a mean of paired 0/1 outcomes: the bootstrap
   p of its paired difference (`p_above` / `p_below`). A claim with parts takes its largest part's p (intersection–union).
+- **E6 scores the LM-only planner** (ADR-030): the grammar-constrained planner (`kestrel plan-eval`, n_ctx 4096) with
+  each grid model file swapped in, because H6 asks what quantization does to the model and ADR-025's hybrid plans most
+  requests with templates (and would need a router recalibrated per model). The hybrid is reported for Gemma-4-E2B Q4_0
+  only, outside H6.
 - **Per hypothesis:** H1b p_above(acc R3 − acc R-rand; R-rand's per-item correctness is an expectation, not 0/1) ·
   H1c p_noninferior(R3 − R1) · H2 p_below(risk@0.80 R2c − R2) · H3 IUT of accuracy {1,3,4} vs {1,4} non-inferior at δ and
-  Wilcoxon on cost · H4 exact McNemar K5 vs off (E4, PROPOSED) · H5 Wilcoxon, average forgetting replay vs naive over
+  Wilcoxon on cost · H4 p_above(K5 − off) over the 20 test aliases (E4, §4, ADR-030) · H5 Wilcoxon, average forgetting replay vs naive over
   the 15 paired runs (EWC vs naive reported, outside the family) · H6 IUT of accuracy within δ₃ and Wilcoxon on latency
   (RAM is one VmHWM per process: lower as measured, not tested) · H7a p_noninferior(R3 − R0 on hi-en) · H7b
   p_above(ECE(hi-en) − ECE(en)) over family resamples (a family brings its items in both languages).
@@ -230,6 +236,7 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ₃ (before E6).
 Tests per hypothesis, outcomes, and the family bootstrap on Kestrel-Intents-v0: accepted 2026-10-23 (ADR-029, §6).
+E4's protocol with the alias bootstrap, and E6 scoring the LM-only planner: accepted 2026-10-23 (ADR-030, §4, §6).
 δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
 2026-10-22 (ADR-020); **δ = 0.0263** from the pilot's 5 CLINC150 seeds (2026-10-23, §5). ε₁–ε₃: rules fixed before E5
 (ADR-027, §5); values from their pilots.

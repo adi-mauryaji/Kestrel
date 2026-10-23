@@ -4,8 +4,9 @@
  "blocked_by": [
   "Kestrel-Tasks-v0 review and freeze (it is a draft)",
   "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
-  "the PREREG E6 metrics item (plan validity / end state, ADR-023), the title-scoring rule and which planning path E6 scores (LM-only or ADR-025's hybrid)"
+  "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring rule"
  ],
+ "planner": "LM-only (apps/cli/src/planner.rs), the model file swapped per grid entry (ADR-030); ADR-025's hybrid is reported for gemma-4-e2b-it-q4_0 only, outside H6",
  "grid": [
   {
    "model": "qwen3-1.7b-q4_k_m",
@@ -47,8 +48,8 @@
  "baseline": "Q8_0 of the same model",
  "threads": "6, one per physical core (PREREG §4)",
  "n_ctx": {
-  "LM-only planner (apps/cli/src/planner.rs)": 4096,
-  "Tier 4 in the Intents-v0 cascade (router config)": 2048
+  "LM-only planner (scored)": 4096,
+  "Tier 4 in the hybrid's Intents-v0 cascade (reported only)": 2048
  },
  "dataset": "kestrel-tasks-v0 test"
 }

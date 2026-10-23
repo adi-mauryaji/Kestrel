@@ -47,9 +47,9 @@
   "E4": {
    "status": "BLOCKED",
    "blocked_by": [
-    "Kestrel-Personas-v0 review and freeze (it is a draft)",
-    "the human's acceptance of the PROPOSED E4 protocol (PREREG §4)"
+    "Kestrel-Personas-v0 review and freeze (it is a draft)"
    ],
+   "test": "K5 vs off on the 60 exact personalized test requests: bootstrap p over the 20 test aliases, each with its 3 exact requests (ADR-030); no regression: general success at K5 >= off - delta",
    "files": [
     "experiments/configs/e4.json"
    ]
@@ -65,8 +65,9 @@
    "blocked_by": [
     "Kestrel-Tasks-v0 review and freeze (it is a draft)",
     "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
-    "the PREREG E6 metrics item (plan validity / end state, ADR-023), the title-scoring rule and which planning path E6 scores (LM-only or ADR-025's hybrid)"
+    "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring rule"
    ],
+   "planner": "LM-only (apps/cli/src/planner.rs), the model file swapped per grid entry (ADR-030); ADR-025's hybrid is reported for gemma-4-e2b-it-q4_0 only, outside H6",
    "files": [
     "experiments/configs/e6.json"
    ],
@@ -118,9 +119,9 @@
   "experiments/configs/router_clinc150_r0.json": "63caa492c03b00bdc1a45c25c8620ff837d2d7e85e124647ce651587451b5d58",
   "experiments/configs/router_clinc150_r1.json": "d0b938361d7c4337e4148b6bfec939aef952988f98e061d62291ad3bce88d59d",
   "experiments/configs/e3_candidates.json": "61b86eb9d17f69c1b43f5b8729adfa71507a2d1757c2ee0ca9787139d6c91d6e",
-  "experiments/configs/e4.json": "0dc499d5800f6ae21963bf29ff6eb3883a68ff24196646e0a8cb0923bdf7655b",
+  "experiments/configs/e4.json": "8e837b87f52d275065efa6ef3b01fe589921c97906c3333218b680f86de0be46",
   "experiments/configs/e5.json": "14769a3e97b2812fdce1b44f606e01775cf193b0557221e0bed8e98c6bc17553",
-  "experiments/configs/e6.json": "95f0da395f3dcd93992b1523304cd88331df1e98864934bf84b7e59e723cecc7",
+  "experiments/configs/e6.json": "78868203d3c5aed14e0c009f4e207e618fac859b53eb92671ce3e4622611d3f6",
   "datasets/kestrel_tasks_v0/build/manifest.json": "eb322b1ddec186216054cc87698cd684a56c229b023e3cf8c1783574693ec5bf",
   "datasets/kestrel_tasks_v0/build/items.jsonl": "fdd51fd20ceec7872893992d9b7bfda8ccc1364aa61d3ff683ff1642627eb7e5",
   "datasets/kestrel_memory_v0/build/manifest.json": "c82ed91998ccbd8ba858a8b85ae22ad41c6d7635a8f0532c6f8b46c6569b2e5e",
