@@ -1,0 +1,66 @@
+{
+ "experiment": "E1 peak RSS per system",
+ "dataset": "intents_v0",
+ "systems": {
+  "R0": {
+   "config_sha256": "0686ef5b2b8570e67a8e6cc143777da45506098af190ea5c2bdccc2686bf8b81",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)",
+   "peak_rss_mib": 3367.48828125,
+   "rss_anon_mib_at_end": 3359.15625,
+   "rss_file_mib_at_end": 8.33203125,
+   "load_s": 25.15096309,
+   "tiers_loaded": [
+    4
+   ]
+  },
+  "R1": {
+   "config_sha256": "4192ba5185c74a66e1b6ea841ad4e709c0cbc7803530ffd70cf592fce84c07ac",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)",
+   "peak_rss_mib": 276.4921875,
+   "rss_anon_mib_at_end": 268.56640625,
+   "rss_file_mib_at_end": 7.92578125,
+   "load_s": 1.118986143,
+   "tiers_loaded": [
+    3
+   ]
+  },
+  "R3": {
+   "config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5)",
+   "peak_rss_mib": 3637.61328125,
+   "rss_anon_mib_at_end": 3628.97265625,
+   "rss_file_mib_at_end": 8.640625,
+   "load_s": 26.248286635,
+   "tiers_loaded": [
+    1,
+    3,
+    4
+   ]
+  }
+ },
+ "pinned_cpus": [
+  0,
+  2,
+  4,
+  6,
+  8,
+  10
+ ],
+ "items": [
+  "read-08/hi-en/0/1",
+  "recall-04/hi-en/0/1",
+  "create-02/en/0/0",
+  "summarize-14/hi-en/0/0",
+  "summarize-01/hi-en/0/0"
+ ],
+ "environment": {
+  "git_head": "63ad7fc81c9ad0bec8745caddeeb5fcdb40e61ad",
+  "git_dirty": true,
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo_lock_sha256": "1b958e891b0b1a63f8cf17b6e7d27c06324dd98414d83a89c8f33c98d1aba606",
+  "kestrel_sha256": "76270dd4a7e56d22a67048aebd55cf547f421231687c8c42c4879345e4f9c8db",
+  "python": "3.14.7",
+  "kernel": "7.2.6-200.fc44.x86_64",
+  "cpu": "AMD Ryzen 5 5500U with Radeon Graphics"
+ }
+}

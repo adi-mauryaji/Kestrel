@@ -1,0 +1,19 @@
+{
+ "items": 5,
+ "load_s": 26.248286635,
+ "peak_rss_mib": 3637.61328125,
+ "requests": 5,
+ "rss_anon_mib_at_end": 3628.97265625,
+ "rss_file_mib_at_end": 8.640625,
+ "systems": [
+  {
+   "config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
+   "policy": "R3"
+  }
+ ],
+ "tiers_loaded": [
+  1,
+  3,
+  4
+ ]
+}
