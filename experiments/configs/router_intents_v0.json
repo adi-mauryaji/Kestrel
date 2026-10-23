@@ -1,6 +1,6 @@
 {
  "format": 1,
- "status": "DEV: chosen on val with delta = 0.0; delta is not set yet (PREREG §5), so this is not frozen",
+ "status": "CANDIDATE: chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5); FROZEN at the PREREG freeze (Week 13)",
  "dataset": "intents_v0",
  "policy": "R3",
  "tiers": [
@@ -210,5 +210,5 @@
   "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
   "git_head_at_logging": "57ac751"
  },
- "config_sha256": "31171dc6813dfa5e1a45e18134716f307b2c17ac7551e4a687a36900c115b5a3"
+ "config_sha256": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45"
 }

@@ -263,8 +263,9 @@ def sweep_shared(a: Answers, signal=None, last_answers=False, tiers=(1, 3, 4)) -
 def sweep_per_tier(a: Answers, signal=None, tiers=(1, 3, 4)) -> list[dict]:
     """Per-tier thresholds (R3). Tier-1 confidence is one constant, so tau1 is on or off."""
     t1s = (0.0, OFF) if 1 in tiers else (OFF,)
+    t3s = _grid(a.c3) if 3 in tiers else (OFF,)  # a tier left out has no thresholds to try
     return [summary(a, route(a, (t1, t3, t4), tiers, signal), (t1, t3, t4))
-            for t1 in t1s for t3 in _grid(a.c3) for t4 in _grid(a.c4[a.m4])]
+            for t1 in t1s for t3 in t3s for t4 in _grid(a.c4[a.m4])]
 
 
 def best_per_tier(a: Answers, floors: dict, signal=None, tiers=(1, 3, 4), coverage: float = COVERAGE):
@@ -330,6 +331,28 @@ def best_per_tier(a: Answers, floors: dict, signal=None, tiers=(1, 3, 4), covera
     return points, risk
 
 
+def tier_set_point(a: Answers, floor: float, signal=None, tiers=(1, 3, 4)):
+    """E3 (H3): a tier set's operating point under R3's rule, the cheapest point with accuracy >=
+    `floor` (ties as `best_point` over the full grid), or None. Sets with Tiers 3 and 4 use the fast
+    search; the others ({4}, {1, 4}) are small enough for the full grid."""
+    if 3 in tiers and 4 in tiers:
+        return best_per_tier(a, {0: floor}, signal, tiers)[0][0]
+    return best_point(sweep_per_tier(a, signal, tiers), floor)
+
+
+def best_reachable(a: Answers, signal, tiers, start: float, step: float = 0.005, n: int = 200):
+    """For a set that cannot reach the rule's floor: its point at the highest of start, start - step,
+    ... that it meets, with that floor; None if it meets none."""
+    floors = [start - i * step for i in range(n)]
+    if 3 in tiers and 4 in tiers:
+        pts = best_per_tier(a, dict(enumerate(floors)), signal, tiers)[0]
+        hits = ((pts[i], f) for i, f in enumerate(floors))
+    else:
+        grid = sweep_per_tier(a, signal, tiers)
+        hits = ((best_point(grid, f), f) for f in floors)
+    return next((p | {"floor": f} for p, f in hits if p is not None), None)
+
+
 def risk_at_coverage(points: list[dict], coverage: float = COVERAGE):
     """Selective risk of the point with the smallest coverage >= `coverage` (D4)."""
     ok = [p for p in points if p["coverage"] >= coverage and p["risk"] is not None]
@@ -377,8 +400,9 @@ def crossfit(a: Answers, ref_acc_of, delta: float, signal=None, tiers=(1, 3, 4))
     return {"acc": ok / n, "cost": cost / n}
 
 
-def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 3, 4)) -> dict:
-    """`classes`: head classes, plus `oos_label` at the end if the head lacks it."""
+def calibrated(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 3, 4)):
+    """The val answers raw and calibrated (rule precision and the Tier-4 temperature from cal, Tier 3's
+    from the head): (raw, calibrated, rule precision, rule matches on cal, Tier-4 T)."""
     cal = [r for r in recs if r["split"] == "cal"]
     val = [r for r in recs if r["split"] == "val"]
     p_rule, n_rule = rule_precision(cal) if 1 in tiers else (None, 0)
@@ -388,6 +412,14 @@ def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 
     build = lambda **kw: Answers.build(val, classes, oos_label=oos_label, **kw)  # noqa: E731
     raw = build(rule_conf=1.0, t3=1.0, t4=1.0)
     cal_ = build(rule_conf=p_rule if p_rule is not None else 1.0, t3=t3_cal, t4=t4_cal)
+    return raw, cal_, p_rule, n_rule, t4_cal
+
+
+def run(recs, classes, t3_cal: float, oos_label: str = "unsupported", tiers=(1, 3, 4)) -> dict:
+    """`classes`: head classes, plus `oos_label` at the end if the head lacks it."""
+    cal = [r for r in recs if r["split"] == "cal"]
+    val = [r for r in recs if r["split"] == "val"]
+    raw, cal_, p_rule, n_rule, t4_cal = calibrated(recs, classes, t3_cal, oos_label, tiers)
 
     def r0(a):
         return route(a, (OFF, OFF, 0.0), tiers=(4,))

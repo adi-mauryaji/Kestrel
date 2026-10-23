@@ -1,0 +1,140 @@
+{
+ "experiment": "E3 (H3) candidate points, chosen on val at tolerance 0 (Week 12)",
+ "rule": "cheapest point with accuracy >= max(tuned R0, tuned R1) on val; best reachable if none",
+ "datasets": {
+  "intents_v0": {
+   "n_val": 128,
+   "reference_acc": 0.984375,
+   "signal": "conjunction",
+   "router_config_sha256": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
+   "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
+   "sets": {
+    "{4}": {
+     "point": {
+      "acc": 0.984375,
+      "cost": 812.078966125,
+      "cost_p95": 1049.4684656999998,
+      "coverage": 1.0,
+      "risk": 0.015625,
+      "tier_rate": {
+       "1": 0.0,
+       "3": 0.0,
+       "4": 1.0
+      },
+      "tau": [
+       null,
+       null,
+       0.0
+      ]
+     }
+    },
+    "{1,4}": {
+     "point": {
+      "acc": 0.984375,
+      "cost": 757.7756291718749,
+      "cost_p95": 1049.4697370999997,
+      "coverage": 1.0,
+      "risk": 0.015625,
+      "tier_rate": {
+       "1": 0.0703125,
+       "3": 0.0,
+       "4": 0.9296875
+      },
+      "tau": [
+       0.0,
+       null,
+       0.0
+      ]
+     }
+    },
+    "{3,4}": {
+     "point": {
+      "acc": 0.984375,
+      "cost": 490.746070921875,
+      "cost_p95": 1054.3324806999997,
+      "coverage": 1.0,
+      "risk": 0.015625,
+      "tier_rate": {
+       "1": 0.0,
+       "3": 0.4140625,
+       "4": 0.5859375
+      },
+      "tau": [
+       null,
+       0.9641464612566548,
+       0.0
+      ]
+     }
+    },
+    "{1,3,4}": {
+     "point": {
+      "acc": 0.984375,
+      "cost": 477.66254746874995,
+      "cost_p95": 1054.3337520999996,
+      "coverage": 1.0,
+      "risk": 0.015625,
+      "tier_rate": {
+       "1": 0.0703125,
+       "3": 0.359375,
+       "4": 0.5703125
+      },
+      "tau": [
+       0.0,
+       0.9641464612566548,
+       0.0
+      ]
+     }
+    }
+   }
+  },
+  "clinc150": {
+   "n_val": 1700,
+   "reference_acc": 0.9117647058823529,
+   "signal": "conjunction",
+   "router_config_sha256": "c5e29930229ae3d28e00069c1931cfb8fc833f068c79cccbe516097898d7535d",
+   "tier_outputs_sha256": "49e0e97d9a43c16cbee5dbd0f3a173e4839b232adeb06a22a7ab132f14679bf6",
+   "sets": {
+    "{4}": {
+     "point": null,
+     "best_reachable": {
+      "acc": 0.8723529411764706,
+      "cost": 988.128153727647,
+      "cost_p95": 1477.8372871499998,
+      "coverage": 0.9076470588235294,
+      "risk": 0.09915748541801683,
+      "tier_rate": {
+       "1": 0.0,
+       "3": 0.0,
+       "4": 1.0
+      },
+      "tau": [
+       null,
+       null,
+       0.5804145610909865
+      ],
+      "floor": 0.8717647058823529
+     }
+    },
+    "{3,4}": {
+     "point": {
+      "acc": 0.9117647058823529,
+      "cost": 140.07047980235293,
+      "cost_p95": 1041.3570447,
+      "coverage": 0.9276470588235294,
+      "risk": 0.08243500317057706,
+      "tier_rate": {
+       "1": 0.0,
+       "3": 0.86,
+       "4": 0.14
+      },
+      "tau": [
+       null,
+       0.6009338585560773,
+       0.8141819886106859
+      ]
+     }
+    }
+   }
+  }
+ }
+}

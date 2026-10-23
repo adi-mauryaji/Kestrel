@@ -1,6 +1,6 @@
 {
  "format": 1,
- "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is",
+ "status": "CANDIDATE: tuned on val (ADR-019); FROZEN at the PREREG freeze (Week 13)",
  "dataset": "clinc150",
  "policy": "R1",
  "tiers": [
@@ -656,5 +656,5 @@
   "tier_outputs_sha256": "49e0e97d9a43c16cbee5dbd0f3a173e4839b232adeb06a22a7ab132f14679bf6",
   "git_head_at_logging": "75dc3d9"
  },
- "config_sha256": "6d06f477f3d3f08c6774e9d3c213eaec13546cdaa9cfe428a51dbade6e1d5e8b"
+ "config_sha256": "12719e904b5be18a2a8aa66ee5f889f0871c84690a44f0259223860ccdb34c93"
 }

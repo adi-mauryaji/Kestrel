@@ -100,8 +100,9 @@ class _Git:
 def test_the_test_split_needs_the_freeze_tag_frozen_configs_and_a_clean_tree():
     frozen = [{"status": "FROZEN at exp-E1-frozen"}]
     guard_test(frozen, git=_Git())
-    with pytest.raises(RuntimeError, match="DEV"):
-        guard_test([{"status": "DEV: chosen on val"}], git=_Git())
+    for status in ("DEV: chosen on val", "CANDIDATE: chosen on val at tolerance 0"):
+        with pytest.raises(RuntimeError, match="not FROZEN"):
+            guard_test([{"status": status}], git=_Git())
     for git, msg in ((_Git(tag=False), "tag"), (_Git(ancestor=False), "ancestor"), (_Git(clean=False), "clean")):
         with pytest.raises(RuntimeError, match=msg):
             guard_test(frozen, git=git)

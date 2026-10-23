@@ -37,7 +37,7 @@ def test_build_turns_the_chosen_point_into_router_thresholds():
     assert cfg["calibration"] == {"tier1_confidence": 1.0, "tier3_temperature": 0.69, "tier4_temperature": 0.85}
     assert cfg["chosen_on"]["delta"] == 0.0 and cfg["chosen_on"]["split"] == "val"
     assert cfg["chosen_on"]["reference"] == {"system": "R0_tuned", "acc": 0.984}  # ADR-019
-    assert "DEV" in cfg["status"]
+    assert cfg["status"].startswith("CANDIDATE")
     assert cfg["est_cost_ms"] == [1, 0, 6, 813]  # measured dev means, rounded up; Tier 2 not built
     assert cfg["models"]["tier3"]["encoder_file"] == "e5.gguf"
     assert cfg["models"]["tier4"]["n_ctx"] == 2048 and cfg["models"]["tier4"]["shots"] == RUNTIME["shots"]

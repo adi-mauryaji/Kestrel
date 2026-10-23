@@ -89,12 +89,13 @@ def build(policies: dict, meta: dict, tier_outputs_sha256: str, runtime: dict, *
         point = policies["R3"][str(signal)]["points"].get(str(delta))
         if point is None:
             raise ValueError(f"no R3 point within delta = {delta} for signal {signal}")
-        status = f"DEV: chosen on val with delta = {delta}; delta is not set yet (PREREG §5), so this is not frozen"
+        status = (f"CANDIDATE: chosen on val at tolerance {delta} (ADR-021; delta is only the test margin, "
+                  "PREREG §5); FROZEN at the PREREG freeze (Week 13)")
         chosen = {"split": "val", "n": policies["n_val"], "delta": delta, "reference": policies["reference"],
                   "acc": point["acc"], "cost_ms": point["cost"], "crossfit": point["crossfit"]}
     elif policy in ("R0", "R1"):
         point = policies["R0_tuned"] if policy == "R0" else policies["R1"]["tuned"]
-        status = "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+        status = "CANDIDATE: tuned on val (ADR-019); FROZEN at the PREREG freeze (Week 13)"
         chosen = {"split": "val", "n": policies["n_val"],
                   "rule": "tuned_single: one abstention threshold maximising val accuracy (ADR-019)",
                   "acc": point["acc"], "cost_ms": point["cost"]}

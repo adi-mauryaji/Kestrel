@@ -247,3 +247,32 @@ def test_records_are_read_from_plain_or_gzipped_logs(tmp_path):
         assert recs == [rec] and meta == {"dataset": name} and path.exists()
     with pytest.raises(FileNotFoundError):
         read_tier_outputs("c", tmp_path)
+
+
+@pytest.mark.parametrize("seed", [0, 1])
+@pytest.mark.parametrize("signal", [None, "conjunction"])
+def test_a_tier_sets_point_is_the_full_grids_cheapest_point_above_the_floor(seed, signal):
+    # E3 (H3): each tier set gets the operating-point rule of R3 (cheapest at accuracy >= floor).
+    from policies import sweep_per_tier, tier_set_point
+
+    a = _random_answers(seed)
+    for tiers in [(4,), (1, 4), (3, 4), (1, 3, 4)]:
+        pts = sweep_per_tier(a, signal, tiers)
+        top = max(p["acc"] for p in pts)
+        for floor in (top, top - 0.05, top + 0.01):
+            slow = best_point(pts, floor)
+            fast = tier_set_point(a, floor, signal, tiers)
+            assert (fast is None) == (slow is None), (tiers, floor)
+            if slow is not None:
+                assert (fast["tau"], fast["acc"]) == (slow["tau"], slow["acc"]), tiers
+                assert fast["cost"] == pytest.approx(slow["cost"])
+
+
+def test_the_best_reachable_point_is_the_highest_floor_a_tier_set_meets():
+    from policies import best_reachable, sweep_per_tier
+
+    a = _random_answers(3)
+    pts = sweep_per_tier(a, None, (1, 4))
+    top = max(p["acc"] for p in pts)
+    p = best_reachable(a, None, (1, 4), start=top + 0.05, step=0.005)
+    assert p["acc"] >= top - 0.005 - 1e-12 and p == best_point(pts, p["floor"]) | {"floor": p["floor"]}

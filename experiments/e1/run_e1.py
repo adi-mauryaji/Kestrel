@@ -164,8 +164,8 @@ def _git(*args) -> tuple[int, str]:
 def guard_test(configs: list[dict], git=_git) -> None:
     """The test split runs only on a frozen PREREG (Ch. 34.6): frozen configs, the freeze tag in
     HEAD's history, a clean tree."""
-    if any(c["status"].startswith("DEV") for c in configs):
-        raise RuntimeError("test split refused: a config is still DEV (the PREREG is not frozen)")
+    if not all(c["status"].startswith("FROZEN") for c in configs):
+        raise RuntimeError("test split refused: a config is not FROZEN (the PREREG is not frozen)")
     if git("tag", "-l", FREEZE_TAG)[1].strip() != FREEZE_TAG:
         raise RuntimeError(f"test split refused: no {FREEZE_TAG} tag")
     if git("merge-base", "--is-ancestor", FREEZE_TAG, "HEAD")[0] != 0:
