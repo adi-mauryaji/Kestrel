@@ -25,7 +25,7 @@
  },
  "problems": {},
  "delta_source": "experiments/logs/router/delta_pilot.json",
- "rss_source": "no rss.py summary of these configs",
+ "rss_source": "experiments/logs/E1/rss/intents_v0_20261023T210634Z/summary.json",
  "dataset": "intents_v0",
  "n_items": 252,
  "n_latency_items": 252,
@@ -49,7 +49,7 @@
     "median": 669.5258495,
     "p95": 915.784458
    },
-   "peak_rss_mib": null
+   "peak_rss_mib": 3367.48828125
   },
   "R0 untuned": {
    "n": 252,
@@ -65,7 +65,7 @@
     "median": 669.5258495,
     "p95": 915.784458
    },
-   "peak_rss_mib": null
+   "peak_rss_mib": 3367.48828125
   },
   "R1": {
    "n": 252,
@@ -81,7 +81,7 @@
     "median": 5.623412999999999,
     "p95": 9.353783
    },
-   "peak_rss_mib": null
+   "peak_rss_mib": 276.4921875
   },
   "R3": {
    "n": 252,
@@ -97,7 +97,7 @@
     "median": 521.721377,
     "p95": 916.958892
    },
-   "peak_rss_mib": null
+   "peak_rss_mib": 3637.61328125
   }
  },
  "h1": {

@@ -1,0 +1,106 @@
+{
+ "experiment": "E3",
+ "split": "test",
+ "dev": false,
+ "runs": [
+  "experiments/logs/E1/clinc150_test/chunk1of4_20261023T175142Z",
+  "experiments/logs/E1/clinc150_test/chunk2of4_20261023T184110Z",
+  "experiments/logs/E1/clinc150_test/chunk3of4_20261023T193019Z",
+  "experiments/logs/E1/clinc150_test/chunk4of4_20261023T202028Z"
+ ],
+ "e3_candidates": "experiments/configs/e3_candidates.json",
+ "dataset": "clinc150",
+ "n_items": 5500,
+ "n_latency_items": 1100,
+ "delta": 0.02632771902249294,
+ "signal": "conjunction",
+ "clusters": null,
+ "full_set": "{3,4}",
+ "reproduces_r3": true,
+ "sets": {
+  "{4}": {
+   "tiers": [
+    4
+   ],
+   "tau": [
+    null,
+    null,
+    0.5804145610909865
+   ],
+   "chosen": "best_reachable",
+   "accuracy": 0.8265454545454546,
+   "coverage": 0.8750909090909091,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.0,
+    "4": 1.0
+   },
+   "cost_ms": {
+    "n": 1100,
+    "mean": 863.4496120909091,
+    "median": 865.0184425,
+    "p95": 1291.762874
+   }
+  },
+  "{3,4}": {
+   "tiers": [
+    3,
+    4
+   ],
+   "tau": [
+    null,
+    0.6009338585560773,
+    0.8141819886106859
+   ],
+   "chosen": "point",
+   "accuracy": 0.8741818181818182,
+   "coverage": 0.8901818181818182,
+   "tier_rate": {
+    "1": 0.0,
+    "3": 0.8303636363636364,
+    "4": 0.16963636363636364
+   },
+   "cost_ms": {
+    "n": 1100,
+    "mean": 146.2285065281818,
+    "median": 5.684075,
+    "p95": 932.685829
+   }
+  }
+ },
+ "h3": {
+  "a": "{3,4}",
+  "b": "{4}",
+  "claim": "{3,4} is non-inferior in accuracy and cheaper than {4}",
+  "accuracy": {
+   "diff": 0.047636363636363636,
+   "ci95": [
+    0.037636363636363634,
+    0.05781818181818182
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 275,
+    "n10": 537,
+    "p": 2.4584659633145243e-20
+   }
+  },
+  "cost": {
+   "diff_ms": -717.2211055627273,
+   "ci95": [
+    -739.0794505197726,
+    -694.2502715342955
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 4.564764318323502e-163,
+   "dz": -1.8871356962034986
+  },
+  "p": 0.0,
+  "family": "reported, outside the family",
+  "outcome": null
+ },
+ "area_under_cost_accuracy_curve": "not computed: one frozen point per set"
+}

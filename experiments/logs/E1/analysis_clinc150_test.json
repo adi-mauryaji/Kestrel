@@ -1,0 +1,249 @@
+{
+ "experiment": "E1",
+ "split": "test",
+ "dev": false,
+ "valid": true,
+ "runs": [
+  "experiments/logs/E1/clinc150_test/chunk1of4_20261023T175142Z",
+  "experiments/logs/E1/clinc150_test/chunk2of4_20261023T184110Z",
+  "experiments/logs/E1/clinc150_test/chunk3of4_20261023T193019Z",
+  "experiments/logs/E1/clinc150_test/chunk4of4_20261023T202028Z"
+ ],
+ "configs": {
+  "R0": {
+   "config": "experiments/configs/router_clinc150_r0.json",
+   "config_sha256": "8bc02e20f5ad593d5a4f8a2cc4672018e668c3a9adbc3338a8066f14c688d8a9",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)"
+  },
+  "R1": {
+   "config": "experiments/configs/router_clinc150_r1.json",
+   "config_sha256": "c55657a532ca4fe02d30d2ee2938f91641564651fa9415d7cefd2b0fae2247d8",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); tuned on val (ADR-019)"
+  },
+  "R3": {
+   "config": "experiments/configs/router_clinc150.json",
+   "config_sha256": "216385772928ab36fe63171af0a2f2d2ec4822b74e51a2683fdc29cc7e11ff12",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5)"
+  }
+ },
+ "problems": {},
+ "delta_source": "experiments/logs/router/delta_pilot.json",
+ "rss_source": "experiments/logs/E1/rss/clinc150_20261023T210736Z/summary.json",
+ "dataset": "clinc150",
+ "n_items": 5500,
+ "n_latency_items": 1100,
+ "delta": 0.02632771902249294,
+ "n_boot": 10000,
+ "seed": 0,
+ "clusters": null,
+ "n_clusters": null,
+ "systems": {
+  "R0": {
+   "n": 5500,
+   "accuracy": 0.8265454545454546,
+   "coverage": 0.8750909090909091,
+   "accuracy_answered": 0.8454186578017868,
+   "macro_f1": 0.8701093041705351,
+   "compound_accuracy": null,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 1100,
+    "mean": 863.4558283663637,
+    "median": 865.0251895,
+    "p95": 1291.769186
+   },
+   "peak_rss_mib": 3490.97265625
+  },
+  "R0 untuned": {
+   "n": 5500,
+   "accuracy": 0.7732727272727272,
+   "coverage": 1.0,
+   "accuracy_answered": 0.7732727272727272,
+   "macro_f1": 0.8502911204488667,
+   "compound_accuracy": null,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 1100,
+    "mean": 863.4558283663637,
+    "median": 865.0251895,
+    "p95": 1291.769186
+   },
+   "peak_rss_mib": 3490.97265625
+  },
+  "R1": {
+   "n": 5500,
+   "accuracy": 0.893090909090909,
+   "coverage": 0.8114545454545454,
+   "accuracy_answered": 0.9307640600492942,
+   "macro_f1": 0.9254588655882008,
+   "compound_accuracy": null,
+   "tier4_share": 0.0,
+   "latency_ms": {
+    "n": 1100,
+    "mean": 5.605421456363636,
+    "median": 5.4175854999999995,
+    "p95": 7.767143
+   },
+   "peak_rss_mib": 277.92578125
+  },
+  "R3": {
+   "n": 5500,
+   "accuracy": 0.8741818181818182,
+   "coverage": 0.8901818181818182,
+   "accuracy_answered": 0.8764297385620915,
+   "macro_f1": 0.914029703573095,
+   "compound_accuracy": null,
+   "tier4_share": 0.16963636363636364,
+   "latency_ms": {
+    "n": 1100,
+    "mean": 146.21648873090908,
+    "median": 5.6167205,
+    "p95": 931.3896520000001
+   },
+   "peak_rss_mib": 3772.59375
+  }
+ },
+ "h1": {
+  "accuracy": {
+   "diff": 0.047636363636363636,
+   "ci95": [
+    0.037636363636363634,
+    0.05781818181818182
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 275,
+    "n10": 537,
+    "p": 2.4584659633145243e-20
+   }
+  },
+  "latency": {
+   "diff_ms": -717.2393396354545,
+   "ci95": [
+    -739.1044300589546,
+    -694.2669828938635
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 1.630264790793026e-165,
+   "dz": -1.8867045859280904
+  },
+  "outcome": "supported",
+  "supported": true,
+  "p_iut": 0.0
+ },
+ "h1c": {
+  "accuracy": {
+   "diff": -0.01890909090909091,
+   "ci95": [
+    -0.026,
+    -0.011636363636363636
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0446,
+   "mcnemar": {
+    "n01": 261,
+    "n10": 157,
+    "p": 4.128489306705566e-07
+   }
+  },
+  "p": 0.0446,
+  "outcome": "after Holm (secondary family)"
+ },
+ "h1b": {
+  "seeds": 1000,
+  "r3_acc": 0.8741818181818182,
+  "rrand": {
+   "acc": 0.7155712727272727,
+   "acc_sd": 0.0030920844610148636,
+   "tier4_rate": 0.1696363636363637
+  },
+  "accuracy": {
+   "diff": 0.15861054545454545,
+   "ci95": [
+    0.15117021363636363,
+    0.16616087727272727
+   ],
+   "above": true,
+   "p_above": 0.0
+  },
+  "p": 0.0,
+  "cost_model_ms": {
+   "latency_subset": {
+    "n": 1100,
+    "r3": 146.2285065281818,
+    "rrand": 152.34471820005078
+   },
+   "all_items": {
+    "n": 5500,
+    "r3": 151.84460154072727,
+    "rrand": 157.28071565260595
+   }
+  },
+  "outcome": "after Holm (secondary family)"
+ },
+ "signal_false_positive": {
+  "all": 0.039636363636363636
+ },
+ "rho": {
+  "target": 0.1,
+  "n_below_tier4": 920,
+  "r3_median_below_tier4_ms": 5.317196,
+  "r0_median_ms": 865.0251895,
+  "met": true
+ },
+ "sensitivity_d1": {
+  "n_items": 5486,
+  "dropped": [
+   "clinc150/test/1399",
+   "clinc150/test/1591",
+   "clinc150/test/1973",
+   "clinc150/test/1974",
+   "clinc150/test/2887",
+   "clinc150/test/2891",
+   "clinc150/test/2892",
+   "clinc150/test/2893",
+   "clinc150/test/3555",
+   "clinc150/test/3559",
+   "clinc150/test/3569",
+   "clinc150/test/599",
+   "clinc150/test/814",
+   "clinc150/test/938"
+  ],
+  "h1": {
+   "accuracy": {
+    "diff": 0.047757929274516955,
+    "ci95": [
+     0.037550127597520966,
+     0.057965730951512945
+    ],
+    "margin": 0.02632771902249294,
+    "noninferior": true,
+    "p_noninferior": 0.0,
+    "mcnemar": {
+     "n01": 274,
+     "n10": 536,
+     "p": 2.201186508027017e-20
+    }
+   },
+   "latency": {
+    "diff_ms": -717.4983393575978,
+    "ci95": [
+     -739.7643466385578,
+     -694.8084894529572
+    ],
+    "faster": true,
+    "p_below": 0.0,
+    "wilcoxon_p": 2.450219424143296e-165,
+    "dz": -1.8870088121779147
+   },
+   "outcome": "supported",
+   "supported": true,
+   "p_iut": 0.0
+  }
+ },
+ "rep_disagreements": []
+}

@@ -1,0 +1,240 @@
+{
+ "family": "PREREG \u00a76 + clarification v1.0.1 (ADR-032)",
+ "alpha": 0.05,
+ "members": [
+  {
+   "id": "H1 Intents-v0",
+   "p": 1.0,
+   "parts": [
+    {
+     "diff": -0.031746031746031744,
+     "ci95": [
+      -0.06854838709677419,
+      -0.00390625
+     ],
+     "above": true,
+     "bound": -0.02632771902249294
+    },
+    {
+     "diff": -307.3137238571428,
+     "ci95": [
+      -384.98924378594313,
+      -228.62761306967855
+     ],
+     "above": false,
+     "bound": 0.0
+    }
+   ],
+   "source": "E1 Intents-v0",
+   "p_holm": 1.0,
+   "outcome": "inconclusive (interim)"
+  },
+  {
+   "id": "H1b CLINC150",
+   "p": 0.0,
+   "parts": [
+    {
+     "diff": 0.15861054545454545,
+     "ci95": [
+      0.15117021363636363,
+      0.16616087727272727
+     ],
+     "above": true,
+     "bound": 0.0
+    }
+   ],
+   "source": "E1 CLINC150",
+   "p_holm": 0.0,
+   "outcome": "supported"
+  },
+  {
+   "id": "H1b Intents-v0",
+   "p": 0.0002,
+   "parts": [
+    {
+     "diff": 0.05644047619047619,
+     "ci95": [
+      0.021003130299176356,
+      0.09755106854838708
+     ],
+     "above": true,
+     "bound": 0.0
+    }
+   ],
+   "source": "E1 Intents-v0",
+   "p_holm": 0.0018000000000000002,
+   "outcome": "supported"
+  },
+  {
+   "id": "H1c CLINC150",
+   "p": 0.0446,
+   "parts": [
+    {
+     "diff": -0.01890909090909091,
+     "ci95": [
+      -0.026,
+      -0.011636363636363636
+     ],
+     "above": true,
+     "bound": -0.02632771902249294
+    }
+   ],
+   "source": "E1 CLINC150",
+   "p_holm": 0.2676,
+   "outcome": "inconclusive (interim)"
+  },
+  {
+   "id": "H1c Intents-v0",
+   "p": 0.0,
+   "parts": [
+    {
+     "diff": 0.26587301587301587,
+     "ci95": [
+      0.15447154471544716,
+      0.3837279069767441
+     ],
+     "above": true,
+     "bound": -0.02632771902249294
+    }
+   ],
+   "source": "E1 Intents-v0",
+   "p_holm": 0.0,
+   "outcome": "supported"
+  },
+  {
+   "id": "H2 CLINC150",
+   "p": 0.0,
+   "parts": [
+    {
+     "diff": -0.020909090909090905,
+     "ci95": [
+      -0.0263400687313988,
+      -0.01477272727272727
+     ],
+     "above": false,
+     "bound": 0.0
+    }
+   ],
+   "source": "E2 CLINC150",
+   "p_holm": 0.0,
+   "outcome": "supported"
+  },
+  {
+   "id": "H2 Intents-v0",
+   "p": 1.0,
+   "parts": [
+    {
+     "diff": 0.004950495049504955,
+     "ci95": [
+      -0.0006922011998154176,
+      0.019900497512437804
+     ],
+     "above": false,
+     "bound": 0.0
+    }
+   ],
+   "source": "E2 Intents-v0",
+   "p_holm": 1.0,
+   "outcome": "inconclusive (interim)"
+  },
+  {
+   "id": "H3",
+   "p": 0.0056,
+   "parts": [
+    {
+     "diff": -0.007936507936507936,
+     "ci95": [
+      -0.020491803278688523,
+      0.0
+     ],
+     "above": true,
+     "bound": -0.02632771902249294
+    },
+    {
+     "diff": -288.73658439285714,
+     "ci95": [
+      -370.9595977846255,
+      -211.20250847384668
+     ],
+     "above": false,
+     "bound": 0.0
+    }
+   ],
+   "source": "E3 Intents-v0",
+   "p_holm": 0.0448,
+   "outcome": "supported"
+  },
+  {
+   "id": "H4",
+   "p": null,
+   "parts": [],
+   "p_holm": null,
+   "outcome": "pending"
+  },
+  {
+   "id": "H5",
+   "p": 6.103515625e-05,
+   "parts": [
+    {
+     "diff": -0.9492777777777778,
+     "ci95": [
+      -0.9527597222222223,
+      -0.945888888888889
+     ],
+     "above": false,
+     "bound": 0.0
+    }
+   ],
+   "source": "E5 CLINC150",
+   "p_holm": 0.0006103515625,
+   "outcome": "supported"
+  },
+  {
+   "id": "H6",
+   "p": null,
+   "parts": [],
+   "p_holm": null,
+   "outcome": "pending"
+  },
+  {
+   "id": "H7a",
+   "p": 0.0356,
+   "parts": [
+    {
+     "diff": -0.007936507936507936,
+     "ci95": [
+      -0.024390243902439025,
+      0.0
+     ],
+     "above": true,
+     "bound": -0.02632771902249294
+    }
+   ],
+   "source": "E1 Intents-v0 hi-en",
+   "p_holm": 0.2492,
+   "outcome": "inconclusive (interim)"
+  },
+  {
+   "id": "H7b",
+   "p": 0.0602,
+   "parts": [
+    {
+     "diff": 0.04163797373125386,
+     "ci95": [
+      -0.002266121145190726,
+      0.11061004762015404
+     ],
+     "above": true,
+     "bound": 0.0
+    }
+   ],
+   "source": "E2 Intents-v0",
+   "p_holm": 0.301,
+   "outcome": "inconclusive (interim)"
+  }
+ ],
+ "primary_h1_clinc150": {
+  "outcome": "supported",
+  "p_iut": 0.0
+ }
+}
