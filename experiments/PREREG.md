@@ -164,7 +164,8 @@ end-to-end measurements.
   (`experiments/continual/epsilon_pilot.py`, seed 0). ε₂ (average forgetting) = 2 × the sample SD of the selected naive
   configuration's average forgetting over its 15 E5 dev runs (§4, `e5_sweep.py`). Values (filled from the logs; the rules
   do not change once they are read): **ε₁ = 0.0048, ε₃ = 0.0029** (2026-10-23; 5 retrains: val macro-F1 0.956 ± 0.0024,
-  ECE 0.0121 ± 0.0015; `experiments/logs/E5/epsilon_pilot.json`), **ε₂ = TBD** (from the sweep).
+  ECE 0.0121 ± 0.0015; `experiments/logs/E5/epsilon_pilot.json`), **ε₂ = 0.0159** (2026-10-23; selected naive
+  configuration lr 10 / 10 epochs, forgetting 0.952 ± 0.008 over 15 runs; `experiments/logs/E5/sweep_dev.json`).
 
 ## 6. Analysis plan
 
