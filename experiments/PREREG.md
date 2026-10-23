@@ -162,8 +162,9 @@ end-to-end measurements.
   the frozen regression suite) and ε₃ (ECE rise) = 2 × the sample SD over 5 bootstrap resamples of CLINC150 train, each
   retraining the Tier-3 head with Week 5's C (100), T fitted on cal, scored on val in-scope with 15 ECE bins
   (`experiments/continual/epsilon_pilot.py`, seed 0). ε₂ (average forgetting) = 2 × the sample SD of the selected naive
-  configuration's average forgetting over its 15 E5 dev runs (§4, `e5_sweep.py`). Values: **ε₁ = TBD, ε₃ = TBD, ε₂ = TBD**
-  (filled from the logs; the rules do not change once they are read).
+  configuration's average forgetting over its 15 E5 dev runs (§4, `e5_sweep.py`). Values (filled from the logs; the rules
+  do not change once they are read): **ε₁ = 0.0048, ε₃ = 0.0029** (2026-10-23; 5 retrains: val macro-F1 0.956 ± 0.0024,
+  ECE 0.0121 ± 0.0015; `experiments/logs/E5/epsilon_pilot.json`), **ε₂ = TBD** (from the sweep).
 
 ## 6. Analysis plan
 
