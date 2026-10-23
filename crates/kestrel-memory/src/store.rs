@@ -300,10 +300,16 @@ impl Memory {
         write(&mut self.conn, d, source, now, false).map_err(storage)
     }
 
-    /// The user said yes to this value at the prompt (ADR-026): it is the user's.
-    pub fn confirm(&mut self, d: &Draft, now: i64) -> Result<i64, KestrelError> {
+    /// The user said yes to this value at the prompt: stored approved, audited as `confirm`
+    /// (Ch. 20: every durable store has a confirmation event). A correction keeps its source; a
+    /// model proposal the user confirmed is the user's (`user_explicit`, ADR-026).
+    pub fn confirm(&mut self, d: &Draft, source: Source, now: i64) -> Result<i64, KestrelError> {
         check(d)?;
-        write(&mut self.conn, d, Source::UserExplicit, now, true)
+        let source = match source {
+            Source::ModelInferred => Source::UserExplicit,
+            s => s,
+        };
+        write(&mut self.conn, d, source, now, true)
             .map(Proposed::id)
             .map_err(storage)
     }
@@ -738,13 +744,34 @@ mod tests {
             .propose(&pref("concise"), Source::UserExplicit, 0)
             .unwrap()
             .id();
-        assert_eq!(m.confirm(&pref("detailed"), 5).unwrap(), id);
+        assert_eq!(
+            m.confirm(&pref("detailed"), Source::ModelInferred, 5)
+                .unwrap(),
+            id
+        );
         let h = &visible(&m, "answer", 6)[0];
         assert_eq!(
             (h.value.as_str(), h.source, h.approved),
             ("detailed", Source::UserExplicit, true)
         );
-        assert_eq!(ops(&m), ["store", "confirm"]);
+        // A confirmed correction keeps its provenance (Ch. 20 step 4).
+        m.confirm(&pref("short"), Source::Correction, 7).unwrap();
+        assert_eq!(visible(&m, "answer", 8)[0].source, Source::Correction);
+        let events: Vec<(String, String)> = m
+            .audit()
+            .unwrap()
+            .into_iter()
+            .map(|e| (e.op, e.source))
+            .collect();
+        let ev = |op: &str, by: &str| (op.to_string(), by.to_string());
+        assert_eq!(
+            events,
+            [
+                ev("store", "user_explicit"),
+                ev("confirm", "user_explicit"),
+                ev("confirm", "correction")
+            ]
+        );
     }
 
     #[test]

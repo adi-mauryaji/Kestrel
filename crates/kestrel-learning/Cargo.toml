@@ -1,0 +1,14 @@
+[package]
+name = "kestrel-learning"
+description = "Kestrel learning: user corrections turned into confirmed memory proposals (Ch. 20; model updates are CRP)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kestrel-core.workspace = true
+kestrel-memory.workspace = true
+
+[lints]
+workspace = true

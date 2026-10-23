@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-router", "crates/kestrel-tools"]
+members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-learning", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-router", "crates/kestrel-tools"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,7 @@ license = "MIT OR Apache-2.0"
 kestrel-bench = { path = "crates/kestrel-bench" }
 kestrel-core = { path = "crates/kestrel-core" }
 kestrel-inference = { path = "crates/kestrel-inference" }
+kestrel-learning = { path = "crates/kestrel-learning" }
 kestrel-memory = { path = "crates/kestrel-memory" }
 kestrel-nlu = { path = "crates/kestrel-nlu" }
 kestrel-router = { path = "crates/kestrel-router" }

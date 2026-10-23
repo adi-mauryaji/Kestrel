@@ -238,6 +238,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "kestrel-learning"
+version = "0.1.0"
+dependencies = [
+ "kestrel-core",
+ "kestrel-memory",
+]
+
+[[package]]
 name = "kestrel-memory"
 version = "0.1.0"
 dependencies = [
