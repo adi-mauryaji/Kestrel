@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from analyze_e1 import (analyze, check_items, check_systems, chunk_problems, item_correct, nearest_rank, record_invalid,
-                        render, select_runs, untuned)
+                        render, rss_for, select_runs, untuned)
 from kestrel_stats import paired_bootstrap_ci
 
 SYS = {s: {"config_sha256": f"{s}-sha", "status": "FROZEN 2026-11-01"} for s in ("R0", "R1", "R3")}
@@ -297,3 +297,29 @@ def test_h1b_needs_tier_answers_that_reproduce_r3():
             r["steps"][0]["label"] = "b"  # R3 accepted "a" from the same Tier 3
     with pytest.raises(ValueError, match="it02"):
         run(rows, gold, lat)
+
+
+def write_rss(root, name, shas, peaks):
+    d = root / name
+    d.mkdir(parents=True)
+    systems = {p: {"config_sha256": shas[p], "peak_rss_mib": peaks[p]} for p in shas}
+    (d / "summary.json").write_text(json.dumps({"dataset": "intents_v0", "systems": systems}))
+
+
+def test_rss_comes_from_the_latest_summary_of_the_same_configs(tmp_path):
+    shas = {s: v["config_sha256"] for s, v in SYS.items()}
+    write_rss(tmp_path, "intents_v0_20261101T080000Z", shas, {"R0": 3700.0, "R1": 300.0, "R3": 3900.0})
+    write_rss(tmp_path, "intents_v0_20261102T080000Z", shas, {"R0": 3710.0, "R1": 301.0, "R3": 3905.0})
+    write_rss(tmp_path, "intents_v0_20261103T080000Z", shas | {"R3": "older-config"}, {"R0": 1.0, "R1": 1.0, "R3": 1.0})
+    write_rss(tmp_path, "clinc150_20261104T080000Z", shas, {"R0": 2.0, "R1": 2.0, "R3": 2.0})
+    got = rss_for("intents_v0", SYS, tmp_path)
+    assert got["peak_rss_mib"] == {"R0": 3710.0, "R1": 301.0, "R3": 3905.0}
+    assert got["source"].endswith("intents_v0_20261102T080000Z/summary.json")
+    assert rss_for("intents_v0", {**SYS, "R1": {"config_sha256": "new"}}, tmp_path) is None
+
+
+def test_table_r1_carries_the_per_system_rss():
+    rows, gold, lat = scenario()
+    rep = run(rows, gold, lat, rss={"R0": 3700.0, "R1": 300.0, "R3": 3900.0})
+    assert rep["systems"]["R0 untuned"]["peak_rss_mib"] == 3700.0 and rep["systems"]["R1"]["peak_rss_mib"] == 300.0
+    assert run(rows, gold, lat)["systems"]["R3"]["peak_rss_mib"] is None

@@ -21,7 +21,8 @@ Bootstrap (ADR-029): 10 000 paired resamples, seed 0, of the items on CLINC150 a
 families on Kestrel-Intents-v0 (its items are not independent), with the item-level CI and p
 alongside there.
 
-Reported: Table R1 (R0 tuned and untuned, R1, R3; RSS comes from the per-config runs, not from here),
+Reported: Table R1 (R0 tuned and untuned, R1, R3; peak RSS from the latest experiments/e1/rss.py summary
+whose config hashes are the chunks', "—" when there is none),
 H1 (intersection-union: the 95% CI of Δacc = R3 - R0 lies above -δ AND that of Δlat lies below 0;
 its outcome supported / not supported / inconclusive), H1c (R3 vs R1, non-inferiority), per language
 H7a (Δacc, Δlat) and D11 (R3's Tier-4 share and mean latency), ρ, the routing signal's
@@ -61,6 +62,7 @@ CLUSTERS = {"intents_v0": "family"}  # ADR-029: the bootstrap resamples this fie
 RHO = 0.1  # D6
 RRAND_SEEDS = 1000  # D10
 INVALIDATED = "INVALIDATED.json"
+RSS_DIR = LOG_DIR / "rss"
 DELTA_LOG = ROOT / "experiments" / "logs" / "router" / "delta_pilot.json"
 
 
@@ -122,6 +124,17 @@ def check_systems(manifests: list[dict], *, frozen: bool) -> dict:
     if frozen and (bad := [s for s in SYSTEMS if not first[s]["status"].startswith("FROZEN")]):
         raise ValueError(f"configs not FROZEN: {bad}")
     return first
+
+
+def rss_for(dataset: str, configs: dict, rss_dir: Path = RSS_DIR) -> dict | None:
+    """Peak RSS per system from the latest rss.py summary of exactly these configs, or None."""
+    for path in sorted(rss_dir.glob(f"{dataset}_*/summary.json"), reverse=True):
+        systems = json.loads(path.read_text())["systems"]
+        if set(systems) == set(SYSTEMS) and all(systems[s]["config_sha256"] == configs[s]["config_sha256"]
+                                                for s in SYSTEMS):
+            return {"source": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path),
+                    "peak_rss_mib": {s: systems[s]["peak_rss_mib"] for s in SYSTEMS}}
+    return None
 
 
 def item_correct(row: dict, gold_row: dict, oos_label: str) -> bool:
@@ -262,7 +275,7 @@ def _h1(ok, ms, keep, timed, delta, n_boot, seed, fam) -> dict:
             "p_iut": intersection_union_p(acc["p_noninferior"], lat["p_below"])}
 
 
-def _summary(dec, ok, gold_rows, ms, oos) -> dict:
+def _summary(dec, ok, gold_rows, ms, oos, rss=None) -> dict:
     answered = np.array([r["intent"] is not None for r in dec])
     compound = np.array(["|" in g["label"] for g in gold_rows])
     single = [k for k, c in enumerate(compound) if not c]
@@ -273,7 +286,8 @@ def _summary(dec, ok, gold_rows, ms, oos) -> dict:
                                  oos_label=oos),
             "compound_accuracy": ok[compound].mean() if compound.any() else None,
             "tier4_share": np.mean([4 in r["consulted"] for r in dec]),
-            "latency_ms": {"n": ms.size, "mean": ms.mean(), "median": np.median(ms), "p95": nearest_rank(ms, 95)}}
+            "latency_ms": {"n": ms.size, "mean": ms.mean(), "median": np.median(ms), "p95": nearest_rank(ms, 95)},
+            "peak_rss_mib": rss}
 
 
 def _clean(x):
@@ -292,7 +306,7 @@ def _clean(x):
 
 
 def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_ids=frozenset(),
-            n_boot: int = N_BOOT, seed: int = 0) -> dict:
+            n_boot: int = N_BOOT, seed: int = 0, rss: dict | None = None) -> dict:
     """Everything E1 reports for one dataset and split, from the chunks' rows and the gold items."""
     oos = OOS[dataset]
     timed_rows = [r for r in rows if not r["warmup"]]
@@ -315,7 +329,8 @@ def analyze(rows, gold: dict, latency_ids, *, dataset: str, delta: float, dup_id
     report = {"dataset": dataset, "n_items": len(ids), "n_latency_items": int(timed.sum()), "delta": delta,
               "n_boot": n_boot, "seed": seed, "clusters": CLUSTERS.get(dataset),
               "n_clusters": None if fam is None else len(set(fam)),
-              "systems": {s: _summary(dec[s], ok[s], gold_rows, ms[s], oos) for s in REPORTED},
+              "systems": {s: _summary(dec[s], ok[s], gold_rows, ms[s], oos, (rss or {}).get(s.split()[0]))
+                          for s in REPORTED},
               "h1": _h1(ok, ms, every, timed, delta, n_boot, seed, fam)}
     h1c = noninferiority(ok["R3"], ok["R1"], delta, n_boot, seed, fam)
     report["h1c"] = {"accuracy": h1c, "p": h1c["p_noninferior"], "outcome": "after Holm (secondary family)"}
@@ -382,13 +397,14 @@ def render(rep: dict) -> str:
     out.append(f"## E1 · {rep['dataset']} {rep['split']} · {rep['n_items']} items, {rep['n_latency_items']} timed"
                f" · δ = {rep['delta']:.4f} · bootstrap over {unit}\n")
     out.append("| System | Accuracy | Macro-F1 | Coverage | Acc. answered | Compound | Mean ms | Median ms | p95 ms "
-               "| Reaching Tier 4 |")
-    out.append("|---|---|---|---|---|---|---|---|---|---|")
+               "| Peak RSS MiB | Reaching Tier 4 |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for s, v in rep["systems"].items():
         lat = v["latency_ms"]
         out.append(f"| {s} | {v['accuracy']:.3f} | {v['macro_f1']:.3f} | {v['coverage']:.3f} | "
                    f"{_f(v['accuracy_answered'], '.3f')} | {_f(v['compound_accuracy'], '.3f')} | {lat['mean']:.1f} | "
-                   f"{lat['median']:.1f} | {lat['p95']:.1f} | {v['tier4_share']:.1%} |")
+                   f"{lat['median']:.1f} | {lat['p95']:.1f} | {_f(v['peak_rss_mib'], '.0f')} | "
+                   f"{v['tier4_share']:.1%} |")
     h = rep["h1"]
     out.append(f"\n**H1** R3 vs tuned R0: Δacc {_ci(h['accuracy'], 'diff', '+.4f')} (> −δ: "
                f"{h['accuracy']['noninferior']}), Δlat {_ci(h['latency'], 'diff_ms', '+.1f')} ms (< 0: "
@@ -446,19 +462,21 @@ def main(argv=None):
                          + ("\nrecorded in INVALIDATED.json: rerun those chunks" if args.record_invalid
                             else "\nrecord them with --record-invalid, then rerun those chunks"))
     configs = check_systems(manifests, frozen=args.split == "test")
+    rss = rss_for(args.dataset, configs)
     used, plan = chunk_plan(load_items(args.dataset, args.split), args.dataset, args.limit)
     check_items(manifests, plan)
     rows = [json.loads(line) for d in dirs for line in (d / "rows.jsonl").read_text().splitlines()]
     delta = json.loads(DELTA_LOG.read_text())["delta"]
     report = analyze(rows, {r["id"]: r for r in used}, {it["id"] for c in plan for it in c if it["reps"] == REPS},
                      dataset=args.dataset, delta=delta, dup_ids=dup_ids(args.dataset, args.split, used),
-                     n_boot=args.n_boot)
+                     n_boot=args.n_boot, rss=rss and rss["peak_rss_mib"])
     problems = {d.name: m["problems"] + ([rule3[d.name]] if d.name in rule3 else [])
                 for d, m in zip(dirs, manifests) if m["problems"] or d.name in rule3}
     report = {"experiment": "E1", "split": args.split, "dev": args.dev,
               "valid": all(m["valid"] for m in manifests) and not rule3,
               "runs": [str(d.relative_to(ROOT)) for d in dirs], "configs": configs, "problems": problems,
-              "delta_source": str(DELTA_LOG.relative_to(ROOT))} | report
+              "delta_source": str(DELTA_LOG.relative_to(ROOT)),
+              "rss_source": rss["source"] if rss else "no rss.py summary of these configs"} | report
     out = LOG_DIR / f"analysis_{name}.json"
     out.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n")
     print(render(report))

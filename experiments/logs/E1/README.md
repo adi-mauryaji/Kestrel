@@ -44,3 +44,12 @@ per-language H7a and D11, ρ, the signal's false-positive rate and, on CLINC150 
 applies rule 3 across chunks and refuses a chunk with zero or two usable runs. `analysis_intents_v0_val_n20.json` and
 `analysis_clinc150_val_n30.json` come from the two dry runs above with `--dev`: they check the plumbing (the scoring
 agrees with `policies.correct` on all 150 decisions) and are **not E1 results** (dry runs, 20 and 30 val items).
+
+## Peak RSS per system (`experiments/e1/rss.py`)
+
+PREREG §4: each system's peak RSS comes from one short process that loads only its models (a chunk loads all three
+systems' models, so its VmHWM is the whole stack). `rss.py --dataset D` runs each config alone in `kestrel bench-items`
+on the 5 warm-up train items, pinned as in E1, and writes `rss/<dataset>_<UTC>/summary.json`; `analyze_e1.py` fills
+Table R1's RSS column from the latest summary whose config hashes match the chunks'. Memory does not depend on power or
+clock settings, so it needs no AC session, but it is run on the frozen configs (Week 13). A smoke run on 2026-10-23
+(R1, Intents-v0, candidate config) gave 277 MiB with only Tier 3 loaded; it was not kept.
