@@ -141,8 +141,11 @@ end-to-end measurements.
 - **β (RAM ceiling):** `peak_RSS(all loaded models) ≤ 0.5 × 14.95 GiB = 7.47 GiB`. Largest shortlisted pair:
   Gemma-4-E2B Q8 (4.75 GiB) + e5-small F16 (0.38 GiB) = 5.1 GiB, so every pair fits. **[accepted 2026-10-17] D7**
 - **δ (non-inferiority margin):** set after the Week-8 pilot (20–30% of dev data, ≥ 3 seeds) as
-  `max(2 × seed-to-seed SD of R0 accuracy, smallest effect of interest agreed with the advisor)`. **TBD — must be written here
-  before the test sets are touched.** δ₃ (E6) is set the same way.
+  `max(2 × seed-to-seed SD of R0 accuracy, smallest effect of interest agreed with the advisor)`. **δ = 0.0263, set
+  2026-10-23 from the pilot below, before any test set was touched.** CLINC150 tuned-R0 accuracy on the 425 pilot val items,
+  seeds 1–5: 0.861, 0.885, 0.878, 0.880, 0.854; mean 0.872, sample SD 0.0132, 2 × SD = 0.0263 > SESOI 0.02, so 2 × SD binds
+  (`experiments/logs/router/delta_pilot.json`). Intents-v0, reported alongside: every seed 1.000 on its 32 pilot val items
+  (SD 0). If the mentor sets the SESOI above 0.0263, δ becomes the SESOI. δ₃ (E6) is set the same way.
   **[accepted 2026-10-22, ADR-020] Pilot design.** R0 decodes greedily, so a seed draws R0's few-shot examples from train
   (`select_shots(..., seed)`: k per label and language, distinct families), the one arbitrary choice inside R0; item-sampling
   noise is left to the bootstrap CI. Pilot items: a fixed 25% of cal and of val per dataset (seeded hash order, key
@@ -189,9 +192,10 @@ logged in `experiments/logs/` with hashes. Every pre-registered comparison is re
 ## 8. Open decisions (collected)
 
 D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 coverage 0.80 · D5 ECE 15 right-closed bins ·
-D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ, δ₃ (after the pilot).
+D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ₃ (before E6).
 δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
-2026-10-22 (ADR-020); δ's value waits for the pilot's CLINC150 seeds. ε₁–ε₃: deferred to before E4/E5 (ADR-022).
+2026-10-22 (ADR-020); **δ = 0.0263** from the pilot's 5 CLINC150 seeds (2026-10-23, §5). ε₁–ε₃: rules fixed before E5
+(ADR-027, §5); values from their pilots.
 **Contribution framing (accepted 2026-10-17):** a measured evaluation study ("we evaluate / replicate … on-device"); the
 calibrated cascade is not claimed as new; the code-mixed Hinglish evaluation is the distinctive part.
 

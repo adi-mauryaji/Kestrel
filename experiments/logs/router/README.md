@@ -200,3 +200,24 @@ Readings (dev; not results):
 | By the tier where routing ended | Tier 3: 1462 items, 4.6 ms · Tier 4: 238, 764 ms |
 
 So E1 can run end to end on CLINC150, the primary dataset (D8), with the same binary and code path as Intents-v0.
+
+## δ pilot (2026-10-22/23, ADR-020)
+
+`python experiments/router/delta_pilot.py --dataset clinc150` (and `--dataset intents_v0`) → `delta_pilot/<dataset>_seed<s>.jsonl.gz`
+(+ `.meta.json`) and `delta_pilot.json`. A seed = R0's few-shot draw from train (`select_shots(..., seed)`); the pilot items are
+a fixed 25% of cal and of val (key `delta-pilot`); per seed T by BCE on the pilot cal items and one abstention τ on the pilot
+val items (ADR-019). Accuracy only, boost on. CLINC150 seeds 1–3 ran 2026-10-22, seeds 4–5 on 2026-10-23 (AC on, ~12 min each).
+
+| CLINC150 (cal 375 / val 425) | Seed 1 | Seed 2 | Seed 3 | Seed 4 | Seed 5 | Mean | Sample SD | 2 × SD |
+|---|---|---|---|---|---|---|---|---|
+| Tuned R0 accuracy (val) | 0.861 | 0.885 | 0.878 | 0.880 | 0.854 | 0.872 | 0.0132 | **0.0263** |
+| Untuned R0 accuracy (val) | 0.828 | 0.847 | 0.840 | 0.838 | 0.812 | 0.833 | 0.0136 | 0.0272 |
+| Coverage at the tuned τ | 0.835 | 0.866 | 0.873 | 0.904 | 0.899 | | | |
+| Temperature (pilot cal) | 1.318 | 1.300 | 1.348 | 1.330 | 1.321 | | | |
+
+The deployed shots on the same items (a reference, not a seed): tuned 0.878, untuned 0.852. Intents-v0 (cal 25 / val 32): every
+seed 1.000 tuned and untuned, SD 0, so the SESOI would bind there.
+
+**δ = max(2 × SD, SESOI 0.02) = 0.0263** from CLINC150, the primary dataset (D8): 2 × SD binds. Written into PREREG §5. The
+dev router configs keep their "delta is not set yet" status text: the operating point is chosen at tolerance 0 (ADR-021),
+so δ changes no config; the text is refreshed when the configs are regenerated for the freeze.

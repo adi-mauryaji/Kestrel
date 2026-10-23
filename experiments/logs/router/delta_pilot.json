@@ -4,6 +4,110 @@
  "sesoi": 0.02,
  "primary": "clinc150",
  "datasets": {
+  "clinc150": {
+   "n_cal": 375,
+   "n_val": 425,
+   "deployed_shots": {
+    "n_cal": 375,
+    "n_val": 425,
+    "temperature": 1.2424169956203017,
+    "temperature_note": "fitted on the pilot cal items (BCE)",
+    "untuned_acc": 0.851764705882353,
+    "tuned_acc": 0.8776470588235294,
+    "tuned_coverage": 0.8752941176470588,
+    "tuned_tau": 0.6815548094706505
+   },
+   "seeds": {
+    "1": {
+     "n_cal": 375,
+     "n_val": 425,
+     "temperature": 1.317792606078696,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 0.8282352941176471,
+     "tuned_acc": 0.8611764705882353,
+     "tuned_coverage": 0.8352941176470589,
+     "tuned_tau": 0.692567868543907,
+     "shots_shared_with_deployed": 2,
+     "n_shots": 150,
+     "seconds": 725.0,
+     "boost": "1"
+    },
+    "2": {
+     "n_cal": 375,
+     "n_val": 425,
+     "temperature": 1.2997017655391434,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 0.8470588235294118,
+     "tuned_acc": 0.8847058823529412,
+     "tuned_coverage": 0.8658823529411764,
+     "tuned_tau": 0.7169455455163307,
+     "shots_shared_with_deployed": 2,
+     "n_shots": 150,
+     "seconds": 741.2,
+     "boost": "1"
+    },
+    "3": {
+     "n_cal": 375,
+     "n_val": 425,
+     "temperature": 1.347580711876047,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 0.84,
+     "tuned_acc": 0.8776470588235294,
+     "tuned_coverage": 0.8729411764705882,
+     "tuned_tau": 0.71341379859778,
+     "shots_shared_with_deployed": 1,
+     "n_shots": 150,
+     "seconds": 700.2,
+     "boost": "1"
+    },
+    "4": {
+     "n_cal": 375,
+     "n_val": 425,
+     "temperature": 1.3299144313003355,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 0.8376470588235294,
+     "tuned_acc": 0.88,
+     "tuned_coverage": 0.9035294117647059,
+     "tuned_tau": 0.5798644241728274,
+     "shots_shared_with_deployed": 1,
+     "n_shots": 150,
+     "seconds": 706.2,
+     "boost": "1"
+    },
+    "5": {
+     "n_cal": 375,
+     "n_val": 425,
+     "temperature": 1.3208492476552465,
+     "temperature_note": "fitted on the pilot cal items (BCE)",
+     "untuned_acc": 0.8117647058823529,
+     "tuned_acc": 0.8541176470588235,
+     "tuned_coverage": 0.8988235294117647,
+     "tuned_tau": 0.5793794166293058,
+     "shots_shared_with_deployed": 2,
+     "n_shots": 150,
+     "seconds": 776.8,
+     "boost": "1"
+    }
+   },
+   "tuned": {
+    "n_seeds": 5,
+    "mean": 0.871529411764706,
+    "sd": 0.01316385951124647,
+    "two_sd": 0.02632771902249294,
+    "sesoi": 0.02,
+    "delta": 0.02632771902249294,
+    "binding": "2sd"
+   },
+   "untuned": {
+    "n_seeds": 5,
+    "mean": 0.8329411764705881,
+    "sd": 0.013618631650341433,
+    "two_sd": 0.027237263300682865,
+    "sesoi": 0.02,
+    "delta": 0.027237263300682865,
+    "binding": "2sd"
+   }
+  },
   "intents_v0": {
    "n_cal": 25,
    "n_val": 32,
@@ -109,6 +213,6 @@
    }
   }
  },
- "delta": null,
- "delta_note": "not set: clinc150 needs >= 3 logged seeds"
+ "delta": 0.02632771902249294,
+ "delta_note": "\u03b4 from the primary dataset's tuned-R0 seeds (ADR-020)"
 }
