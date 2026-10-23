@@ -280,6 +280,7 @@ name = "kestrel-tools"
 version = "0.1.0"
 dependencies = [
  "kestrel-core",
+ "kestrel-memory",
  "serde",
  "serde_json",
 ]

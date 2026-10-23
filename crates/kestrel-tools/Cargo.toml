@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 kestrel-core.workspace = true
+kestrel-memory.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

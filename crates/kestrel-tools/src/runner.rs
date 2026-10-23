@@ -294,6 +294,16 @@ impl Store for crate::backend::FixtureBackend {
     }
 }
 
+impl Store for crate::backend::MemoryBackend {
+    fn sandbox(&self) -> &Sandbox {
+        crate::backend::MemoryBackend::sandbox(self)
+    }
+
+    fn recent(&self, n: u32, tag: Option<&str>) -> Result<Vec<Note>, KestrelError> {
+        crate::backend::MemoryBackend::recent(self, n, tag)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

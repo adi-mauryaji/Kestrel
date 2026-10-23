@@ -147,6 +147,12 @@ pub enum ToolOutput {
 
 pub trait Backend {
     fn run(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError>;
+
+    /// A call the user said yes to at the prompt. The memory backend stores such a preference
+    /// as the user's (ADR-026); by default it is a plain run.
+    fn run_confirmed(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError> {
+        self.run(c)
+    }
 }
 
 /// The single choke point: confirmation first, the backend only if allowed.
@@ -156,13 +162,16 @@ pub fn execute(
     confirm: &dyn Confirm,
     backend: &mut dyn Backend,
 ) -> Result<ToolOutput, KestrelError> {
-    if requires_confirmation(c, policy) && !confirm.ask(&summary(c)) {
+    if !requires_confirmation(c, policy) {
+        return backend.run(c);
+    }
+    if !confirm.ask(&summary(c)) {
         return Err(KestrelError::Denied(format!(
             "{} declined by the user",
             c.name()
         )));
     }
-    backend.run(c)
+    backend.run_confirmed(c)
 }
 
 /// What the user is asked to confirm (shown, never logged).
@@ -339,6 +348,51 @@ mod tests {
             requires_confirmation(&del, stated),
             "stating a preference does not cover a delete"
         );
+    }
+
+    #[test]
+    fn a_yes_reaches_the_backend_as_confirmed() {
+        // The memory backend stores a confirmed preference as the user's (ADR-026), so it must
+        // know which calls the user said yes to.
+        #[derive(Default)]
+        struct Seen(Vec<(&'static str, bool)>);
+        impl Backend for Seen {
+            fn run(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError> {
+                self.0.push((c.name(), false));
+                Ok(ToolOutput::Done)
+            }
+            fn run_confirmed(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError> {
+                self.0.push((c.name(), true));
+                Ok(ToolOutput::Done)
+            }
+        }
+        let pref = ValidatedCall::UpdatePreference {
+            key: "answer_length".into(),
+            value: "short".into(),
+        };
+        let stated = Policy {
+            user_stated_preference: true,
+        };
+        let mut seen = Seen::default();
+        execute(&pref, Policy::default(), &Always(true), &mut seen).unwrap();
+        execute(&pref, stated, &Always(true), &mut seen).unwrap();
+        let search = ValidatedCall::SearchNotes {
+            query: "q".into(),
+            limit: 1,
+        };
+        execute(&search, Policy::default(), &Always(true), &mut seen).unwrap();
+        assert_eq!(
+            seen.0,
+            [
+                ("update_preference", true),
+                ("update_preference", false),
+                ("search_notes", false)
+            ]
+        );
+        // The default hook is the plain run.
+        let mut spy = Spy(0);
+        execute(&pref, Policy::default(), &Always(true), &mut spy).unwrap();
+        assert_eq!(spy.0, 1);
     }
 
     #[test]
