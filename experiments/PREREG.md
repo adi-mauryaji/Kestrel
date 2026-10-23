@@ -1,6 +1,8 @@
-# Kestrel pre-registration (PREREG) — draft v0
+# Kestrel pre-registration (PREREG) — v1
 
-Status: **DRAFT, not frozen** (2026-10-11). Written by Claude from the blueprint (Ch. 34–38), the Week-1/2 data and the
+Status: **FROZEN v1 for E1, E2, E3 and E5** (2026-10-23, tag `exp-E1-frozen`, ADR-031; §9). **E4 and E6 are not
+frozen**: their items stay as written and are frozen by a logged amendment (v1.1) after the Kestrel-Personas-v0 and
+Kestrel-Tasks-v0 reviews, before their test data is read. Drafted from 2026-10-11 by Claude from the blueprint (Ch. 34–38), the Week-1/2 data and the
 human's decisions so far (ADR-005, ADR-009–ADR-012). Items marked **[decide]** need the human; **[accepted 2026-10-17]** marks the human's acceptance of Claude's recommendation ("continue what you recommended"). Freezing = commit + git tag
 **before any test set is evaluated** (Ch. 34.6). After freezing, any change is a new, logged version and the old one stays.
 
@@ -237,6 +239,7 @@ D1 CLINC150 duplicates · D2 train-OOS into val · D3 OOS abstention rule · D4 
 D6 ρ = 0.1 · D7 β = 0.5 · D8 primary dataset: **all accepted 2026-10-17**. Still open: δ₃ (before E6).
 Tests per hypothesis, outcomes, and the family bootstrap on Kestrel-Intents-v0: accepted 2026-10-23 (ADR-029, §6).
 E4's protocol with the alias bootstrap, and E6 scoring the LM-only planner: accepted 2026-10-23 (ADR-030, §4, §6).
+**Frozen v1 for E1, E2, E3, E5 on 2026-10-23 (ADR-031, §9);** E4 and E6 by amendment v1.1.
 δ's method, the smallest effect of interest (0.02, mentor to confirm) and the E1 harness and latency subset: accepted
 2026-10-22 (ADR-020); **δ = 0.0263** from the pilot's 5 CLINC150 seeds (2026-10-23, §5). ε₁–ε₃: rules fixed before E5
 (ADR-027, §5); values from their pilots.
@@ -263,3 +266,43 @@ Proposed 2026-10-17 from round-6 reading, accepted by the human the same day:
   (`use_mmap = false`), so `VmHWM` is the real footprint (startup reads the whole file), **and** log `RssAnon` /
   `RssFile` next to `VmHWM` (§3). Either way the same mode applies to every system, and β and H6 are judged under
   it.
+
+## 9. Freeze v1 (2026-10-23, ADR-031)
+
+Frozen at the tag `exp-E1-frozen`, before any test set was evaluated: §1–§8 as above for **E1** (H1, H1b, H1c, H7a),
+**E2** (H2, H7b), **E3** (H3) and **E5** (H5); the FROZEN configs (`experiments/configs/router_*.json`,
+`e3_candidates.json`, `e5.json`; `candidates.py --check` consistent; `experiments/freeze.py` changed only their status
+and hashes); and the analysis code at the tag (`kestrel_stats.py`, `analyze_e1.py`, `analyze_e5.py`, `e1/rss.py`).
+**Not frozen:** E4 (§4, ADR-030) and E6 (§6; its metrics item, title-scoring rule and δ₃ are still to be written):
+amendment v1.1, before their test data is read.
+
+Decided at the freeze (the human, ADR-031):
+- **δ = 0.0263** (§5). The mentor's SESOI was not confirmed; if it is later set above 0.0263, H1, H1c, H7a and H3 are
+  also reported at that margin as a sensitivity analysis, and the primary stays at 0.0263.
+- **Kestrel-Intents-v0 is frozen without κ.** κ is reported when the second annotator finishes; a low κ is a stated
+  limitation, and the labels do not change.
+
+Definitions fixed at the freeze (written before any test data was seen):
+- **E2's inputs:** every tier's output on the test sets (`router/tier_outputs.py --split test`, with the frozen R3
+  config's models, head, prompt, context and few-shot examples, hashes checked). R2 = temperatures 1; R2c = the frozen
+  configs' temperatures. Nothing is refitted on test.
+- **AURC (E2):** the mean over coverage c = 0.05, 0.10, …, 1.00 of the selective risk at coverage c, each by D4's rule
+  (the sweep point with the smallest coverage ≥ c; if no point reaches c, the point with the largest coverage), on the
+  shared-τ sweep with Tier 4 included (D9); the same for R2 and R2c, with a paired bootstrap CI of the difference.
+  H2's test stays risk@0.80 (§6).
+- **H7b:** Tier 3's ECE (15 bins, D5) per language on Kestrel-Intents-v0 test, with the frozen config's one temperature
+  (fitted on the pooled cal set), over the single-intent items; bootstrap over families (ADR-029). Tier 4's
+  per-language ECE is reported, not tested.
+- **E3:** each tier set's frozen point (`e3_candidates.json`: τ per tier and the routing signal) is applied to the
+  per-tier answers in E1's test rows (Tier 1 = R3's first step, Tier 3 = R1's, Tier 4 = R0's; the frozen calibration).
+  An item's cost is the sum of its consulted tiers' step times measured in E1 under §4 (per-item medians, latency
+  subset). E3 is refused unless the full set reproduces R3's logged decisions. H3 (Intents-v0, {1,3,4} vs {1,4}):
+  accuracy non-inferior at δ and cost lower, intersection–union; on Intents-v0 both parts' p come from the family
+  bootstrap (ADR-029), with Wilcoxon reported alongside. H3's Tier-2 clause is not tested (Tier 2 was not built,
+  Ch. 52.1). CLINC150 has no Tier 1: {3,4} vs {4} is reported the same way, outside the family. Table R3's "area under
+  the cost–accuracy curve" is not computed: each frozen set has one point; the table says so.
+- **E5:** `continual/e5_test.py`, the frozen selection on the same 3 orders × 5 seeds, R on the CLINC150 test in-scope
+  items; H5 by `analysis/analyze_e5.py` (Wilcoxon over the 15 paired runs, §6).
+- **Order of work:** the analysis code of E2 and E3 is committed before any E2, E3 or E1 test result is read.
+- **Holm:** the secondary family keeps H4 and H6. Until they have their p, the secondary hypotheses' adjusted p and
+  outcomes are interim and marked as such. H1 (primary, no Holm) is final when E1 is complete.

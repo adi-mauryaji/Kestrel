@@ -7,8 +7,10 @@ from candidates import ROOT, build, check
 def test_the_manifest_of_the_repository_as_it_is_checks_clean():
     m = build(write=False)
     assert check(m) == []
-    assert {e: v["status"] for e, v in m["experiments"].items()} == {
-        "E1": "CANDIDATE", "E2": "CANDIDATE", "E3": "CANDIDATE", "E4": "BLOCKED", "E5": "CANDIDATE", "E6": "BLOCKED"}
+    # ADR-031: PREREG v1 froze E1, E2, E3, E5; E4 and E6 wait for their datasets.
+    assert {e: v["status"].split(" ")[0] for e, v in m["experiments"].items()} == {
+        "E1": "FROZEN", "E2": "FROZEN", "E3": "FROZEN", "E4": "BLOCKED", "E5": "FROZEN", "E6": "BLOCKED"}
+    assert json.loads((ROOT / "experiments/configs/e5.json").read_text())["status"].startswith("FROZEN")
     assert all(m["experiments"][e]["blocked_by"] for e in ("E4", "E6"))
     assert len(m["experiments"]["E6"]["grid"]) == 6, "3 shortlisted SLMs x {Q4, Q8}"
     # ADR-030: E4's protocol is accepted (only its dataset blocks it); E6 scores the LM-only planner.
@@ -34,3 +36,16 @@ def test_a_changed_file_or_a_stale_cross_reference_is_reported(tmp_path):
     assert any("config_sha256" in p for p in problems), problems
     (root / "experiments/configs/e5.json").unlink()
     assert any("e5.json" in p and "missing" in p for p in check(m, root))
+
+
+def test_a_frozen_experiment_with_an_unfrozen_router_config_is_reported(tmp_path):
+    m = build(write=False)
+    root = tmp_path / "repo"
+    for rel in m["files"]:
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / rel, root / rel)
+    path = root / "experiments/configs/router_clinc150_r1.json"
+    cfg = json.loads(path.read_text())
+    cfg["status"] = "CANDIDATE: edited back"
+    path.write_text(json.dumps(cfg, indent=1) + "\n")
+    assert any("router_clinc150_r1.json" in p and "not FROZEN" in p for p in check(m, root))

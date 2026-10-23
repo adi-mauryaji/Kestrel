@@ -27,7 +27,7 @@
   "primary": "gold intents",
   "secondary": {
    "config": "experiments/configs/router_intents_v0.json",
-   "config_sha256": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
+   "config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
    "tiers": [
     1,
     3

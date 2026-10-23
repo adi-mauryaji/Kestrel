@@ -19,6 +19,13 @@ are computed once here and the policies are simulated offline (policies.py). Dev
 
 Out: experiments/logs/router/tier_outputs_<dataset>.jsonl (one record per item, cal then val)
 and .meta.json (models, hashes, settings). Timings are dev timings as found, not E1.
+
+    python experiments/router/tier_outputs.py --dataset clinc150 --split test    # E2 (Week 13, ADR-031)
+
+`--split test` runs every tier on the test split with exactly the frozen router config's models, head,
+prompt, context and few-shot examples (hashes checked), and only on a frozen PREREG (run_e1.guard_test:
+the tag, FROZEN configs, a clean tree) -> tier_outputs_<dataset>_test.jsonl(.gz). E2 uses its
+confidences; its timings are not measurements (E3 takes costs from E1's rows).
 """
 from __future__ import annotations
 
@@ -102,13 +109,66 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def frozen_tier4(cfg: dict) -> tuple[Path, int, list[dict]]:
+    """Tier 4's prompt, context and few-shot examples in a router config: a test run uses exactly these."""
+    t4 = cfg["models"]["tier4"]
+    return CONTRACTS / t4["prompt"], t4["n_ctx"], t4["shots"]
+
+
+def run_test(dataset: str) -> None:
+    """Every tier on the test split, with the frozen R3 config's models and settings (ADR-031)."""
+    sys.path.insert(0, str(ROOT / "experiments" / "e1"))
+    from run_e1 import guard_test, hash_problems, load_items
+
+    cfg_path = ROOT / "experiments" / "configs" / f"router_{dataset}.json"
+    cfg = json.loads(cfg_path.read_text())
+    guard_test([cfg])
+    if problems := hash_problems(cfg):
+        raise SystemExit("not starting:\n- " + "\n- ".join(problems))
+    if cfg["models"]["tier3"]["encoder"] != ENCODER:
+        raise SystemExit(f"the frozen config's encoder is {cfg['models']['tier3']['encoder']}, not {ENCODER}")
+    prompt, n_ctx, shots = frozen_tier4(cfg)
+    head_dir = HEADS / cfg["models"]["tier3"]["head"]
+    rows = load_items(dataset, "test")
+    enc = load_encoder(ENCODER)
+    t1 = run_rules(rows)
+    z3, ms3, head_meta = run_tier3(enc, rows, head_dir)
+    t4 = classify(model_path(cfg["models"]["tier4"]["model"]), rows, shots, dataset, prompt, n_ctx)
+    records = assemble("test", rows, t1, z3, ms3, t4)
+    out_path = LOG_DIR / f"tier_outputs_{dataset}_test.jsonl"
+    out_path.write_text("".join(json.dumps(r) + "\n" for r in records))
+    meta = {
+        "dataset": dataset, "split": "test", "n": {"test": len(records)},
+        "date": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "git_head": subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                   cwd=ROOT).stdout.strip(),
+        "config": str(cfg_path.relative_to(ROOT)), "config_sha256": cfg["config_sha256"],
+        "tier1": {"rules": "kestrel_nlu::rules::RuleSet::default_set"},
+        "tier3": {"encoder": ENCODER, "encoder_sha256": enc.sha256, "head": head_dir.name,
+                  "head_bin_sha256": _sha256(head_dir / "head.bin"), "classes": head_meta["classes"]
+                  if "classes" in head_meta else json.loads((head_dir / "head.json").read_text())["classes"],
+                  "temperature_cal": head_meta["temperature"], "cache_gap_max_abs": head_meta["cache_gap"]},
+        "tier4": {"model": cfg["models"]["tier4"]["model"], "prompt": prompt.name, "prompt_sha256": _sha256(prompt),
+                  "shots": len(shots), "n_ctx": n_ctx, "errors": sum("error" in r["t4"] for r in records)},
+        "timing": {"note": "not a measurement: E2 uses the confidences; E3 takes costs from E1's rows"},
+    }
+    out_path.with_suffix(".meta.json").write_text(json.dumps(meta, indent=1) + "\n")
+    print(json.dumps({k: v for k, v in meta.items() if k != "tier3"}, indent=1))
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dataset", default="intents_v0", choices=sorted(TASKS))
     ap.add_argument("--shots", type=int, default=SHOTS_PER, help="few-shot examples per label and language")
     ap.add_argument("--prompt", help="prompt contract under datasets/contracts/ instead of the task's")
     ap.add_argument("--n-ctx", type=int, help="Tier-4 context tokens instead of the task's")
+    ap.add_argument("--split", default="dev", choices=["dev", "test"],
+                    help="test: the frozen config's settings, only after the freeze (ADR-031)")
     args = ap.parse_args(argv)
+    if args.split == "test":
+        if args.shots != SHOTS_PER or args.prompt or args.n_ctx:
+            ap.error("--split test takes every setting from the frozen config")
+        return run_test(args.dataset)
     dataset = args.dataset
     task_prompt, labels_file, task_ctx = TASKS[dataset]
     prompt = CONTRACTS / args.prompt if args.prompt else task_prompt

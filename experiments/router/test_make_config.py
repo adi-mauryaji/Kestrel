@@ -1,5 +1,7 @@
 import copy
 import gzip
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -98,16 +100,19 @@ def test_the_committed_config_is_current_and_unedited(dataset):
 
     from make_config import OUT_DIR, inputs, runtime_inputs
 
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from freeze import freeze_config  # the committed configs are frozen (ADR-031): only status and hash differ
+
     committed = json.loads((OUT_DIR / f"router_{dataset}.json").read_text())
     assert verify(committed)
     policies, meta, outputs = inputs(dataset)
     rebuilt = build(policies, meta, outputs_sha256(outputs), runtime_inputs(meta),
                     signal="conjunction", delta=committed["chosen_on"]["delta"],
                     budget_ms=committed["latency_budget_ms"])
-    assert rebuilt == committed
+    assert freeze_config(rebuilt) == committed
     for policy in ("R0", "R1"):
         baseline = json.loads((OUT_DIR / f"router_{dataset}_{policy.lower()}.json").read_text())
         assert verify(baseline)
-        assert build(policies, meta, outputs_sha256(outputs), runtime_inputs(meta), signal="conjunction",
-                     delta=committed["chosen_on"]["delta"], budget_ms=committed["latency_budget_ms"],
-                     policy=policy) == baseline
+        assert freeze_config(build(policies, meta, outputs_sha256(outputs), runtime_inputs(meta),
+                                   signal="conjunction", delta=committed["chosen_on"]["delta"],
+                                   budget_ms=committed["latency_budget_ms"], policy=policy)) == baseline

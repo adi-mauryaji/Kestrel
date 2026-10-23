@@ -62,3 +62,12 @@ def test_assemble_records_a_family_and_defaults_the_language():
     recs = assemble("val", rows, t1, np.zeros((2, 2)), [1.0, 1.0], t4)
     assert [r["family"] for r in recs] == ["clinc150/val/1", "create-12"]
     assert [r["lang"] for r in recs] == ["en", "en"]
+
+
+def test_a_test_run_takes_tier4s_settings_from_the_frozen_config():
+    from tier_outputs import CONTRACTS, frozen_tier4
+    cfg = {"models": {"tier4": {"prompt": "tier4_intent_prompt.txt", "n_ctx": 2048,
+                                "shots": [{"text": "open my notes", "label": "read_document"}]}}}
+    prompt, n_ctx, shots = frozen_tier4(cfg)
+    assert prompt == CONTRACTS / "tier4_intent_prompt.txt" and n_ctx == 2048
+    assert shots == [{"text": "open my notes", "label": "read_document"}]

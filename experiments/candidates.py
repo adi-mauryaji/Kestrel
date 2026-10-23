@@ -38,6 +38,12 @@ BUILDS = {  # dataset build -> {manifest key: file}
     "datasets/kestrel_personas_v0/build": {"items_sha256": "items.jsonl", "events_sha256": "events.jsonl"},
 }
 SLMS = ("qwen3-1.7b", "qwen3-4b", "gemma-4-e2b-it")
+FROZEN_V1 = ("E1", "E2", "E3", "E5")  # PREREG v1, ADR-031; E4 and E6 by a later amendment
+FREEZE = "FROZEN 2026-10-23 (PREREG v1, ADR-031)"
+
+
+def _status(e: str) -> str:
+    return FREEZE if e in FROZEN_V1 else "CANDIDATE"
 OUT = f"{CONFIGS}/candidates.json"
 
 
@@ -73,7 +79,7 @@ def e4() -> dict:
 def e5() -> dict:
     sweep = _json("experiments/logs/E5/sweep_dev.json")
     eps = _json("experiments/logs/E5/epsilon_pilot.json")
-    return {"experiment": "E5 (H5; ADR-027)", "status": "CANDIDATE",
+    return {"experiment": "E5 (H5; ADR-027)", "status": _status("E5"),
             "selected": {m: v["cfg"] for m, v in sweep["selected"].items()},
             "orders": sweep["orders"], "seeds": sweep["seeds"],
             "selection": sweep["selection"], "data": sweep["data"],
@@ -120,15 +126,15 @@ def build(write: bool = True) -> dict:
     manifest = {
         "week": 12, "note": "candidates chosen on dev; FROZEN at the PREREG freeze (Week 13)",
         "experiments": {
-            "E1": {"status": "CANDIDATE", "files": ROUTERS,
+            "E1": {"status": _status("E1"), "files": ROUTERS,
                    "config_sha256": {rel: c["config_sha256"] for rel, c in routers.items()}},
-            "E2": {"status": "CANDIDATE", "systems": "R2 (temperatures 1) vs R2c (the R3 configs' temperatures), "
+            "E2": {"status": _status("E2"), "systems": "R2 (temperatures 1) vs R2c (the R3 configs' temperatures), "
                    "one shared tau over the cascade", "metric": "selective risk at coverage 0.80 and AURC on the "
                    "test outputs (PREREG §3, D4); no threshold is chosen", "temperatures": temps},
-            "E3": {"status": "CANDIDATE", "files": [f"{CONFIGS}/e3_candidates.json"]},
+            "E3": {"status": _status("E3"), "files": [f"{CONFIGS}/e3_candidates.json"]},
             "E4": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e4.json"])["blocked_by"],
                    "test": json.loads(texts[f"{CONFIGS}/e4.json"])["test"], "files": [f"{CONFIGS}/e4.json"]},
-            "E5": {"status": "CANDIDATE", "files": [f"{CONFIGS}/e5.json"]},
+            "E5": {"status": _status("E5"), "files": [f"{CONFIGS}/e5.json"]},
             "E6": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e6.json"])["blocked_by"],
                    "planner": json.loads(texts[f"{CONFIGS}/e6.json"])["planner"], "files": [f"{CONFIGS}/e6.json"],
                    "grid": e6_grid},
@@ -152,6 +158,9 @@ def check(manifest: dict, root: Path = ROOT) -> list[str]:
     for rel in ROUTERS:
         if (root / rel).exists() and not verify(_json(rel, root)):
             problems.append(f"{rel}: config_sha256 does not match its content")
+        if (root / rel).exists() and manifest["experiments"]["E1"]["status"].startswith("FROZEN") \
+                and not _json(rel, root)["status"].startswith("FROZEN"):
+            problems.append(f"{rel}: E1 is frozen but this config is not FROZEN")
     e3 = root / CONFIGS / "e3_candidates.json"
     if e3.exists():
         for d, v in json.loads(e3.read_text())["datasets"].items():

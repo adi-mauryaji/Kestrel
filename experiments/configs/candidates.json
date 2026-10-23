@@ -3,7 +3,7 @@
  "note": "candidates chosen on dev; FROZEN at the PREREG freeze (Week 13)",
  "experiments": {
   "E1": {
-   "status": "CANDIDATE",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031)",
    "files": [
     "experiments/configs/router_intents_v0.json",
     "experiments/configs/router_intents_v0_r0.json",
@@ -13,16 +13,16 @@
     "experiments/configs/router_clinc150_r1.json"
    ],
    "config_sha256": {
-    "experiments/configs/router_intents_v0.json": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
-    "experiments/configs/router_intents_v0_r0.json": "8660fb24564b430cecd4e83f32521c28ed068a76f071b4391f938864530c11a0",
-    "experiments/configs/router_intents_v0_r1.json": "d54b41394c07f9cf2e92193318f61cfb735e6a01698049b603cebe356bca800f",
-    "experiments/configs/router_clinc150.json": "c5e29930229ae3d28e00069c1931cfb8fc833f068c79cccbe516097898d7535d",
-    "experiments/configs/router_clinc150_r0.json": "b3143aa8c295a762291e488b8ed30f7783f4bfa02928174f7e31f1743183d78d",
-    "experiments/configs/router_clinc150_r1.json": "12719e904b5be18a2a8aa66ee5f889f0871c84690a44f0259223860ccdb34c93"
+    "experiments/configs/router_intents_v0.json": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
+    "experiments/configs/router_intents_v0_r0.json": "0686ef5b2b8570e67a8e6cc143777da45506098af190ea5c2bdccc2686bf8b81",
+    "experiments/configs/router_intents_v0_r1.json": "4192ba5185c74a66e1b6ea841ad4e709c0cbc7803530ffd70cf592fce84c07ac",
+    "experiments/configs/router_clinc150.json": "216385772928ab36fe63171af0a2f2d2ec4822b74e51a2683fdc29cc7e11ff12",
+    "experiments/configs/router_clinc150_r0.json": "8bc02e20f5ad593d5a4f8a2cc4672018e668c3a9adbc3338a8066f14c688d8a9",
+    "experiments/configs/router_clinc150_r1.json": "c55657a532ca4fe02d30d2ee2938f91641564651fa9415d7cefd2b0fae2247d8"
    }
   },
   "E2": {
-   "status": "CANDIDATE",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031)",
    "systems": "R2 (temperatures 1) vs R2c (the R3 configs' temperatures), one shared tau over the cascade",
    "metric": "selective risk at coverage 0.80 and AURC on the test outputs (PREREG §3, D4); no threshold is chosen",
    "temperatures": {
@@ -39,7 +39,7 @@
    }
   },
   "E3": {
-   "status": "CANDIDATE",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031)",
    "files": [
     "experiments/configs/e3_candidates.json"
    ]
@@ -55,7 +55,7 @@
    ]
   },
   "E5": {
-   "status": "CANDIDATE",
+   "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031)",
    "files": [
     "experiments/configs/e5.json"
    ]
@@ -112,15 +112,15 @@
   }
  },
  "files": {
-  "experiments/configs/router_intents_v0.json": "4c5ca0f4e5800dea4644f86f13dd8a73223c793fe7cf9a29e1d6efc25862054e",
-  "experiments/configs/router_intents_v0_r0.json": "1c127fe52f40725a4236942b86d99ec3771bf20889a411dab12a433fbdb23c3d",
-  "experiments/configs/router_intents_v0_r1.json": "3be6234c6b2f7f68a59fcabc465370d24930bbe07acb6b36a8592f8265fa813a",
-  "experiments/configs/router_clinc150.json": "927c41e971d9247b13aa2f366a35935fe915318ab2983b98ee9b6bda0c8cfa81",
-  "experiments/configs/router_clinc150_r0.json": "63caa492c03b00bdc1a45c25c8620ff837d2d7e85e124647ce651587451b5d58",
-  "experiments/configs/router_clinc150_r1.json": "d0b938361d7c4337e4148b6bfec939aef952988f98e061d62291ad3bce88d59d",
-  "experiments/configs/e3_candidates.json": "61b86eb9d17f69c1b43f5b8729adfa71507a2d1757c2ee0ca9787139d6c91d6e",
-  "experiments/configs/e4.json": "8e837b87f52d275065efa6ef3b01fe589921c97906c3333218b680f86de0be46",
-  "experiments/configs/e5.json": "14769a3e97b2812fdce1b44f606e01775cf193b0557221e0bed8e98c6bc17553",
+  "experiments/configs/router_intents_v0.json": "834e6c88ba2d5789c36fa43cc7cda22019bea6488f45e9d8abdc3c113885a491",
+  "experiments/configs/router_intents_v0_r0.json": "ee23df4e8aa6a0c2c3a9b6a84186b4e029f6c6b42ef9196ae3c4cdb3c0e0825f",
+  "experiments/configs/router_intents_v0_r1.json": "c28c8399ef3a8e2a48d859488765ac7cc0a178781744e641a238ed3fc9f064f1",
+  "experiments/configs/router_clinc150.json": "27ddbc8a35128791117bdd70e797c0a659ef87f1ca4634432d1989302a5361c7",
+  "experiments/configs/router_clinc150_r0.json": "a24491eac391621829c21579f7d3e2a3e2f997d7839c61e6b555365d054ad182",
+  "experiments/configs/router_clinc150_r1.json": "22fe1fa0b17c05a05cf0f3f8938aad7608bd7c82060f404f92f5a0f9461c18cc",
+  "experiments/configs/e3_candidates.json": "725d31da44fd40ab98f5a1ca7f3ad761736719a7bbc1d3886ecb24b169f96cc8",
+  "experiments/configs/e4.json": "e7c447f57c931bcf29d943a191f6ff1ca1200edc2c8bdf5f692592adf0bf55ed",
+  "experiments/configs/e5.json": "73212699798fe1f6f2b850587b4269f4e31ae987afac09dead341f001c33b61c",
   "experiments/configs/e6.json": "78868203d3c5aed14e0c009f4e207e618fac859b53eb92671ce3e4622611d3f6",
   "datasets/kestrel_tasks_v0/build/manifest.json": "eb322b1ddec186216054cc87698cd684a56c229b023e3cf8c1783574693ec5bf",
   "datasets/kestrel_tasks_v0/build/items.jsonl": "fdd51fd20ceec7872893992d9b7bfda8ccc1364aa61d3ff683ff1642627eb7e5",

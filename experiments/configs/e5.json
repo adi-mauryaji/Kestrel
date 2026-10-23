@@ -1,6 +1,6 @@
 {
  "experiment": "E5 (H5; ADR-027)",
- "status": "CANDIDATE",
+ "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031)",
  "selected": {
   "naive": {
    "lr": 10.0,

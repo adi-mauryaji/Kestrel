@@ -1,6 +1,6 @@
 {
  "format": 1,
- "status": "CANDIDATE: chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5); FROZEN at the PREREG freeze (Week 13)",
+ "status": "FROZEN 2026-10-23 (PREREG v1, ADR-031); chosen on val at tolerance 0.0 (ADR-021; delta is only the test margin, PREREG §5)",
  "dataset": "clinc150",
  "policy": "R3",
  "tiers": [
@@ -665,5 +665,5 @@
   "tier_outputs_sha256": "49e0e97d9a43c16cbee5dbd0f3a173e4839b232adeb06a22a7ab132f14679bf6",
   "git_head_at_logging": "75dc3d9"
  },
- "config_sha256": "c5e29930229ae3d28e00069c1931cfb8fc833f068c79cccbe516097898d7535d"
+ "config_sha256": "216385772928ab36fe63171af0a2f2d2ec4822b74e51a2683fdc29cc7e11ff12"
 }

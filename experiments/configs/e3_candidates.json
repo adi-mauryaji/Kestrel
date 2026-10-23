@@ -6,7 +6,7 @@
    "n_val": 128,
    "reference_acc": 0.984375,
    "signal": "conjunction",
-   "router_config_sha256": "0c421bb98520f59536f9521e924f323c38227a065fa14f96415b45f3f46c6d45",
+   "router_config_sha256": "10e8832ced7bcb81e05800d5ab80bc91b1c8b8132d587e51dde3a68f159881ea",
    "tier_outputs_sha256": "4da4bba846f6089d29eb9948cea32371daaeac842ac4ad575ec974ab8e642315",
    "sets": {
     "{4}": {
@@ -91,7 +91,7 @@
    "n_val": 1700,
    "reference_acc": 0.9117647058823529,
    "signal": "conjunction",
-   "router_config_sha256": "c5e29930229ae3d28e00069c1931cfb8fc833f068c79cccbe516097898d7535d",
+   "router_config_sha256": "216385772928ab36fe63171af0a2f2d2ec4822b74e51a2683fdc29cc7e11ff12",
    "tier_outputs_sha256": "49e0e97d9a43c16cbee5dbd0f3a173e4839b232adeb06a22a7ab132f14679bf6",
    "sets": {
     "{4}": {
