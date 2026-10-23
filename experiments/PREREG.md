@@ -58,7 +58,7 @@ on cal by BCE. CLINC150: the label set adds an explicit `oos` answer (ADR-016); 
 |---|---|---|---|
 | Kestrel-Intents-v0 | train 604 / cal 100 / val 128 / **test 252** | full set `5de96809…e37ca314`; per-split in `datasets/kestrel_intents_v0/splits/manifest.json` | split by template family (EN + Hinglish together); OOS split by domain (test domains music, sports unseen); compound items in val/test only. Synthetic, Claude-drafted, human-reviewed — label as synthetic in every table |
 | CLINC150 (full) | train 15000 / cal 1500 / val 1700 (200 OOS) / **test 5500 (1000 OOS)** | raw SHA-256 `36923c37…`; per-split in `datasets/clinc150/manifest.json` | official test intact; 24 texts occur in two sets (4 with conflicting labels; 14 test items) |
-| Kestrel-Tasks-v0, -Personas-v0 | — | not built yet | added to this file before E4/E6 run |
+| Kestrel-Tasks-v0, -Personas-v0 | — | drafts, waiting for review | fingerprints added here at their freeze, before E4/E6 run |
 | CLINC150 domains (E5) | the 150 in-scope intents of the rows above, grouped | `domains.json` SHA-256 `b947b579…` at the same pinned commit (datasets/MANIFEST.toml) | 10 domains × 15 intents; E5's stages (§4, ADR-027) |
 
 **[accepted 2026-10-17] D1:** CLINC150 test keeps its 14 items whose text also appears in train/cal/val (primary, comparable with the
@@ -128,6 +128,15 @@ as unstable and its configuration is not eligible. Dev selection: per method, th
 its 15 runs; ties → the earlier configuration. Reported per method: average accuracy, average forgetting, BWT (Ch. 22.3),
 update seconds and buffer bytes, mean ± SD over the 15 runs, and every R matrix (`experiments/logs/E5/sweep_dev.json`).
 The test-set run (Week 14) uses the selected configurations unchanged.
+
+**E4 (personalization; accuracy only) — PROPOSED 2026-10-23 by Claude (ADR-028), not yet accepted by the human.**
+Kestrel-Personas-v0 test personas (p2, p3, p5, p6; synthetic). Conditions: off and memory after K = 1, 3, 5 taught aliases
+(each persona's events in order, through alias detection and a yes); requests planned by the template planner with gold
+intents (primary) and, as a secondary check, routed by Tier 1 + Tier 3 of the frozen Intents-v0 router (an abstention
+fails). Success = Kestrel-Tasks-v0's judge on a fresh copy of the fixture notes. Primary H4 test: the 60 exact personalized
+test requests, K = 5 vs off, exact McNemar, in the secondary family (Holm, §6); variants (20) and K = 1 / 3 reported, not
+tested. No regression: general-request success (40) at K = 5 ≥ off − δ (δ = 0.0263, §5). Reported per persona and as the
+mean over personas, with the per-language split. `kestrel e4-eval --split test`.
 
 ## 5. Targets from E0 (Ch. 6.4)
 

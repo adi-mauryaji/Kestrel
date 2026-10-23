@@ -1,0 +1,40 @@
+{"k": 1, "kind": "doc", "lang": "en", "persona": "p1", "phrase": "standup doc", "target": "team sync", "text": "when I say standup doc, I mean team sync"}
+{"k": 2, "kind": "group", "lang": "en", "persona": "p1", "phrase": "the gang", "target": "riya and kabir", "text": "no, by the gang I mean riya and kabir"}
+{"k": 3, "kind": "tag", "lang": "en", "persona": "p1", "phrase": "office notes", "target": "scrum notes", "text": "actually when I say office notes I mean scrum notes"}
+{"k": 4, "kind": "count", "lang": "en", "persona": "p1", "phrase": "usual notes", "target": "last 3 notes", "text": "when I say usual notes, I mean last 3 notes"}
+{"k": 5, "kind": "place", "lang": "en", "persona": "p1", "phrase": "the usual place", "target": "cafe mocha", "text": "no, by the usual place I mean cafe mocha"}
+{"k": 1, "kind": "group", "lang": "en", "persona": "p2", "phrase": "my folks", "target": "mom and dad", "text": "no, by my folks I mean mom and dad"}
+{"k": 2, "kind": "doc", "lang": "en", "persona": "p2", "phrase": "budget sheet", "target": "q4 budget", "text": "actually when I say budget sheet I mean q4 budget"}
+{"k": 3, "kind": "date", "lang": "en", "persona": "p2", "phrase": "payday", "target": "friday", "text": "when I say payday, I mean friday"}
+{"k": 4, "kind": "tag", "lang": "en", "persona": "p2", "phrase": "uni notes", "target": "college notes", "text": "no, by uni notes I mean college notes"}
+{"k": 5, "kind": "count", "lang": "en", "persona": "p2", "phrase": "recent stuff", "target": "last 2 notes", "text": "actually when I say recent stuff I mean last 2 notes"}
+{"k": 1, "kind": "tag", "lang": "en", "persona": "p3", "phrase": "gym log", "target": "gym notes", "text": "actually when I say gym log I mean gym notes"}
+{"k": 2, "kind": "place", "lang": "en", "persona": "p3", "phrase": "the canteen", "target": "nescafe corner", "text": "when I say the canteen, I mean nescafe corner"}
+{"k": 3, "kind": "doc", "lang": "en", "persona": "p3", "phrase": "bible doc", "target": "thesis outline", "text": "no, by bible doc I mean thesis outline"}
+{"k": 4, "kind": "group", "lang": "en", "persona": "p3", "phrase": "the lab crew", "target": "neha and arjun", "text": "actually when I say the lab crew I mean neha and arjun"}
+{"k": 5, "kind": "count", "lang": "en", "persona": "p3", "phrase": "daily notes", "target": "last 4 notes", "text": "when I say daily notes, I mean last 4 notes"}
+{"k": 1, "kind": "count", "lang": "en", "persona": "p4", "phrase": "weekly notes", "target": "last 5 notes", "text": "when I say weekly notes, I mean last 5 notes"}
+{"k": 2, "kind": "group", "lang": "en", "persona": "p4", "phrase": "the in-laws", "target": "meera and vikram", "text": "no, by the in-laws I mean meera and vikram"}
+{"k": 3, "kind": "date", "lang": "en", "persona": "p4", "phrase": "deadline day", "target": "monday", "text": "actually when I say deadline day I mean monday"}
+{"k": 4, "kind": "doc", "lang": "en", "persona": "p4", "phrase": "lease", "target": "flat agreement", "text": "when I say lease, I mean flat agreement"}
+{"k": 5, "kind": "tag", "lang": "en", "persona": "p4", "phrase": "house notes", "target": "home notes", "text": "no, by house notes I mean home notes"}
+{"k": 1, "kind": "doc", "lang": "hi-en", "persona": "p5", "phrase": "office ka doc", "target": "team sync", "text": "nahi, office ka doc se mera matlab team sync hai"}
+{"k": 2, "kind": "group", "lang": "hi-en", "persona": "p5", "phrase": "dosto", "target": "rahul aur sameer", "text": "jab main dosto kahun toh matlab rahul aur sameer"}
+{"k": 3, "kind": "tag", "lang": "hi-en", "persona": "p5", "phrase": "kaam wale notes", "target": "scrum notes", "text": "jab main kaam wale notes bolun to mera matlab scrum notes hai"}
+{"k": 4, "kind": "count", "lang": "hi-en", "persona": "p5", "phrase": "roz ke notes", "target": "last 3 notes", "text": "nahi, roz ke notes se mera matlab last 3 notes hai"}
+{"k": 5, "kind": "place", "lang": "hi-en", "persona": "p5", "phrase": "adda", "target": "sharma tea stall", "text": "jab main adda kahun toh matlab sharma tea stall"}
+{"k": 1, "kind": "group", "lang": "hi-en", "persona": "p6", "phrase": "ghar wale", "target": "mummy aur papa", "text": "jab main ghar wale kahun toh matlab mummy aur papa"}
+{"k": 2, "kind": "doc", "lang": "hi-en", "persona": "p6", "phrase": "budget wali file", "target": "q4 budget", "text": "jab main budget wali file bolun to mera matlab q4 budget hai"}
+{"k": 3, "kind": "date", "lang": "hi-en", "persona": "p6", "phrase": "salary wala din", "target": "shukravar", "text": "nahi, salary wala din se mera matlab shukravar hai"}
+{"k": 4, "kind": "tag", "lang": "hi-en", "persona": "p6", "phrase": "padhai ke notes", "target": "college notes", "text": "jab main padhai ke notes kahun toh matlab college notes"}
+{"k": 5, "kind": "count", "lang": "hi-en", "persona": "p6", "phrase": "taaza notes", "target": "last 2 notes", "text": "jab main taaza notes bolun to mera matlab last 2 notes hai"}
+{"k": 1, "kind": "tag", "lang": "hi-en", "persona": "p7", "phrase": "kasrat ke notes", "target": "gym notes", "text": "jab main kasrat ke notes bolun to mera matlab gym notes hai"}
+{"k": 2, "kind": "place", "lang": "hi-en", "persona": "p7", "phrase": "canteen", "target": "nescafe corner", "text": "nahi, canteen se mera matlab nescafe corner hai"}
+{"k": 3, "kind": "doc", "lang": "hi-en", "persona": "p7", "phrase": "thesis wala doc", "target": "thesis outline", "text": "jab main thesis wala doc kahun toh matlab thesis outline"}
+{"k": 4, "kind": "group", "lang": "hi-en", "persona": "p7", "phrase": "lab wale", "target": "neha aur arjun", "text": "jab main lab wale bolun to mera matlab neha aur arjun hai"}
+{"k": 5, "kind": "count", "lang": "hi-en", "persona": "p7", "phrase": "pichle notes", "target": "last 4 notes", "text": "nahi, pichle notes se mera matlab last 4 notes hai"}
+{"k": 1, "kind": "count", "lang": "hi-en", "persona": "p8", "phrase": "is hafte ke notes", "target": "last 5 notes", "text": "nahi, is hafte ke notes se mera matlab last 5 notes hai"}
+{"k": 2, "kind": "group", "lang": "hi-en", "persona": "p8", "phrase": "sasural wale", "target": "meera aur vikram", "text": "jab main sasural wale kahun toh matlab meera aur vikram"}
+{"k": 3, "kind": "date", "lang": "hi-en", "persona": "p8", "phrase": "deadline wala din", "target": "somvar", "text": "jab main deadline wala din bolun to mera matlab somvar hai"}
+{"k": 4, "kind": "doc", "lang": "hi-en", "persona": "p8", "phrase": "ghar ka agreement", "target": "flat agreement", "text": "nahi, ghar ka agreement se mera matlab flat agreement hai"}
+{"k": 5, "kind": "tag", "lang": "hi-en", "persona": "p8", "phrase": "ghar ke notes", "target": "home notes", "text": "jab main ghar ke notes kahun toh matlab home notes"}

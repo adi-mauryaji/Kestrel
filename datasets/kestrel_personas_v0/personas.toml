@@ -1,0 +1,602 @@
+# Kestrel-Personas-v0 (DRAFT, ADR-028): synthetic users who teach Kestrel their aliases, for E4.
+# Drafted by Claude on 2026-10-23; the human reviews it before it is frozen. Card: README.md.
+# Builder (the persona simulator): experiments/data/personas_v0.py. Label as synthetic in every table.
+#
+# A persona has 5 aliases (a document, a group of people, a note tag, a note count, a place or a
+# date), taught one per scripted event (K = 1, 3, 5 events), and is then asked held-out requests:
+# every request pattern of each alias kind in the persona's language (3 exact + 1 variant) and the
+# general requests of its language (no alias). Placeholders: {a} the alias phrase, {v} its variant
+# (a natural form exact matching misses), {t} what it means. A request's canonical form is the
+# request as the user means it ({a} or {v} -> {t}); every canonical form must reach its expectation
+# with the template planner (crates/.../personas_v0 check), which certifies the expectations.
+#
+# Expectation specs (computed by the builder against `today` and the fixture notes):
+#   read = ["doc"]          the alias's document
+#   read = ["recent:N"]     the N newest notes with the alias's tag (fewer if there are fewer)
+#   read = ["recent"]       the alias's count of newest notes, any tag
+#   read = ["recent:TAG:N"] (general requests) the N newest notes tagged TAG
+#   due = "tomorrow" | "day_after" | "saturday" | "monday" | "friday" | "alias" (the alias's day)
+# Rule for authors: a doc / tag / count alias never starts with "the" or "my" (patterns add them).
+
+today = "2026-10-23"   # a Friday
+notes = "fixtures/notes"
+default_author = "claude-draft"
+default_reviewed = false
+
+# --- teaching phrasings: event i of a persona uses template (persona index + i) mod 3 of its language
+[[teach]]
+lang = "en"
+text = "when I say {a}, I mean {t}"
+[[teach]]
+lang = "en"
+text = "no, by {a} I mean {t}"
+[[teach]]
+lang = "en"
+text = "actually when I say {a} I mean {t}"
+[[teach]]
+lang = "hi-en"
+text = "jab main {a} bolun to mera matlab {t} hai"
+[[teach]]
+lang = "hi-en"
+text = "nahi, {a} se mera matlab {t} hai"
+[[teach]]
+lang = "hi-en"
+text = "jab main {a} kahun toh matlab {t}"
+
+# --- request patterns: kind, lang, gold intent, text, (canonical), expectation
+[[pattern]]
+id = "doc-open-en"
+kind = "doc"
+lang = "en"
+intent = "read_document"
+text = "open my {a}"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-show-en"
+kind = "doc"
+lang = "en"
+intent = "read_document"
+text = "show me the {a}"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-sum-en"
+kind = "doc"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize the {a} document"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-var-en"
+kind = "doc"
+lang = "en"
+intent = "read_document"
+variant = true
+text = "open my {v}"
+canonical = "open my {t}"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-open-hi"
+kind = "doc"
+lang = "hi-en"
+intent = "read_document"
+text = "{a} kholo"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-show-hi"
+kind = "doc"
+lang = "hi-en"
+intent = "read_document"
+text = "mera {a} dikhao"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-read-hi"
+kind = "doc"
+lang = "hi-en"
+intent = "read_document"
+text = "{a} padho"
+expect = { read = ["doc"] }
+[[pattern]]
+id = "doc-var-hi"
+kind = "doc"
+lang = "hi-en"
+intent = "read_document"
+variant = true
+text = "{v} kholo"
+canonical = "{t} kholo"
+expect = { read = ["doc"] }
+
+[[pattern]]
+id = "grp-call-en"
+kind = "group"
+lang = "en"
+intent = "create_task"
+text = "remind me to call {a} tomorrow"
+expect = { tasks_added = [{ title = "call {t}", due = "tomorrow" }] }
+[[pattern]]
+id = "grp-dinner-en"
+kind = "group"
+lang = "en"
+intent = "create_task"
+text = "add a task to plan dinner with {a} on saturday"
+expect = { tasks_added = [{ title = "plan dinner with {t}", due = "saturday" }] }
+[[pattern]]
+id = "grp-text-en"
+kind = "group"
+lang = "en"
+intent = "create_task"
+text = "set a reminder to text {a} the day after tomorrow"
+expect = { tasks_added = [{ title = "text {t}", due = "day_after" }] }
+[[pattern]]
+id = "grp-var-en"
+kind = "group"
+lang = "en"
+intent = "create_task"
+variant = true
+text = "remind me to call {v} tomorrow"
+canonical = "remind me to call {t} tomorrow"
+expect = { tasks_added = [{ title = "call {t}", due = "tomorrow" }] }
+[[pattern]]
+id = "grp-call-hi"
+kind = "group"
+lang = "hi-en"
+intent = "create_task"
+text = "kal {a} ko call karna yaad dilana"
+expect = { tasks_added = [{ title = "{t} ko call karna", due = "tomorrow" }] }
+[[pattern]]
+id = "grp-msg-hi"
+kind = "group"
+lang = "hi-en"
+intent = "create_task"
+text = "{a} ko message karne ka reminder lagao"
+expect = { tasks_added = [{ title = "{t} ko message karna" }] }
+[[pattern]]
+id = "grp-meet-hi"
+kind = "group"
+lang = "hi-en"
+intent = "create_task"
+text = "parso {a} se milna yaad dila do"
+expect = { tasks_added = [{ title = "{t} se milna", due = "day_after" }] }
+[[pattern]]
+id = "grp-var-hi"
+kind = "group"
+lang = "hi-en"
+intent = "create_task"
+variant = true
+text = "kal {v} ko call karna yaad dilana"
+canonical = "kal {t} ko call karna yaad dilana"
+expect = { tasks_added = [{ title = "{t} ko call karna", due = "tomorrow" }] }
+
+[[pattern]]
+id = "tag-last2-en"
+kind = "tag"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my last 2 {a}"
+expect = { read = ["recent:2"] }
+[[pattern]]
+id = "tag-latest-en"
+kind = "tag"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my latest {a}"
+expect = { read = ["recent:5"] }
+[[pattern]]
+id = "tag-last3-en"
+kind = "tag"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my last three {a}"
+expect = { read = ["recent:3"] }
+[[pattern]]
+id = "tag-var-en"
+kind = "tag"
+lang = "en"
+intent = "summarize_notes"
+variant = true
+text = "summarize my last 2 {v}"
+canonical = "summarize my last 2 {t}"
+expect = { read = ["recent:2"] }
+[[pattern]]
+id = "tag-last2-hi"
+kind = "tag"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "mere last 2 {a} ka summary do"
+expect = { read = ["recent:2"] }
+[[pattern]]
+id = "tag-all-hi"
+kind = "tag"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "{a} ka summary do"
+expect = { read = ["recent:5"] }
+[[pattern]]
+id = "tag-last3-hi"
+kind = "tag"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "mere last 3 {a} ka summary chahiye"
+expect = { read = ["recent:3"] }
+[[pattern]]
+id = "tag-var-hi"
+kind = "tag"
+lang = "hi-en"
+intent = "summarize_notes"
+variant = true
+text = "mere last 2 {v} ka summary do"
+canonical = "mere last 2 {t} ka summary do"
+expect = { read = ["recent:2"] }
+
+[[pattern]]
+id = "cnt-sum-en"
+kind = "count"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my {a}"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-give-en"
+kind = "count"
+lang = "en"
+intent = "summarize_notes"
+text = "give me a summary of my {a}"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-the-en"
+kind = "count"
+lang = "en"
+intent = "summarize_notes"
+text = "summarize the {a}"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-var-en"
+kind = "count"
+lang = "en"
+intent = "summarize_notes"
+variant = true
+text = "summarize my {v}"
+canonical = "summarize my {t}"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-sum-hi"
+kind = "count"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "{a} ka summary do"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-want-hi"
+kind = "count"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "meri {a} ka summary chahiye"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-karo-hi"
+kind = "count"
+lang = "hi-en"
+intent = "summarize_notes"
+text = "{a} summarize karo"
+expect = { read = ["recent"] }
+[[pattern]]
+id = "cnt-var-hi"
+kind = "count"
+lang = "hi-en"
+intent = "summarize_notes"
+variant = true
+text = "{v} ka summary do"
+canonical = "{t} ka summary do"
+expect = { read = ["recent"] }
+
+[[pattern]]
+id = "plc-book-en"
+kind = "place"
+lang = "en"
+intent = "create_task"
+text = "remind me to book a table at {a} on saturday"
+expect = { tasks_added = [{ title = "book a table at {t}", due = "saturday" }] }
+[[pattern]]
+id = "plc-meet-en"
+kind = "place"
+lang = "en"
+intent = "create_task"
+text = "add a task to meet asha at {a} tomorrow"
+expect = { tasks_added = [{ title = "meet asha at {t}", due = "tomorrow" }] }
+[[pattern]]
+id = "plc-drop-en"
+kind = "place"
+lang = "en"
+intent = "create_task"
+text = "set a reminder to drop the books at {a} on monday"
+expect = { tasks_added = [{ title = "drop the books at {t}", due = "monday" }] }
+[[pattern]]
+id = "plc-var-en"
+kind = "place"
+lang = "en"
+intent = "create_task"
+variant = true
+text = "remind me to book a table at {v} on saturday"
+canonical = "remind me to book a table at {t} on saturday"
+expect = { tasks_added = [{ title = "book a table at {t}", due = "saturday" }] }
+[[pattern]]
+id = "plc-chai-hi"
+kind = "place"
+lang = "hi-en"
+intent = "create_task"
+text = "kal {a} pe chai peene ka reminder lagao"
+expect = { tasks_added = [{ title = "{t} pe chai peena", due = "tomorrow" }] }
+[[pattern]]
+id = "plc-milna-hi"
+kind = "place"
+lang = "hi-en"
+intent = "create_task"
+text = "parso {a} pe milna yaad dilana"
+expect = { tasks_added = [{ title = "{t} pe milna", due = "day_after" }] }
+[[pattern]]
+id = "plc-samosa-hi"
+kind = "place"
+lang = "hi-en"
+intent = "create_task"
+text = "somvar ko {a} se samosa lena yaad dilana"
+expect = { tasks_added = [{ title = "{t} se samosa lena", due = "monday" }] }
+[[pattern]]
+id = "plc-var-hi"
+kind = "place"
+lang = "hi-en"
+intent = "create_task"
+variant = true
+text = "kal {v} pe chai peene ka reminder lagao"
+canonical = "kal {t} pe chai peene ka reminder lagao"
+expect = { tasks_added = [{ title = "{t} pe chai peena", due = "tomorrow" }] }
+
+[[pattern]]
+id = "day-form-en"
+kind = "date"
+lang = "en"
+intent = "create_task"
+text = "remind me to submit the form on {a}"
+expect = { tasks_added = [{ title = "submit the form", due = "alias" }] }
+[[pattern]]
+id = "day-bill-en"
+kind = "date"
+lang = "en"
+intent = "create_task"
+text = "add a task to pay the internet bill on {a}"
+expect = { tasks_added = [{ title = "pay the internet bill", due = "alias" }] }
+[[pattern]]
+id = "day-bank-en"
+kind = "date"
+lang = "en"
+intent = "create_task"
+text = "set a reminder to call the bank on {a}"
+expect = { tasks_added = [{ title = "call the bank", due = "alias" }] }
+[[pattern]]
+id = "day-var-en"
+kind = "date"
+lang = "en"
+intent = "create_task"
+variant = true
+text = "remind me to submit the form on {v}"
+canonical = "remind me to submit the form on {t}"
+expect = { tasks_added = [{ title = "submit the form", due = "alias" }] }
+[[pattern]]
+id = "day-report-hi"
+kind = "date"
+lang = "hi-en"
+intent = "create_task"
+text = "{a} ko report bhejna yaad dilana"
+expect = { tasks_added = [{ title = "report bhejna", due = "alias" }] }
+[[pattern]]
+id = "day-rent-hi"
+kind = "date"
+lang = "hi-en"
+intent = "create_task"
+text = "{a} ko rent bharna yaad dila do"
+expect = { tasks_added = [{ title = "rent bharna", due = "alias" }] }
+[[pattern]]
+id = "day-bank-hi"
+kind = "date"
+lang = "hi-en"
+intent = "create_task"
+text = "{a} ko bank jaana yaad dilana"
+expect = { tasks_added = [{ title = "bank jaana", due = "alias" }] }
+[[pattern]]
+id = "day-var-hi"
+kind = "date"
+lang = "hi-en"
+intent = "create_task"
+variant = true
+text = "{v} ko report bhejna yaad dilana"
+canonical = "{t} ko report bhejna yaad dilana"
+expect = { tasks_added = [{ title = "report bhejna", due = "alias" }] }
+
+# --- general requests (no alias): every persona of the language gets all of them
+[[general]]
+lang = "en"
+intent = "read_document"
+text = "open the project plan"
+expect = { read = ["docs/project-plan.md"] }
+[[general]]
+lang = "en"
+intent = "read_document"
+text = "show me the recipes"
+expect = { read = ["docs/recipes.md"] }
+[[general]]
+lang = "en"
+intent = "read_document"
+text = "open my trip itinerary"
+expect = { read = ["docs/trip-itinerary.md"] }
+[[general]]
+lang = "en"
+intent = "summarize_notes"
+text = "summarize the lab manual document"
+expect = { read = ["docs/lab-manual.md"] }
+[[general]]
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my last 2 college notes"
+expect = { read = ["recent:college:2"] }
+[[general]]
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my latest gym notes"
+expect = { read = ["recent:gym:5"] }
+[[general]]
+lang = "en"
+intent = "summarize_notes"
+text = "summarize my last 3 family notes"
+expect = { read = ["recent:family:3"] }
+[[general]]
+lang = "en"
+intent = "create_task"
+text = "remind me to pay the electricity bill on monday"
+expect = { tasks_added = [{ title = "pay the electricity bill", due = "monday" }] }
+[[general]]
+lang = "en"
+intent = "create_task"
+text = "add a task to buy milk tomorrow"
+expect = { tasks_added = [{ title = "buy milk", due = "tomorrow" }] }
+[[general]]
+lang = "en"
+intent = "create_task"
+text = "remind me to call asha tomorrow"
+expect = { tasks_added = [{ title = "call asha", due = "tomorrow" }] }
+[[general]]
+lang = "hi-en"
+intent = "read_document"
+text = "project plan kholo"
+expect = { read = ["docs/project-plan.md"] }
+[[general]]
+lang = "hi-en"
+intent = "read_document"
+text = "recipes dikhao"
+expect = { read = ["docs/recipes.md"] }
+[[general]]
+lang = "hi-en"
+intent = "read_document"
+text = "trip itinerary dikhao"
+expect = { read = ["docs/trip-itinerary.md"] }
+[[general]]
+lang = "hi-en"
+intent = "read_document"
+text = "lab manual kholo"
+expect = { read = ["docs/lab-manual.md"] }
+[[general]]
+lang = "hi-en"
+intent = "summarize_notes"
+text = "mere last 2 college notes ka summary do"
+expect = { read = ["recent:college:2"] }
+[[general]]
+lang = "hi-en"
+intent = "summarize_notes"
+text = "family notes ka summary do"
+expect = { read = ["recent:family:5"] }
+[[general]]
+lang = "hi-en"
+intent = "create_task"
+text = "kal doodh lena yaad dilana"
+expect = { tasks_added = [{ title = "doodh lena", due = "tomorrow" }] }
+[[general]]
+lang = "hi-en"
+intent = "create_task"
+text = "parso rent bharna yaad dila do"
+expect = { tasks_added = [{ title = "rent bharna", due = "day_after" }] }
+[[general]]
+lang = "hi-en"
+intent = "create_task"
+text = "somvar ko bijli ka bill bharna yaad dilana"
+expect = { tasks_added = [{ title = "bijli ka bill bharna", due = "monday" }] }
+[[general]]
+lang = "hi-en"
+intent = "create_task"
+text = "kal asha ko call karna yaad dilana"
+expect = { tasks_added = [{ title = "asha ko call karna", due = "tomorrow" }] }
+
+# --- personas: 4 English, 4 Hinglish; aliases in teaching order (event 1 teaches the first)
+[[persona]]
+id = "p1"
+lang = "en"
+aliases = [
+  { kind = "doc", phrase = "standup doc", target = "team sync", path = "docs/team-sync.md", variant = "standup docs" },
+  { kind = "group", phrase = "the gang", target = "riya and kabir", variant = "my gang" },
+  { kind = "tag", phrase = "office notes", target = "scrum notes", tag = "scrum", variant = "office note" },
+  { kind = "count", phrase = "usual notes", target = "last 3 notes", n = 3, variant = "usual note" },
+  { kind = "place", phrase = "the usual place", target = "cafe mocha", variant = "our usual place" },
+]
+
+[[persona]]
+id = "p2"
+lang = "en"
+aliases = [
+  { kind = "group", phrase = "my folks", target = "mom and dad", variant = "the folks" },
+  { kind = "doc", phrase = "budget sheet", target = "q4 budget", path = "docs/q4-budget.md", variant = "budget sheets" },
+  { kind = "date", phrase = "payday", target = "friday", due = "friday", variant = "pay day" },
+  { kind = "tag", phrase = "uni notes", target = "college notes", tag = "college", variant = "uni note" },
+  { kind = "count", phrase = "recent stuff", target = "last 2 notes", n = 2, variant = "recent things" },
+]
+
+[[persona]]
+id = "p3"
+lang = "en"
+aliases = [
+  { kind = "tag", phrase = "gym log", target = "gym notes", tag = "gym", variant = "gym logs" },
+  { kind = "place", phrase = "the canteen", target = "nescafe corner", variant = "canteen" },
+  { kind = "doc", phrase = "bible doc", target = "thesis outline", path = "docs/thesis-outline.md", variant = "bible docs" },
+  { kind = "group", phrase = "the lab crew", target = "neha and arjun", variant = "my lab crew" },
+  { kind = "count", phrase = "daily notes", target = "last 4 notes", n = 4, variant = "daily note" },
+]
+
+[[persona]]
+id = "p4"
+lang = "en"
+aliases = [
+  { kind = "count", phrase = "weekly notes", target = "last 5 notes", n = 5, variant = "weekly note" },
+  { kind = "group", phrase = "the in-laws", target = "meera and vikram", variant = "my in-laws" },
+  { kind = "date", phrase = "deadline day", target = "monday", due = "monday", variant = "the deadline" },
+  { kind = "doc", phrase = "lease", target = "flat agreement", path = "docs/flat-agreement.md", variant = "lease papers" },
+  { kind = "tag", phrase = "house notes", target = "home notes", tag = "home", variant = "house note" },
+]
+
+[[persona]]
+id = "p5"
+lang = "hi-en"
+aliases = [
+  { kind = "doc", phrase = "office ka doc", target = "team sync", path = "docs/team-sync.md", variant = "office wala doc" },
+  { kind = "group", phrase = "dosto", target = "rahul aur sameer", variant = "doston" },
+  { kind = "tag", phrase = "kaam wale notes", target = "scrum notes", tag = "scrum", variant = "kaam ke notes" },
+  { kind = "count", phrase = "roz ke notes", target = "last 3 notes", n = 3, variant = "roz wale notes" },
+  { kind = "place", phrase = "adda", target = "sharma tea stall", variant = "adde" },
+]
+
+[[persona]]
+id = "p6"
+lang = "hi-en"
+aliases = [
+  { kind = "group", phrase = "ghar wale", target = "mummy aur papa", variant = "gharwalon" },
+  { kind = "doc", phrase = "budget wali file", target = "q4 budget", path = "docs/q4-budget.md", variant = "budget ki file" },
+  { kind = "date", phrase = "salary wala din", target = "shukravar", due = "friday", variant = "salary ka din" },
+  { kind = "tag", phrase = "padhai ke notes", target = "college notes", tag = "college", variant = "padhai wale notes" },
+  { kind = "count", phrase = "taaza notes", target = "last 2 notes", n = 2, variant = "taze notes" },
+]
+
+[[persona]]
+id = "p7"
+lang = "hi-en"
+aliases = [
+  { kind = "tag", phrase = "kasrat ke notes", target = "gym notes", tag = "gym", variant = "kasrat wale notes" },
+  { kind = "place", phrase = "canteen", target = "nescafe corner", variant = "kantin" },
+  { kind = "doc", phrase = "thesis wala doc", target = "thesis outline", path = "docs/thesis-outline.md", variant = "thesis wali doc" },
+  { kind = "group", phrase = "lab wale", target = "neha aur arjun", variant = "lab walon" },
+  { kind = "count", phrase = "pichle notes", target = "last 4 notes", n = 4, variant = "pichhle notes" },
+]
+
+[[persona]]
+id = "p8"
+lang = "hi-en"
+aliases = [
+  { kind = "count", phrase = "is hafte ke notes", target = "last 5 notes", n = 5, variant = "is hafte wale notes" },
+  { kind = "group", phrase = "sasural wale", target = "meera aur vikram", variant = "sasuralwalon" },
+  { kind = "date", phrase = "deadline wala din", target = "somvar", due = "monday", variant = "deadline ka din" },
+  { kind = "doc", phrase = "ghar ka agreement", target = "flat agreement", path = "docs/flat-agreement.md", variant = "ghar wala agreement" },
+  { kind = "tag", phrase = "ghar ke notes", target = "home notes", tag = "home", variant = "ghar wale notes" },
+]

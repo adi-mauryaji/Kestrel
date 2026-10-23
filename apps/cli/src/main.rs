@@ -21,6 +21,9 @@
 //! Kestrel-Tasks-v0 dev compound requests, or `--check-grammar` on every gold plan.
 //!
 //! memory is Week 10 (src/memory.rs): list, approve, delete and export the memory file; no model.
+//!
+//! e4-eval is Week 11's E4 (src/e4.rs, ADR-028): personalization off vs memory after K taught
+//! aliases on Kestrel-Personas-v0, gold intents, no model.
 
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
@@ -30,6 +33,7 @@ mod ask;
 mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
+mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
 mod memory;
@@ -44,7 +48,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -54,6 +58,7 @@ fn main() -> ExitCode {
         Some("bench-items") => bench(&args[1..]),
         Some("plan-eval") => plan_eval(&args[1..]),
         Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
+        Some("e4-eval") => e4_eval(&args[1..]),
         _ => Err(USAGE.into()),
     };
     match result {
@@ -63,6 +68,63 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn e4_eval(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    const USE: &str = "usage: kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+    let mut split = "dev";
+    let mut cascade = None;
+    let mut out = None;
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--split" => split = it.next().ok_or(USE)?.as_str(),
+            "--cascade" => cascade = Some(it.next().ok_or(USE)?.as_str()),
+            _ if out.is_none() && !a.starts_with("--") => out = Some(a.as_str()),
+            _ => return Err(USE.into()),
+        }
+    }
+    if !matches!(split, "dev" | "test") {
+        return Err(USE.into());
+    }
+    let default = match cascade {
+        None => format!("experiments/logs/E4/e4_{split}.json"),
+        Some(_) => format!("experiments/logs/E4/e4_{split}_cascade.json"),
+    };
+    let out = std::path::Path::new(out.unwrap_or(&default));
+    match cascade {
+        None => e4::run(split, out, None),
+        Some(config) => e4_cascade(split, out, config.as_ref()),
+    }
+}
+
+/// E4 with each request routed by Tier 1 + Tier 3 of `config` (ADR-028's secondary check).
+#[cfg(feature = "llama")]
+fn e4_cascade(
+    split: &str,
+    out: &std::path::Path,
+    config: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use kestrel_router::{Cascade, Outcome};
+    let models = route_items::Models::load_for(config, &[1, 3])?;
+    let intents = labels::Intents;
+    let tiers = models.tiers(&intents, |t| t, &[1, 3])?;
+    let cascade = Cascade::new(tiers, models.router.clone())?;
+    let route = |text: &str| match cascade.route(&kestrel_core::Request::new(0, text)).0 {
+        Outcome::Accepted(p) => Some(p.intent),
+        Outcome::Abstained { .. } => None,
+    };
+    let how = format!("Tier 1 + Tier 3 of {}", config.display());
+    e4::run(split, out, Some((&route, &how)))
+}
+
+#[cfg(not(feature = "llama"))]
+fn e4_cascade(
+    _: &str,
+    _: &std::path::Path,
+    _: &std::path::Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    route(&[])
 }
 
 #[cfg(feature = "llama")]

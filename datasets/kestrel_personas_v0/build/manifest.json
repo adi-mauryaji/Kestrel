@@ -1,0 +1,33 @@
+{
+ "dataset": "kestrel-personas-v0",
+ "status": "draft",
+ "seed": 0,
+ "today": "2026-10-23",
+ "personas": {
+  "p1": "dev",
+  "p2": "test",
+  "p3": "test",
+  "p4": "dev",
+  "p5": "test",
+  "p6": "test",
+  "p7": "dev",
+  "p8": "dev"
+ },
+ "items": 240,
+ "events": 40,
+ "per_split": {
+  "dev": {
+   "general": 40,
+   "personalized": 80
+  },
+  "test": {
+   "general": 40,
+   "personalized": 80
+  }
+ },
+ "sources": {
+  "personas.toml": "f09d89d73530c1f24dd4037ccbe5216875f6fb73016556510d5d67ba28d35979"
+ },
+ "items_sha256": "b45969a4df6bfc7181d4012cbf9a87437fcd20c7cb588fb3ce3b55b9f9bb29a6",
+ "events_sha256": "79df0ce04656fe76262c3676df98b642261630a655cd9710c4962d4cbbb74ecc"
+}
