@@ -1,0 +1,406 @@
+<title>Kestrel Dataset Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of review cards under a sticky bar (dataset tabs, filter, next); the
+   Request Lab's kestrel palette, so the project's two human-facing pages read as one family. */
+:root {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --ink: #1d2128;
+  --muted: #5d6573;
+  --line: #d9dcd6;
+  --chestnut: #9a4523;   /* kestrel back feathers: actions and selection */
+  --chestnut-ink: #ffffff;
+  --slate: #4c5e77;      /* kestrel head and tail: labels and secondary marks */
+  --slate-soft: #e6eaf0;
+  --good: #2f6b3a;
+  --good-soft: #e5f0e6;
+  --warn: #8a5a00;
+  --warn-soft: #f7ecd6;
+  --code-bg: #f0f1ee;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+    --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+    --good: #7cc48a; --good-soft: #1d2b21; --warn: #e6b04f; --warn-soft: #2e2615; --code-bg: #161a20;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+  --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+  --good: #7cc48a; --good-soft: #1d2b21; --warn: #e6b04f; --warn-soft: #2e2615; --code-bg: #161a20;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10;
+  background: var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 56px; display: grid; gap: 20px; }
+h1 { font: 800 clamp(1.7rem, 5vw, 2.3rem)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 600 1.2rem/1.3 var(--font-display); margin: 0; text-wrap: balance; }
+h3 { font: 700 1rem/1.35 var(--font-body); margin: 0; overflow-wrap: anywhere; }
+p, ul { margin: 0; }
+.intro { display: grid; gap: 10px; }
+.lede { color: var(--muted); max-width: 62ch; }
+.eyebrow { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.judge { padding-left: 1.2em; display: grid; gap: 2px; max-width: 62ch; }
+.small { font-size: 0.85rem; color: var(--muted); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3; background: var(--bg); padding-block: 8px;
+  display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tabs button { font: 700 0.9rem/1.2 var(--font-body); padding: 8px 6px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; gap: 2px; }
+.tabs button .n { font: 400 0.75rem/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tabs button[aria-selected="true"] { background: var(--slate); border-color: var(--slate); color: var(--surface); }
+.tabs button[aria-selected="true"] .n { color: var(--surface); }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.filters { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 600 0.82rem var(--font-body); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--chestnut); color: var(--chestnut); }
+.primary { font: 700 0.9rem var(--font-body); padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--chestnut);
+  background: var(--chestnut); color: var(--chestnut-ink); cursor: pointer; }
+.secondary { font: 700 0.9rem var(--font-body); padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.progress { height: 6px; background: var(--slate-soft); border-radius: 3px; overflow: hidden; display: flex; }
+.progress i { display: block; height: 100%; }
+.progress .p-ok { background: var(--good); }
+.progress .p-fix { background: var(--warn); }
+main { display: grid; gap: 28px; }
+section.sec { display: grid; gap: 12px; }
+.sec-head { display: grid; gap: 4px; }
+.sec-head .count { font: 400 0.8rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+details.ref { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; background: var(--surface); }
+details.ref summary { cursor: pointer; font-weight: 700; }
+details.ref details { margin-top: 6px; }
+details.ref details summary { font: 600 0.85rem var(--font-mono); color: var(--slate); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;
+  display: grid; gap: 10px; min-width: 0; }
+.card[data-state="fix"] { background: var(--warn-soft); border-color: var(--warn); }
+.card[data-state="ok"] { border-color: var(--good); }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.card-head h3 { flex: 1 1 14rem; min-width: 0; }
+.tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.note-text { font: 0.8rem/1.5 var(--font-mono); background: var(--code-bg); padding: 8px 10px; border-radius: 6px;
+  white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; }
+.tag { font: 600 0.72rem/1 var(--font-mono); padding: 3px 6px; border-radius: 4px; background: var(--slate-soft); color: var(--slate); }
+.pill { font: 700 0.75rem/1 var(--font-body); padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.card[data-state="ok"] .pill { border-color: var(--good); color: var(--good); }
+.card[data-state="fix"] .pill { border-color: var(--warn); color: var(--warn); }
+.card[data-state="stale"] .pill { border-color: var(--chestnut); color: var(--chestnut); }
+dl.lines { margin: 0; display: grid; gap: 6px; }
+.line { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 10px; }
+.line dt { font: 600 0.78rem/1.6 var(--font-mono); color: var(--slate); overflow-wrap: anywhere; }
+.line dd { margin: 0; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.line dd.mono { font: 0.82rem/1.5 var(--font-mono); background: var(--code-bg); padding: 6px 8px; border-radius: 6px;
+  overflow-x: auto; white-space: pre-wrap; }
+@media (max-width: 520px) { .line { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.acts .ok, .acts .fix { font: 700 0.95rem var(--font-body); padding: 8px 16px; border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 5.5rem; }
+.acts .ok[aria-pressed="true"] { background: var(--good); border-color: var(--good); color: var(--surface); }
+.acts .fix[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.link { font: 0.85rem var(--font-body); background: none; border: none; color: var(--muted); text-decoration: underline;
+  cursor: pointer; padding: 4px; }
+.note { display: grid; gap: 4px; }
+.note label, .stale-msg { font-size: 0.85rem; color: var(--muted); }
+.stale-msg { color: var(--chestnut); }
+textarea { font: 16px/1.4 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; }
+textarea[readonly] { font: 0.8rem/1.4 var(--font-mono); min-height: 120px; }
+button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--chestnut); outline-offset: 2px; }
+.empty { color: var(--muted); padding: 12px 0; }
+footer.send { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 20px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-tone="ok"] { color: var(--good); }
+[data-tone="warn"] { color: var(--warn); }
+@media (prefers-reduced-motion: no-preference) { .progress i { transition: width .2s; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <p class="eyebrow">Kestrel · before the freeze</p>
+    <h1>Dataset Review</h1>
+    <p class="lede">Claude wrote these three datasets and two word lists; no person has checked them yet. Mark each card
+      <b>OK</b>, or <b>Fix</b> with a note saying what is wrong. Once they are frozen, the experiments run on them unchanged.</p>
+    <ul class="judge">
+      <li>Does the Hinglish sound like real people talking?</li>
+      <li>Do the plans and expected results match what the request asks?</li>
+      <li>Are the word lists missing anything you would say?</li>
+    </ul>
+    <p class="small" id="save-state">Your marks are kept in this browser. Saving to your account starts as soon as the page connects.</p>
+  </header>
+
+  <nav class="bar" aria-label="Datasets">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="progress" id="progress" aria-hidden="true"><i class="p-ok"></i><i class="p-fix"></i></div>
+    <div class="tools">
+      <div class="filters" id="filters" role="group" aria-label="Show"></div>
+      <button class="primary" id="next" type="button">Next to review</button>
+    </div>
+  </nav>
+
+  <main id="main"></main>
+
+  <footer class="send">
+    <h2>When you are done</h2>
+    <p class="small" id="send-help">Tell Claude “review done”. Claude reads your marks from this page, fixes what you
+      flagged, and freezes each dataset whose cards are all OK. A card Claude changes comes back here marked “Changed
+      since you reviewed it”. If saving to your account is not available, use Copy review and paste it to Claude.</p>
+    <div class="row"><button class="secondary" id="copy" type="button">Copy review</button></div>
+    <textarea id="copy-box" readonly hidden aria-label="Your review as text"></textarea>
+    <p class="small" id="status" role="status"></p>
+  </footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kestrel-review:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("kestrel-review:" + k, JSON.stringify(v)); } catch {} },
+};
+const FILTERS = [["todo", "To review"], ["fix", "To fix"], ["ok", "OK"], ["all", "All"]];
+const PILL = { todo: "To review", stale: "Changed since you reviewed it", ok: "OK", fix: "To fix" };
+const units = new Map();
+DATA.sections.forEach((s) => s.units.forEach((u) => units.set(u.id, u)));
+const dsList = Object.keys(DATA.titles);
+const state = {
+  ds: dsList.includes(store.get("ds", "")) ? store.get("ds", "") : dsList[0],
+  filter: FILTERS.some(([f]) => f === store.get("filter", "")) ? store.get("filter", "") : "todo",
+  decisions: store.get("decisions", {}),
+};
+let db = null, canWrite = false;
+const writes = new Map();   // unit id -> the chain of its writes (one at a time per document)
+const noteTimers = new Map();
+
+function stateOf(u) {
+  const d = state.decisions[u.id];
+  if (!d) return "todo";
+  return d.hash !== u.hash ? "stale" : d.decision;
+}
+function counts(ds) {
+  const c = { units: 0, ok: 0, fix: 0, todo: 0 };
+  units.forEach((u) => { if (u.ds !== ds) return; c.units += 1; const s = stateOf(u); c[s === "stale" ? "todo" : s] += 1; });
+  return c;
+}
+function shows(u) {
+  const s = stateOf(u);
+  return state.filter === "all" || (state.filter === "todo" ? s === "todo" || s === "stale" : s === state.filter);
+}
+function setStatus(msg, tone) { const el = $("status"); el.textContent = msg; el.dataset.tone = tone || ""; }
+function setSave(msg, tone) { const el = $("save-state"); el.textContent = msg; el.dataset.tone = tone || ""; }
+
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); });
+  kids.forEach((k) => k && e.append(k));
+  return e;
+}
+
+function renderTabs() {
+  const tabs = $("tabs");
+  tabs.replaceChildren(...dsList.map((ds) => {
+    const c = counts(ds);
+    const b = el("button", { type: "button", role: "tab", "aria-selected": String(ds === state.ds), id: "tab-" + ds },
+      el("span", { text: DATA.titles[ds].replace("Kestrel-", "") }), el("span", { class: "n", text: `${c.ok + c.fix}/${c.units}` }));
+    b.addEventListener("click", () => { state.ds = ds; store.set("ds", ds); renderAll(); window.scrollTo({ top: 0 }); });
+    return b;
+  }));
+  const c = counts(state.ds);
+  const [ok, fix] = $("progress").children;
+  ok.style.width = (100 * c.ok / c.units) + "%";
+  fix.style.width = (100 * c.fix / c.units) + "%";
+}
+
+function renderFilters() {
+  $("filters").replaceChildren(...FILTERS.map(([f, label]) => {
+    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(f === state.filter), text: label });
+    b.addEventListener("click", () => { state.filter = f; store.set("filter", f); renderAll(); });
+    return b;
+  }));
+}
+
+function card(u) {
+  const c = el("article", { class: "card", id: "u-" + u.id });
+  const tags = el("span", { class: "tags" });
+  [u.lang, ...(u.tags || [])].filter(Boolean).forEach((t) => tags.append(el("span", { class: "tag", text: t })));
+  c.append(el("header", { class: "card-head" }, el("h3", { text: u.title }), tags, el("span", { class: "pill" })));
+  const dl = el("dl", { class: "lines" });
+  u.lines.forEach((l) => dl.append(el("div", { class: "line" }, el("dt", { text: l.k }), el("dd", { class: l.mono ? "mono" : "", text: l.v }))));
+  c.append(dl);
+  const ok = el("button", { type: "button", class: "ok", text: "OK" });
+  const fix = el("button", { type: "button", class: "fix", text: "Fix…" });
+  const clear = el("button", { type: "button", class: "link", text: "Clear" });
+  ok.addEventListener("click", () => decide(u, "ok"));
+  fix.addEventListener("click", () => { decide(u, "fix"); const t = c.querySelector("textarea"); t && t.focus(); });
+  clear.addEventListener("click", () => { delete state.decisions[u.id]; changed(u); });
+  c.append(el("div", { class: "acts" }, ok, fix, clear));
+  const nid = "n-" + u.id;
+  const ta = el("textarea", { id: nid, placeholder: "e.g. the Hinglish should say “kal” not “tomorrow”" });
+  ta.addEventListener("input", () => noteChanged(u, ta.value));
+  ta.addEventListener("blur", () => flushNote(u));
+  c.append(el("div", { class: "note" }, el("label", { for: nid, text: "What should change?" }), ta));
+  c.append(el("p", { class: "stale-msg", text: "Claude changed this card after you reviewed it. Please look again." }));
+  paint(u, c);
+  return c;
+}
+
+function paint(u, c = $("u-" + u.id)) {
+  if (!c) return;
+  const s = stateOf(u), d = state.decisions[u.id];
+  c.dataset.state = s;
+  c.querySelector(".pill").textContent = PILL[s];
+  c.querySelector(".ok").setAttribute("aria-pressed", String(s === "ok"));
+  c.querySelector(".fix").setAttribute("aria-pressed", String(s === "fix"));
+  c.querySelector(".link").hidden = !d;
+  const ta = c.querySelector("textarea");
+  c.querySelector(".note").hidden = !(s === "fix" || (d && d.note));
+  if (document.activeElement !== ta) ta.value = d ? d.note || "" : "";
+  c.querySelector(".stale-msg").hidden = s !== "stale";
+}
+
+function renderMain() {
+  const secs = DATA.sections.filter((s) => s.ds === state.ds);
+  const out = [];
+  if (DATA.fixtures[state.ds]) {
+    const notes = DATA.fixtures[state.ds];
+    const ref = el("details", { class: "ref" }, el("summary", { text: `Fixture notes (${notes.length}): what the expected results refer to` }));
+    notes.forEach((n) => ref.append(el("details", {}, el("summary", { text: n.path }), el("pre", { class: "note-text", text: n.text }))));
+    out.push(ref);
+  }
+  secs.forEach((s) => {
+    const shown = s.units.filter(shows);
+    const sec = el("section", { class: "sec", "aria-labelledby": "h-" + s.section + "-" + s.ds });
+    sec.append(el("div", { class: "sec-head" }, el("h2", { id: "h-" + s.section + "-" + s.ds, text: s.title }),
+      el("p", { class: "small", text: s.help }), el("span", { class: "count", text: `${shown.length} shown of ${s.units.length}` })));
+    shown.forEach((u) => sec.append(card(u)));
+    out.push(sec);
+  });
+  if (!secs.some((s) => s.units.some(shows))) {
+    const c = counts(state.ds);
+    out.push(el("p", { class: "empty", text: c.todo === 0
+      ? `Every card in ${DATA.titles[state.ds]} has a mark (${c.ok} OK, ${c.fix} to fix). Pick another dataset above, or show All.`
+      : "No cards match this filter." }));
+  }
+  $("main").replaceChildren(...out);
+}
+
+function renderAll() { renderTabs(); renderFilters(); renderMain(); }
+
+function changed(u) {
+  store.set("decisions", state.decisions);
+  paint(u); renderTabs(); persist(u.id);
+}
+function decide(u, decision) {
+  const prev = state.decisions[u.id];
+  state.decisions[u.id] = { hash: u.hash, decision, note: prev && prev.hash === u.hash ? prev.note || "" : "", at: new Date().toISOString() };
+  changed(u);
+}
+function noteChanged(u, text) {
+  const d = state.decisions[u.id] || { hash: u.hash, decision: "fix", note: "", at: "" };
+  state.decisions[u.id] = { ...d, hash: u.hash, note: text, at: new Date().toISOString() };
+  store.set("decisions", state.decisions);
+  clearTimeout(noteTimers.get(u.id));
+  noteTimers.set(u.id, setTimeout(() => flushNote(u), 800));
+}
+function flushNote(u) {
+  if (!noteTimers.has(u.id)) return;
+  clearTimeout(noteTimers.get(u.id)); noteTimers.delete(u.id);
+  paint(u); renderTabs(); persist(u.id);
+}
+
+function persist(id) {
+  if (!db || !canWrite) { setSave("Kept in this browser. Use Copy review at the bottom to send it to Claude."); return; }
+  const prev = writes.get(id) || Promise.resolve();
+  const next = prev.then(async () => {
+    const d = state.decisions[id];
+    const ref = db.doc("reviews/" + id);
+    if (d) await ref.set({ kind: "kestrel-review", version: 1, unit: id, ...d });
+    else await ref.delete();
+  }).then(() => setSave("Saved to your account at " + new Date().toLocaleTimeString() + ".", "ok"), (e) => {
+    if (e && e.code === "invalid_argument") { canWrite = false; setSave("This account can't save here. Use Copy review at the bottom.", "warn"); }
+    else setSave("Saving failed (" + (e && e.code || "error") + "). Your marks are still in this browser; try again or use Copy review.", "warn");
+  });
+  writes.set(id, next);
+}
+
+function nextToReview() {
+  const order = [state.ds, ...dsList.filter((d) => d !== state.ds)];
+  for (const ds of order) {
+    for (const s of DATA.sections.filter((x) => x.ds === ds)) {
+      const u = s.units.find((x) => { const st = stateOf(x); return st === "todo" || st === "stale"; });
+      if (!u) continue;
+      if (ds !== state.ds || !shows(u)) { state.ds = ds; store.set("ds", ds); if (!shows(u)) { state.filter = "todo"; store.set("filter", "todo"); } renderAll(); }
+      const c = $("u-" + u.id);
+      c.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      c.querySelector(".ok").focus({ preventScroll: true });
+      return;
+    }
+  }
+  setStatus("Every card has a mark. Tell Claude “review done”.", "ok");
+}
+
+async function copyReview() {
+  const reviews = Object.entries(state.decisions).filter(([id]) => units.has(id)).map(([unit, d]) => ({ unit, ...d }));
+  const text = JSON.stringify({ kind: "kestrel-review-set", version: 1, reviews });
+  const box = $("copy-box");
+  try { await navigator.clipboard.writeText(text); box.hidden = true; setStatus(`Copied ${reviews.length} marks. Paste them to Claude.`, "ok"); }
+  catch { box.hidden = false; box.value = text; box.focus(); box.select(); setStatus("Copying was blocked here. The text is selected below: copy it yourself.", "warn"); }
+}
+
+async function connect() {
+  try {
+    const [d, u] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
+    if (!d) { setSave("Saving to your account isn't available here. Marks stay in this browser; use Copy review to send them."); return; }
+    const can = u ? await u.can("data.write") : null;
+    if (can === false) { setSave("This account can read but not save marks here. Use Copy review to send yours."); return; }
+    db = d; canWrite = true;
+    setSave("Connected: each mark saves to your account as you make it.", "ok");
+    const remote = {};  // unit id -> the time of the store's mark
+    let synced = false;
+    db.collection("reviews").limit(1000).onSnapshot((snap) => {
+      let touched = false;
+      snap.docChanges().forEach((ch) => {
+        const r = ch.doc.data();
+        if (!r || !units.has(r.unit)) return;
+        const mine = state.decisions[r.unit];
+        if (ch.type === "removed") {
+          delete remote[r.unit];
+          if (mine && (mine.at || "") <= (r.at || "")) { delete state.decisions[r.unit]; touched = true; }
+          return;
+        }
+        remote[r.unit] = r.at || "";
+        if (!mine || (r.at || "") > (mine.at || "")) {
+          state.decisions[r.unit] = { hash: r.hash, decision: r.decision, note: r.note || "", at: r.at || "" };
+          touched = true;
+        }
+      });
+      if (touched) { store.set("decisions", state.decisions); units.forEach((x) => paint(x)); renderTabs(); }
+      if (!synced) {  // marks made in this browser before it connected, and newer than the store's, go up once
+        synced = true;
+        Object.entries(state.decisions).forEach(([id, d]) => {
+          if (units.has(id) && (!(id in remote) || (d.at || "") > remote[id])) persist(id);
+        });
+      }
+    }, () => setSave("Live updates stopped. Your marks still save; reload the page to see marks from other devices.", "warn"));
+  } catch { setSave("Saving to your account isn't available here. Marks stay in this browser; use Copy review to send them."); }
+}
+
+function start() {
+  $("next").addEventListener("click", nextToReview);
+  $("copy").addEventListener("click", copyReview);
+  renderAll();
+  connect();
+}
+start();
+</script>
