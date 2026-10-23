@@ -1,0 +1,262 @@
+{
+ "experiment": "E1",
+ "split": "val",
+ "dev": true,
+ "valid": false,
+ "runs": [
+  "experiments/logs/E1/intents_v0_val_n20/chunk1of1_20261022T151409Z"
+ ],
+ "configs": {
+  "R0": {
+   "config": "experiments/configs/router_intents_v0_r0.json",
+   "config_sha256": "4075b0f9bc8d3f90c946d07c03068ab3afa364d26c1a778694a7c41b9af4c034",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R1": {
+   "config": "experiments/configs/router_intents_v0_r1.json",
+   "config_sha256": "a5f901eeb222c99c45d17c149fed7110f7be1d5eb141fd3c6c0fb6ffb1238ced",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R3": {
+   "config": "experiments/configs/router_intents_v0.json",
+   "config_sha256": "31171dc6813dfa5e1a45e18134716f307b2c17ac7551e4a687a36900c115b5a3",
+   "status": "DEV: chosen on val with delta = 0.0; delta is not set yet (PREREG §5), so this is not frozen"
+  }
+ },
+ "problems": {
+  "chunk1of1_20261022T151409Z": [
+   "background busy 13.8% > 10.0% over 1 min from t = 90.0 s (rule 2)"
+  ]
+ },
+ "delta_source": "experiments/logs/router/delta_pilot.json",
+ "dataset": "intents_v0",
+ "n_items": 20,
+ "n_latency_items": 20,
+ "delta": 0.02632771902249294,
+ "n_boot": 10000,
+ "seed": 0,
+ "systems": {
+  "R0": {
+   "n": 20,
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "accuracy_answered": 1.0,
+   "macro_f1": 1.0,
+   "compound_accuracy": 1.0,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 20,
+    "mean": 745.6884459999999,
+    "median": 759.8207825,
+    "p95": 942.875602
+   }
+  },
+  "R0 untuned": {
+   "n": 20,
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "accuracy_answered": 1.0,
+   "macro_f1": 1.0,
+   "compound_accuracy": 1.0,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 20,
+    "mean": 745.6884459999999,
+    "median": 759.8207825,
+    "p95": 942.875602
+   }
+  },
+  "R1": {
+   "n": 20,
+   "accuracy": 0.8,
+   "coverage": 1.0,
+   "accuracy_answered": 0.8,
+   "macro_f1": 0.9020833333333333,
+   "compound_accuracy": 0.0,
+   "tier4_share": 0.0,
+   "latency_ms": {
+    "n": 20,
+    "mean": 5.1499847,
+    "median": 5.020638,
+    "p95": 7.264928
+   }
+  },
+  "R3": {
+   "n": 20,
+   "accuracy": 1.0,
+   "coverage": 1.0,
+   "accuracy_answered": 1.0,
+   "macro_f1": 1.0,
+   "compound_accuracy": 1.0,
+   "tier4_share": 0.55,
+   "latency_ms": {
+    "n": 20,
+    "mean": 414.8618042,
+    "median": 573.6463185,
+    "p95": 927.3281939999999
+   }
+  }
+ },
+ "h1": {
+  "accuracy": {
+   "diff": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 0,
+    "p": 1.0
+   }
+  },
+  "latency": {
+   "diff_ms": -330.8266418,
+   "ci95": [
+    -493.98842715500007,
+    -166.28877556500004
+   ],
+   "faster": true,
+   "p_below": 0.0,
+   "wilcoxon_p": 0.04844093322753906,
+   "dz": -0.8474234794032376
+  },
+  "supported": true,
+  "p_iut": 0.0
+ },
+ "h1c": {
+  "accuracy": {
+   "diff": 0.2,
+   "ci95": [
+    0.05,
+    0.4
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 4,
+    "p": 0.125
+   }
+  },
+  "supported": true
+ },
+ "signal_false_positive": {
+  "all": 0.0,
+  "en": 0.0,
+  "hi-en": 0.0
+ },
+ "by_lang": {
+  "en": {
+   "n": 10,
+   "n_latency": 10,
+   "accuracy": {
+    "diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "margin": 0.02632771902249294,
+    "noninferior": true,
+    "p_noninferior": 0.0,
+    "mcnemar": {
+     "n01": 0,
+     "n10": 0,
+     "p": 1.0
+    }
+   },
+   "latency": {
+    "diff_ms": -355.2887544000001,
+    "ci95": [
+     -582.2548140825,
+     -141.6948412325001
+    ],
+    "faster": true,
+    "p_below": 0.0002,
+    "wilcoxon_p": 0.048828125,
+    "dz": -0.9300561415212367
+   },
+   "R3_tier4_share": 0.5,
+   "R3_mean_ms": 395.38690829999996,
+   "R0_mean_ms": 750.6756627
+  },
+  "hi-en": {
+   "n": 10,
+   "n_latency": 10,
+   "accuracy": {
+    "diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "margin": 0.02632771902249294,
+    "noninferior": true,
+    "p_noninferior": 0.0,
+    "mcnemar": {
+     "n01": 0,
+     "n10": 0,
+     "p": 1.0
+    }
+   },
+   "latency": {
+    "diff_ms": -306.3645292,
+    "ci95": [
+     -560.4694347,
+     -67.74200407500003
+    ],
+    "faster": true,
+    "p_below": 0.0104,
+    "wilcoxon_p": 0.556640625,
+    "dz": -0.7334319682034798
+   },
+   "R3_tier4_share": 0.6,
+   "R3_mean_ms": 434.33670010000003,
+   "R0_mean_ms": 740.7012293
+  }
+ },
+ "h7a": {
+  "n": 10,
+  "n_latency": 10,
+  "accuracy": {
+   "diff": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 0,
+    "p": 1.0
+   }
+  },
+  "latency": {
+   "diff_ms": -306.3645292,
+   "ci95": [
+    -560.4694347,
+    -67.74200407500003
+   ],
+   "faster": true,
+   "p_below": 0.0104,
+   "wilcoxon_p": 0.556640625,
+   "dz": -0.7334319682034798
+  },
+  "R3_tier4_share": 0.6,
+  "R3_mean_ms": 434.33670010000003,
+  "R0_mean_ms": 740.7012293
+ },
+ "rho": {
+  "target": 0.1,
+  "n_below_tier4": 9,
+  "r3_median_below_tier4_ms": 5.014728000000001,
+  "r0_median_ms": 759.8207825,
+  "met": true
+ },
+ "rep_disagreements": []
+}

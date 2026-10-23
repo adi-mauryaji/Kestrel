@@ -1,0 +1,155 @@
+{
+ "experiment": "E1",
+ "split": "val",
+ "dev": true,
+ "valid": false,
+ "runs": [
+  "experiments/logs/E1/clinc150_val_n30/chunk1of1_20261022T150952Z"
+ ],
+ "configs": {
+  "R0": {
+   "config": "experiments/configs/router_clinc150_r0.json",
+   "config_sha256": "231786dc19cefd1eb24d5f04f62255cf376dc3b98247d50ebc8e1d7646db964d",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R1": {
+   "config": "experiments/configs/router_clinc150_r1.json",
+   "config_sha256": "6d06f477f3d3f08c6774e9d3c213eaec13546cdaa9cfe428a51dbade6e1d5e8b",
+   "status": "DEV: tuned on val (ADR-019); not frozen until the PREREG is"
+  },
+  "R3": {
+   "config": "experiments/configs/router_clinc150.json",
+   "config_sha256": "66c56882738c84f0e09c52cbe7d3f562fa762c5d65d4e215b6b23697841b2d3c",
+   "status": "DEV: chosen on val with delta = 0.0; delta is not set yet (PREREG §5), so this is not frozen"
+  }
+ },
+ "problems": {},
+ "delta_source": "experiments/logs/router/delta_pilot.json",
+ "dataset": "clinc150",
+ "n_items": 30,
+ "n_latency_items": 6,
+ "delta": 0.02632771902249294,
+ "n_boot": 10000,
+ "seed": 0,
+ "systems": {
+  "R0": {
+   "n": 30,
+   "accuracy": 0.9,
+   "coverage": 0.9333333333333333,
+   "accuracy_answered": 0.9285714285714286,
+   "macro_f1": 0.9166666666666667,
+   "compound_accuracy": null,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 6,
+    "mean": 890.5099041666667,
+    "median": 1023.6022850000002,
+    "p95": 1062.9022770000001
+   }
+  },
+  "R0 untuned": {
+   "n": 30,
+   "accuracy": 0.8666666666666667,
+   "coverage": 1.0,
+   "accuracy_answered": 0.8666666666666667,
+   "macro_f1": 0.8988095238095238,
+   "compound_accuracy": null,
+   "tier4_share": 1.0,
+   "latency_ms": {
+    "n": 6,
+    "mean": 890.5099041666667,
+    "median": 1023.6022850000002,
+    "p95": 1062.9022770000001
+   }
+  },
+  "R1": {
+   "n": 30,
+   "accuracy": 0.9,
+   "coverage": 0.8333333333333334,
+   "accuracy_answered": 0.96,
+   "macro_f1": 0.8839285714285714,
+   "compound_accuracy": null,
+   "tier4_share": 0.0,
+   "latency_ms": {
+    "n": 6,
+    "mean": 4.7065365,
+    "median": 4.8660429999999995,
+    "p95": 5.559452
+   }
+  },
+  "R3": {
+   "n": 30,
+   "accuracy": 0.9333333333333333,
+   "coverage": 0.9,
+   "accuracy_answered": 0.9629629629629629,
+   "macro_f1": 0.923469387755102,
+   "compound_accuracy": null,
+   "tier4_share": 0.2,
+   "latency_ms": {
+    "n": 6,
+    "mean": 273.0203456666667,
+    "median": 5.4243625,
+    "p95": 1067.457301
+   }
+  }
+ },
+ "h1": {
+  "accuracy": {
+   "diff": 0.03333333333333333,
+   "ci95": [
+    -0.06666666666666667,
+    0.16666666666666666
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": false,
+   "p_noninferior": 0.3622,
+   "mcnemar": {
+    "n01": 1,
+    "n10": 2,
+    "p": 1.0
+   }
+  },
+  "latency": {
+   "diff_ms": -617.4895585,
+   "ci95": [
+    -967.6296425,
+    -264.94817333333344
+   ],
+   "faster": true,
+   "p_below": 0.0002,
+   "wilcoxon_p": 0.0625,
+   "dz": -1.2237517972392573
+  },
+  "supported": false,
+  "p_iut": 0.3622
+ },
+ "h1c": {
+  "accuracy": {
+   "diff": 0.03333333333333333,
+   "ci95": [
+    0.0,
+    0.1
+   ],
+   "margin": 0.02632771902249294,
+   "noninferior": true,
+   "p_noninferior": 0.0,
+   "mcnemar": {
+    "n01": 0,
+    "n10": 1,
+    "p": 1.0
+   }
+  },
+  "supported": true
+ },
+ "signal_false_positive": {
+  "all": 0.03333333333333333
+ },
+ "rho": {
+  "target": 0.1,
+  "n_below_tier4": 4,
+  "r3_median_below_tier4_ms": 4.9292715000000005,
+  "r0_median_ms": 1023.6022850000002,
+  "met": true
+ },
+ "rep_disagreements": []
+}

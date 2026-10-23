@@ -35,3 +35,12 @@ tiers' times, i.e. normalization plus routing. Median ≈ 5–7 µs, p95 ≤ 12 
 
 Model load + Tier-4 prefix priming: 131 s for CLINC150 (150 shots + descriptions, cold page cache after the reboot),
 27 s for Intents-v0. Peak RSS with every model loaded: 3780 / 3641 MiB (VmHWM, no mmap).
+
+## Analysis pipeline, checked on the dry runs (2026-10-23, before the freeze)
+
+`experiments/analysis/analyze_e1.py` (statistics from `kestrel_stats.py`) writes `analysis_<run>.json` next to the
+runs: Table R1 (R0 tuned and untuned, R1, R3), H1 (intersection–union of the two 95% paired-bootstrap CIs), H1c,
+per-language H7a and D11, ρ, the signal's false-positive rate and, on CLINC150 test, the D1 sensitivity analysis. It
+applies rule 3 across chunks and refuses a chunk with zero or two usable runs. `analysis_intents_v0_val_n20.json` and
+`analysis_clinc150_val_n30.json` come from the two dry runs above with `--dev`: they check the plumbing (the scoring
+agrees with `policies.correct` on all 150 decisions) and are **not E1 results** (dry runs, 20 and 30 val items).

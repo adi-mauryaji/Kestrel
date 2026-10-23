@@ -1,6 +1,6 @@
 import pytest
 
-from run_e1 import (CHUNKS, LATENCY_FRAC, REPS, freq_problems, guard_test, item_latency, per_cpu_times, plan,
+from run_e1 import (CHUNKS, LATENCY_FRAC, REPS, chunk_plan, freq_problems, guard_test, item_latency, per_cpu_times, plan,
                     rep_disagreements, stop_reason, busy_outside, warmup_items, window_problems)
 
 
@@ -20,6 +20,16 @@ def test_plan_cuts_a_seeded_order_into_chunks_and_marks_the_latency_subset():
 def test_intents_v0_runs_in_one_chunk_with_every_item_repeated():
     chunks = plan([f"t{i}" for i in range(252)], "intents_v0")
     assert len(chunks) == 1 and {it["reps"] for it in chunks[0]} == {REPS}
+
+
+def test_chunk_plan_is_the_plan_or_a_limited_dry_run_in_one_chunk():
+    rows = [{"id": f"v{i}"} for i in range(300)]
+    used, chunks = chunk_plan(rows, "clinc150")
+    assert used == rows and chunks == plan([r["id"] for r in rows], "clinc150")
+    used, chunks = chunk_plan(rows, "clinc150", limit=30)
+    assert len(used) == 30 and len(chunks) == 1
+    assert sorted(it["id"] for it in chunks[0]) == sorted(r["id"] for r in used)
+    assert chunk_plan(list(reversed(rows)), "clinc150", limit=30)[1] == chunks
 
 
 def test_warmup_items_are_fixed_train_items():

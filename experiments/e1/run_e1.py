@@ -80,6 +80,14 @@ def plan(ids, dataset: str, chunks: int | None = None) -> list[list[dict]]:
     return [[{"id": i, "reps": REPS if i in latency else 1} for i in order[a:b]] for a, b in zip(bounds, bounds[1:])]
 
 
+def chunk_plan(rows, dataset: str, limit: int | None = None) -> tuple[list[dict], list[list[dict]]]:
+    """(rows used, chunks). With `limit` (val dry runs): the first `limit` ids of the seeded order, one chunk."""
+    if limit:
+        keep = set(seeded_order(sorted(r["id"] for r in rows), ORDER_KEY)[:limit])
+        rows = [r for r in rows if r["id"] in keep]
+    return rows, plan([r["id"] for r in rows], dataset, 1 if limit else None)
+
+
 def warmup_items(train_rows) -> list[dict]:
     """N_WARMUP fixed train items (seeded order), run once per system before a chunk's items."""
     by_id = {r["id"]: r for r in train_rows}
@@ -313,11 +321,7 @@ def run_chunk(args, allow: set) -> dict:
         configs[cfg["policy"]] = cfg | {"_path": str(path.relative_to(ROOT))}
     if args.split == "test":
         guard_test(list(configs.values()))
-    rows_all = load_items(args.dataset, args.split)
-    if args.limit:
-        keep = set(seeded_order(sorted(r["id"] for r in rows_all), ORDER_KEY)[: args.limit])
-        rows_all = [r for r in rows_all if r["id"] in keep]
-    chunks = plan([r["id"] for r in rows_all], args.dataset, 1 if args.limit else None)
+    rows_all, chunks = chunk_plan(load_items(args.dataset, args.split), args.dataset, args.limit)
     chunk = chunks[args.chunk - 1]
     text = {r["id"]: r["text"] for r in rows_all}
     items = warmup_items(load_splits(args.dataset)["train"]) + [it | {"text": text[it["id"]]} for it in chunk]
