@@ -4,6 +4,7 @@
 //! items into provenance-tagged lines under a token budget. Tasks live in the same file.
 
 pub mod context;
+pub mod eval;
 pub mod retrieval;
 pub mod secrets;
 pub mod store;

@@ -1,0 +1,64 @@
+{
+ "dataset": "kestrel-memory-v0",
+ "status": "draft",
+ "seed": 0,
+ "now": "2026-10-23",
+ "now_unix": 1792713600,
+ "memories": 40,
+ "pending_or_expired": 4,
+ "queries": 66,
+ "splits": {
+  "dev": {
+   "queries": 35,
+   "groups": [
+    "college",
+    "health",
+    "home",
+    "kestrel",
+    "neg-3",
+    "neg-5",
+    "neg-6",
+    "prefs",
+    "summaries",
+    "travel"
+   ],
+   "types": {
+    "lexical": 19,
+    "negative": 4,
+    "paraphrase": 12
+   },
+   "langs": {
+    "en": 22,
+    "hi-en": 13
+   }
+  },
+  "test": {
+   "queries": 31,
+   "groups": [
+    "asha",
+    "family",
+    "money",
+    "neg-1",
+    "neg-2",
+    "neg-4",
+    "rao",
+    "tasks",
+    "work"
+   ],
+   "types": {
+    "lexical": 16,
+    "negative": 5,
+    "paraphrase": 10
+   },
+   "langs": {
+    "en": 22,
+    "hi-en": 9
+   }
+  }
+ },
+ "sources": {
+  "memory.toml": "f0ee5002a48467d6c5a205d567105e3c35b70215e17321f478759e1aed383043"
+ },
+ "store_sha256": "94556d986d629922547ab29f38c457c8cc7f00055facfd2271e1c7aa6185e2ed",
+ "queries_sha256": "5c56a2724ba21fa67844fdc999a7a98342934ec685bec45689f860a3f6c473eb"
+}

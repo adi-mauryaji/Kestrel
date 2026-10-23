@@ -1,0 +1,968 @@
+# Kestrel-Memory-v0 (DRAFT, ADR-026): a seeded memory store and retrieval queries for the Week-10
+# baseline recall@k (blueprint Ch. 18). Synthetic, drafted by Claude on 2026-10-23; the human
+# reviews it before it is frozen. Card: README.md. Builder: experiments/data/memory_v0.py.
+#
+# Every query runs against the whole store, as the running system would. Query types:
+#   lexical    shares a content word with each expected memory (after stopwords, whole words)
+#   paraphrase shares none: the lexical baseline cannot find it (risk K, Ch. 52 Week 10)
+#   negative   nothing approved and unexpired answers it: ideally nothing comes back
+# `trap` names memories that must never come back: pending model guesses, expired task history.
+# The Rust check crates/kestrel-memory/tests/memory_v0.rs verifies the lexical/paraphrase labels.
+
+now = "2026-10-23"          # retrieval time; ages and expiries are relative to it
+default_author = "claude-draft"
+default_reviewed = false
+
+# --- memories: id, group (the split unit), kind, key, value, source, importance (1-5),
+# age_days (updated that long before `now`), optional expires_in_days (negative = already expired),
+# optional pending = true (a model_inferred guess the user has not approved).
+
+[[memory]]
+id = "pref-length"
+group = "prefs"
+kind = "preference"
+key = "answer_length"
+value = "short"
+source = "user_explicit"
+importance = 4
+age_days = 12
+
+[[memory]]
+id = "pref-style"
+group = "prefs"
+kind = "preference"
+key = "summary_style"
+value = "bullets"
+source = "user_explicit"
+importance = 4
+age_days = 30
+
+[[memory]]
+id = "pref-lang"
+group = "prefs"
+kind = "preference"
+key = "language"
+value = "hinglish"
+source = "correction"
+importance = 4
+age_days = 3
+
+[[memory]]
+id = "guess-meeting-time"
+group = "prefs"
+kind = "preference"
+key = "meeting_time"
+value = "mornings"
+source = "model_inferred"
+pending = true
+importance = 3
+age_days = 2
+
+[[memory]]
+id = "asha-birthday"
+group = "asha"
+kind = "fact"
+key = "asha_birthday"
+value = "Asha's birthday is on 14 March"
+source = "user_explicit"
+importance = 4
+age_days = 120
+
+[[memory]]
+id = "asha-role"
+group = "asha"
+kind = "fact"
+key = "asha_role"
+value = "Asha leads the design team at work"
+source = "user_explicit"
+importance = 3
+age_days = 60
+
+[[memory]]
+id = "asha-food"
+group = "asha"
+kind = "fact"
+key = "asha_food"
+value = "Asha is vegetarian and does not eat onion or garlic"
+source = "user_explicit"
+importance = 3
+age_days = 45
+
+[[memory]]
+id = "guess-asha-spicy"
+group = "asha"
+kind = "fact"
+key = "asha_spicy"
+value = "Asha likes very spicy food"
+source = "model_inferred"
+pending = true
+importance = 2
+age_days = 5
+
+[[memory]]
+id = "rao-advisor"
+group = "rao"
+kind = "fact"
+key = "thesis_advisor"
+value = "Dr. Rao is my thesis advisor"
+source = "user_explicit"
+importance = 5
+age_days = 200
+
+[[memory]]
+id = "rao-hours"
+group = "rao"
+kind = "fact"
+key = "rao_office_hours"
+value = "Dr. Rao's office hours are Tuesday 3 to 5 pm in room 214"
+source = "user_explicit"
+importance = 3
+age_days = 40
+
+[[memory]]
+id = "rao-email"
+group = "rao"
+kind = "fact"
+key = "rao_email"
+value = "Dr. Rao prefers email over phone calls"
+source = "user_explicit"
+importance = 3
+age_days = 90
+
+[[memory]]
+id = "kestrel-deadline"
+group = "kestrel"
+kind = "fact"
+key = "kestrel_deadline"
+value = "The Kestrel thesis draft is due on 15 December"
+source = "user_explicit"
+importance = 5
+age_days = 20
+
+[[memory]]
+id = "kestrel-review"
+group = "kestrel"
+kind = "fact"
+key = "mentor_review"
+value = "Kestrel review with the mentor every Friday at 11 am"
+source = "user_explicit"
+importance = 4
+age_days = 15
+
+[[memory]]
+id = "kestrel-laptop"
+group = "kestrel"
+kind = "fact"
+key = "experiment_machine"
+value = "Kestrel latency experiments run only on the Fedora laptop"
+source = "user_explicit"
+importance = 3
+age_days = 30
+
+[[memory]]
+id = "home-rent"
+group = "home"
+kind = "fact"
+key = "rent_due"
+value = "Rent is due on the 5th of every month"
+source = "user_explicit"
+importance = 4
+age_days = 150
+
+[[memory]]
+id = "home-landlord"
+group = "home"
+kind = "fact"
+key = "landlord"
+value = "The landlord is Mr. Sharma; he wants rent by UPI"
+source = "user_explicit"
+importance = 3
+age_days = 150
+
+[[memory]]
+id = "home-milk"
+group = "home"
+kind = "fact"
+key = "doodh_wala"
+value = "doodh wala har subah 7 baje aata hai"
+source = "user_explicit"
+importance = 2
+age_days = 80
+
+[[memory]]
+id = "home-maid"
+group = "home"
+kind = "fact"
+key = "didi_timing"
+value = "didi subah 8 baje aati hai, sunday ko chhutti"
+source = "user_explicit"
+importance = 2
+age_days = 80
+
+[[memory]]
+id = "papa-birthday"
+group = "family"
+kind = "fact"
+key = "papa_birthday"
+value = "papa ka birthday 2 june ko hai"
+source = "user_explicit"
+importance = 4
+age_days = 300
+
+[[memory]]
+id = "mummy-call"
+group = "family"
+kind = "fact"
+key = "mummy_call"
+value = "mummy ko har ravivaar call karna hai"
+source = "user_explicit"
+importance = 3
+age_days = 100
+
+[[memory]]
+id = "sister-city"
+group = "family"
+kind = "fact"
+key = "sister_city"
+value = "Riya (my sister) lives in Bengaluru"
+source = "user_explicit"
+importance = 2
+age_days = 250
+
+[[memory]]
+id = "travel-flight"
+group = "travel"
+kind = "fact"
+key = "pune_flight"
+value = "Flight to Pune on 2 November at 6:40 am"
+source = "user_explicit"
+importance = 4
+age_days = 6
+expires_in_days = 11
+
+[[memory]]
+id = "travel-seat"
+group = "travel"
+kind = "preference"
+key = "flight_seat"
+value = "window"
+source = "user_explicit"
+importance = 2
+age_days = 90
+
+[[memory]]
+id = "travel-hotel"
+group = "travel"
+kind = "fact"
+key = "pune_hotel"
+value = "Hotel booked at Lemon Tree, Hinjewadi, Pune"
+source = "user_explicit"
+importance = 3
+age_days = 6
+expires_in_days = 12
+
+[[memory]]
+id = "college-exam"
+group = "college"
+kind = "fact"
+key = "dbms_exam"
+value = "DBMS exam on 28 October in hall B"
+source = "user_explicit"
+importance = 5
+age_days = 10
+expires_in_days = 6
+
+[[memory]]
+id = "college-partner"
+group = "college"
+kind = "fact"
+key = "lab_partner"
+value = "Kabir is my lab partner for the networks course"
+source = "user_explicit"
+importance = 3
+age_days = 70
+
+[[memory]]
+id = "college-library"
+group = "college"
+kind = "fact"
+key = "library_hours"
+value = "The college library closes at 9 pm"
+source = "user_explicit"
+importance = 2
+age_days = 180
+
+[[memory]]
+id = "task-budget"
+group = "tasks"
+kind = "task_history"
+key = "task_101"
+value = "email the budget to asha"
+source = "user_explicit"
+importance = 2
+age_days = 10
+expires_in_days = 80
+
+[[memory]]
+id = "task-demo-room"
+group = "tasks"
+kind = "task_history"
+key = "task_102"
+value = "book a room for the demo"
+source = "user_explicit"
+importance = 2
+age_days = 95
+expires_in_days = -5
+
+[[memory]]
+id = "task-asha-call"
+group = "tasks"
+kind = "task_history"
+key = "task_103"
+value = "asha ko call karna"
+source = "user_explicit"
+importance = 2
+age_days = 1
+expires_in_days = 89
+
+[[memory]]
+id = "summary-w42"
+group = "summaries"
+kind = "summary"
+key = "week_42"
+value = "Week 42: budget review moved to Friday; demo room booked for Monday"
+source = "user_explicit"
+importance = 3
+age_days = 4
+
+[[memory]]
+id = "summary-w41"
+group = "summaries"
+kind = "summary"
+key = "week_41"
+value = "Week 41: Kestrel router results shared with the mentor; CLINC150 run finished"
+source = "user_explicit"
+importance = 3
+age_days = 11
+
+[[memory]]
+id = "money-budget"
+group = "money"
+kind = "fact"
+key = "q4_budget"
+value = "The Q4 team budget is 2 lakh rupees"
+source = "user_explicit"
+importance = 3
+age_days = 25
+
+[[memory]]
+id = "money-sip"
+group = "money"
+kind = "fact"
+key = "sip_date"
+value = "Mutual fund SIP goes out on the 10th of every month"
+source = "user_explicit"
+importance = 3
+age_days = 200
+
+[[memory]]
+id = "money-split"
+group = "money"
+kind = "fact"
+key = "trip_split"
+value = "Goa trip expenses are split four ways with Kabir, Riya and Asha"
+source = "user_explicit"
+importance = 2
+age_days = 60
+
+[[memory]]
+id = "health-gym"
+group = "health"
+kind = "fact"
+key = "gym_days"
+value = "Gym on Monday, Wednesday and Friday mornings"
+source = "user_explicit"
+importance = 3
+age_days = 35
+
+[[memory]]
+id = "health-dentist"
+group = "health"
+kind = "fact"
+key = "dentist"
+value = "Dentist check-up every six months at Smile Dental, Kothrud"
+source = "user_explicit"
+importance = 2
+age_days = 160
+
+[[memory]]
+id = "work-standup"
+group = "work"
+kind = "fact"
+key = "standup_time"
+value = "Team standup is at 10 am on weekdays"
+source = "user_explicit"
+importance = 3
+age_days = 50
+
+[[memory]]
+id = "work-it"
+group = "work"
+kind = "fact"
+key = "it_ticket"
+value = "IT ticket for the laptop battery is open; ask Neha in IT"
+source = "user_explicit"
+importance = 2
+age_days = 9
+
+[[memory]]
+id = "guess-work-late"
+group = "work"
+kind = "fact"
+key = "works_late"
+value = "The user often works late on Thursdays"
+source = "model_inferred"
+pending = true
+importance = 2
+age_days = 3
+
+# --- queries: id, group (as its memories'; negatives have their own), lang (en | hi-en),
+# type, text, expect (memory ids; [] for negatives), optional trap.
+
+[[query]]
+id = "q-pref-01"
+group = "prefs"
+lang = "en"
+type = "lexical"
+text = "What answer length do I prefer?"
+expect = ["pref-length"]
+
+[[query]]
+id = "q-pref-02"
+group = "prefs"
+lang = "en"
+type = "paraphrase"
+text = "Should your replies be brief or detailed?"
+expect = ["pref-length"]
+
+[[query]]
+id = "q-pref-03"
+group = "prefs"
+lang = "hi-en"
+type = "lexical"
+text = "summary style kya rakha hai"
+expect = ["pref-style"]
+
+[[query]]
+id = "q-pref-04"
+group = "prefs"
+lang = "en"
+type = "paraphrase"
+text = "Do I like bullet points?"
+expect = ["pref-style"]
+note = "bullet vs bullets: the baseline has no stemming"
+
+[[query]]
+id = "q-pref-05"
+group = "prefs"
+lang = "hi-en"
+type = "lexical"
+text = "maine language kaunsi chuni thi"
+expect = ["pref-lang"]
+
+[[query]]
+id = "q-pref-06"
+group = "prefs"
+lang = "en"
+type = "negative"
+text = "What is my preferred meeting slot?"
+expect = []
+trap = ["guess-meeting-time"]
+
+[[query]]
+id = "q-asha-01"
+group = "asha"
+lang = "en"
+type = "lexical"
+text = "When is Asha's birthday?"
+expect = ["asha-birthday"]
+
+[[query]]
+id = "q-asha-02"
+group = "asha"
+lang = "hi-en"
+type = "lexical"
+text = "asha ka birthday kab hai"
+expect = ["asha-birthday"]
+
+[[query]]
+id = "q-asha-03"
+group = "asha"
+lang = "en"
+type = "paraphrase"
+text = "Which colleague manages our designers?"
+expect = ["asha-role"]
+
+[[query]]
+id = "q-asha-04"
+group = "asha"
+lang = "en"
+type = "lexical"
+text = "What food does Asha avoid?"
+expect = ["asha-food"]
+trap = ["guess-asha-spicy"]
+
+[[query]]
+id = "q-asha-05"
+group = "asha"
+lang = "hi-en"
+type = "paraphrase"
+text = "usko pyaaz lehsun chalega kya"
+expect = ["asha-food"]
+
+[[query]]
+id = "q-asha-06"
+group = "asha"
+lang = "en"
+type = "negative"
+text = "Does Asha like spicy food?"
+expect = []
+trap = ["guess-asha-spicy"]
+note = "only the pending guess answers it"
+
+[[query]]
+id = "q-rao-01"
+group = "rao"
+lang = "en"
+type = "lexical"
+text = "Who is my thesis advisor?"
+expect = ["rao-advisor"]
+
+[[query]]
+id = "q-rao-02"
+group = "rao"
+lang = "hi-en"
+type = "lexical"
+text = "Dr. Rao ke office hours kab hain"
+expect = ["rao-hours"]
+
+[[query]]
+id = "q-rao-03"
+group = "rao"
+lang = "en"
+type = "paraphrase"
+text = "When can I meet my guide?"
+expect = ["rao-hours"]
+
+[[query]]
+id = "q-rao-04"
+group = "rao"
+lang = "en"
+type = "lexical"
+text = "Does Dr. Rao prefer email or phone?"
+expect = ["rao-email"]
+
+[[query]]
+id = "q-rao-05"
+group = "rao"
+lang = "hi-en"
+type = "paraphrase"
+text = "sir ko message karna better hai ya call?"
+expect = ["rao-email"]
+
+[[query]]
+id = "q-kes-01"
+group = "kestrel"
+lang = "en"
+type = "lexical"
+text = "When is the Kestrel thesis draft due?"
+expect = ["kestrel-deadline"]
+
+[[query]]
+id = "q-kes-02"
+group = "kestrel"
+lang = "hi-en"
+type = "lexical"
+text = "kestrel review kab hai mentor ke saath"
+expect = ["kestrel-review"]
+
+[[query]]
+id = "q-kes-03"
+group = "kestrel"
+lang = "en"
+type = "paraphrase"
+text = "Where must the speed measurements happen?"
+expect = ["kestrel-laptop"]
+
+[[query]]
+id = "q-kes-04"
+group = "kestrel"
+lang = "en"
+type = "paraphrase"
+text = "When do I have to submit my dissertation?"
+expect = ["kestrel-deadline"]
+
+[[query]]
+id = "q-kes-05"
+group = "kestrel"
+lang = "hi-en"
+type = "lexical"
+text = "fedora laptop pe kaunse experiments chalte hain"
+expect = ["kestrel-laptop"]
+
+[[query]]
+id = "q-home-01"
+group = "home"
+lang = "en"
+type = "lexical"
+text = "When is rent due?"
+expect = ["home-rent"]
+
+[[query]]
+id = "q-home-02"
+group = "home"
+lang = "hi-en"
+type = "lexical"
+text = "landlord ka naam kya hai"
+expect = ["home-landlord"]
+
+[[query]]
+id = "q-home-03"
+group = "home"
+lang = "en"
+type = "paraphrase"
+text = "How do I pay the house owner?"
+expect = ["home-landlord"]
+
+[[query]]
+id = "q-home-04"
+group = "home"
+lang = "hi-en"
+type = "lexical"
+text = "doodh wala kitne baje aata hai"
+expect = ["home-milk"]
+
+[[query]]
+id = "q-home-05"
+group = "home"
+lang = "en"
+type = "paraphrase"
+text = "What time does the milkman come?"
+expect = ["home-milk"]
+
+[[query]]
+id = "q-home-06"
+group = "home"
+lang = "hi-en"
+type = "lexical"
+text = "didi kis din chhutti leti hai"
+expect = ["home-maid"]
+
+[[query]]
+id = "q-fam-01"
+group = "family"
+lang = "hi-en"
+type = "lexical"
+text = "papa ka birthday kab hai"
+expect = ["papa-birthday"]
+
+[[query]]
+id = "q-fam-02"
+group = "family"
+lang = "en"
+type = "paraphrase"
+text = "When was my father born?"
+expect = ["papa-birthday"]
+
+[[query]]
+id = "q-fam-03"
+group = "family"
+lang = "en"
+type = "paraphrase"
+text = "Which day should I phone mom?"
+expect = ["mummy-call"]
+
+[[query]]
+id = "q-fam-04"
+group = "family"
+lang = "hi-en"
+type = "lexical"
+text = "mummy ko call kab karna hai"
+expect = ["mummy-call"]
+
+[[query]]
+id = "q-fam-05"
+group = "family"
+lang = "en"
+type = "lexical"
+text = "Which city does Riya live in?"
+expect = ["sister-city"]
+
+[[query]]
+id = "q-tr-01"
+group = "travel"
+lang = "en"
+type = "lexical"
+text = "What time is my Pune flight?"
+expect = ["travel-flight"]
+
+[[query]]
+id = "q-tr-02"
+group = "travel"
+lang = "hi-en"
+type = "lexical"
+text = "pune mein hotel kahan book kiya"
+expect = ["travel-hotel"]
+
+[[query]]
+id = "q-tr-03"
+group = "travel"
+lang = "en"
+type = "paraphrase"
+text = "Where do I like to sit on planes?"
+expect = ["travel-seat"]
+
+[[query]]
+id = "q-tr-04"
+group = "travel"
+lang = "en"
+type = "paraphrase"
+text = "Where am I staying on the trip?"
+expect = ["travel-hotel"]
+
+[[query]]
+id = "q-col-01"
+group = "college"
+lang = "en"
+type = "lexical"
+text = "When is the DBMS exam?"
+expect = ["college-exam"]
+
+[[query]]
+id = "q-col-02"
+group = "college"
+lang = "hi-en"
+type = "lexical"
+text = "networks course mein mera lab partner kaun hai"
+expect = ["college-partner"]
+
+[[query]]
+id = "q-col-03"
+group = "college"
+lang = "en"
+type = "paraphrase"
+text = "Until when is the reading room open?"
+expect = ["college-library"]
+
+[[query]]
+id = "q-col-04"
+group = "college"
+lang = "en"
+type = "paraphrase"
+text = "Who do I pair with for practicals?"
+expect = ["college-partner"]
+
+[[query]]
+id = "q-task-01"
+group = "tasks"
+lang = "en"
+type = "lexical"
+text = "Did I email the budget to Asha?"
+expect = ["task-budget"]
+
+[[query]]
+id = "q-task-02"
+group = "tasks"
+lang = "hi-en"
+type = "lexical"
+text = "asha ko call karna tha kya"
+expect = ["task-asha-call"]
+
+[[query]]
+id = "q-task-03"
+group = "tasks"
+lang = "en"
+type = "lexical"
+text = "Did I book a room for the demo?"
+expect = ["summary-w42"]
+trap = ["task-demo-room"]
+note = "the task-history row expired; the week-42 summary still answers it"
+
+[[query]]
+id = "q-task-04"
+group = "tasks"
+lang = "en"
+type = "paraphrase"
+text = "What reminders did you make for me recently?"
+expect = ["task-budget", "task-asha-call"]
+
+[[query]]
+id = "q-sum-01"
+group = "summaries"
+lang = "en"
+type = "lexical"
+text = "What happened in week 42?"
+expect = ["summary-w42"]
+
+[[query]]
+id = "q-sum-02"
+group = "summaries"
+lang = "en"
+type = "lexical"
+text = "When was the budget review moved?"
+expect = ["summary-w42"]
+
+[[query]]
+id = "q-sum-03"
+group = "summaries"
+lang = "hi-en"
+type = "lexical"
+text = "pichhle hafte router ke results kisko bheje"
+expect = ["summary-w41"]
+
+[[query]]
+id = "q-sum-04"
+group = "summaries"
+lang = "en"
+type = "paraphrase"
+text = "What got done a fortnight ago?"
+expect = ["summary-w41"]
+
+[[query]]
+id = "q-mon-01"
+group = "money"
+lang = "en"
+type = "lexical"
+text = "What is the Q4 budget?"
+expect = ["money-budget"]
+
+[[query]]
+id = "q-mon-02"
+group = "money"
+lang = "hi-en"
+type = "lexical"
+text = "SIP kis date ko jaata hai"
+expect = ["money-sip"]
+
+[[query]]
+id = "q-mon-03"
+group = "money"
+lang = "en"
+type = "paraphrase"
+text = "How are holiday costs divided among friends?"
+expect = ["money-split"]
+
+[[query]]
+id = "q-mon-04"
+group = "money"
+lang = "en"
+type = "paraphrase"
+text = "How much can we spend until December?"
+expect = ["money-budget"]
+
+[[query]]
+id = "q-hea-01"
+group = "health"
+lang = "en"
+type = "lexical"
+text = "Which days do I go to the gym?"
+expect = ["health-gym"]
+
+[[query]]
+id = "q-hea-02"
+group = "health"
+lang = "hi-en"
+type = "paraphrase"
+text = "workout kab karta hoon"
+expect = ["health-gym"]
+
+[[query]]
+id = "q-hea-03"
+group = "health"
+lang = "en"
+type = "lexical"
+text = "When is my next dentist check-up?"
+expect = ["health-dentist"]
+
+[[query]]
+id = "q-wor-01"
+group = "work"
+lang = "en"
+type = "lexical"
+text = "What time is the team standup?"
+expect = ["work-standup"]
+
+[[query]]
+id = "q-wor-02"
+group = "work"
+lang = "hi-en"
+type = "lexical"
+text = "laptop battery ka ticket kis ke paas hai"
+expect = ["work-it"]
+
+[[query]]
+id = "q-wor-03"
+group = "work"
+lang = "en"
+type = "paraphrase"
+text = "Who in tech support handles my charger problem?"
+expect = ["work-it"]
+
+[[query]]
+id = "q-wor-04"
+group = "work"
+lang = "en"
+type = "negative"
+text = "Do I work late on Thursdays?"
+expect = []
+trap = ["guess-work-late"]
+
+[[query]]
+id = "q-neg-01"
+group = "neg-1"
+lang = "en"
+type = "negative"
+text = "What is my blood group?"
+expect = []
+
+[[query]]
+id = "q-neg-02"
+group = "neg-2"
+lang = "en"
+type = "negative"
+text = "Where did I park the car?"
+expect = []
+
+[[query]]
+id = "q-neg-03"
+group = "neg-3"
+lang = "hi-en"
+type = "negative"
+text = "mera passport number kya hai"
+expect = []
+
+[[query]]
+id = "q-neg-04"
+group = "neg-4"
+lang = "en"
+type = "negative"
+text = "What is Kabir's birthday?"
+expect = []
+note = "partial matches (Kabir, birthday) are all wrong answers"
+
+[[query]]
+id = "q-neg-05"
+group = "neg-5"
+lang = "hi-en"
+type = "negative"
+text = "gas cylinder kab book kiya tha"
+expect = []
+trap = ["task-demo-room"]
+
+[[query]]
+id = "q-neg-06"
+group = "neg-6"
+lang = "en"
+type = "negative"
+text = "What is the Wi-Fi password?"
+expect = []

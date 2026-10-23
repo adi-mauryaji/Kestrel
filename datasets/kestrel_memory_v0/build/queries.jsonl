@@ -1,0 +1,66 @@
+{"expect": ["asha-birthday"], "group": "asha", "id": "q-asha-01", "lang": "en", "split": "test", "text": "When is Asha's birthday?", "trap": [], "type": "lexical"}
+{"expect": ["asha-birthday"], "group": "asha", "id": "q-asha-02", "lang": "hi-en", "split": "test", "text": "asha ka birthday kab hai", "trap": [], "type": "lexical"}
+{"expect": ["asha-role"], "group": "asha", "id": "q-asha-03", "lang": "en", "split": "test", "text": "Which colleague manages our designers?", "trap": [], "type": "paraphrase"}
+{"expect": ["asha-food"], "group": "asha", "id": "q-asha-04", "lang": "en", "split": "test", "text": "What food does Asha avoid?", "trap": ["guess-asha-spicy"], "type": "lexical"}
+{"expect": ["asha-food"], "group": "asha", "id": "q-asha-05", "lang": "hi-en", "split": "test", "text": "usko pyaaz lehsun chalega kya", "trap": [], "type": "paraphrase"}
+{"expect": [], "group": "asha", "id": "q-asha-06", "lang": "en", "split": "test", "text": "Does Asha like spicy food?", "trap": ["guess-asha-spicy"], "type": "negative"}
+{"expect": ["college-exam"], "group": "college", "id": "q-col-01", "lang": "en", "split": "dev", "text": "When is the DBMS exam?", "trap": [], "type": "lexical"}
+{"expect": ["college-partner"], "group": "college", "id": "q-col-02", "lang": "hi-en", "split": "dev", "text": "networks course mein mera lab partner kaun hai", "trap": [], "type": "lexical"}
+{"expect": ["college-library"], "group": "college", "id": "q-col-03", "lang": "en", "split": "dev", "text": "Until when is the reading room open?", "trap": [], "type": "paraphrase"}
+{"expect": ["college-partner"], "group": "college", "id": "q-col-04", "lang": "en", "split": "dev", "text": "Who do I pair with for practicals?", "trap": [], "type": "paraphrase"}
+{"expect": ["papa-birthday"], "group": "family", "id": "q-fam-01", "lang": "hi-en", "split": "test", "text": "papa ka birthday kab hai", "trap": [], "type": "lexical"}
+{"expect": ["papa-birthday"], "group": "family", "id": "q-fam-02", "lang": "en", "split": "test", "text": "When was my father born?", "trap": [], "type": "paraphrase"}
+{"expect": ["mummy-call"], "group": "family", "id": "q-fam-03", "lang": "en", "split": "test", "text": "Which day should I phone mom?", "trap": [], "type": "paraphrase"}
+{"expect": ["mummy-call"], "group": "family", "id": "q-fam-04", "lang": "hi-en", "split": "test", "text": "mummy ko call kab karna hai", "trap": [], "type": "lexical"}
+{"expect": ["sister-city"], "group": "family", "id": "q-fam-05", "lang": "en", "split": "test", "text": "Which city does Riya live in?", "trap": [], "type": "lexical"}
+{"expect": ["health-gym"], "group": "health", "id": "q-hea-01", "lang": "en", "split": "dev", "text": "Which days do I go to the gym?", "trap": [], "type": "lexical"}
+{"expect": ["health-gym"], "group": "health", "id": "q-hea-02", "lang": "hi-en", "split": "dev", "text": "workout kab karta hoon", "trap": [], "type": "paraphrase"}
+{"expect": ["health-dentist"], "group": "health", "id": "q-hea-03", "lang": "en", "split": "dev", "text": "When is my next dentist check-up?", "trap": [], "type": "lexical"}
+{"expect": ["home-rent"], "group": "home", "id": "q-home-01", "lang": "en", "split": "dev", "text": "When is rent due?", "trap": [], "type": "lexical"}
+{"expect": ["home-landlord"], "group": "home", "id": "q-home-02", "lang": "hi-en", "split": "dev", "text": "landlord ka naam kya hai", "trap": [], "type": "lexical"}
+{"expect": ["home-landlord"], "group": "home", "id": "q-home-03", "lang": "en", "split": "dev", "text": "How do I pay the house owner?", "trap": [], "type": "paraphrase"}
+{"expect": ["home-milk"], "group": "home", "id": "q-home-04", "lang": "hi-en", "split": "dev", "text": "doodh wala kitne baje aata hai", "trap": [], "type": "lexical"}
+{"expect": ["home-milk"], "group": "home", "id": "q-home-05", "lang": "en", "split": "dev", "text": "What time does the milkman come?", "trap": [], "type": "paraphrase"}
+{"expect": ["home-maid"], "group": "home", "id": "q-home-06", "lang": "hi-en", "split": "dev", "text": "didi kis din chhutti leti hai", "trap": [], "type": "lexical"}
+{"expect": ["kestrel-deadline"], "group": "kestrel", "id": "q-kes-01", "lang": "en", "split": "dev", "text": "When is the Kestrel thesis draft due?", "trap": [], "type": "lexical"}
+{"expect": ["kestrel-review"], "group": "kestrel", "id": "q-kes-02", "lang": "hi-en", "split": "dev", "text": "kestrel review kab hai mentor ke saath", "trap": [], "type": "lexical"}
+{"expect": ["kestrel-laptop"], "group": "kestrel", "id": "q-kes-03", "lang": "en", "split": "dev", "text": "Where must the speed measurements happen?", "trap": [], "type": "paraphrase"}
+{"expect": ["kestrel-deadline"], "group": "kestrel", "id": "q-kes-04", "lang": "en", "split": "dev", "text": "When do I have to submit my dissertation?", "trap": [], "type": "paraphrase"}
+{"expect": ["kestrel-laptop"], "group": "kestrel", "id": "q-kes-05", "lang": "hi-en", "split": "dev", "text": "fedora laptop pe kaunse experiments chalte hain", "trap": [], "type": "lexical"}
+{"expect": ["money-budget"], "group": "money", "id": "q-mon-01", "lang": "en", "split": "test", "text": "What is the Q4 budget?", "trap": [], "type": "lexical"}
+{"expect": ["money-sip"], "group": "money", "id": "q-mon-02", "lang": "hi-en", "split": "test", "text": "SIP kis date ko jaata hai", "trap": [], "type": "lexical"}
+{"expect": ["money-split"], "group": "money", "id": "q-mon-03", "lang": "en", "split": "test", "text": "How are holiday costs divided among friends?", "trap": [], "type": "paraphrase"}
+{"expect": ["money-budget"], "group": "money", "id": "q-mon-04", "lang": "en", "split": "test", "text": "How much can we spend until December?", "trap": [], "type": "paraphrase"}
+{"expect": [], "group": "neg-1", "id": "q-neg-01", "lang": "en", "split": "test", "text": "What is my blood group?", "trap": [], "type": "negative"}
+{"expect": [], "group": "neg-2", "id": "q-neg-02", "lang": "en", "split": "test", "text": "Where did I park the car?", "trap": [], "type": "negative"}
+{"expect": [], "group": "neg-3", "id": "q-neg-03", "lang": "hi-en", "split": "dev", "text": "mera passport number kya hai", "trap": [], "type": "negative"}
+{"expect": [], "group": "neg-4", "id": "q-neg-04", "lang": "en", "split": "test", "text": "What is Kabir's birthday?", "trap": [], "type": "negative"}
+{"expect": [], "group": "neg-5", "id": "q-neg-05", "lang": "hi-en", "split": "dev", "text": "gas cylinder kab book kiya tha", "trap": ["task-demo-room"], "type": "negative"}
+{"expect": [], "group": "neg-6", "id": "q-neg-06", "lang": "en", "split": "dev", "text": "What is the Wi-Fi password?", "trap": [], "type": "negative"}
+{"expect": ["pref-length"], "group": "prefs", "id": "q-pref-01", "lang": "en", "split": "dev", "text": "What answer length do I prefer?", "trap": [], "type": "lexical"}
+{"expect": ["pref-length"], "group": "prefs", "id": "q-pref-02", "lang": "en", "split": "dev", "text": "Should your replies be brief or detailed?", "trap": [], "type": "paraphrase"}
+{"expect": ["pref-style"], "group": "prefs", "id": "q-pref-03", "lang": "hi-en", "split": "dev", "text": "summary style kya rakha hai", "trap": [], "type": "lexical"}
+{"expect": ["pref-style"], "group": "prefs", "id": "q-pref-04", "lang": "en", "split": "dev", "text": "Do I like bullet points?", "trap": [], "type": "paraphrase"}
+{"expect": ["pref-lang"], "group": "prefs", "id": "q-pref-05", "lang": "hi-en", "split": "dev", "text": "maine language kaunsi chuni thi", "trap": [], "type": "lexical"}
+{"expect": [], "group": "prefs", "id": "q-pref-06", "lang": "en", "split": "dev", "text": "What is my preferred meeting slot?", "trap": ["guess-meeting-time"], "type": "negative"}
+{"expect": ["rao-advisor"], "group": "rao", "id": "q-rao-01", "lang": "en", "split": "test", "text": "Who is my thesis advisor?", "trap": [], "type": "lexical"}
+{"expect": ["rao-hours"], "group": "rao", "id": "q-rao-02", "lang": "hi-en", "split": "test", "text": "Dr. Rao ke office hours kab hain", "trap": [], "type": "lexical"}
+{"expect": ["rao-hours"], "group": "rao", "id": "q-rao-03", "lang": "en", "split": "test", "text": "When can I meet my guide?", "trap": [], "type": "paraphrase"}
+{"expect": ["rao-email"], "group": "rao", "id": "q-rao-04", "lang": "en", "split": "test", "text": "Does Dr. Rao prefer email or phone?", "trap": [], "type": "lexical"}
+{"expect": ["rao-email"], "group": "rao", "id": "q-rao-05", "lang": "hi-en", "split": "test", "text": "sir ko message karna better hai ya call?", "trap": [], "type": "paraphrase"}
+{"expect": ["summary-w42"], "group": "summaries", "id": "q-sum-01", "lang": "en", "split": "dev", "text": "What happened in week 42?", "trap": [], "type": "lexical"}
+{"expect": ["summary-w42"], "group": "summaries", "id": "q-sum-02", "lang": "en", "split": "dev", "text": "When was the budget review moved?", "trap": [], "type": "lexical"}
+{"expect": ["summary-w41"], "group": "summaries", "id": "q-sum-03", "lang": "hi-en", "split": "dev", "text": "pichhle hafte router ke results kisko bheje", "trap": [], "type": "lexical"}
+{"expect": ["summary-w41"], "group": "summaries", "id": "q-sum-04", "lang": "en", "split": "dev", "text": "What got done a fortnight ago?", "trap": [], "type": "paraphrase"}
+{"expect": ["task-budget"], "group": "tasks", "id": "q-task-01", "lang": "en", "split": "test", "text": "Did I email the budget to Asha?", "trap": [], "type": "lexical"}
+{"expect": ["task-asha-call"], "group": "tasks", "id": "q-task-02", "lang": "hi-en", "split": "test", "text": "asha ko call karna tha kya", "trap": [], "type": "lexical"}
+{"expect": ["summary-w42"], "group": "tasks", "id": "q-task-03", "lang": "en", "split": "test", "text": "Did I book a room for the demo?", "trap": ["task-demo-room"], "type": "lexical"}
+{"expect": ["task-budget", "task-asha-call"], "group": "tasks", "id": "q-task-04", "lang": "en", "split": "test", "text": "What reminders did you make for me recently?", "trap": [], "type": "paraphrase"}
+{"expect": ["travel-flight"], "group": "travel", "id": "q-tr-01", "lang": "en", "split": "dev", "text": "What time is my Pune flight?", "trap": [], "type": "lexical"}
+{"expect": ["travel-hotel"], "group": "travel", "id": "q-tr-02", "lang": "hi-en", "split": "dev", "text": "pune mein hotel kahan book kiya", "trap": [], "type": "lexical"}
+{"expect": ["travel-seat"], "group": "travel", "id": "q-tr-03", "lang": "en", "split": "dev", "text": "Where do I like to sit on planes?", "trap": [], "type": "paraphrase"}
+{"expect": ["travel-hotel"], "group": "travel", "id": "q-tr-04", "lang": "en", "split": "dev", "text": "Where am I staying on the trip?", "trap": [], "type": "paraphrase"}
+{"expect": ["work-standup"], "group": "work", "id": "q-wor-01", "lang": "en", "split": "test", "text": "What time is the team standup?", "trap": [], "type": "lexical"}
+{"expect": ["work-it"], "group": "work", "id": "q-wor-02", "lang": "hi-en", "split": "test", "text": "laptop battery ka ticket kis ke paas hai", "trap": [], "type": "lexical"}
+{"expect": ["work-it"], "group": "work", "id": "q-wor-03", "lang": "en", "split": "test", "text": "Who in tech support handles my charger problem?", "trap": [], "type": "paraphrase"}
+{"expect": [], "group": "work", "id": "q-wor-04", "lang": "en", "split": "test", "text": "Do I work late on Thursdays?", "trap": ["guess-work-late"], "type": "negative"}

@@ -1,0 +1,690 @@
+{
+  "dataset": "kestrel-memory-v0",
+  "k_max": 10,
+  "ms_total": 15.622041999999999,
+  "note": "lexical baseline (Ch. 18.1), default weights, untuned; dev timing as found",
+  "now": 1792713600,
+  "queries_sha256": "5c56a2724ba21fa67844fdc999a7a98342934ec685bec45689f860a3f6c473eb",
+  "rows": [
+    {
+      "expect": [
+        "college-exam"
+      ],
+      "id": "q-col-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "college-exam"
+      ],
+      "terms": [
+        "dbms",
+        "exam"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "college-partner"
+      ],
+      "id": "q-col-02",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "college-partner"
+      ],
+      "terms": [
+        "networks",
+        "course",
+        "lab",
+        "partner"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "college-library"
+      ],
+      "id": "q-col-03",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [
+        "summary-w42",
+        "work-it",
+        "rao-hours"
+      ],
+      "terms": [
+        "until",
+        "reading",
+        "room",
+        "open"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "college-partner"
+      ],
+      "id": "q-col-04",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "pair",
+        "practicals"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "health-gym"
+      ],
+      "id": "q-hea-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "health-gym"
+      ],
+      "terms": [
+        "days",
+        "go",
+        "gym"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "health-gym"
+      ],
+      "id": "q-hea-02",
+      "kind": "paraphrase",
+      "lang": "hi-en",
+      "retrieved": [],
+      "terms": [
+        "workout",
+        "karta",
+        "hoon"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "health-dentist"
+      ],
+      "id": "q-hea-03",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "health-dentist"
+      ],
+      "terms": [
+        "next",
+        "dentist",
+        "check",
+        "up"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-rent"
+      ],
+      "id": "q-home-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "home-rent",
+        "kestrel-deadline",
+        "home-landlord"
+      ],
+      "terms": [
+        "rent",
+        "due"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-landlord"
+      ],
+      "id": "q-home-02",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "home-landlord"
+      ],
+      "terms": [
+        "landlord",
+        "naam"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-landlord"
+      ],
+      "id": "q-home-03",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "pay",
+        "house",
+        "owner"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-milk"
+      ],
+      "id": "q-home-04",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "home-milk",
+        "home-maid"
+      ],
+      "terms": [
+        "doodh",
+        "wala",
+        "kitne",
+        "baje",
+        "aata"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-milk"
+      ],
+      "id": "q-home-05",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [
+        "work-standup"
+      ],
+      "terms": [
+        "time",
+        "milkman",
+        "come"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "home-maid"
+      ],
+      "id": "q-home-06",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "home-maid"
+      ],
+      "terms": [
+        "didi",
+        "kis",
+        "din",
+        "chhutti",
+        "leti"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "kestrel-deadline"
+      ],
+      "id": "q-kes-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "kestrel-deadline",
+        "kestrel-review",
+        "summary-w41",
+        "kestrel-laptop",
+        "rao-advisor",
+        "home-rent"
+      ],
+      "terms": [
+        "kestrel",
+        "thesis",
+        "draft",
+        "due"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "kestrel-review"
+      ],
+      "id": "q-kes-02",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "kestrel-review",
+        "summary-w41",
+        "summary-w42",
+        "kestrel-deadline",
+        "kestrel-laptop"
+      ],
+      "terms": [
+        "kestrel",
+        "review",
+        "mentor",
+        "saath"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "kestrel-laptop"
+      ],
+      "id": "q-kes-03",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "must",
+        "speed",
+        "measurements",
+        "happen"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "kestrel-deadline"
+      ],
+      "id": "q-kes-04",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "submit",
+        "dissertation"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "kestrel-laptop"
+      ],
+      "id": "q-kes-05",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "kestrel-laptop",
+        "work-it"
+      ],
+      "terms": [
+        "fedora",
+        "laptop",
+        "kaunse",
+        "experiments",
+        "chalte"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [],
+      "id": "q-neg-03",
+      "kind": "negative",
+      "lang": "hi-en",
+      "retrieved": [],
+      "terms": [
+        "passport",
+        "number"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [],
+      "id": "q-neg-05",
+      "kind": "negative",
+      "lang": "hi-en",
+      "retrieved": [],
+      "terms": [
+        "gas",
+        "cylinder",
+        "book",
+        "kiya"
+      ],
+      "trap": [
+        "task-demo-room"
+      ]
+    },
+    {
+      "expect": [],
+      "id": "q-neg-06",
+      "kind": "negative",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "wi",
+        "fi",
+        "password"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "pref-length"
+      ],
+      "id": "q-pref-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "pref-length"
+      ],
+      "terms": [
+        "answer",
+        "length",
+        "prefer"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "pref-length"
+      ],
+      "id": "q-pref-02",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "replies",
+        "brief",
+        "detailed"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "pref-style"
+      ],
+      "id": "q-pref-03",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "pref-style"
+      ],
+      "terms": [
+        "summary",
+        "style",
+        "rakha"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "pref-style"
+      ],
+      "id": "q-pref-04",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "like",
+        "bullet",
+        "points"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "pref-lang"
+      ],
+      "id": "q-pref-05",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "pref-lang"
+      ],
+      "terms": [
+        "maine",
+        "language",
+        "kaunsi",
+        "chuni"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [],
+      "id": "q-pref-06",
+      "kind": "negative",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "preferred",
+        "meeting",
+        "slot"
+      ],
+      "trap": [
+        "guess-meeting-time"
+      ]
+    },
+    {
+      "expect": [
+        "summary-w42"
+      ],
+      "id": "q-sum-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "summary-w42",
+        "summary-w41"
+      ],
+      "terms": [
+        "happened",
+        "week",
+        "42"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "summary-w42"
+      ],
+      "id": "q-sum-02",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "summary-w42",
+        "kestrel-review",
+        "task-budget",
+        "money-budget"
+      ],
+      "terms": [
+        "budget",
+        "review",
+        "moved"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "summary-w41"
+      ],
+      "id": "q-sum-03",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "summary-w41"
+      ],
+      "terms": [
+        "pichhle",
+        "hafte",
+        "router",
+        "results",
+        "kisko",
+        "bheje"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "summary-w41"
+      ],
+      "id": "q-sum-04",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "got",
+        "done",
+        "fortnight",
+        "ago"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "travel-flight"
+      ],
+      "id": "q-tr-01",
+      "kind": "lexical",
+      "lang": "en",
+      "retrieved": [
+        "travel-flight",
+        "travel-hotel",
+        "work-standup",
+        "travel-seat"
+      ],
+      "terms": [
+        "time",
+        "pune",
+        "flight"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "travel-hotel"
+      ],
+      "id": "q-tr-02",
+      "kind": "lexical",
+      "lang": "hi-en",
+      "retrieved": [
+        "travel-hotel",
+        "travel-flight"
+      ],
+      "terms": [
+        "pune",
+        "hotel",
+        "book",
+        "kiya"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "travel-seat"
+      ],
+      "id": "q-tr-03",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [],
+      "terms": [
+        "like",
+        "sit",
+        "planes"
+      ],
+      "trap": []
+    },
+    {
+      "expect": [
+        "travel-hotel"
+      ],
+      "id": "q-tr-04",
+      "kind": "paraphrase",
+      "lang": "en",
+      "retrieved": [
+        "money-split"
+      ],
+      "terms": [
+        "staying",
+        "trip"
+      ],
+      "trap": []
+    }
+  ],
+  "split": "dev",
+  "status": "draft",
+  "store_sha256": "94556d986d629922547ab29f38c457c8cc7f00055facfd2271e1c7aa6185e2ed",
+  "summary": {
+    "all": {
+      "mrr": 0.6129032258064516,
+      "n": 31,
+      "recall@1": 0.6129032258064516,
+      "recall@3": 0.6129032258064516,
+      "recall@5": 0.6129032258064516
+    },
+    "en": {
+      "mrr": 0.45,
+      "n": 20,
+      "recall@1": 0.45,
+      "recall@3": 0.45,
+      "recall@5": 0.45
+    },
+    "hi-en": {
+      "mrr": 0.9090909090909091,
+      "n": 11,
+      "recall@1": 0.9090909090909091,
+      "recall@3": 0.9090909090909091,
+      "recall@5": 0.9090909090909091
+    },
+    "leaks": 0,
+    "lexical": {
+      "mrr": 1.0,
+      "n": 19,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "recall@5": 1.0
+    },
+    "lexical/en": {
+      "mrr": 1.0,
+      "n": 9,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "recall@5": 1.0
+    },
+    "lexical/hi-en": {
+      "mrr": 1.0,
+      "n": 10,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "recall@5": 1.0
+    },
+    "negative": {
+      "mean_returned@5": 0.0,
+      "n": 4,
+      "nothing_returned": 1.0
+    },
+    "paraphrase": {
+      "mrr": 0.0,
+      "n": 12,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "recall@5": 0.0
+    },
+    "paraphrase/en": {
+      "mrr": 0.0,
+      "n": 11,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "recall@5": 0.0
+    },
+    "paraphrase/hi-en": {
+      "mrr": 0.0,
+      "n": 1,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "recall@5": 0.0
+    }
+  },
+  "weights": {
+    "half_life_days": 30.0,
+    "importance": 0.15,
+    "recency": 0.25,
+    "relevance": 0.6
+  }
+}
