@@ -26,3 +26,4 @@ datasets/raw/
 
 # Large router logs are committed gzipped (experiments/router/policies.py reads either form)
 /experiments/logs/router/tier_outputs_clinc150.jsonl
+/experiments/logs/router/tier_outputs_clinc150_test.jsonl
