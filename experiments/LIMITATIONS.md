@@ -18,8 +18,9 @@ What the results in `RESULTS.md` do **not** show, with where each point comes fr
 - Latency is per request on a warm, pinned, single-user process, with model load excluded (27–131 s at start, E1
   meta). Tier 2 was not built, so H3's Tier-2 clause is untested (Ch. 52.1).
 - Energy was not measured: RAPL is root-only on this machine (PREREG §3).
-- `kestrel ask` routes and personalizes but does not yet execute tools on real files; the tool runner is only
-  exercised in evaluations (Ch. 54 gap, ROADMAP).
+- `kestrel ask --notes DIR` carries requests out on a notes folder through the sandbox (since 83034fe), but that
+  working application was not part of any measured experiment: the evaluations score routing, and the tool runner
+  only in development runs on the Kestrel-Tasks-v0 fixtures.
 
 **Analysis**
 - The Holm family's adjusted p-values are interim until H4 and H6 have theirs. An interim "supported" is final; an

@@ -1,0 +1,648 @@
+% references.bib for the Kestrel paper.
+% Every entry was checked against its primary record on 2026-10-24
+% (arXiv API, Crossref, ACL Anthology, PMLR, NeurIPS proceedings, ICLR/ICML
+% virtual sites, TMLR listing, USENIX, Hugging Face, GitHub, OpenAlex).
+% See citation_check.md for the source of each entry and the claim checked.
+
+% ---------------------------------------------------------------- cascades, early exit
+@inproceedings{varshney2022modelcascading,
+  author    = {Varshney, Neeraj and Baral, Chitta},
+  title     = {Model Cascading: Towards Jointly Improving Efficiency and Accuracy of {NLP} Systems},
+  booktitle = {Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing},
+  pages     = {11007--11021},
+  publisher = {Association for Computational Linguistics},
+  year      = {2022},
+  doi       = {10.18653/v1/2022.emnlp-main.756},
+  url       = {https://aclanthology.org/2022.emnlp-main.756/}
+}
+
+@inproceedings{li2021cascadebert,
+  author    = {Li, Lei and Lin, Yankai and Chen, Deli and Ren, Shuhuai and Li, Peng and Zhou, Jie and Sun, Xu},
+  title     = {{CascadeBERT}: Accelerating Inference of Pre-trained Language Models via Calibrated Complete Models Cascade},
+  booktitle = {Findings of the Association for Computational Linguistics: {EMNLP} 2021},
+  pages     = {475--486},
+  publisher = {Association for Computational Linguistics},
+  year      = {2021},
+  doi       = {10.18653/v1/2021.findings-emnlp.43},
+  url       = {https://aclanthology.org/2021.findings-emnlp.43/}
+}
+
+@misc{khalili2022babybear,
+  author        = {Khalili, Leila and You, Yao and Bohannon, John},
+  title         = {{BabyBear}: Cheap Inference Triage for Expensive Language Models},
+  year          = {2022},
+  eprint        = {2205.11747},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2205.11747}
+}
+
+@inproceedings{schwartz2020righttool,
+  author    = {Schwartz, Roy and Stanovsky, Gabriel and Swayamdipta, Swabha and Dodge, Jesse and Smith, Noah A.},
+  title     = {The Right Tool for the Job: Matching Model and Instance Complexities},
+  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics},
+  pages     = {6640--6651},
+  publisher = {Association for Computational Linguistics},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.acl-main.593},
+  url       = {https://aclanthology.org/2020.acl-main.593/}
+}
+
+@inproceedings{xin2020deebert,
+  author    = {Xin, Ji and Tang, Raphael and Lee, Jaejun and Yu, Yaoliang and Lin, Jimmy},
+  title     = {{DeeBERT}: Dynamic Early Exiting for Accelerating {BERT} Inference},
+  booktitle = {Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics},
+  pages     = {2246--2251},
+  publisher = {Association for Computational Linguistics},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.acl-main.204},
+  url       = {https://aclanthology.org/2020.acl-main.204/}
+}
+
+@inproceedings{zhou2020pabee,
+  author    = {Zhou, Wangchunshu and Xu, Canwen and Ge, Tao and McAuley, Julian and Xu, Ke and Wei, Furu},
+  title     = {{BERT} Loses Patience: Fast and Robust Inference with Early Exit},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {33},
+  pages     = {18330--18341},
+  year      = {2020},
+  eprint        = {2006.04152},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2020/hash/d4dd111a4fd973394238aca5c05bebe3-Abstract.html}
+}
+
+@inproceedings{rotem2023sweet,
+  author    = {Rotem, Daniel and Hassid, Michael and Mamou, Jonathan and Schwartz, Roy},
+  title     = {Finding the {SWEET} Spot: Analysis and Improvement of Adaptive Inference in Low Resource Settings},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {14836--14851},
+  publisher = {Association for Computational Linguistics},
+  year      = {2023},
+  doi       = {10.18653/v1/2023.acl-long.829},
+  url       = {https://aclanthology.org/2023.acl-long.829/}
+}
+
+% ---------------------------------------------------------------- LLM routing and cascades
+@article{chen2023frugalgpt,
+  author    = {Chen, Lingjiao and Zaharia, Matei and Zou, James},
+  title     = {{FrugalGPT}: How to Use Large Language Models While Reducing Cost and Improving Performance},
+  journal   = {Transactions on Machine Learning Research},
+  issn      = {2835-8856},
+  year      = {2024},
+  eprint        = {2305.05176},
+  archivePrefix = {arXiv},
+  url       = {https://openreview.net/forum?id=cSimKw5p6R}
+}
+
+@inproceedings{ong2024routellm,
+  author    = {Ong, Isaac and Almahairi, Amjad and Wu, Vincent and Chiang, Wei-Lin and Wu, Tianhao and Gonzalez, Joseph E. and Kadous, M. Waleed and Stoica, Ion},
+  title     = {{RouteLLM}: Learning to Route {LLMs} from Preference Data},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2025},
+  eprint        = {2406.18665},
+  archivePrefix = {arXiv},
+  url       = {https://openreview.net/forum?id=8sSqNntaMr}
+}
+
+@inproceedings{hu2024routerbench,
+  author    = {Hu, Qitian Jason and Bieker, Jacob and Li, Xiuyu and Jiang, Nan and Keigwin, Benjamin and Ranganath, Gaurav and Keutzer, Kurt and Upadhyay, Shriyash Kaustubh},
+  title     = {{RouterBench}: A Benchmark for Multi-{LLM} Routing System},
+  booktitle = {Agentic Markets Workshop at {ICML} 2024},
+  year      = {2024},
+  eprint        = {2403.12031},
+  archivePrefix = {arXiv},
+  url       = {https://openreview.net/forum?id=IVXmV8Uxwh}
+}
+
+@inproceedings{gupta2024lmcascades,
+  author    = {Gupta, Neha and Narasimhan, Harikrishna and Jitkrittum, Wittawat and Rawat, Ankit Singh and Menon, Aditya Krishna and Kumar, Sanjiv},
+  title     = {Language Model Cascades: Token-Level Uncertainty and Beyond},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2024},
+  eprint        = {2404.10136},
+  archivePrefix = {arXiv},
+  url       = {https://openreview.net/forum?id=KgaBScZ4VI}
+}
+
+@inproceedings{aggarwal2024automix,
+  author    = {Aggarwal, Pranjal and Madaan, Aman and Anand, Ankit and Potharaju, Srividya Pranavi and Mishra, Swaroop and Zhou, Pei and Gupta, Aditya and Rajagopal, Dheeraj and Kappaganthu, Karthik and Yang, Yiming and Upadhyay, Shyam and Faruqui, Manaal and {Mausam}},
+  title     = {{AutoMix}: Automatically Mixing Language Models},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {37},
+  pages     = {131000--131034},
+  year      = {2024},
+  doi       = {10.52202/079017-4164},
+  url       = {https://doi.org/10.52202/079017-4164}
+}
+
+@inproceedings{dekoninck2025cascaderouting,
+  author    = {Dekoninck, Jasper and Baader, Maximilian and Vechev, Martin},
+  title     = {A Unified Approach to Routing and Cascading for {LLMs}},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {267},
+  pages     = {12987--13010},
+  publisher = {PMLR},
+  year      = {2025},
+  eprint        = {2410.10347},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.mlr.press/v267/dekoninck25a.html}
+}
+
+@inproceedings{ramirez2024twotier,
+  author    = {Ram{\'\i}rez, Guillem and Birch, Alexandra and Titov, Ivan},
+  title     = {Optimising Calls to Large Language Models with Uncertainty-Based Two-Tier Selection},
+  booktitle = {First Conference on Language Modeling ({COLM})},
+  year      = {2024},
+  eprint        = {2405.02134},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2405.02134}
+}
+
+@inproceedings{jitkrittum2023deferral,
+  author    = {Jitkrittum, Wittawat and Gupta, Neha and Menon, Aditya Krishna and Narasimhan, Harikrishna and Rawat, Ankit Singh and Kumar, Sanjiv},
+  title     = {When Does Confidence-Based Cascade Deferral Suffice?},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {36},
+  pages     = {9891--9906},
+  year      = {2023},
+  doi       = {10.52202/075280-0431},
+  url       = {https://doi.org/10.52202/075280-0431}
+}
+
+@article{moslem2026routingsurvey,
+  author    = {Moslem, Yasmin and Kelleher, John D.},
+  title     = {Dynamic Model Routing and Cascading for Efficient {LLM} Inference: A Survey},
+  journal   = {Transactions on Machine Learning Research},
+  issn      = {2835-8856},
+  year      = {2026},
+  eprint        = {2603.04445},
+  archivePrefix = {arXiv},
+  url       = {https://openreview.net/forum?id=ypRg1TvQaM}
+}
+
+@misc{wang2026misguided,
+  author        = {Wang, Sam and White, Julia and Allahyar, Sahibzada and Atreja, Dhruv and Zaratiana, Urchade and Zhang, Kelton},
+  title         = {Dynamic {LLM} Routers are Often Misguided},
+  year          = {2026},
+  eprint        = {2610.02762},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2610.02762}
+}
+
+% ---------------------------------------------------------------- calibration, selective prediction
+@misc{lu2024c3,
+  author        = {Lu, Taixi and Wang, Haoyu and Shao, Huajie and Gao, Jing and Yao, Huaxiu},
+  title         = {{$C^3$}: Confidence Calibration Model Cascade for Inference-Efficient Cross-Lingual Natural Language Understanding},
+  year          = {2024},
+  eprint        = {2402.15991},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2402.15991}
+}
+
+@misc{zhang2026cauc,
+  author        = {Zhang, Yilin and Jiang, Han and Xu, Cai and Liu, Ying and Zhao, Wei},
+  title         = {Calibration-Aware Uncertainty Cascades for Efficient Heterogeneous Model Collaboration},
+  year          = {2026},
+  eprint        = {2609.11446},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2609.11446}
+}
+
+@inproceedings{guo2017calibration,
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title     = {On Calibration of Modern Neural Networks},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {70},
+  pages     = {1321--1330},
+  publisher = {PMLR},
+  year      = {2017},
+  eprint        = {1706.04599},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.mlr.press/v70/guo17a.html}
+}
+
+@inproceedings{geifman2017selective,
+  author    = {Geifman, Yonatan and El-Yaniv, Ran},
+  title     = {Selective Classification for Deep Neural Networks},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017},
+  eprint        = {1705.08500},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/hash/4a8423d5e91fda00bb7e46540e2b0cf1-Abstract.html}
+}
+
+% ---------------------------------------------------------------- on-device and edge
+@misc{chuang2025ondevice,
+  author        = {Chuang, Yu-Neng and Yu, Leisheng and Wang, Guanchu and Zhang, Lizhe and Liu, Zirui and Cai, Xuanting and Sui, Yang and Braverman, Vladimir and Hu, Xia},
+  title         = {Confident or Seek Stronger: Exploring Uncertainty-Based On-device {LLM} Routing From Benchmarking to Generalization},
+  year          = {2025},
+  eprint        = {2502.04428},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2502.04428}
+}
+
+@inproceedings{kag2023edgeselective,
+  author    = {Kag, Anil and Fedorov, Igor and Gangrade, Aditya and Whatmough, Paul and Saligrama, Venkatesh},
+  title     = {Efficient Edge Inference by Selective Query},
+  booktitle = {International Conference on Learning Representations ({ICLR})},
+  year      = {2023},
+  url       = {https://openreview.net/forum?id=jpR98ZdIm2q}
+}
+
+@misc{chaganti2026ondevicener,
+  author        = {Chaganti, Vinay Kumar},
+  title         = {On-Device Named-Entity Recognition: A Deployability Study of Accuracy, Cost, Reliability, and Confidence},
+  year          = {2026},
+  eprint        = {2610.00007},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2610.00007}
+}
+
+@inproceedings{lim2026adahome,
+  author    = {Lim, Eu Jin and Li, Zhaoxing and Stein, Sebastian},
+  title     = {{AdaHome}: An Adaptive Smart Home Assistant using Local Small Language Models},
+  booktitle = {Proceedings of the 28th International Conference on Multimodal Interaction ({ICMI} '26)},
+  pages     = {472--476},
+  publisher = {ACM},
+  year      = {2026},
+  doi       = {10.1145/3776574.3831158},
+  url       = {https://doi.org/10.1145/3776574.3831158}
+}
+
+@inproceedings{islam2025energy,
+  author    = {Islam, Md Romyull and Deng, Bobin and Dhar, Nobel and Nguyen, Tu N. and He, Selena and Shi, Yong and Suo, Kun},
+  title     = {Characterizing and Understanding Energy Footprint and Efficiency of Small Language Model on Edges},
+  booktitle = {2025 {IEEE} 22nd International Conference on Mobile Ad-Hoc and Smart Systems ({MASS})},
+  pages     = {363--371},
+  publisher = {IEEE},
+  year      = {2025},
+  doi       = {10.1109/MASS66014.2025.00059},
+  url       = {https://doi.org/10.1109/MASS66014.2025.00059}
+}
+
+@misc{sadhu2026neurosymbolic,
+  author        = {Sadhu, Avyay and Velasquez, Alvaro and Chen, Lekai},
+  title         = {Neurosymbolic Routing for Reliable Reasoning on Resource-Constrained Edge Devices},
+  year          = {2026},
+  eprint        = {2609.35833},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  url           = {https://arxiv.org/abs/2609.35833}
+}
+
+% ---------------------------------------------------------------- intent detection, OOS, code-mixing
+@inproceedings{larson2019clinc,
+  author    = {Larson, Stefan and Mahendran, Anish and Peper, Joseph J. and Clarke, Christopher and Lee, Andrew and Hill, Parker and Kummerfeld, Jonathan K. and Leach, Kevin and Laurenzano, Michael A. and Tang, Lingjia and Mars, Jason},
+  title     = {An Evaluation Dataset for Intent Classification and Out-of-Scope Prediction},
+  booktitle = {Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing ({EMNLP-IJCNLP})},
+  pages     = {1311--1316},
+  publisher = {Association for Computational Linguistics},
+  year      = {2019},
+  doi       = {10.18653/v1/D19-1131},
+  url       = {https://aclanthology.org/D19-1131/}
+}
+
+@inproceedings{casanueva2020banking77,
+  author    = {Casanueva, I{\~n}igo and Tem{\v{c}}inas, Tadas and Gerz, Daniela and Henderson, Matthew and Vuli{\'c}, Ivan},
+  title     = {Efficient Intent Detection with Dual Sentence Encoders},
+  booktitle = {Proceedings of the 2nd Workshop on Natural Language Processing for Conversational {AI}},
+  pages     = {38--45},
+  publisher = {Association for Computational Linguistics},
+  year      = {2020},
+  doi       = {10.18653/v1/2020.nlp4convai-1.5},
+  url       = {https://aclanthology.org/2020.nlp4convai-1.5/}
+}
+
+@inproceedings{zhang2021idoos,
+  author    = {Zhang, Jianguo and Hashimoto, Kazuma and Wan, Yao and Liu, Zhiwei and Liu, Ye and Xiong, Caiming and Yu, Philip S.},
+  title     = {Are Pre-trained Transformers Robust in Intent Classification? {A} Missing Ingredient in Evaluation of Out-of-Scope Intent Detection},
+  booktitle = {Proceedings of the 4th Workshop on {NLP} for Conversational {AI}},
+  pages     = {12--20},
+  publisher = {Association for Computational Linguistics},
+  year      = {2022},
+  doi       = {10.18653/v1/2022.nlp4convai-1.2},
+  url       = {https://aclanthology.org/2022.nlp4convai-1.2/}
+}
+
+@inproceedings{arora2024intentllm,
+  author    = {Arora, Gaurav and Jain, Shreya and Merugu, Srujana},
+  title     = {Intent Detection in the Age of {LLMs}},
+  booktitle = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: Industry Track},
+  pages     = {1559--1570},
+  publisher = {Association for Computational Linguistics},
+  year      = {2024},
+  doi       = {10.18653/v1/2024.emnlp-industry.114},
+  url       = {https://aclanthology.org/2024.emnlp-industry.114/}
+}
+
+@misc{rodrigues2026llmvsnlu,
+  author        = {Rodrigues, Carson and Vas, Oysturn},
+  title         = {When Do {LLMs} Replace Fine-Tuned {NLU}? {A} Decision Framework for Intent Detection in Production Conversational Systems},
+  year          = {2026},
+  eprint        = {2608.20371},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2608.20371}
+}
+
+@inproceedings{birshert2021larisa,
+  author    = {Birshert, Alexey and Artemova, Ekaterina},
+  title     = {Call {Larisa Ivanovna}: Code-Switching Fools Multilingual {NLU} Models},
+  booktitle = {Recent Trends in Analysis of Images, Social Networks and Texts ({AIST} 2021)},
+  series    = {Communications in Computer and Information Science},
+  pages     = {3--16},
+  publisher = {Springer},
+  year      = {2022},
+  doi       = {10.1007/978-3-031-15168-2_1},
+  url       = {https://doi.org/10.1007/978-3-031-15168-2_1}
+}
+
+@inproceedings{jayarao2018codemix,
+  author    = {Jayarao, Pratik and Srivastava, Aman},
+  title     = {Intent Detection for Code-Mix Utterances in Task Oriented Dialogue Systems},
+  booktitle = {2018 International Conference on Electrical, Electronics, Communication, Computer, and Optimization Techniques ({ICEECCOT})},
+  pages     = {583--587},
+  publisher = {IEEE},
+  year      = {2018},
+  doi       = {10.1109/ICEECCOT43722.2018.9001577},
+  url       = {https://doi.org/10.1109/ICEECCOT43722.2018.9001577}
+}
+
+@inproceedings{einolghozati2021cstop,
+  author    = {Einolghozati, Arash and Arora, Abhinav and Sainz-Maza Lecanda, Lorena and Kumar, Anuj and Gupta, Sonal},
+  title     = {{El Volumen Louder Por Favor}: Code-switching in Task-oriented Semantic Parsing},
+  booktitle = {Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: Main Volume},
+  pages     = {1009--1021},
+  publisher = {Association for Computational Linguistics},
+  year      = {2021},
+  doi       = {10.18653/v1/2021.eacl-main.87},
+  url       = {https://aclanthology.org/2021.eacl-main.87/}
+}
+
+@article{dey2026hinglishsrh,
+  author    = {Dey, Sumon Kanti and S, Manvi and Thapa, Aradhana and Shah, Meet and Mehta, Zeel and Kapile, Shraddha Kale and Divate, Tanvi and Jalota, Suhani and Ismail, Azra},
+  title     = {Understanding User Intent in Code-Mixed Sexual and Reproductive Health Queries in Urban {India}: Hierarchical Classification Approach Using Large Language Models},
+  journal   = {Journal of Medical Internet Research},
+  volume    = {28},
+  pages     = {e86545},
+  year      = {2026},
+  doi       = {10.2196/86545},
+  url       = {https://doi.org/10.2196/86545}
+}
+
+% ---------------------------------------------------------------- models and software
+@misc{wang2024me5,
+  author        = {Wang, Liang and Yang, Nan and Huang, Xiaolong and Yang, Linjun and Majumder, Rangan and Wei, Furu},
+  title         = {Multilingual {E5} Text Embeddings: A Technical Report},
+  year          = {2024},
+  eprint        = {2402.05672},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2402.05672}
+}
+
+@inproceedings{reimers2019sbert,
+  author    = {Reimers, Nils and Gurevych, Iryna},
+  title     = {{Sentence-BERT}: Sentence Embeddings using {Siamese} {BERT}-Networks},
+  booktitle = {Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing ({EMNLP-IJCNLP})},
+  pages     = {3980--3990},
+  publisher = {Association for Computational Linguistics},
+  year      = {2019},
+  doi       = {10.18653/v1/D19-1410},
+  url       = {https://aclanthology.org/D19-1410/}
+}
+
+@misc{yang2025qwen3,
+  author        = {Yang, An and
+            Li, Anfeng and
+            Yang, Baosong and
+            Zhang, Beichen and
+            Hui, Binyuan and
+            Zheng, Bo and
+            Yu, Bowen and
+            Gao, Chang and
+            Huang, Chengen and
+            Lv, Chenxu and
+            Zheng, Chujie and
+            Liu, Dayiheng and
+            Zhou, Fan and
+            Huang, Fei and
+            Hu, Feng and
+            Ge, Hao and
+            Wei, Haoran and
+            Lin, Huan and
+            Tang, Jialong and
+            Yang, Jian and
+            Tu, Jianhong and
+            Zhang, Jianwei and
+            Yang, Jianxin and
+            Yang, Jiaxi and
+            Zhou, Jing and
+            Zhou, Jingren and
+            Lin, Junyang and
+            Dang, Kai and
+            Bao, Keqin and
+            Yang, Kexin and
+            Yu, Le and
+            Deng, Lianghao and
+            Li, Mei and
+            Xue, Mingfeng and
+            Li, Mingze and
+            Zhang, Pei and
+            Wang, Peng and
+            Zhu, Qin and
+            Men, Rui and
+            Gao, Ruize and
+            Liu, Shixuan and
+            Luo, Shuang and
+            Li, Tianhao and
+            Tang, Tianyi and
+            Yin, Wenbiao and
+            Ren, Xingzhang and
+            Wang, Xinyu and
+            Zhang, Xinyu and
+            Ren, Xuancheng and
+            Fan, Yang and
+            Su, Yang and
+            Zhang, Yichang and
+            Zhang, Yinger and
+            Wan, Yu and
+            Liu, Yuqiong and
+            Wang, Zekun and
+            Cui, Zeyu and
+            Zhang, Zhenru and
+            Zhou, Zhipeng and
+            Qiu, Zihan},
+  title         = {{Qwen3} Technical Report},
+  year          = {2025},
+  eprint        = {2505.09388},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2505.09388}
+}
+
+% The arXiv record lists "Gemma Team" followed by ~320 named authors; the
+% official citation on the google/gemma-4-E2B-it model card uses {Gemma Team}.
+@misc{gemma4,
+  author        = {{Gemma Team}},
+  title         = {{Gemma} 4 Technical Report},
+  year          = {2026},
+  eprint        = {2607.02770},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2607.02770},
+  note          = {Model used: gemma-4-E2B-it, model card at \url{https://huggingface.co/google/gemma-4-E2B-it}; GGUF weights from ggml-org/gemma-4-E2B-it-GGUF, revision b4243c156154b6dca9324415f8c7ccc098b4aed1; accessed 2026-10-24}
+}
+
+@misc{llamacpp,
+  author        = {{ggml-org}},
+  title         = {{llama.cpp}: {LLM} Inference in {C/C++}},
+  year          = {2026},
+  howpublished  = {\url{https://github.com/ggml-org/llama.cpp}},
+  url           = {https://github.com/ggml-org/llama.cpp/commit/26394b4e6749a41c3633db040e0987500a5f7013},
+  note          = {Commit 26394b4e6749a41c3633db040e0987500a5f7013 (2026-09-21); accessed 2026-10-24}
+}
+
+% ---------------------------------------------------------------- continual learning
+@article{kirkpatrick2017ewc,
+  author    = {Kirkpatrick, James and Pascanu, Razvan and Rabinowitz, Neil and Veness, Joel and Desjardins, Guillaume and Rusu, Andrei A. and Milan, Kieran and Quan, John and Ramalho, Tiago and Grabska-Barwinska, Agnieszka and Hassabis, Demis and Clopath, Claudia and Kumaran, Dharshan and Hadsell, Raia},
+  title     = {Overcoming Catastrophic Forgetting in Neural Networks},
+  journal   = {Proceedings of the National Academy of Sciences},
+  volume    = {114},
+  number    = {13},
+  pages     = {3521--3526},
+  year      = {2017},
+  doi       = {10.1073/pnas.1611835114},
+  url       = {https://doi.org/10.1073/pnas.1611835114}
+}
+
+@inproceedings{chaudhry2018riemannian,
+  author    = {Chaudhry, Arslan and Dokania, Puneet K. and Ajanthan, Thalaiyasingam and Torr, Philip H. S.},
+  title     = {{Riemannian} Walk for Incremental Learning: Understanding Forgetting and Intransigence},
+  booktitle = {Computer Vision -- {ECCV} 2018},
+  series    = {Lecture Notes in Computer Science},
+  pages     = {556--572},
+  publisher = {Springer},
+  year      = {2018},
+  doi       = {10.1007/978-3-030-01252-6_33},
+  url       = {https://doi.org/10.1007/978-3-030-01252-6_33}
+}
+
+@inproceedings{lopezpaz2017gem,
+  author    = {Lopez-Paz, David and Ranzato, Marc'Aurelio},
+  title     = {Gradient Episodic Memory for Continual Learning},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {30},
+  year      = {2017},
+  eprint        = {1706.08840},
+  archivePrefix = {arXiv},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2017/hash/f87522788a2be2d171666752f97ddebb-Abstract.html}
+}
+
+% ---------------------------------------------------------------- statistics and reporting
+% No DOI: OpenAlex lists 10.2307/4615733, but doi.org does not resolve it
+% (handle not found, 2026-10-24); JSTOR could not be opened (bot check).
+@article{holm1979,
+  author    = {Holm, Sture},
+  title     = {A Simple Sequentially Rejective Multiple Test Procedure},
+  journal   = {Scandinavian Journal of Statistics},
+  volume    = {6},
+  pages     = {65--70},
+  year      = {1979}
+}
+
+@article{mcnemar1947,
+  author    = {McNemar, Quinn},
+  title     = {Note on the Sampling Error of the Difference Between Correlated Proportions or Percentages},
+  journal   = {Psychometrika},
+  volume    = {12},
+  number    = {2},
+  pages     = {153--157},
+  year      = {1947},
+  doi       = {10.1007/BF02295996},
+  url       = {https://doi.org/10.1007/BF02295996}
+}
+
+@article{berger1982iut,
+  author    = {Berger, Roger L.},
+  title     = {Multiparameter Hypothesis Testing and Acceptance Sampling},
+  journal   = {Technometrics},
+  volume    = {24},
+  number    = {4},
+  pages     = {295--300},
+  year      = {1982},
+  doi       = {10.1080/00401706.1982.10487790},
+  url       = {https://doi.org/10.1080/00401706.1982.10487790}
+}
+
+% Crossref holds the 1993 edition under Springer US (Boston, MA), print ISBN
+% 978-0-412-04231-7; a Chapman and Hall/CRC record (10.1201/9780429246593) also exists.
+@book{efron1993bootstrap,
+  author    = {Efron, Bradley and Tibshirani, Robert J.},
+  title     = {An Introduction to the Bootstrap},
+  publisher = {Springer US},
+  address   = {Boston, MA},
+  year      = {1993},
+  isbn      = {978-0-412-04231-7},
+  doi       = {10.1007/978-1-4899-4541-9},
+  url       = {https://doi.org/10.1007/978-1-4899-4541-9}
+}
+
+@article{field2007cluster,
+  author    = {Field, C. A. and Welsh, A. H.},
+  title     = {Bootstrapping Clustered Data},
+  journal   = {Journal of the Royal Statistical Society Series B: Statistical Methodology},
+  volume    = {69},
+  number    = {3},
+  pages     = {369--390},
+  year      = {2007},
+  doi       = {10.1111/j.1467-9868.2007.00593.x},
+  url       = {https://doi.org/10.1111/j.1467-9868.2007.00593.x}
+}
+
+@inproceedings{dror2018hitchhiker,
+  author    = {Dror, Rotem and Baumer, Gili and Shlomov, Segev and Reichart, Roi},
+  title     = {The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing},
+  booktitle = {Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},
+  pages     = {1383--1392},
+  publisher = {Association for Computational Linguistics},
+  year      = {2018},
+  doi       = {10.18653/v1/P18-1128},
+  url       = {https://aclanthology.org/P18-1128/}
+}
+
+@inproceedings{dodge2019showyourwork,
+  author    = {Dodge, Jesse and Gururangan, Suchin and Card, Dallas and Schwartz, Roy and Smith, Noah A.},
+  title     = {Show Your Work: Improved Reporting of Experimental Results},
+  booktitle = {Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing ({EMNLP-IJCNLP})},
+  pages     = {2185--2194},
+  publisher = {Association for Computational Linguistics},
+  year      = {2019},
+  doi       = {10.18653/v1/D19-1224},
+  url       = {https://aclanthology.org/D19-1224/}
+}
+
+% ---------------------------------------------------------------- privacy
+@inproceedings{carlini2021extracting,
+  author    = {Carlini, Nicholas and Tram{\`e}r, Florian and Wallace, Eric and Jagielski, Matthew and Herbert-Voss, Ariel and Lee, Katherine and Roberts, Adam and Brown, Tom and Song, Dawn and Erlingsson, {\'U}lfar and Oprea, Alina and Raffel, Colin},
+  title     = {Extracting Training Data from Large Language Models},
+  booktitle = {30th {USENIX} Security Symposium ({USENIX} Security 21)},
+  pages     = {2633--2650},
+  publisher = {USENIX Association},
+  year      = {2021},
+  isbn      = {978-1-939133-24-3},
+  eprint        = {2012.07805},
+  archivePrefix = {arXiv},
+  url       = {https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting}
+}
+
+@inproceedings{abadi2016dpsgd,
+  author    = {Abadi, Mart{\'\i}n and Chu, Andy and Goodfellow, Ian and McMahan, H. Brendan and Mironov, Ilya and Talwar, Kunal and Zhang, Li},
+  title     = {Deep Learning with Differential Privacy},
+  booktitle = {Proceedings of the 2016 {ACM} {SIGSAC} Conference on Computer and Communications Security ({CCS})},
+  pages     = {308--318},
+  publisher = {ACM},
+  year      = {2016},
+  doi       = {10.1145/2976749.2978318},
+  url       = {https://doi.org/10.1145/2976749.2978318}
+}
