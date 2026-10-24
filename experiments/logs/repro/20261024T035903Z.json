@@ -1,0 +1,84 @@
+{
+ "date": "2026-10-24T03:59:03+00:00",
+ "head": "74def15efe0cda0ff66232aebd180c62d6b3db13",
+ "python": "/home/Adi_mauryaji/Kestrel/.venv/bin/python",
+ "steps": [
+  {
+   "cmd": "experiments/analysis/analyze_e1.py --dataset intents_v0 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e1.py --dataset clinc150 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e2.py --dataset intents_v0 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e2.py --dataset clinc150 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e3.py --dataset intents_v0 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e3.py --dataset clinc150 --split test",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e5.py",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/family.py",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/results.py",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/errors.py",
+   "exit": 0,
+   "stderr_tail": ""
+  }
+ ],
+ "outputs": {
+  "experiments/logs/E1/analysis_intents_v0_test.json": "identical",
+  "experiments/logs/E1/analysis_clinc150_test.json": "identical",
+  "experiments/logs/E2/analysis_intents_v0_test.json": "identical",
+  "experiments/logs/E2/analysis_clinc150_test.json": "identical",
+  "experiments/logs/E3/analysis_intents_v0_test.json": "identical",
+  "experiments/logs/E3/analysis_clinc150_test.json": "identical",
+  "experiments/logs/E5/analysis_test.json": "identical",
+  "experiments/logs/family_v1.json": "identical",
+  "experiments/RESULTS.md": "identical",
+  "experiments/ERROR_ANALYSIS.md": "identical",
+  "experiments/logs/errors_test.json": "identical"
+ },
+ "e5_rerun": [
+  {
+   "cmd": "experiments/continual/e5_test.py --jobs 5",
+   "exit": 0,
+   "stderr_tail": ""
+  },
+  {
+   "cmd": "experiments/analysis/analyze_e5.py",
+   "exit": 0,
+   "stderr_tail": ""
+  }
+ ],
+ "e5_numbers_equal": true,
+ "reproduced": true
+}
