@@ -1,0 +1,99 @@
+{
+ "date": "2026-10-24T03:56:24+00:00",
+ "git_head": "883c0ac",
+ "canary": "zqcanary7f3a",
+ "1a_network_crates": [],
+ "1a_tree_lines": 80,
+ "2_urls_in_code": [],
+ "4_shell_in_runtime": [],
+ "probe": {
+  "exit": 0,
+  "connects": {
+   "inet": 1,
+   "unix": 0,
+   "inet_lines": [
+    "16710 connect(3, {sa_family=AF_INET, sin_port=htons(80), sin_addr=inet_addr(\"203.0.113.1\")}, 16) = -1 ENETUNREACH (Network is unreachable)"
+   ]
+  }
+ },
+ "runs": {
+  "route_items": {
+   "exit": 0,
+   "connects": {
+    "inet": 0,
+    "unix": 0,
+    "inet_lines": []
+   },
+   "opened": 22,
+   "opened_models": [
+    "gemma-4-E2B-it-Q4_0.gguf",
+    "multilingual-e5-small-q8_0.gguf"
+   ],
+   "opened_outside": []
+  },
+  "ask": {
+   "exit": 0,
+   "connects": {
+    "inet": 0,
+    "unix": 0,
+    "inet_lines": []
+   },
+   "opened": 45,
+   "opened_models": [
+    "gemma-4-E2B-it-Q4_0.gguf",
+    "multilingual-e5-small-q8_0.gguf"
+   ],
+   "opened_outside": []
+  },
+  "memory_list": {
+   "exit": 0,
+   "connects": {
+    "inet": 0,
+    "unix": 0,
+    "inet_lines": []
+   },
+   "opened": 13,
+   "opened_models": [],
+   "opened_outside": []
+  },
+  "delete_1": {
+   "exit": 0,
+   "connects": {
+    "inet": 0,
+    "unix": 0,
+    "inet_lines": []
+   },
+   "opened": 15,
+   "opened_models": [],
+   "opened_outside": []
+  },
+  "vacuum": {
+   "exit": 0,
+   "connects": {
+    "inet": 0,
+    "unix": 0,
+    "inet_lines": []
+   },
+   "opened": 15,
+   "opened_models": [],
+   "opened_outside": []
+  }
+ },
+ "memory_rows_with_canary": 1,
+ "7_canary_in_outputs": [],
+ "7_telemetry_records": 3,
+ "8_canary_in_db_after_delete": [],
+ "checks": {
+  "0 the trace sees a deliberate connect() (positive control)": true,
+  "0 the scenarios' traces saw the model files opened": true,
+  "1a no network crates": true,
+  "1b every scenario succeeded offline": true,
+  "1c zero inet connect()": true,
+  "2 no URL in runtime code": true,
+  "3 nothing opened outside the allowed roots": true,
+  "4 no shell in runtime crates": true,
+  "7 canary taught and stored": true,
+  "7 no canary in telemetry or output rows": true,
+  "8 canary gone from the database after delete + vacuum": true
+ }
+}
