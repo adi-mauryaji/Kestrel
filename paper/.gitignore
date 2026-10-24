@@ -6,3 +6,7 @@
 *.fls
 *.log
 *.out
+*.nav
+*.snm
+*.toc
+*.vrb

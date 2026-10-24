@@ -146,6 +146,7 @@ def numbers() -> dict[str, str]:
         n[f"{short}.h1.dlat"] = signed(h["latency"]["diff_ms"], 0)
         n[f"{short}.h1.dlat.ci"] = ci(h["latency"]["ci95"], 0)
         n[f"{short}.h1.outcome"] = h["outcome"]
+        n[f"{short}.h1.p"] = fmt_p(h["p_iut"])
         b = e1["h1b"]
         n[f"{short}.h1b.dacc"], n[f"{short}.h1b.dacc.ci"] = signed(b["accuracy"]["diff"]), ci(b["accuracy"]["ci95"])
         n[f"{short}.rrand.acc"] = f"{b['rrand']['acc']:.3f}"
@@ -203,6 +204,7 @@ def numbers() -> dict[str, str]:
             n[f"e5.{m}.acc"] = f"{s['avg_accuracy']['mean']:.3f}"
             n[f"e5.{m}.forget"] = f"{s['avg_forgetting']['mean']:.3f}"
             n[f"e5.{m}.bwt"] = signed(s["bwt"]["mean"])
+            n[f"e5.{m}.buffer"] = f"{s['buffer_bytes']['mean'] / 1e6:.1f}"
     n["e5.h5.diff"], n["e5.h5.diff.ci"] = signed(e5["h5"]["diff"]), ci(e5["h5"]["ci95"])
     n["e5.h5.p"] = fmt_p(e5["h5"]["p"])
     n["e5.ewc.diff"] = signed(e5["ewc_vs_naive"]["diff"])

@@ -78,6 +78,19 @@ def test_every_number_the_paper_uses_is_generated():
     assert sorted(used - set(numbers())) == []
 
 
+def test_slide_only_numbers():
+    n = numbers()
+    assert n["clinc.h1.p"] == "<10^{-4}"
+    assert (n["e5.replay.buffer"], n["e5.naive.buffer"]) == ("9.3", "0.0")
+
+
+def test_every_number_the_slides_use_is_generated():
+    slides = re.sub(r"(?<!\\)%.*", "", (PAPER / "slides" / "kestrel_slides.tex").read_text())
+    used = set(re.findall(r"\\kv\{([^}]+)\}", slides))
+    assert used, "the slides use no \\kv numbers"
+    assert sorted(used - set(numbers())) == []
+
+
 def test_every_citation_is_in_the_bibliography():
     cited = {k.strip() for group in re.findall(r"\\cite[pt]?\*?(?:\[[^]]*\])*\{([^}]+)\}", _paper_tex())
              for k in group.split(",")}
