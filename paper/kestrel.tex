@@ -32,15 +32,16 @@ A Pre-Registered Evaluation on a Laptop CPU}
 % ---------------------------------------------------------------------------------------------------------------
 \begin{abstract}
 A small language model (SLM) can now run on an ordinary laptop, but sending every request of a personal assistant
-through it costs close to a second of CPU time and more than 3~GiB of memory. We evaluate a calibrated cascade for
+through it takes close to a second per request on the CPU and more than 3~GiB of memory. We evaluate a calibrated cascade for
 intent understanding that answers a request at the cheapest tier that is confident enough: keyword rules, then a frozen
 multilingual sentence encoder with a temperature-scaled linear head, then a 4-bit Gemma-4-E2B model whose confidence
 comes from constrained label decoding. Every threshold and temperature is fitted on calibration and validation data, and
 the protocol was pre-registered and frozen before any test item was read. On a six-core laptop CPU, on the CLINC150 test
-set ($n=\kv{clinc.n}$), the cascade was more accurate than always using the SLM ($\Delta$accuracy \kv{clinc.h1.dacc},
+set ($n=\kv{clinc.n}$; there the cascade is encoder then SLM, since the rules do not cover its labels), the cascade was
+more accurate than always using the SLM ($\Delta$accuracy \kv{clinc.h1.dacc},
 95\% CI \kv{clinc.h1.dacc.ci}, non-inferiority margin $\delta=\kv{delta}$) and faster ($\Delta$mean latency
 \kv{clinc.h1.dlat}\ms\ per request, CI \kv{clinc.h1.dlat.ci}), so the primary hypothesis is supported; temperature scaling lowered selective
-risk at 80\% coverage by \kv{clinc.risk.diff} (CI \kv{clinc.risk.diff.ci}). The encoder alone, however, was both more
+risk at 80\% coverage ($\Delta$ \kv{clinc.risk.diff}, CI \kv{clinc.risk.diff.ci}). The encoder alone, however, was both more
 accurate and faster than the cascade on CLINC150, and on a small synthetic English--Hinglish set ($n=\kv{intents.n}$)
 the cascade stayed below the SLM (\kv{intents.r3.acc} vs \kv{intents.r0.acc}; inconclusive). An exploratory failure
 analysis traces \kv{err.clinc.oosshare} of the cascade's CLINC150 errors to out-of-scope requests, whose share rose
@@ -55,7 +56,7 @@ intent detection; code-mixed Hinglish; privacy.
 \section{Introduction}\label{sec:intro}
 
 A personal assistant for one's own notes and tasks handles text that its user may not want to leave the machine.
-Running the whole assistant locally removes that exposure, and quantized SLMs with 2--4~billion parameters now run on a
+Running the whole assistant locally removes that exposure, and quantized SLMs of a few billion parameters now run on a
 laptop CPU through runtimes such as llama.cpp~\citep{llamacpp}. The price is cost per request. On the laptop used here,
 classifying one request with Gemma-4-E2B~\citep{gemma4} at 4-bit takes \kv{clinc.r0.median}\ms\ (median) with
 \kv{clinc.r0.rss}~MiB resident, while a frozen sentence encoder answers in a few milliseconds
@@ -65,9 +66,10 @@ escalates only the rest. This is a model cascade~\citep{varshney2022modelcascadi
 
 Cascades and routers are well studied, but rarely in this setting. In the closest prior work
 (Table~\ref{tab:prior}), cost is measured as FLOPs or parameter counts rather than as wall-clock time and memory on a
-device~\citep{li2021cascadebert,lu2024c3,zhang2026cauc}. ``On-device'' is often emulated on data-centre
-GPUs~\citep{chuang2025ondevice}, and the routing signal for intent detection is uncalibrated~\citep{arora2024intentllm}.
-Prior calibrated cascades also chain models of one kind that all emit logits over the same labels. None of them mixes a
+device~\citep{li2021cascadebert,lu2024c3,zhang2026cauc}. ``On-device'' routing has been studied on data-centre
+GPUs only~\citep{chuang2025ondevice}, and the routing signal for intent detection is uncalibrated~\citep{arora2024intentllm}.
+Prior calibrated cascades also chain models of one kind, all encoders or all language models, that mostly score one
+shared label set. None of them mixes a
 rule tier that may decline to answer, a classifier head and a generative model. Finally, routing surveys warn that
 cost-optimized routing may serve under-represented languages and non-standard writing worse~\citep{moslem2026routingsurvey},
 but code-mixed input such as Hinglish is untested in this line of work.
@@ -111,11 +113,11 @@ marked with~$\dagger$ were checked against the full text; the others against the
 \toprule
 Work & What is cascaded & Calibrated & Cost on hardware & On device & Rule tier & Code-mixed \\
 \midrule
-C3~\citep{lu2024c3}$^\dagger$ & encoders of increasing size & yes & no (FLOPs) & no & no & no \\
+C3~\citep{lu2024c3}$^\dagger$ & encoders or LLMs of increasing size & yes & no (FLOPs) & no & no & no \\
 CascadeBERT~\citep{li2021cascadebert}$^\dagger$ & BERTs of increasing depth & yes & no (FLOPs) & no & no & no \\
-CAUC~\citep{zhang2026cauc}$^\dagger$ & 2--7 models, same labels & yes & no (parameters) & no & no & no \\
+CAUC~\citep{zhang2026cauc}$^\dagger$ & 2--7 models, same labels & yes & no (parameters, GFLOPs) & no & no & no \\
 \citet{arora2024intentllm}$^\dagger$ & encoder $\to$ cloud LLM & no & API latency & no & no & no \\
-\citet{chuang2025ondevice}$^\dagger$ & SLM $\to$ LLM & UQ scores & no (A100s) & emulated & no & no \\
+\citet{chuang2025ondevice}$^\dagger$ & SLM $\to$ LLM & UQ scores & no (A100s) & no & no & no \\
 \citet{chaganti2026ondevicener}$^\dagger$ & NER encoder $\to$ larger & yes & latency & yes & no & no \\
 \citet{sadhu2026neurosymbolic}$^\dagger$ & category router $\to$ solver / SLM & n/a & latency, energy & yes & yes & no \\
 \midrule
@@ -128,18 +130,19 @@ This work & rules $\to$ encoder $\to$ SLM & yes & latency, RAM & yes & yes & Hin
 calibrated confidence is high enough~\citep{schwartz2020righttool,xin2020deebert,zhou2020pabee}. Cascades of complete
 models of increasing size follow the same idea across models~\citep{li2021cascadebert,khalili2022babybear,
 varshney2022modelcascading}, and \citet{rotem2023sweet} compare the two designs. C3~\citep{lu2024c3} calibrates each
-model of a multilingual encoder cascade before thresholding, which is the closest design to our Tier~3 decision, but
-it measures speed-ups in FLOPs.
+model of a cascade of multilingual encoders, or of Llama-2 chat models, before thresholding, which is the closest design
+to our Tier~3 decision, but it measures speed-ups in FLOPs.
 
 \paragraph{LLM routing and cascades.} FrugalGPT~\citep{chen2023frugalgpt}, RouteLLM~\citep{ong2024routellm},
 AutoMix~\citep{aggarwal2024automix} and token-level deferral rules~\citep{gupta2024lmcascades} route between language
 models of different cost, with benchmarks such as RouterBench~\citep{hu2024routerbench}. \citet{ramirez2024twotier}
 defer on the small model's margin alone, and \citet{dekoninck2025cascaderouting} unify routing and cascading in one
-framework. CAUC~\citep{zhang2026cauc} calibrates every model, picks one shared threshold on validation data under a
-budget, and proves that a calibrated threshold bounds accepted accuracy; our RQ2 replicates this idea rather than
-proposing it. Two cautions shaped our protocol. \citet{wang2026misguided} find that the commercial routers they study do
+framework. CAUC~\citep{zhang2026cauc} calibrates every model so that one threshold can be shared across the cascade (a
+budgeted variant picks it on validation data), and proves that calibration bounds the accuracy of accepted answers; our
+RQ2 replicates this idea rather than proposing it. Two cautions shaped our protocol. \citet{wang2026misguided} find that the commercial routers they study do
 not beat random routing between two well-chosen models at matched cost, so we include a cost-matched random baseline. \citet{jitkrittum2023deferral} show that
-confidence-based deferral is weakest under distribution shift, which motivates the language-stratified analysis (RQ7).
+confidence-based deferral can fail under distribution shift, among other settings, which motivates the
+language-stratified analysis (RQ7).
 A recent survey~\citep{moslem2026routingsurvey} covers the field.
 
 \paragraph{Calibration and selective prediction.} Temperature scaling~\citep{guo2017calibration} fits one scalar per
@@ -148,15 +151,15 @@ risk at a given coverage, which is the view we take of every system.
 
 \paragraph{On-device inference.} \citet{chuang2025ondevice} study SLM-to-LLM routing for on-device settings,
 \citet{kag2023edgeselective} train an edge classifier that defers hard cases to the cloud, and
-\citet{chaganti2026ondevicener} cascade NER encoders on a laptop with a cost-matched random baseline.
+\citet{chaganti2026ondevicener} cascade NER encoders on an Apple M4 Pro machine with a cost-matched random baseline.
 \citet{sadhu2026neurosymbolic} route by category, before inference, to symbolic solvers or a CPU-quantized SLM on a
-Raspberry Pi and measure energy; their router never escalates on low confidence. \citet{islam2025energy} measure SLMs on
+Raspberry Pi and measure energy; their router escalates only when a solver fails, never on low confidence. \citet{islam2025energy} measure SLMs on
 edge boards, and \citet{lim2026adahome} route requests by intent to prompt-based or lightweight
 reasoning components.
 
 \paragraph{Intent detection, out-of-scope requests and code-mixing.} CLINC150~\citep{larson2019clinc} added
 out-of-scope requests to intent benchmarks, BANKING77~\citep{casanueva2020banking77} fine-grained intents, and
-\citet{zhang2021idoos} show that in-domain out-of-scope requests are harder than random ones. Sentence encoders such as
+\citet{zhang2021idoos} show that in-domain out-of-scope requests are much harder to detect than out-of-domain ones. Sentence encoders such as
 Sentence-BERT~\citep{reimers2019sbert} and multilingual E5~\citep{wang2024me5} give strong frozen features.
 \citet{arora2024intentllm} route from a SetFit encoder to a cloud LLM on uncertainty, and
 \citet{rodrigues2026llmvsnlu} find classifiers cheap where labels exist and LLMs stronger on out-of-scope requests.
@@ -172,8 +175,9 @@ weights. Replay of stored examples is a strong baseline, and we measure forgetti
 \section{Problem Formulation}\label{sec:problem}
 
 Each request is a text $x$ with a gold label $y\in\mathcal{Y}\cup\{\bot\}$, where $\mathcal{Y}$ is the set of supported
-intents and $\bot$ marks an out-of-scope (OOS) request; the Kestrel data also has \emph{compound} requests that carry two
-intents. A system returns either an intent $\hat y\in\mathcal{Y}$ (possibly the explicit OOS label) or an abstention.
+intents and $\bot$ marks an out-of-scope (OOS) request; the Kestrel data also has \emph{compound} requests that carry two or
+three intents. A system returns either a label $\hat y$ (an intent in $\mathcal{Y}$, or an explicit OOS label where the
+label set has one) or an abstention.
 Scoring follows the pre-registration: an in-scope item is correct if and only if $\hat y=y$, and \emph{abstention counts
 as an error}; an OOS item is correct if the system abstains or predicts the OOS label; a compound item is correct if it
 is not accepted as a single intent below Tier~4.
@@ -349,8 +353,8 @@ significance testing and reporting in NLP~\citep{dror2018hitchhiker,dodge2019sho
 % ---------------------------------------------------------------------------------------------------------------
 \section{Baselines}\label{sec:baselines}
 
-All systems share the same models, prompt templates, grammar and thread count, and each receives the same tuning
-effort: one abstention threshold chosen on validation.
+All systems share the same models, prompt templates, grammar and thread count, and every threshold is chosen on
+validation; each single-model baseline gets one abstention threshold.
 \textbf{R0} always uses the SLM (Tier~4) and abstains below a tuned threshold on its calibrated confidence;
 \textbf{R0 untuned} always answers. \textbf{R1} uses the encoder head alone with a tuned threshold.
 \textbf{R2} is the cascade on raw confidences with one shared threshold, and \textbf{R2c} the same with calibrated
@@ -358,7 +362,8 @@ confidences (used for RQ2). \textbf{R3} is the calibrated cascade with per-tier 
 Eq.~\eqref{eq:op}. \textbf{R-rand} escalates at random with R3's per-tier escalation rates, so its expected cost
 matches R3's; its accuracy is an expectation over at least 1\,000 seeds. For RQ5 the baselines are naive fine-tuning,
 online EWC~\citep{kirkpatrick2017ewc} and replay, with joint training as an upper bound and the stage-0 head as a lower
-bound, all with the same hyperparameter budget (12 configurations per method).
+bound. Naive, EWC and replay each get the same budget of 12 configurations; the two bounds use naive's selected
+learning rate and epochs.
 
 % ---------------------------------------------------------------------------------------------------------------
 \section{Evaluation Metrics}\label{sec:metrics}
@@ -398,9 +403,9 @@ dominates the cascade (R3).}
 
 \subsection{RQ1: the cascade against the single models (E1)}
 
-\paragraph{H1, primary (CLINC150): supported.} At its validation-chosen operating point the cascade answered
-\kv{clinc.r3.tfour} of requests with the SLM, reached accuracy \kv{clinc.r3.acc} against \kv{clinc.r0.acc} for
-the tuned SLM, $\Delta$accuracy \kv{clinc.h1.dacc} (95\% CI \kv{clinc.h1.dacc.ci}), with $\Delta$mean latency
+\paragraph{H1, primary (CLINC150): supported.} At its validation-chosen operating point the cascade sent
+\kv{clinc.r3.tfour} of requests to the SLM (which answered \kv{clinc.r3.tfourans} of all requests and abstained on
+\kv{clinc.r3.abstain}) and reached accuracy \kv{clinc.r3.acc} against \kv{clinc.r0.acc} for the tuned SLM, $\Delta$accuracy \kv{clinc.h1.dacc} (95\% CI \kv{clinc.h1.dacc.ci}), with $\Delta$mean latency
 \kv{clinc.h1.dlat}\ms\ (CI \kv{clinc.h1.dlat.ci}); see Table~\ref{tab:r1}. Both parts of the intersection--union test
 hold, and the result is \kv{clinc.h1.outcome}. Dropping the 14 test items that also occur in other splits
 ($n=\kv{clinc.done.n}$) leaves the accuracy CI at \kv{clinc.done.dacc.ci}. The median latency of requests that the
@@ -436,8 +441,9 @@ more (mean \kv{intents.hi.rthree.mean}\ms\ vs \kv{intents.en.rthree.mean}\ms); t
 
 \begin{table}[t]
 \centering\small
-\caption{Per-tier calibration on test, single-intent in-scope items (E2; Table R2). $T$ is fitted on the calibration
-split; risk is at coverage 0.80 within the tier.}
+\caption{Per-tier calibration on test (E2; Table R2), on single-intent items whose gold label is a class of the Tier-3
+head: in-scope items on CLINC150, and in-scope plus out-of-scope items on Kestrel-Intents-v0, whose head has an
+\texttt{unsupported} class. $T$ is fitted on the calibration split; risk is at coverage 0.80 within the tier.}
 \label{tab:r2}
 \input{generated/table_r2.tex}
 \end{table}
@@ -452,10 +458,12 @@ test sets. The dotted line marks coverage 0.80, where H2 is tested.}
 
 Temperature scaling reduced the encoder head's ECE on CLINC150 from \kv{clinc.tthree.ece.before} to
 \kv{clinc.tthree.ece.after} ($T_3=\kv{clinc.tthree.T}$, so the raw head was under-confident) and Tier~4's from
-\kv{clinc.tfourcal.ece.before} to \kv{clinc.tfourcal.ece.after} (Table~\ref{tab:r2}). For Tier~3 a temperature
-is monotone and cannot reorder requests; for Tier~4, whose confidence multiplies several decoding steps, it can, but
-little. Per-tier selective risk therefore barely moves, and calibration acts by making the tiers' confidences comparable
-under one shared threshold.
+\kv{clinc.tfourcal.ece.before} to \kv{clinc.tfourcal.ece.after} (Table~\ref{tab:r2}). A temperature never
+changes a tier's predicted label, but over many classes it does change the order of confidences across requests (Kendall
+$\tau$ between Tier~3's raw and calibrated confidences: \kv{clinc.tthree.kendall} on CLINC150 test,
+\kv{intents.tthree.kendall} on Kestrel-Intents-v0). Within each tier, selective risk at coverage 0.80 still hardly
+moved (Table~\ref{tab:r2}); calibration acts mainly by making the tiers' confidences comparable under one shared
+threshold.
 
 \paragraph{H2 (CLINC150 supported, Kestrel-Intents-v0 inconclusive).} On CLINC150, calibration lowered selective risk
 at coverage 0.80 from \kv{clinc.risk.rtwo} to \kv{clinc.risk.rtwoc} ($\Delta$ \kv{clinc.risk.diff}, CI
@@ -492,8 +500,10 @@ Updating the head on each new stage alone (naive) forgot almost everything learn
 \kv{e5.stage0.acc}). Replay of 50 stored items per earlier class removed the forgetting
 (\kv{e5.replay.forget}; accuracy \kv{e5.replay.acc}, close to joint training's \kv{e5.joint.acc}).
 \textbf{H5 is supported}: replay minus naive forgetting \kv{e5.h5.diff} (CI \kv{e5.h5.diff.ci}; Wilcoxon over the 15
-paired runs, $p=\kv{e5.h5.p}$). EWC changed forgetting by only \kv{e5.ewc.diff} relative to naive (reported, outside
-the family): the empirical Fisher information was small, and SGD's stability bound capped the penalty weight. The price
+paired runs, $p=\kv{e5.h5.p}$). EWC's selected configuration changed forgetting by only \kv{e5.ewc.diff} relative to
+naive's, which used a different learning rate (reported, outside the family). On the development runs, with learning
+rate and epochs matched, the penalty left naive's results unchanged at every penalty weight in the grid: the empirical
+Fisher information was small, and SGD's stability bound capped the penalty weight. The price
 of replay is its buffer, which stores half of every earlier class's training items (Table~\ref{tab:r6}).
 
 \subsection{All pre-registered hypotheses}
@@ -516,7 +526,8 @@ inconclusive and two are pending.
 \begin{table}[t]
 \centering\small
 \caption{Tier ablation on test (E3; Table R3); each set is tuned on validation by the same rule. On CLINC150 the rules
-cannot answer, so only $\{4\}$ and $\{3,4\}$ apply.}
+cannot answer, so only $\{4\}$ and $\{3,4\}$ apply. Cost is the sum of the consulted tiers' step times measured in E1,
+so its p95 can differ slightly from the end-to-end latency of the same system in Table~\ref{tab:r1}.}
 \label{tab:r3}
 \input{generated/table_r3.tex}
 \end{table}
@@ -529,14 +540,20 @@ $p=\kv{fam.H3.holm}$ (Table~\ref{tab:r3}). On CLINC150, \tierset{3,4} against \t
 untested.
 
 \paragraph{The rules cost accuracy on test.} \tierset{1,4} was less accurate than \tierset{4} (\kv{intents.set14.acc}
-vs \kv{intents.set4.acc}) for a small saving (\kv{intents.set14.cost} vs \kv{intents.set4.cost}\ms), and the best
-point on the Kestrel test frontier was \tierset{3,4} (\kv{intents.set34.acc} at \kv{intents.set34.cost}\ms). The
+vs \kv{intents.set4.acc}) for a small saving (\kv{intents.set14.cost} vs \kv{intents.set4.cost}\ms), and
+\tierset{3,4} was more accurate than the full cascade \tierset{1,3,4} (\kv{intents.set34.acc} vs
+\kv{intents.set134.acc}) at almost the same cost (\kv{intents.set34.cost} vs \kv{intents.set134.cost}\ms). The
 failure analysis (Section~\ref{sec:discussion}) shows why.
 
-\paragraph{Calibration.} RQ2 is the calibration ablation (Section~\ref{sec:results}). On the validation
-accuracy--cost frontier, temperature scaling did not move the cascade's points (a development finding): a per-tier
-threshold absorbs a monotone temperature, and on the frontier Tier~4 always answers. Its effect is on abstention quality
-under a shared threshold.
+\paragraph{Calibration.} RQ2 is the calibration ablation (Section~\ref{sec:results}). With per-tier thresholds,
+calibration did not make the cascade cheaper. In an exploratory check made after the test results, the validation
+search of Eq.~\eqref{eq:op} run on raw confidences reached the same accuracy (\kv{clinc.valop.acc} on CLINC150,
+\kv{intents.valop.acc} on Kestrel-Intents-v0) at a lower mean cost than the calibrated search that chose R3
+(\kv{clinc.valop.raw.cost} vs \kv{clinc.valop.cal.cost}\ms; \kv{intents.valop.raw.cost} vs
+\kv{intents.valop.cal.cost}\ms). A development note, repeated in the pre-registration, had stated that a temperature
+cannot move this frontier. It assumed that a temperature keeps the order of confidences, which holds within one request
+but not across requests (Section~\ref{sec:results}), and on CLINC150 Tier~4 also abstains at the operating point.
+Calibration's measured benefit is abstention quality under one shared threshold (H2).
 
 % ---------------------------------------------------------------------------------------------------------------
 \section{Discussion}\label{sec:discussion}
@@ -555,9 +572,10 @@ with an in-scope intent. The operating point accepts Tier~3 at confidence $\ge\k
 point that met the floor on validation, while R1 abstains below \kv{err.clinc.tau.rone}; \kv{err.clinc.band}
 out-of-scope test requests fall between the two, and the cascade answers them. OOS requests were
 \kv{err.clinc.oos.val} of validation but \kv{err.clinc.oos.test} of test, so a threshold chosen for cost on validation
-under-weights them. This is a shift in the OOS rate, not a calibration failure (Tier~3's test ECE after scaling is
-\kv{clinc.tthree.ece.after}), and it matches the known weakness of confidence-based deferral under
-shift~\citep{jitkrittum2023deferral}. Remedies to test in a new, pre-registered version: a reject band at Tier~3, an OOS
+under-weights them. Part of the loss is therefore a shift in the OOS rate, which matches the finding that
+confidence-based deferral can fail under distribution shift~\citep{jitkrittum2023deferral}. Whether Tier~3 is also
+miscalibrated on OOS requests is open: its test ECE after scaling (\kv{clinc.tthree.ece.after}) covers in-scope items
+only, and its temperature was fitted on in-scope calibration items, since OOS requests have no head class. Remedies to test in a new, pre-registered version: a reject band at Tier~3, an OOS
 detector before Tier~3, or a validation set with the deployment's OOS share.
 
 \paragraph{Why the rules hurt on Kestrel-Intents-v0 (exploratory).} Of the cascade's \kv{err.intents.errors} errors,
@@ -568,8 +586,8 @@ a signal word, so tuning could not see the gap. A wider signal is a post-hoc cha
 \paragraph{Practical guidance.} (1) Measure the OOS share of real traffic and choose the operating point on data that
 matches it. (2) Report the encoder alone with a tuned threshold as a baseline: it is cheap and, on CLINC150, the system
 to beat. (3) A cascade saves latency, not memory: keeping a 4-bit SLM resident costs about \kv{clinc.r0.rss}~MiB
-whether or not most requests use it. (4) Calibrate when one threshold compares confidences across tiers; with per-tier
-thresholds the frontier does not change.
+whether or not most requests use it. (4) Calibrate when one threshold compares confidences across tiers (H2); with per-tier
+thresholds, calibration brought no saving on validation here (Section~\ref{sec:ablation}).
 
 % ---------------------------------------------------------------------------------------------------------------
 \section{Threats to Validity}\label{sec:threats}
@@ -594,7 +612,8 @@ measured.
 be ruled out, but it would favour R0, against which the cascade was compared.
 
 \paragraph{Statistical.} The family's adjusted p-values are interim until H4 and H6 run. The margin $\delta$ was frozen
-before the mentor confirmed the smallest effect of interest; a larger one would turn H1 into a sensitivity analysis.
+before the mentor confirmed the smallest effect of interest. If that is set larger, H1, H1c, H3 and H7a are also
+reported at the larger margin as a sensitivity analysis; the primary test stays at $\delta=\kv{delta}$.
 
 % ---------------------------------------------------------------------------------------------------------------
 \section{Limitations}\label{sec:limits}
@@ -616,12 +635,13 @@ connection as a positive control), no files opened outside the allowed roots, an
 telemetry and gone from the database after deletion.
 
 \paragraph{Consent for learning.} Kestrel asks before it stores a correction or a learned alias, and the user can list,
-export, delete or purge the memory. The replay buffer that prevents forgetting (RQ5) keeps users'
-own request texts; storing or training on user text carries a memorization risk~\citep{carlini2021extracting}, and
-formal guarantees such as differential privacy~\citep{abadi2016dpsgd} were not applied.
+export or delete stored items and purge expired ones. The replay buffer that prevents forgetting (RQ5) keeps an embedding
+of each stored request, which is derived from the user's text and should be treated as personal data; storing or
+training on user text carries a memorization risk~\citep{carlini2021extracting}, and formal guarantees such as
+differential privacy~\citep{abadi2016dpsgd} were not applied.
 
 \paragraph{Tools.} Tools are allow-listed, confined to the notes folder by a path sandbox that rejects traversal and
-symbolic links, and destructive actions ask first.
+symbolic links that lead outside it, and destructive actions ask first.
 
 \paragraph{Synthetic data and AI assistance.} Kestrel-Intents-v0 and the draft persona and task sets are synthetic,
 were drafted with an AI coding assistant, and describe no real person. The code and analysis scripts were also written
@@ -646,8 +666,8 @@ multilingual-e5-small MIT, Kestrel's code MIT or Apache-2.0.
 % ---------------------------------------------------------------------------------------------------------------
 \section{Conclusion}\label{sec:conclusion}
 
-On one laptop CPU and under a frozen protocol, a calibrated rules--encoder--SLM cascade was as accurate as always using
-the SLM, and faster, on CLINC150 ($\Delta$accuracy \kv{clinc.h1.dacc}, $\Delta$mean latency
+On one laptop CPU and under a frozen protocol, the calibrated cascade (encoder then SLM on CLINC150, with keyword rules
+in front on the synthetic set) was as accurate as always using the SLM, and faster, on CLINC150 ($\Delta$accuracy \kv{clinc.h1.dacc}, $\Delta$mean latency
 \kv{clinc.h1.dlat}\ms\ per request; RQ1, H1 supported), and its confidence signal beat random escalation at equal cost on both datasets (H1b).
 Calibration lowered selective risk on CLINC150 but not on the synthetic set (RQ2). Adding the encoder to rules and SLM
 changed mean cost by \kv{intents.hthree.dcost}\ms\ per request with accuracy within the margin (RQ3), and replay removed the head's forgetting

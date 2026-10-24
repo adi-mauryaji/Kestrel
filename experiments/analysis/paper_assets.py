@@ -15,7 +15,10 @@ import csv
 import glob
 import json
 import re
+from functools import lru_cache
 from pathlib import Path
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 LOGS = ROOT / "experiments" / "logs"
@@ -81,6 +84,44 @@ def _e0_cv() -> float:
     return max(slm)
 
 
+def _r3_tier4_split(ds: str) -> tuple[float, float]:
+    """(answered at Tier 4, abstained) as shares of all items, from R3's first-repetition E1 test rows. Table R1's
+    "Tier 4" counts every request that consulted Tier 4, including those that then abstained."""
+    rows = [json.loads(line) for f in sorted(glob.glob(str(LOGS / "E1" / f"{ds}_test" / "*" / "rows.jsonl")))
+            for line in Path(f).read_text().splitlines()]
+    r3 = [r for r in rows if r["system"] == "R3" and not r["warmup"] and r["rep"] == 1]
+    answered4 = sum(r["intent"] is not None and r["tier"] == 4 for r in r3)
+    return answered4 / len(r3), sum(r["intent"] is None for r in r3) / len(r3)
+
+
+def _t3_kendall(ds: str, t3: float) -> float:
+    """Kendall's tau between Tier 3's top-class confidence at T = 1 and at its fitted T, on the test tier outputs. A
+    temperature keeps each request's label, but over many classes it can reorder confidences across requests."""
+    from scipy.stats import kendalltau
+    from analyze_e2 import load
+    recs, _ = load(ds, "test")
+    z = np.array([r["t3"]["logits"] for r in recs], dtype=np.float64)
+
+    def top(t):
+        e = np.exp(z / t - (z / t).max(axis=1, keepdims=True))
+        return e.max(axis=1) / e.sum(axis=1)
+    return float(kendalltau(top(1.0), top(t3)).statistic)
+
+
+@lru_cache(maxsize=None)
+def val_operating_points(ds: str) -> dict[str, dict]:
+    """Exploratory, run after the test results: Eq. (op)'s per-tier search on validation (routing signal on, tolerance
+    0), once on raw and once on calibrated confidences. The calibrated run is the search that chose the frozen R3."""
+    import analyze_e2  # noqa: F401  (puts experiments/router on sys.path)
+    import policies as P
+    tiers, oos = P.DATASETS[ds]
+    recs, meta, _ = P.read_tier_outputs(ds)
+    raw, cal, *_ = P.calibrated(recs, P.label_classes(meta, ds), meta["tier3"]["temperature_cal"], oos, tiers)
+    floor = P.reference_acc(cal)
+    return {name: P.best_per_tier(a, {0.0: floor}, "conjunction", tiers)[0][0.0]
+            for name, a in (("raw", raw), ("cal", cal))}
+
+
 def numbers() -> dict[str, str]:
     n: dict[str, str] = {}
     delta = json.loads((LOGS / "router" / "delta_pilot.json").read_text())["delta"]
@@ -98,6 +139,8 @@ def numbers() -> dict[str, str]:
             n[f"{short}.{k}.p95"] = f"{v['latency_ms']['p95']:.0f}"
             n[f"{short}.{k}.rss"] = f"{v['peak_rss_mib']:.0f}"
             n[f"{short}.{k}.tfour"] = f"{100 * v['tier4_share']:.1f}\\%"
+        answered4, abstained = _r3_tier4_split(ds)
+        n[f"{short}.r3.tfourans"], n[f"{short}.r3.abstain"] = f"{100 * answered4:.1f}\\%", f"{100 * abstained:.1f}\\%"
         h = e1["h1"]
         n[f"{short}.h1.dacc"], n[f"{short}.h1.dacc.ci"] = signed(h["accuracy"]["diff"]), ci(h["accuracy"]["ci95"])
         n[f"{short}.h1.dlat"] = signed(h["latency"]["diff_ms"], 0)
@@ -134,6 +177,13 @@ def numbers() -> dict[str, str]:
             k = "tthree" if tier == "3" else "tfourcal"
             n[f"{short}.{k}.ece.before"] = f"{t['ece_before']:.4f}"
             n[f"{short}.{k}.ece.after"] = f"{t['ece_after']:.4f}"
+        n[f"{short}.tthree.kendall"] = f"{_t3_kendall(ds, e2['table_r2']['3']['T']):.2f}"
+        op = val_operating_points(ds)
+        if op["raw"]["acc"] != op["cal"]["acc"]:
+            raise ValueError(f"{ds}: the raw and calibrated validation points differ in accuracy; reword the paper")
+        n[f"{short}.valop.acc"] = f"{op['cal']['acc']:.3f}"
+        n[f"{short}.valop.raw.cost"], n[f"{short}.valop.cal.cost"] = (f"{op['raw']['cost']:.0f}",
+                                                                      f"{op['cal']['cost']:.0f}")
         if "h7b" in e2:
             v = e2["h7b"]["tier3"]
             n["intents.hsevenb.en"], n["intents.hsevenb.hi"] = f"{v['ece_en']:.4f}", f"{v['ece_hi_en']:.4f}"

@@ -50,7 +50,12 @@ Readings (dev, small n; not results):
 - **R3 beats random escalation at matched cost** by 1.5–3.8 pp in-sample (H1b's direction), with 1000 seeds.
 - **Calibration cannot change this frontier.** Tier 1's confidence is one constant and Tier 4 always answers (every
   R3 optimum has τ4 = 0). So the only real decision is one threshold on Tier 3, and a temperature (monotone) only moves
-  where that threshold sits. That is why R2, R2c and R3 match. H2 remains testable as written (selective risk at
+  where that threshold sits. That is why R2, R2c and R3 match. *Correction 2026-10-24 (paper cross-check): a
+  temperature keeps each request's label but not the order of Tier-3 confidences across requests (Kendall τ raw vs
+  calibrated 0.92 on CLINC150 test), and on CLINC150 τ4 > 0. With the current logs the per-tier search on raw
+  confidences is cheaper at the same val accuracy (CLINC150 128 vs 140 ms, Intents-v0 467 vs 478 ms;
+  `paper_assets.val_operating_points`), so this bullet's claim is wrong; PREREG §1 repeats it (frozen, unchanged).*
+  H2 remains testable as written (selective risk at
   coverage 0.80 with one τ for every tier, Tier 4 included): R2 0.049 vs R2c 0.068 risk on ~103 answered items, a
   2-item difference.
 - Hinglish costs more (D11). At δ = 0 with the signal: Tier-4 rate en 0.48 vs hi-en 0.66; mean cost 395 vs 560 ms.

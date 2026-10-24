@@ -1,9 +1,10 @@
+import json
 import re
 from pathlib import Path
 
 import pytest
 
-from paper_assets import ci, fmt_p, numbers, signed, tex_escape, value_lines
+from paper_assets import LOGS, ci, fmt_p, numbers, signed, tex_escape, val_operating_points, value_lines
 
 
 def test_number_formats():
@@ -38,6 +39,28 @@ def test_the_paper_numbers_come_from_the_committed_logs():
     assert len(n) == len(set(n)) and len(n) > 120
     with pytest.raises(KeyError):
         n["no.such.key"]
+
+
+def test_tier4_reach_splits_into_answered_and_abstained():
+    n = numbers()
+    # CLINC150: the SLM is consulted on 17.0% of requests but answers only 6.0%; the other 11.0% abstain.
+    assert (n["clinc.r3.tfour"], n["clinc.r3.tfourans"], n["clinc.r3.abstain"]) == ("17.0\\%", "6.0\\%", "11.0\\%")
+    assert (n["intents.r3.tfourans"], n["intents.r3.abstain"]) == ("53.6\\%", "0.0\\%")
+
+
+def test_a_temperature_reorders_tier3_confidences_across_requests():
+    n = numbers()
+    assert (n["clinc.tthree.kendall"], n["intents.tthree.kendall"]) == ("0.92", "0.94")
+
+
+def test_validation_search_on_raw_vs_calibrated_confidences():
+    clinc = val_operating_points("clinc150")
+    frozen = json.loads((LOGS / "router" / "policies_clinc150.json").read_text())["R3"]["conjunction"]["points"]["0.0"]
+    # The calibrated search is the one that chose the frozen R3 point.
+    assert clinc["cal"]["cost"] == pytest.approx(frozen["cost"]) and clinc["cal"]["tau"] == frozen["tau"]
+    n = numbers()
+    assert (n["clinc.valop.acc"], n["clinc.valop.raw.cost"], n["clinc.valop.cal.cost"]) == ("0.912", "128", "140")
+    assert (n["intents.valop.acc"], n["intents.valop.raw.cost"], n["intents.valop.cal.cost"]) == ("0.984", "467", "478")
 
 
 PAPER = Path(__file__).resolve().parents[2] / "paper"
