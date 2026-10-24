@@ -255,7 +255,7 @@ through \texttt{llama-cpp-2}), \texttt{kestrel-router} (thresholds, latency budg
 \texttt{kestrel-tools} (an allow-listed tool set, a path sandbox, plan validation and execution),
 \texttt{kestrel-memory} (one SQLite file for tasks, preferences and memories), \texttt{kestrel-learning} (corrections
 turned into memory proposals that the user confirms) and \texttt{kestrel-bench} (timing, peak RSS). The command
-\texttt{kestrel ask --notes DIR} runs the assistant on a folder of notes: an accepted intent is planned, the plan is
+\texttt{kestrel ask -{}-notes DIR} runs the assistant on a folder of notes: an accepted intent is planned, the plan is
 validated, and tools run inside the sandbox; deleting a task asks for confirmation. The runtime has no network crate,
 no URL and no shell; Section~\ref{sec:ethics} reports the egress checks. The evaluation harness drives the same
 components.
@@ -273,15 +273,15 @@ components.
 \node[box, draw=orange!70!black, fill=orange!8] (sig) at (2.6,0)
   {normalize;\\[-1pt]conjunction?\\[-1pt]\scriptsize and, then,\\[-2pt]\scriptsize aur, phir, fir};
 \node[tier] (t1) at (5.6,0) {Tier 1\\[-1pt]\scriptsize keyword rules\\[-2pt]\scriptsize $\sim$\,$\mu$s};
-\node[tier] (t3) at (9.25,0) {Tier 3\\[-1pt]\scriptsize e5-small + head, $T_3$\\[-2pt]\scriptsize $\sim$\,5\,ms};
-\node[tier] (t4) at (13.45,0) {Tier 4\\[-1pt]\scriptsize Gemma-4-E2B Q4\_0, $T_4$\\[-2pt]\scriptsize $\sim$\,0.9\,s};
+\node[tier] (t3) at (9.4,0) {Tier 3\\[-1pt]\scriptsize e5-small + head\\[-2pt]\scriptsize $T_3$, $\sim$\,5\,ms};
+\node[tier] (t4) at (13.5,0) {Tier 4\\[-1pt]\scriptsize Gemma-4-E2B Q4\_0\\[-2pt]\scriptsize $T_4$, $\sim$\,0.9\,s};
 \draw[arr] (0,0) node[lab, above right, xshift=-2pt] {request} -- (sig.west);
 \draw[arr] (sig) -- node[lab, above] {no} (t1);
 \draw[arr] (t1) -- node[lab, above] {$p_1<\tau_1$} (t3);
 \draw[arr] (t3) -- node[lab, above] {$p_3<\tau_3$} (t4);
 \draw[arr] (sig.north) -- ++(0,0.8) -| node[lab, pos=0.3, above] {yes: multi-intent, straight to Tier 4} (t4.north);
 \node[box, minimum width=86mm, draw=black!60] (acc) at (8.6,-2.4) {accepted intent \quad $(\hat y,\ p,\ \text{tier})$};
-\node[aux] (abs) at (14.25,-2.4) {abstain\\[-1pt]\scriptsize clarify or refuse};
+\node[aux] (abs) at (14.2,-2.4) {abstain\\[-1pt]\scriptsize clarify or refuse};
 \draw[arr] (t1.south) -- node[lab, right] {$p_1\ge\tau_1$} (t1.south |- acc.north);
 \draw[arr] (t3.south) -- node[lab, right] {$p_3\ge\tau_3$} (t3.south |- acc.north);
 \coordinate (a4) at (12.5,0);
@@ -377,7 +377,7 @@ transfer~\citep{lopezpaz2017gem}.
 
 \begin{table}[t]
 \centering\small
-\caption{Table R1: routing policies on the test sets (E1). Accuracy counts abstention on an in-scope item as an error.
+\caption{Routing policies on the test sets (E1; Table R1 of the protocol). Accuracy counts abstention on an in-scope item as an error.
 Latency is per request on a warm process, model loading excluded; ``Tier 4'' is the share of requests that reached the
 SLM. Kestrel-Intents-v0 is synthetic.}
 \label{tab:r1}
@@ -436,7 +436,7 @@ more (mean \kv{intents.hi.rthree.mean}\ms\ vs \kv{intents.en.rthree.mean}\ms); t
 
 \begin{table}[t]
 \centering\small
-\caption{Table R2: per-tier calibration on test (single-intent, in-scope items). $T$ is fitted on the calibration
+\caption{Per-tier calibration on test, single-intent in-scope items (E2; Table R2). $T$ is fitted on the calibration
 split; risk is at coverage 0.80 within the tier.}
 \label{tab:r2}
 \input{generated/table_r2.tex}
@@ -473,8 +473,8 @@ hardly changed that tier's ECE (\kv{intents.tthree.ece.before} to \kv{intents.tt
 
 \begin{table}[t]
 \centering\small
-\caption{Table R6: class-incremental updates of the Tier-3 head on CLINC150 (10 domains in 5 stages of 2; mean $\pm$
-SD over 15 runs, 3 domain orders $\times$ 5 seeds; configurations selected on validation).}
+\caption{Class-incremental updates of the Tier-3 head on CLINC150 (E5; Table R6): 10 domains in 5 stages of 2, mean
+$\pm$ SD over 15 runs (3 domain orders $\times$ 5 seeds), configurations selected on validation.}
 \label{tab:r6}
 \input{generated/table_r6.tex}
 \end{table}
@@ -515,7 +515,7 @@ inconclusive and two are pending.
 
 \begin{table}[t]
 \centering\small
-\caption{Table R3: tier ablation on test (E3); each set is tuned on validation by the same rule. On CLINC150 the rules
+\caption{Tier ablation on test (E3; Table R3); each set is tuned on validation by the same rule. On CLINC150 the rules
 cannot answer, so only $\{4\}$ and $\{3,4\}$ apply.}
 \label{tab:r3}
 \input{generated/table_r3.tex}
@@ -545,7 +545,7 @@ under a shared threshold.
 Kestrel-Intents-v0 and the encoder alone on CLINC150 (Figure~\ref{fig:frontier}). The cascade sits between them: it
 is much better than the weaker single model on each dataset (\kv{clinc.h1.dacc} over the SLM on CLINC150,
 \kv{intents.h1c.dacc} over the encoder on Kestrel-Intents-v0) and much cheaper than the SLM. Its operating point was
-chosen to match the better single model on validation, which it did; it did not on test. The honest summary is a
+chosen to match the better single model on validation, and it did there, but not on test. The honest summary is a
 hedge: a deployment that cannot know in advance which model suits its traffic loses little with the cascade, but a
 deployment whose traffic resembles CLINC150 would do better with the encoder alone.
 
@@ -631,15 +631,17 @@ author's and are logged with dates.
 % ---------------------------------------------------------------------------------------------------------------
 \section{Reproducibility}\label{sec:repro}
 
+\begin{sloppypar}
 The repository pins the Rust toolchain and crates (\texttt{Cargo.lock}), Python packages (\texttt{requirements.lock}),
 every model by repository, revision and SHA-256 (the encoder GGUF is converted locally by a pinned script), and the
 datasets by commit and SHA-256. Every run writes a manifest with the environment, hashes, checks and a validity flag.
-One command (\texttt{python experiments/repro.py --rerun-e5}) clones the committed state into a scratch directory,
+One command (\texttt{python experiments/repro.py -{}-rerun-e5}) clones the committed state into a scratch directory,
 regenerates every analysis from the raw logs and compares the outputs. At commit \kv{repro.head},
 \kv{repro.identical} of 11 outputs were byte-identical, and the E5 rerun gave equal numbers. This paper's numbers,
 tables and figures are generated from the same logs (\texttt{experiments/analysis/paper\_assets.py}). A reproduction
 on a second machine is planned and has not been done. Licences: CLINC150 CC BY 3.0, Gemma-4 Apache-2.0,
 multilingual-e5-small MIT, Kestrel's code MIT or Apache-2.0.
+\end{sloppypar}
 
 % ---------------------------------------------------------------------------------------------------------------
 \section{Conclusion}\label{sec:conclusion}
