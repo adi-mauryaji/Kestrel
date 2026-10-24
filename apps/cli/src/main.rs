@@ -28,6 +28,8 @@
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod act;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod ask;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod bench_items;
@@ -48,7 +50,7 @@ mod telemetry;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+const USAGE: &str = "usage: kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -137,9 +139,26 @@ fn route(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "llama")]
 fn ask(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let (memory, args) = match args.split_first() {
-        Some((flag, rest)) if flag == "--no-memory" => (None, rest),
-        _ => (Some(memory::default_db(&|k| std::env::var_os(k))?), args),
+    let (mut no_memory, mut brief) = (false, false);
+    let mut notes = std::env::var_os("KESTREL_NOTES")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from);
+    let mut args = args;
+    loop {
+        match args.split_first() {
+            Some((f, rest)) if f == "--no-memory" => (no_memory, args) = (true, rest),
+            Some((f, rest)) if f == "--brief" => (brief, args) = (true, rest),
+            Some((f, rest)) if f == "--notes" => {
+                let (dir, rest) = rest.split_first().ok_or(USAGE)?;
+                (notes, args) = (Some(dir.into()), rest);
+            }
+            _ => break,
+        }
+    }
+    let memory = if no_memory {
+        None
+    } else {
+        Some(memory::default_db(&|k| std::env::var_os(k))?)
     };
     let Some((config, text)) = args.split_first() else {
         return Err(USAGE.into());
@@ -149,6 +168,8 @@ fn ask(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         config.as_ref(),
         (!text.is_empty()).then_some(text.as_str()),
         memory.as_deref(),
+        notes.as_deref(),
+        brief,
     )
 }
 

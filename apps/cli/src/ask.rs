@@ -12,6 +12,11 @@
 //!
 //! With KESTREL_TELEMETRY=<file>, each request also appends a content-free record there
 //! (src/telemetry.rs: tier path and times, decision, RSS; never the text or a label).
+//!
+//! With `--notes DIR` (or KESTREL_NOTES) the request is also carried out (src/act.rs): a request
+//! that joins several (the routing signal) is split and each part routed (ADR-025), then planned by
+//! the templates and run on the notes folder, tasks and preferences going into the memory file; a
+//! delete or a batch of tasks asks y/N first. `--brief` prints only what was found or done.
 
 use std::cell::RefCell;
 use std::fmt::Write as _;
@@ -83,6 +88,8 @@ pub fn run(
     config_path: &std::path::Path,
     once: Option<&str>,
     memory: Option<&std::path::Path>,
+    notes: Option<&std::path::Path>,
+    brief: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::io::{BufRead, Write};
 
@@ -118,6 +125,24 @@ pub fn run(
     }
 
     let mut personal = crate::personal::Personal::open(memory);
+    let mut act = match (notes, memory) {
+        (None, _) => None,
+        (Some(_), None) => {
+            return Err(
+                "--notes needs the memory file (tasks live there): drop --no-memory".into(),
+            );
+        }
+        (Some(dir), Some(mem)) => {
+            let a = crate::act::Act::open(dir, mem)?;
+            eprintln!(
+                "acting on {} ({} files); tasks and preferences in {}",
+                dir.display(),
+                a.documents().len(),
+                mem.display()
+            );
+            Some(a)
+        }
+    };
     let mut n = 0;
     let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
         n += 1;
@@ -134,19 +159,28 @@ pub fn run(
                 return;
             }
             crate::personal::Before::Route { lines, text } => {
-                lines.iter().for_each(|l| println!("{l}"));
+                // --brief leaves out the memory context; alias resolutions and notices stay.
+                lines
+                    .iter()
+                    .filter(|l| !(brief && l.starts_with("memory: ")))
+                    .for_each(|l| println!("{l}"));
                 Request::new(n, &text)
             }
         };
         let t0 = Instant::now();
         let (outcome, trace) = cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
-        print!(
-            "{}",
-            render(&req, &log.borrow(), &outcome, &trace, accept, ms)
-        );
-        for l in personal.after(&req, &outcome, now) {
-            println!("{l}");
+        if !brief {
+            print!(
+                "{}",
+                render(&req, &log.borrow(), &outcome, &trace, accept, ms)
+            );
+        }
+        // Acting, the plan's update_preference step stores a stated preference; otherwise this does.
+        if act.is_none() {
+            for l in personal.after(&req, &outcome, now) {
+                println!("{l}");
+            }
         }
         if sink.is_on() {
             let peak = kestrel_bench::rss::peak_rss_kib();
@@ -158,6 +192,13 @@ pub fn run(
                 unix_s,
                 peak,
             ));
+        }
+        if let Some(act) = act.as_mut() {
+            let routed = routed_parts(&cascade, &req, &outcome, n);
+            let prompt = crate::act::Prompt(std::cell::RefCell::new(confirm));
+            for l in act.carry_out(routed.as_deref(), n, now, &prompt) {
+                println!("{l}");
+            }
         }
     };
     if let Some(text) = once {
@@ -201,6 +242,36 @@ pub fn run(
         };
         ask(line.trim(), &mut confirm);
         println!();
+    }
+}
+
+/// What `act` plans from: a request that joins several (the routing signal) is split and each part
+/// routed (ADR-025); otherwise the routed request itself. None when the cascade, or a part, abstained.
+#[cfg(feature = "llama")]
+fn routed_parts(
+    cascade: &kestrel_router::Cascade<'_, Intent>,
+    req: &Request,
+    outcome: &Outcome<Intent>,
+    id: u64,
+) -> Option<Vec<(Intent, String)>> {
+    if kestrel_core::features::has_conjunction(&req.text) {
+        let parts = kestrel_tools::compound::split(&req.text);
+        if parts.len() > 1 {
+            return parts
+                .into_iter()
+                .enumerate()
+                .map(
+                    |(k, part)| match cascade.route(&Request::new(id * 100 + k as u64, &part)).0 {
+                        Outcome::Accepted(p) => Some((p.intent, part)),
+                        Outcome::Abstained { .. } => None,
+                    },
+                )
+                .collect();
+        }
+    }
+    match outcome {
+        Outcome::Accepted(p) => Some(vec![(p.intent, req.text.clone())]),
+        Outcome::Abstained { .. } => None,
     }
 }
 
