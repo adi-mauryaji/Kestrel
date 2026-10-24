@@ -1,0 +1,275 @@
+{
+ "exploratory": true,
+ "clinc150": {
+  "n": 5500,
+  "n_oos": 1000,
+  "r3_errors": 692,
+  "breakdown": [
+   {
+    "scope": "out of scope",
+    "tier": 3,
+    "answered": true,
+    "n": 384
+   },
+   {
+    "scope": "in scope",
+    "tier": 3,
+    "answered": true,
+    "n": 107
+   },
+   {
+    "scope": "out of scope",
+    "tier": 4,
+    "answered": true,
+    "n": 90
+   },
+   {
+    "scope": "in scope",
+    "tier": 4,
+    "answered": false,
+    "n": 87
+   },
+   {
+    "scope": "in scope",
+    "tier": 4,
+    "answered": true,
+    "n": 24
+   }
+  ],
+  "r1_vs_r3": {
+   "a_right_b_wrong": 261,
+   "a_wrong_b_right": 157,
+   "both_wrong": 431
+  },
+  "tau3": {
+   "R3": 0.6009338585560773,
+   "R1": 0.7823746134308878
+  },
+  "oos_accepted_in_band": 149,
+  "oos_errors": 474,
+  "confusions_in_scope": [
+   {
+    "gold": "pin_change",
+    "pred": "change_ai_name",
+    "n": 5,
+    "examples": [
+     "i would like to change the name on my checking account",
+     "i would like to change the name on my credit card account"
+    ]
+   },
+   {
+    "gold": "redeem_rewards",
+    "pred": "rewards_balance",
+    "n": 5,
+    "examples": [
+     "what are my mastercard points good for",
+     "what are the steps to get my rewards for my visa card"
+    ]
+   },
+   {
+    "gold": "transactions",
+    "pred": "spending_history",
+    "n": 4,
+    "examples": [
+     "what have i spent things on",
+     "show what i have spent things on"
+    ]
+   },
+   {
+    "gold": "calendar",
+    "pred": "calendar_update",
+    "n": 4,
+    "examples": [
+     "did i mark the mechanic's appointment on my calendar",
+     "have i gotten around to adding the bike ride to my calendar yet"
+    ]
+   },
+   {
+    "gold": "ingredients_list",
+    "pred": "recipe",
+    "n": 4,
+    "examples": [
+     "give me a recipe for tacos",
+     "what's a good recipe foe tacos"
+    ]
+   }
+  ],
+  "confusions_oos": [
+   {
+    "gold": "oos",
+    "pred": "weather",
+    "n": 20,
+    "examples": [
+     "how many hurricanes are in an average hurricane season",
+     "how many people died in yesterday's storm"
+    ]
+   },
+   {
+    "gold": "oos",
+    "pred": "smart_home",
+    "n": 19,
+    "examples": [
+     "how do i install new cabinets",
+     "what is the best way to clean ceiling fans"
+    ]
+   },
+   {
+    "gold": "oos",
+    "pred": "order",
+    "n": 18,
+    "examples": [
+     "i need to find a black suit under $100",
+     "show me laptops for sale that are under $2,000"
+    ]
+   },
+   {
+    "gold": "oos",
+    "pred": "calculator",
+    "n": 17,
+    "examples": [
+     "what makes pi so mathematically important",
+     "why can you have the square root of a negative number"
+    ]
+   },
+   {
+    "gold": "oos",
+    "pred": "fun_fact",
+    "n": 16,
+    "examples": [
+     "what big news happened over the weekend",
+     "what's going on in the world today, anything major"
+    ]
+   }
+  ]
+ },
+ "intents_v0": {
+  "missed_families": [
+   "cmp-08",
+   "cmp-09"
+  ],
+  "val_compounds": 24,
+  "val_compounds_unflagged": 0,
+  "n": 252,
+  "r3_errors": [
+   {
+    "id": "cmp-08/en/0/0",
+    "lang": "en",
+    "text": "what do you remember about my manager? also find my notes on exam preparation",
+    "gold": "retrieve_memory|search_notes",
+    "pred": "retrieve_memory",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "cmp-08/en/0/1",
+    "lang": "en",
+    "text": "what do you remember about my sister? also find my notes on python decorators",
+    "gold": "retrieve_memory|search_notes",
+    "pred": "retrieve_memory",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "cmp-08/en/0/2",
+    "lang": "en",
+    "text": "what do you remember about my morning routine? also find my notes on budget meeting",
+    "gold": "retrieve_memory|search_notes",
+    "pred": "retrieve_memory",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "cmp-09/en/0/0",
+    "lang": "en",
+    "text": "i prefer replies in hinglish, now summarize my marketing plan notes",
+    "gold": "set_preference|summarize_notes",
+    "pred": "set_preference",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "cmp-09/en/0/1",
+    "lang": "en",
+    "text": "i prefer bullet points, now summarize my research paper notes",
+    "gold": "set_preference|summarize_notes",
+    "pred": "set_preference",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "cmp-09/en/0/2",
+    "lang": "en",
+    "text": "i prefer a formal tone, now summarize my python decorators notes",
+    "gold": "set_preference|summarize_notes",
+    "pred": "set_preference",
+    "tier": 1,
+    "confidence": 1.0,
+    "scope": "compound"
+   },
+   {
+    "id": "delete-20/hi-en/0/1",
+    "lang": "hi-en",
+    "text": "reminder hatao: ravi ko report bhejna",
+    "gold": "delete_task",
+    "pred": "create_task",
+    "tier": 3,
+    "confidence": 0.9744788408279419,
+    "scope": "in scope"
+   },
+   {
+    "id": "oos-music-02/en/0/0",
+    "lang": "en",
+    "text": "skip this song",
+    "gold": "unsupported",
+    "pred": "chitchat",
+    "tier": 3,
+    "confidence": 0.967930018901825,
+    "scope": "out of scope"
+   }
+  ],
+  "breakdown": [
+   {
+    "scope": "compound",
+    "tier": 1,
+    "answered": true,
+    "n": 6
+   },
+   {
+    "scope": "in scope",
+    "tier": 3,
+    "answered": true,
+    "n": 1
+   },
+   {
+    "scope": "out of scope",
+    "tier": 3,
+    "answered": true,
+    "n": 1
+   }
+  ],
+  "compound_accepted_below_tier4": 6,
+  "conjunctions": [
+   "and",
+   "then",
+   "aur",
+   "phir",
+   "fir"
+  ],
+  "r0_vs_r3": {
+   "a_right_b_wrong": 8,
+   "a_wrong_b_right": 0,
+   "both_wrong": 0
+  },
+  "tier1_errors": 6,
+  "by_lang": {
+   "en": 7,
+   "hi-en": 1
+  }
+ },
+ "val_oos_share": 0.11764705882352941
+}
