@@ -99,6 +99,36 @@ pub fn run(
     let list = std::path::Path::new("datasets/contracts").join(&cfg.models.tier4.labels);
     let intents =
         crate::labels::Intents::check(&crate::labels::parse_list(&std::fs::read_to_string(list)?))?;
+    // The notes folder is checked before the models load, so a wrong path fails at once.
+    let mut act = match (notes, memory) {
+        (None, _) => None,
+        (Some(_), None) => {
+            return Err(
+                "--notes needs the memory file (tasks live there): drop --no-memory".into(),
+            );
+        }
+        (Some(dir), Some(_)) if !dir.is_dir() => {
+            return Err(format!(
+                "no notes folder at {}: create it (mkdir -p {}) and put your notes in it (.md or .txt), \
+                 or name a folder that exists",
+                dir.display(),
+                dir.display()
+            )
+            .into());
+        }
+        (Some(dir), Some(mem)) => {
+            let a = crate::act::Act::open(dir, mem)?;
+            match a.documents().len() {
+                0 => eprintln!(
+                    "{} has no notes yet: searches will find nothing",
+                    dir.display()
+                ),
+                k => eprintln!("acting on {} ({k} files)", dir.display()),
+            }
+            eprintln!("tasks and preferences in {}", mem.display());
+            Some(a)
+        }
+    };
     eprintln!("loading models (encoder, SLM) and priming the Tier-4 prompt...");
     let t0 = Instant::now();
     let models = crate::route_items::Models::load(config_path)?;
@@ -125,24 +155,6 @@ pub fn run(
     }
 
     let mut personal = crate::personal::Personal::open(memory);
-    let mut act = match (notes, memory) {
-        (None, _) => None,
-        (Some(_), None) => {
-            return Err(
-                "--notes needs the memory file (tasks live there): drop --no-memory".into(),
-            );
-        }
-        (Some(dir), Some(mem)) => {
-            let a = crate::act::Act::open(dir, mem)?;
-            eprintln!(
-                "acting on {} ({} files); tasks and preferences in {}",
-                dir.display(),
-                a.documents().len(),
-                mem.display()
-            );
-            Some(a)
-        }
-    };
     let mut n = 0;
     let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
         n += 1;

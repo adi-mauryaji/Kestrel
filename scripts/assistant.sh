@@ -11,6 +11,11 @@ if [[ -z $NOTES ]]; then
   echo "usage: scripts/assistant.sh NOTES_DIR   (or set KESTREL_NOTES)" >&2
   exit 2
 fi
+if [[ ! -d $NOTES ]]; then
+  echo "no notes folder at $NOTES: create it (mkdir -p $NOTES) and put your notes in it (.md or .txt)," >&2
+  echo "or name a folder that exists" >&2
+  exit 2
+fi
 BIN=target/release/kestrel
 if [[ ! -x $BIN ]]; then
   cargo build --release -p kestrel-cli --features llama
