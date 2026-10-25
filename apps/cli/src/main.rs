@@ -49,6 +49,7 @@ mod memory;
 mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod remind;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod remote;
@@ -58,6 +59,8 @@ mod route_items;
 mod service;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod telemetry;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod times;
 
 use std::process::ExitCode;
 

@@ -6,8 +6,10 @@
 //! preferences go into the memory file (a second connection to the one `ask` personalizes with). The
 //! tool policy asks before a delete, a batch of more than three tasks, or a preference not stated in
 //! this turn. What was found or done comes back as lines to print; the runner's own log stays
-//! content-free. Not here: plans only the model could make (ADR-025's LM fallback), and reminders at
-//! their due time.
+//! content-free. Not here: plans only the model could make (ADR-025's LM fallback).
+//!
+//! Stage 2 (ADR-034): a time said in a task request ("at 5 pm", "shaam 6 baje", src/times.rs) is
+//! taken out before the template runs and put on the tasks the plan created; the service rings it.
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -25,6 +27,8 @@ use kestrel_tools::runner::{MarkedItems, Runner};
 use kestrel_tools::sandbox::Sandbox;
 use kestrel_tools::templates::{self, Context, Proposal};
 use kestrel_tools::tools::{Confirm, Policy};
+
+use crate::times::Said;
 
 /// A document is shown up to this many lines; a search lists up to this many notes.
 const SHOW_LINES: usize = 40;
@@ -80,7 +84,8 @@ impl Act {
     /// A task command (ADR-034) on the memory file; what was done, as lines to print.
     pub fn command(&mut self, cmd: &crate::commands::Command, now: i64) -> Vec<String> {
         let today = self.today(now);
-        crate::commands::run(cmd, self.backend.memory_mut(), today)
+        let minute = crate::clock::local_minute(now, self.utc_offset);
+        crate::commands::run(cmd, self.backend.memory_mut(), today, minute)
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
@@ -117,11 +122,29 @@ impl Act {
         let Some(parts) = routed.filter(|p| !p.is_empty()) else {
             return vec!["I'm not sure what you mean. Try saying it another way.".into()];
         };
-        match self.propose(parts, self.today(now)) {
+        // Each task part's time (or None), in order; the parts without their time words.
+        let mut said = Vec::new();
+        let parts: Vec<(Intent, String)> = parts
+            .iter()
+            .map(|(intent, text)| match intent {
+                Intent::CreateTask => match crate::times::take(text) {
+                    Some((rest, s)) => {
+                        said.push(Some(s));
+                        (*intent, rest)
+                    }
+                    None => {
+                        said.push(None);
+                        (*intent, text.clone())
+                    }
+                },
+                _ => (*intent, text.clone()),
+            })
+            .collect();
+        match self.propose(&parts, self.today(now)) {
             Proposal::Plan(mut wire) => {
                 resolve_documents(&mut wire, &self.documents());
-                let stated = matches!(parts, [(Intent::SetPreference, _)]);
-                self.run(&wire.to_string(), stated, id, now, confirm)
+                let stated = matches!(parts[..], [(Intent::SetPreference, _)]);
+                self.run(&wire.to_string(), stated, id, now, confirm, &said)
             }
             Proposal::Clarify(slot) => vec![clarify(slot)],
             // One part no template fits: usually notes it cannot pick out; several: a plan only the model
@@ -133,7 +156,7 @@ impl Act {
             Proposal::NeedsModel => {
                 vec!["That needs several steps I can't plan yet. Try asking for one thing at a time.".into()]
             }
-            Proposal::NoAction => vec![no_action(parts)],
+            Proposal::NoAction => vec![no_action(&parts)],
         }
     }
 
@@ -144,6 +167,7 @@ impl Act {
         id: u64,
         now: i64,
         confirm: &dyn Confirm,
+        said: &[Option<Said>],
     ) -> Vec<String> {
         let plan = match plan::parse(wire) {
             Ok(p) => p,
@@ -168,15 +192,60 @@ impl Act {
             &Deadline::after(Duration::from_secs(60)),
             |n, i, a| runner.run(n, i, a),
         );
-        let created: Vec<TaskRow> = self
-            .backend
-            .memory()
-            .tasks()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|t| !before.contains(&t.id))
-            .collect();
-        render(&plan, &ex, &created)
+        let new = |a: &Self| -> Vec<TaskRow> {
+            a.backend
+                .memory()
+                .tasks()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|t| !before.contains(&t.id))
+                .collect()
+        };
+        let note = self.set_times(&new(self), said, now);
+        let mut out = render(&plan, &ex, &new(self));
+        out.extend(note);
+        out
+    }
+
+    /// Puts the times said onto the tasks just created: one each, in order, when there are as many
+    /// tasks as task parts; else one time on all of them. A task without a date gets today's, or
+    /// tomorrow's once the time has passed. A line when the times could not be matched.
+    fn set_times(
+        &mut self,
+        created: &[TaskRow],
+        said: &[Option<Said>],
+        now: i64,
+    ) -> Option<String> {
+        let times: Vec<Said> = said.iter().flatten().copied().collect();
+        if times.is_empty() || created.is_empty() {
+            return None;
+        }
+        let each: Vec<Option<Said>> = if said.len() == created.len() {
+            said.to_vec()
+        } else if times.iter().all(|t| *t == times[0]) {
+            vec![Some(times[0]); created.len()]
+        } else {
+            return Some("I couldn't tell which time goes with which task.".into());
+        };
+        let (today, minute) = (
+            self.today(now),
+            crate::clock::local_minute(now, self.utc_offset),
+        );
+        let memory = self.backend.memory_mut();
+        for (t, s) in created.iter().zip(each) {
+            let Some(s) = s else { continue };
+            let due = t.due.as_deref().and_then(Date::parse);
+            let (date, m) = crate::times::resolve(s, due, today, minute);
+            if due != Some(date)
+                && let Err(e) = memory.update_task(t.id, None, Some(Some(&date.to_string())))
+            {
+                return Some(format!("could not set the date of task #{}: {e}", t.id));
+            }
+            if let Err(e) = memory.set_task_time(t.id, Some(&crate::times::hhmm(m))) {
+                return Some(format!("could not set the time of task #{}: {e}", t.id));
+            }
+        }
+        None
     }
 
     fn task_ids(&self) -> HashSet<i64> {
@@ -290,9 +359,10 @@ fn show(op: &Op, data: Option<&Data>) -> Vec<String> {
 }
 
 fn task_line(t: &TaskRow) -> String {
-    match &t.due {
-        Some(d) => format!("created task #{}: {} (due {d})", t.id, t.title),
-        None => format!("created task #{}: {}", t.id, t.title),
+    match (&t.due, &t.due_time) {
+        (Some(d), Some(h)) => format!("created task #{}: {} (due {d} {h})", t.id, t.title),
+        (Some(d), None) => format!("created task #{}: {} (due {d})", t.id, t.title),
+        _ => format!("created task #{}: {}", t.id, t.title),
     }
 }
 
@@ -438,6 +508,77 @@ mod tests {
             &yes(),
         );
         assert_eq!(out, ["created task #1: call asha (due 2026-10-24)"]);
+    }
+
+    #[test]
+    fn a_time_said_goes_onto_the_task_not_into_its_title() {
+        let ten_am = NOW + 10 * 3600;
+        let mut a = setup("time");
+        let create = |a: &mut Act, text: &str, now: i64| {
+            a.carry_out(Some(&one(Intent::CreateTask, text)), 1, now, &yes())
+        };
+        assert_eq!(
+            create(&mut a, "remind me to call asha at 5 pm", ten_am),
+            ["created task #1: call asha (due 2026-10-23 17:00)"]
+        );
+        // Already past today: tomorrow.
+        assert_eq!(
+            create(&mut a, "remind me to buy milk at 9:30 am", ten_am),
+            ["created task #2: buy milk (due 2026-10-24 09:30)"]
+        );
+        assert_eq!(
+            create(
+                &mut a,
+                "remind me to pay rent tomorrow at 6 o'clock",
+                ten_am
+            ),
+            ["created task #3: pay rent (due 2026-10-24 18:00)"]
+        );
+        assert_eq!(
+            create(
+                &mut a,
+                "kal shaam 6 baje asha ko call karna yaad dilana",
+                ten_am
+            ),
+            ["created task #4: asha ko call karna (due 2026-10-24 18:00)"]
+        );
+        let row = a.backend.memory().tasks().unwrap().remove(0);
+        assert_eq!(
+            (row.due_time.as_deref(), row.notified_at),
+            (Some("17:00"), None)
+        );
+    }
+
+    #[test]
+    fn two_tasks_get_their_own_times_and_other_requests_keep_theirs() {
+        let ten_am = NOW + 10 * 3600;
+        let mut a = setup("two_times");
+        let parts = vec![
+            (
+                Intent::CreateTask,
+                "remind me to call asha at 5 pm".to_string(),
+            ),
+            (Intent::CreateTask, "buy milk at 7 pm".to_string()),
+        ];
+        let out = a.carry_out(Some(&parts), 1, ten_am, &yes());
+        assert_eq!(
+            out,
+            [
+                "created task #1: call asha (due 2026-10-23 17:00)",
+                "created task #2: buy milk (due 2026-10-23 19:00)"
+            ]
+        );
+        // Only task requests lose their time words.
+        let out = joined(&a.carry_out(
+            Some(&one(
+                Intent::SearchNotes,
+                "search my notes for budget at 5 pm",
+            )),
+            2,
+            ten_am,
+            &yes(),
+        ));
+        assert_eq!(out, "no notes matched", "the query kept \"at 5 pm\"");
     }
 
     #[test]

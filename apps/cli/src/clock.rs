@@ -35,6 +35,11 @@ pub fn local_date(now: i64, offset: i64) -> Date {
     Date::from_days((now + offset).div_euclid(86_400))
 }
 
+/// Minutes after local midnight at Unix time `now`.
+pub fn local_minute(now: i64, offset: i64) -> u32 {
+    ((now + offset).rem_euclid(86_400) / 60) as u32
+}
+
 /// Today's local date.
 pub fn today() -> Date {
     let now = std::time::SystemTime::now()
@@ -65,6 +70,8 @@ mod tests {
         assert_eq!(local_date(now, 0).to_string(), "2026-10-24");
         assert_eq!(local_date(now, 19_800).to_string(), "2026-10-25");
         assert_eq!(local_date(now, -28_800).to_string(), "2026-10-24"); // 12:00 in California
+        assert_eq!(local_minute(now, 19_800), 90);
+        assert_eq!(local_minute(now, -28_800), 12 * 60);
     }
 
     #[test]

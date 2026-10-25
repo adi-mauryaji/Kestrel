@@ -3,7 +3,7 @@
 //! `kestrel tier4-worker` process started on demand and stopped after `--idle-minutes` (default 10)
 //! without a request (src/remote.rs). `kestrel chat` and `kestrel say TEXT...` are its clients:
 //! they answer instantly because nothing loads. Every answer comes from the same `Assistant` as
-//! `kestrel ask`.
+//! `kestrel ask`. While it runs, tasks with a time of day ring at that time (src/remind.rs).
 //!
 //! Protocol, one JSON object per line. Client: `{"say": "..."}`, and `{"answer": true|false}`
 //! when asked. Server: `{"line": "..."}` per line of the answer, `{"ask": "..."}` for a y/N
@@ -271,6 +271,9 @@ pub fn serve(
         notes.display(),
         memory.display()
     );
+    // Tasks with a time ring from their own thread, so a long `kestrel chat` does not hold them up.
+    let ring_db = memory.to_path_buf();
+    std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
     loop {
         match listener.accept() {
             Ok((stream, _)) => {

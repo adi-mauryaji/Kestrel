@@ -7,6 +7,8 @@
 //!   leave the list without a question (the user said it; delete still asks y/N)
 //! - "rename task 3 to call ravi", "task 4 ka naam doctor ko call karna rakho"
 //! - "move task 3 to friday", "task 5 kal tak kar do", "task 3 ki date hata do"
+//! - "task 3 at 5 pm", "move task 3 to friday at 5 pm", "task 2 kal shaam 6 baje kar do": a time
+//!   (src/times.rs), with or without a new date
 //!
 //! Anything that says delete / remove / hata (without "date") stays the cascade's, as do requests
 //! that create tasks. `join_words` turns ", also" / ", now" / ", plus" / "; " into "and" so the
@@ -15,6 +17,8 @@
 use kestrel_core::KestrelError;
 use kestrel_memory::{Memory, TaskRow};
 use kestrel_tools::date::Date;
+
+use crate::times::{self, Said};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Which {
@@ -30,6 +34,8 @@ pub enum Command {
     Rename(i64, String),
     /// None clears the date.
     Reschedule(i64, Option<Date>),
+    /// A time, and a new date if one was said.
+    At(i64, Option<Date>, Said),
 }
 
 pub fn join_words(text: &str) -> String {
@@ -100,7 +106,36 @@ const DATE_FILLER: &[&str] = &[
 ];
 
 pub fn parse(text: &str, today: Date) -> Option<Command> {
-    let w = words(text);
+    let Some((rest, said)) = times::take(text) else {
+        return parse_words(&words(text), today);
+    };
+    let rest = words(&rest);
+    if let Some(cmd) = timed(&rest, today, said) {
+        return Some(cmd);
+    }
+    // Otherwise a time is never read as a task number; a new title keeps all its words.
+    match parse_words(&rest, today)? {
+        Command::Rename(..) => parse_words(&words(text), today),
+        cmd => Some(cmd),
+    }
+}
+
+/// "task 3 at 5 pm", "set task 3 for 5pm", "move task 3 to friday at 5 pm", "task 2 kal shaam 6
+/// baje kar do": the words left once the time is out are one task and maybe a date.
+fn timed(w: &[String], today: Date, said: Said) -> Option<Command> {
+    let i = w.iter().position(|x| x == "task")?;
+    let id = w.get(i + 1)?.parse::<i64>().ok().filter(|n| *n > 0)?;
+    let lead = |x: &String| x != "rename" && (EN_EDIT.contains(&x.as_str()) || x == "set");
+    if !w[..i].iter().all(lead) {
+        return None;
+    }
+    let (due, left) = kestrel_tools::templates::split_due(&w[i + 2..].join(" "), today);
+    left.iter()
+        .all(|x| DATE_FILLER.contains(&x.as_str()) || x == "time")
+        .then_some(Command::At(id, due, said))
+}
+
+fn parse_words(w: &[String], today: Date) -> Option<Command> {
     let any = |set: &[&str]| w.iter().any(|x| set.contains(&x.as_str()));
     let pair =
         |a: &str, b: &[&str]| (1..w.len()).any(|i| w[i - 1] == a && b.contains(&w[i].as_str()));
@@ -123,7 +158,7 @@ pub fn parse(text: &str, today: Date) -> Option<Command> {
     if tasky && done && !ids.is_empty() {
         return Some(Command::Done(ids));
     }
-    if let Some(cmd) = edit(&w, today) {
+    if let Some(cmd) = edit(w, today) {
         return Some(cmd);
     }
     if !ids.is_empty() {
@@ -189,7 +224,13 @@ fn edit(w: &[String], today: Date) -> Option<Command> {
     None
 }
 
-pub fn run(cmd: &Command, memory: &mut Memory, today: Date) -> Result<Vec<String>, KestrelError> {
+/// `minute`: minutes after local midnight now.
+pub fn run(
+    cmd: &Command,
+    memory: &mut Memory,
+    today: Date,
+    minute: u32,
+) -> Result<Vec<String>, KestrelError> {
     let tasks = memory.tasks()?;
     let title_of = |id: i64| tasks.iter().find(|t| t.id == id).map(|t| t.title.clone());
     Ok(match cmd {
@@ -224,6 +265,21 @@ pub fn run(cmd: &Command, memory: &mut Memory, today: Date) -> Result<Vec<String
                 vec![format!("task #{id} has no date now")]
             }
         }
+        Command::At(id, due, said) => {
+            let Some(t) = tasks.iter().find(|t| t.id == *id) else {
+                return Ok(vec![format!("there is no task {id}")]);
+            };
+            // An overdue date is no anchor: the time is counted as for an undated task.
+            let had = t.due.as_deref().and_then(Date::parse);
+            let base = due.or(had.filter(|d| *d >= today));
+            let (date, m) = times::resolve(*said, base, today, minute);
+            if had != Some(date) {
+                memory.update_task(*id, None, Some(Some(&date.to_string())))?;
+            }
+            let hhmm = times::hhmm(m);
+            memory.set_task_time(*id, Some(&hhmm))?;
+            vec![format!("task #{id} now due {date} {hhmm}")]
+        }
     })
 }
 
@@ -232,16 +288,21 @@ fn list(tasks: &[TaskRow], which: Which, today: Date) -> Vec<String> {
         .iter()
         .filter_map(|t| t.due.as_deref().and_then(Date::parse).map(|d| (d, t)))
         .collect();
-    dated.sort_by_key(|(d, t)| (*d, t.id));
+    // Within a day, timed tasks first, by time.
+    dated.sort_by_key(|(d, t)| (*d, t.due_time.is_none(), t.due_time.clone(), t.id));
     let group = |pick: &dyn Fn(Date) -> bool, with_date: bool| -> Vec<String> {
         dated
             .iter()
             .filter(|(d, _)| pick(*d))
             .map(|(d, t)| {
-                if with_date {
-                    format!("  #{} {} ({d})", t.id, t.title)
-                } else {
+                let when: Vec<String> = [with_date.then(|| d.to_string()), t.due_time.clone()]
+                    .into_iter()
+                    .flatten()
+                    .collect();
+                if when.is_empty() {
                     format!("  #{} {}", t.id, t.title)
+                } else {
+                    format!("  #{} {} ({})", t.id, t.title, when.join(" "))
                 }
             })
             .collect()
@@ -377,6 +438,38 @@ mod tests {
     }
 
     #[test]
+    fn a_time_for_one_task() {
+        let five = Said::At(17 * 60);
+        assert_eq!(p("task 3 at 5 pm"), Some(Command::At(3, None, five)));
+        assert_eq!(p("set task 3 for 5pm"), Some(Command::At(3, None, five)));
+        assert_eq!(
+            p("move task 3 to friday at 5 pm"),
+            Some(Command::At(3, d("2026-10-30"), five))
+        );
+        assert_eq!(
+            p("task 2 kal shaam 6 baje kar do"),
+            Some(Command::At(2, d("2026-10-26"), Said::At(18 * 60)))
+        );
+        assert_eq!(
+            p("task 4 ko 6 baje"),
+            Some(Command::At(4, None, Said::Either(360)))
+        );
+        // A rename keeps the words; a delete and a new task stay the cascade's.
+        assert_eq!(
+            p("rename task 3 to call ravi at 5 pm"),
+            Some(Command::Rename(3, "call ravi at 5 pm".into()))
+        );
+        for t in [
+            "delete task 2 at 5 pm",
+            "add a task to buy milk at 5 pm",
+            "remind me to call asha at 5 pm",
+            "at 5 pm",
+        ] {
+            assert_eq!(p(t), None, "{t}");
+        }
+    }
+
+    #[test]
     fn deletes_and_new_tasks_stay_the_cascades() {
         for t in [
             "delete task 2",
@@ -427,7 +520,7 @@ mod tests {
     fn lists_group_tasks_by_when_they_are_due() {
         let mut m = memory();
         assert_eq!(
-            run(&Command::List(Which::All), &mut m, today()).unwrap(),
+            run(&Command::List(Which::All), &mut m, today(), 600).unwrap(),
             [
                 "overdue:",
                 "  #4 file taxes (2026-10-20)",
@@ -440,7 +533,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            run(&Command::List(Which::Today), &mut m, today()).unwrap(),
+            run(&Command::List(Which::Today), &mut m, today(), 600).unwrap(),
             [
                 "overdue:",
                 "  #4 file taxes (2026-10-20)",
@@ -449,16 +542,16 @@ mod tests {
             ]
         );
         assert_eq!(
-            run(&Command::List(Which::Overdue), &mut m, today()).unwrap(),
+            run(&Command::List(Which::Overdue), &mut m, today(), 600).unwrap(),
             ["overdue:", "  #4 file taxes (2026-10-20)"]
         );
         let mut empty = Memory::in_memory().unwrap();
         assert_eq!(
-            run(&Command::List(Which::All), &mut empty, today()).unwrap(),
+            run(&Command::List(Which::All), &mut empty, today(), 600).unwrap(),
             ["no tasks"]
         );
         assert_eq!(
-            run(&Command::List(Which::Today), &mut empty, today()).unwrap(),
+            run(&Command::List(Which::Today), &mut empty, today(), 600).unwrap(),
             ["nothing due today"]
         );
     }
@@ -467,24 +560,31 @@ mod tests {
     fn done_rename_and_reschedule_change_the_memory_file() {
         let mut m = memory();
         assert_eq!(
-            run(&Command::Done(vec![2, 9]), &mut m, today()).unwrap(),
+            run(&Command::Done(vec![2, 9]), &mut m, today(), 600).unwrap(),
             ["done: #2 pay rent", "there is no task 9"]
         );
         assert_eq!(
             run(
                 &Command::Rename(3, "renew passport online".into()),
                 &mut m,
-                today()
+                today(),
+                600
             )
             .unwrap(),
             ["task #3 is now: renew passport online"]
         );
         assert_eq!(
-            run(&Command::Reschedule(1, d("2026-10-30")), &mut m, today()).unwrap(),
+            run(
+                &Command::Reschedule(1, d("2026-10-30")),
+                &mut m,
+                today(),
+                600
+            )
+            .unwrap(),
             ["task #1 now due 2026-10-30"]
         );
         assert_eq!(
-            run(&Command::Reschedule(4, None), &mut m, today()).unwrap(),
+            run(&Command::Reschedule(4, None), &mut m, today(), 600).unwrap(),
             ["task #4 has no date now"]
         );
         let rows: Vec<_> = m
@@ -499,6 +599,50 @@ mod tests {
                 (1, "call the plumber".into(), Some("2026-10-30".into())),
                 (3, "renew passport online".into(), Some("2026-11-01".into())),
                 (4, "file taxes".into(), None)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_time_is_set_and_listed_in_time_order() {
+        let mut m = memory();
+        let ten_am = 600;
+        let at = |id, due, said| Command::At(id, due, said);
+        // Undated: today while the time is ahead.
+        assert_eq!(
+            run(&at(1, None, Said::At(17 * 60)), &mut m, today(), ten_am).unwrap(),
+            ["task #1 now due 2026-10-25 17:00"]
+        );
+        // Dated today: stays today.
+        assert_eq!(
+            run(&at(2, None, Said::Either(9 * 60)), &mut m, today(), ten_am).unwrap(),
+            ["task #2 now due 2026-10-25 21:00"]
+        );
+        // Dated later: keeps its date, daytime reading.
+        assert_eq!(
+            run(&at(3, None, Said::Either(9 * 60)), &mut m, today(), ten_am).unwrap(),
+            ["task #3 now due 2026-11-01 09:00"]
+        );
+        // Overdue: counted like an undated task.
+        assert_eq!(
+            run(&at(4, None, Said::At(8 * 60)), &mut m, today(), ten_am).unwrap(),
+            ["task #4 now due 2026-10-26 08:00"]
+        );
+        assert_eq!(
+            run(&at(9, None, Said::At(8 * 60)), &mut m, today(), ten_am).unwrap(),
+            ["there is no task 9"]
+        );
+        m.create_task("buy milk", Some("2026-10-25"), 0).unwrap(); // 5, no time
+        assert_eq!(
+            run(&Command::List(Which::All), &mut m, today(), ten_am).unwrap(),
+            [
+                "today:",
+                "  #1 call the plumber (17:00)",
+                "  #2 pay rent (21:00)",
+                "  #5 buy milk",
+                "upcoming:",
+                "  #4 file taxes (2026-10-26 08:00)",
+                "  #3 renew passport (2026-11-01 09:00)"
             ]
         );
     }
