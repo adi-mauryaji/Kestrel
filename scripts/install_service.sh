@@ -17,12 +17,15 @@ UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
 BIN_DIR="$DATA/kestrel/bin"
 APP="$DATA/applications/kestrel.desktop"
+LINK="$HOME/.local/bin/kestrel"
 ICON="$DATA/icons/hicolor/scalable/apps/kestrel.svg"
 CONFIG=experiments/configs/router_intents_v0.json
 
 if [[ ${1:-} == --remove ]]; then
   systemctl --user disable --now kestrel.service 2>/dev/null || true
   rm -f "$UNIT_DIR/kestrel.service" "$APP" "$ICON"
+  # The command on PATH goes only if it is still ours.
+  if [[ -L $LINK && $(readlink "$LINK") == "$BIN_DIR/kestrel" ]]; then rm -f "$LINK"; fi
   systemctl --user daemon-reload
   echo "the always-on assistant is removed (notes and tasks are kept)"
   exit 0
@@ -60,6 +63,12 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 EOF
+
+# `kestrel` on PATH ($HOME/.local/bin), unless something else already has that name.
+if [[ ! -e $LINK && ! -L $LINK ]]; then
+  mkdir -p "$(dirname "$LINK")"
+  ln -s "$BIN_DIR/kestrel" "$LINK"
+fi
 
 # The menu entry opens the page of the running service.
 mkdir -p "$(dirname "$APP")" "$(dirname "$ICON")"

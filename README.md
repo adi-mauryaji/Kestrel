@@ -17,35 +17,50 @@ scripts/convert_encoder.sh                    # the multilingual-e5-small encode
 cargo build --release -p kestrel-cli --features llama
 ```
 
-Then, every day:
+Then install it once, and it runs from every login on:
 
 ```
-scripts/assistant.sh ~/notes                  # or: KESTREL_NOTES=~/notes scripts/assistant.sh
+scripts/install_service.sh ~/notes            # always on; the language model loads only when needed
+scripts/install_reminders.sh                  # what is due, every morning at 08:00 and after login
 ```
 
-It takes about 30 s to load, then answers each request in milliseconds (rules, encoder) up to about a second
-(the language model). Examples:
+Talk to it in the browser (`kestrel open`, or Kestrel in the applications menu) or in a terminal:
+
+```
+kestrel chat                                  # a conversation; "quit" ends it
+kestrel say "mere tasks btao"                 # one request
+```
+
+Most requests take a fraction of a second (rules, encoder). The first one that needs the language model
+loads it (about 20 s); it is unloaded again after 10 idle minutes. Run the two scripts again after an
+update; `--remove` takes either away (notes and tasks stay). Examples:
 
 | You say | It does |
 |---|---|
+| `remind me to call Asha at 5 pm` | adds a task for today at 17:00, and a notification pops up then |
+| `kal shaam 6 baje bill bharna yaad dila dena` | the same in Hinglish (tomorrow, 18:00); chat spellings like `krna`, `kl`, `h` work too |
+| `mere tasks btao` / `what's due today` / `overdue tasks` | lists your tasks by when they are due |
+| `task 3 ho gaya` / `task 3 at 9 am` / `move task 3 to friday` / `task 4 ka naam X rakho` | finishes, times, reschedules or renames a task |
 | `search my notes for budget` | lists the matching notes |
 | `open project-plan.md` | shows the document |
-| `remind me to call Asha tomorrow` | adds a task with tomorrow's date |
-| `summarize my last three meeting notes and create a task list` | a summary, plus a task per action item (asks first if there are more than three) |
-| `delete task 2` | removes the task, after a y/N |
-| `I prefer short answers` / `No, I prefer detailed answers unless I'm in a hurry` | remembers the preference (a correction asks before saving) |
+| `summarize my meeting notes` | a summary in the model's own words, checked against your notes: one that adds a name or number they lack is set aside for the notes' own first lines |
+| `delete task 2` | removes the task, after a yes/no |
+| `I prefer short answers` | remembers the preference |
 | `when I say standup doc, I mean team sync` | learns the nickname (asks first) |
-| `kal ki meeting notes ka summary do` | Hinglish works for every request type |
+| `search my notes for budget, also remind me to call Ravi` | two requests at once (joined by "and", "aur", ", also" or ", now") |
 
 Notes are read only through a sandbox of the folder you give. Tasks, preferences and memories live in one
 SQLite file, `$KESTREL_MEMORY` or `~/.local/share/kestrel/memory.db`, which you manage with
-`target/release/kestrel memory list | tasks | delete ID | export | purge`.
+`kestrel memory list | tasks | delete ID | export | purge`. The page answers only on 127.0.0.1 and only with
+a key kept beside that file (`kestrel open` passes it).
+
+Without installing anything, `scripts/assistant.sh ~/notes` runs the same assistant in one terminal (about
+30 s to load, 3.7 GB while it runs, summaries picked from your notes' sentences).
 
 **Limits today.** Nine kinds of request (search, open, summarize, add or delete a task, a preference, what it
-remembers, small talk; anything else gets "I can't do that"). Summaries pick sentences from your notes rather
-than write new ones. Due dates are stored, but nothing pops up when one arrives. A two-part request needs
-"and", "then", "aur" or "phir" between its parts ("also" and ", now" are not recognized yet), and "kal" in a
-summary request is not read as a date. It runs in a terminal and needs about 3.7 GB of RAM while running.
+remembers, small talk; anything else gets "I can't do that"). A time without am or pm ("6 baje") means the
+next time the clock shows it; "at 5" alone is not read as a time. Timed reminders pop up only while the
+service runs. The service needs about 300 MB, and about 3.4 GB more while the language model is loaded.
 
 ## The research
 
