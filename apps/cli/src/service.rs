@@ -167,33 +167,87 @@ pub fn chat(once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-/// `kestrel tier4-worker CONFIG`: Gemma as the config's Tier 4, one request per line (src/remote.rs).
+/// `kestrel tier4-worker CONFIG`: Gemma as the config's Tier 4, one request per line (src/remote.rs),
+/// and as the writer of summaries (feature 5) in a context of its own, made at the first one.
 #[cfg(feature = "llama")]
 pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
     use kestrel_core::Request;
+    use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
 
     let models = crate::route_items::Models::load_for(config, &[4])?;
     let tiers = models.tiers(&crate::labels::Intents, |t| t, &[4])?;
     let tier = tiers.first().ok_or("the config has no Tier 4")?;
+    let slm = models.slm().ok_or("the config has no Tier-4 model")?;
+    let arch = slm.architecture()?;
+    let format =
+        ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
+    let prompt = ChatPrompt::new(format, crate::summary::SYSTEM);
+    let mut writer = None;
     let mut out = io::stdout().lock();
     writeln!(out, "{}", json!({"ready": true}))?;
     out.flush()?;
     for line in io::stdin().lock().lines() {
         let v: Value = serde_json::from_str(&line?).unwrap_or(Value::Null);
-        let req = Request::new(
-            v["id"].as_u64().unwrap_or(0),
-            v["text"].as_str().unwrap_or(""),
-        );
-        let reply = match kestrel_core::TierModel::classify(tier.as_ref(), &req) {
-            Ok(probs) => {
-                json!({"probs": probs.iter().map(|(i, p)| json!([i.label(), p])).collect::<Vec<_>>()})
+        let reply = if let Some(texts) = v["summarize"].as_array() {
+            let texts: Vec<&str> = texts.iter().filter_map(Value::as_str).collect();
+            match write_summary(slm, &mut writer, &prompt, &texts) {
+                Ok(s) => json!({"summary": s}),
+                Err(e) => json!({"error": e.to_string()}),
             }
-            Err(e) => json!({"error": e.to_string()}),
+        } else {
+            let req = Request::new(
+                v["id"].as_u64().unwrap_or(0),
+                v["text"].as_str().unwrap_or(""),
+            );
+            match kestrel_core::TierModel::classify(tier.as_ref(), &req) {
+                Ok(probs) => {
+                    json!({"probs": probs.iter().map(|(i, p)| json!([i.label(), p])).collect::<Vec<_>>()})
+                }
+                Err(e) => json!({"error": e.to_string()}),
+            }
         };
         writeln!(out, "{reply}")?;
         out.flush()?;
     }
     Ok(())
+}
+
+/// Gemma's summary of `texts` (greedy, at most `summary::MAX_TOKENS`), in `writer`'s context.
+#[cfg(feature = "llama")]
+fn write_summary<'m>(
+    slm: &'m kestrel_inference::llama::LlamaSlm,
+    writer: &mut Option<kestrel_inference::llama::LlamaSession<'m>>,
+    prompt: &kestrel_inference::prompt::ChatPrompt,
+    texts: &[&str],
+) -> Result<String, kestrel_core::KestrelError> {
+    use kestrel_core::resources::{CancelToken, Deadline};
+    use kestrel_inference::generate::{GenParams, Generator};
+
+    let user = crate::summary::user_message(texts);
+    // Note text must not open or close chat turns (as for requests, tier.rs).
+    if slm.has_special_tokens(&user)? {
+        return Err(kestrel_core::KestrelError::Invalid(
+            "the notes contain control-token text".into(),
+        ));
+    }
+    let session = match writer {
+        Some(s) => s,
+        None => writer.insert(slm.session()?),
+    };
+    let stop = prompt.end_of_answer();
+    let p = GenParams {
+        stop: vec![stop.into()],
+        ..GenParams::greedy(crate::summary::MAX_TOKENS)
+    };
+    let mut out = String::new();
+    session.generate(
+        &(prompt.prefix() + &prompt.suffix(&user)),
+        &p,
+        &CancelToken::new(),
+        &Deadline::after(std::time::Duration::from_secs(120)),
+        &mut |t| out.push_str(t),
+    )?;
+    Ok(out.trim_end().trim_end_matches(stop).trim().to_string())
 }
 
 /// `kestrel serve --notes DIR [--idle-minutes N] CONFIG`.
@@ -258,6 +312,7 @@ pub fn serve(
             .as_deref()
             .map(std::path::Path::new),
     );
+    let act = act.with_summarizer(Box::new(SharedRemote(remote.clone())));
     let mut assistant =
         crate::assistant::Assistant::new(cascade, log, personal, Some(act), sink, true);
 

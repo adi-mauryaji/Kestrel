@@ -43,6 +43,8 @@ mod commands;
 mod config;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod grounding;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -57,6 +59,8 @@ mod remote;
 mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod service;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod summary;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod telemetry;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]

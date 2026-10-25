@@ -5,8 +5,9 @@
 //! starts a new one.
 //!
 //! Protocol, one JSON object per line: the worker says `{"ready": true}` once loaded; then for each
-//! `{"id": N, "text": "..."}` it answers `{"probs": [["create_task", 0.97], ...]}` or
-//! `{"error": "..."}`.
+//! `{"id": N, "text": "..."}` it answers `{"probs": [["create_task", 0.97], ...]}`, and for each
+//! `{"id": N, "summarize": ["note text", ...]}` (feature 5, src/summary.rs) `{"summary": "..."}`;
+//! either may be `{"error": "..."}`.
 
 use std::cell::{Cell, RefCell};
 use std::io::{BufRead, BufReader, Write};
@@ -92,6 +93,44 @@ impl RemoteTier {
     }
 }
 
+impl RemoteTier {
+    /// Sends `msg` to the worker (started if it is not running) and returns its answer; the
+    /// worker's own error is `Invalid`.
+    fn exchange(&self, msg: &Value) -> Result<Value, KestrelError> {
+        if !self.is_loaded() {
+            let w = self.start()?;
+            *self.worker.borrow_mut() = Some(w);
+        }
+        self.last.set(Some(Instant::now()));
+        let answer = {
+            let mut guard = self.worker.borrow_mut();
+            let w = guard.as_mut().ok_or_else(unavailable)?;
+            writeln!(w.stdin, "{msg}")
+                .and_then(|()| w.stdin.flush())
+                .ok()
+                .and_then(|()| read_json(&mut w.stdout))
+        };
+        let Some(v) = answer else {
+            *self.worker.borrow_mut() = None; // dead or speaking garbage: the next request starts anew
+            return Err(unavailable());
+        };
+        match v["error"].as_str() {
+            Some(e) => Err(KestrelError::Invalid(e.to_string())),
+            None => Ok(v),
+        }
+    }
+}
+
+impl crate::summary::Summarizer for RemoteTier {
+    fn summarize(&self, texts: &[&str]) -> Result<String, KestrelError> {
+        let v = self.exchange(&json!({"id": 0, "summarize": texts}))?;
+        v["summary"]
+            .as_str()
+            .map(String::from)
+            .ok_or_else(unavailable)
+    }
+}
+
 fn unavailable() -> KestrelError {
     KestrelError::ModelUnavailable(Tier::Generative)
 }
@@ -115,27 +154,7 @@ impl TierModel for RemoteTier {
     }
 
     fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
-        if !self.is_loaded() {
-            let w = self.start()?;
-            *self.worker.borrow_mut() = Some(w);
-        }
-        self.last.set(Some(Instant::now()));
-        let answer = {
-            let mut guard = self.worker.borrow_mut();
-            let w = guard.as_mut().ok_or_else(unavailable)?;
-            let msg = json!({"id": req.id, "text": req.text});
-            writeln!(w.stdin, "{msg}")
-                .and_then(|()| w.stdin.flush())
-                .ok()
-                .and_then(|()| read_json(&mut w.stdout))
-        };
-        let Some(v) = answer else {
-            *self.worker.borrow_mut() = None; // dead or speaking garbage: the next request starts anew
-            return Err(unavailable());
-        };
-        if let Some(e) = v["error"].as_str() {
-            return Err(KestrelError::Invalid(e.to_string()));
-        }
+        let v = self.exchange(&json!({"id": req.id, "text": req.text}))?;
         let probs = v["probs"].as_array().ok_or_else(unavailable)?;
         Ok(probs
             .iter()
@@ -148,7 +167,7 @@ impl TierModel for RemoteTier {
 }
 
 /// The service's Tier 4: the cascade owns one handle, the service keeps another to stop the
-/// worker when it is idle.
+/// worker when it is idle, and the summaries use a third.
 pub struct SharedRemote(pub std::rc::Rc<RemoteTier>);
 
 impl TierModel for SharedRemote {
@@ -162,6 +181,12 @@ impl TierModel for SharedRemote {
 
     fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
         self.0.classify(req)
+    }
+}
+
+impl crate::summary::Summarizer for SharedRemote {
+    fn summarize(&self, texts: &[&str]) -> Result<String, KestrelError> {
+        self.0.summarize(texts)
     }
 }
 
@@ -212,6 +237,30 @@ mod tests {
             t.classify(&req("find y")).unwrap(),
             [(Intent::SearchNotes, 1.0)]
         );
+    }
+
+    #[test]
+    fn the_same_worker_writes_summaries() {
+        use crate::summary::Summarizer;
+        let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
+            *'"summarize":["standup notes"]'*) echo '{"summary": "The budget review moved."}';;
+            *) echo '{"probs": [["chitchat", 1.0]]}';; esac; done"#;
+        let t = RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        );
+        assert_eq!(
+            t.summarize(&["standup notes"]).unwrap(),
+            "The budget review moved."
+        );
+        assert_eq!(t.classify(&req("hi")).unwrap(), [(Intent::Chitchat, 1.0)]);
+        let failing = fake(r#"{"error": "the notes do not fit"}"#);
+        assert!(matches!(
+            failing.summarize(&["x"]),
+            Err(KestrelError::Invalid(_))
+        ));
     }
 
     #[test]

@@ -23,11 +23,12 @@ use kestrel_tools::backend::MemoryBackend;
 use kestrel_tools::compound::plan_parts;
 use kestrel_tools::date::Date;
 use kestrel_tools::plan::{self, Data, Execution, NodeStatus, Op, ValidPlan};
-use kestrel_tools::runner::{MarkedItems, Runner};
+use kestrel_tools::runner::Runner;
 use kestrel_tools::sandbox::Sandbox;
 use kestrel_tools::templates::{self, Context, Proposal};
 use kestrel_tools::tools::{Confirm, Policy};
 
+use crate::summary::{ModelText, Summarizer};
 use crate::times::Said;
 
 /// A document is shown up to this many lines; a search lists up to this many notes.
@@ -42,6 +43,9 @@ pub struct Act {
     /// Seconds east of UTC, for the local date (ADR-034: the UTC date is a day behind in India
     /// from 00:00 to 05:30).
     utc_offset: i64,
+    /// Writes summaries in its own words (the service's Gemma, ADR-034 feature 5); without it,
+    /// a summary is the notes' first lines.
+    summarizer: Option<Box<dyn Summarizer>>,
 }
 
 /// The y/N prompt of `ask`, as the tool runner's confirmation.
@@ -66,7 +70,14 @@ impl Act {
             backend: MemoryBackend::new(sandbox, memory),
             notes,
             utc_offset: crate::clock::utc_offset(),
+            summarizer: None,
         })
+    }
+
+    /// Summaries by `s`, kept when the notes bear them out (src/summary.rs).
+    pub fn with_summarizer(mut self, s: Box<dyn Summarizer>) -> Self {
+        self.summarizer = Some(s);
+        self
     }
 
     /// Dates relative to a zone `seconds` east of UTC instead of the system's (tests pin it).
@@ -175,7 +186,7 @@ impl Act {
         };
         self.backend.begin_request(id, now);
         let before: HashSet<i64> = self.task_ids();
-        let mut text = MarkedItems;
+        let mut text = ModelText::new(self.summarizer.as_deref());
         let mut runner = Runner {
             store: &mut self.backend,
             text: &mut text,
@@ -201,8 +212,12 @@ impl Act {
                 .filter(|t| !before.contains(&t.id))
                 .collect()
         };
+        let fell_back = text.fell_back.take();
         let note = self.set_times(&new(self), said, now);
         let mut out = render(&plan, &ex, &new(self));
+        out.extend(fell_back.map(|why| {
+            format!("(the model's summary was not used: {why}; these are the notes' first lines)")
+        }));
         out.extend(note);
         out
     }
@@ -546,6 +561,43 @@ mod tests {
         assert_eq!(
             (row.due_time.as_deref(), row.notified_at),
             (Some("17:00"), None)
+        );
+    }
+
+    struct Writes(&'static str);
+
+    impl crate::summary::Summarizer for Writes {
+        fn summarize(&self, texts: &[&str]) -> Result<String, KestrelError> {
+            assert_eq!(texts.len(), 3, "the three meeting notes");
+            Ok(self.0.into())
+        }
+    }
+
+    #[test]
+    fn the_models_summary_is_shown_when_the_notes_bear_it_out() {
+        let ask = one(
+            Intent::SummarizeNotes,
+            "summarize my last three meeting notes",
+        );
+        let mut a = setup("model_summary").with_summarizer(Box::new(Writes(
+            "Planning and a design review; at standup the budget review moved.",
+        )));
+        assert_eq!(
+            a.carry_out(Some(&ask), 1, NOW, &yes()),
+            ["summary: Planning and a design review; at standup the budget review moved."]
+        );
+        let mut a = setup("made_up_summary").with_summarizer(Box::new(Writes(
+            "The budget review moved to Monday, said Priya.",
+        )));
+        let out = a.carry_out(Some(&ask), 1, NOW, &yes());
+        assert_eq!(
+            out[0],
+            "summary: Planning. Design review. Standup: budget review moved."
+        );
+        assert!(
+            out[1].starts_with("(the model's summary was not used: names or numbers")
+                && out[1].contains("Monday, Priya"),
+            "{out:?}"
         );
     }
 
