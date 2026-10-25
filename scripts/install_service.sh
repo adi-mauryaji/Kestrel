@@ -59,5 +59,7 @@ WantedBy=default.target
 EOF
 
 systemctl --user daemon-reload
-systemctl --user enable --now kestrel.service
+systemctl --user enable kestrel.service
+# restart, not just start: after an update the running service must pick up the new copy
+systemctl --user restart kestrel.service
 echo "Kestrel is on (notes: $NOTES). Try: $BIN_DIR/kestrel chat"
