@@ -3,7 +3,8 @@
 //! `kestrel tier4-worker` process started on demand and stopped after `--idle-minutes` (default 10)
 //! without a request (src/remote.rs). `kestrel chat` and `kestrel say TEXT...` are its clients:
 //! they answer instantly because nothing loads. Every answer comes from the same `Assistant` as
-//! `kestrel ask`. While it runs, tasks with a time of day ring at that time (src/remind.rs).
+//! `kestrel ask`. While it runs, tasks with a time of day ring at that time (src/remind.rs), and
+//! the browser page answers on 127.0.0.1 (src/web.rs, `kestrel open`).
 //!
 //! Protocol, one JSON object per line. Client: `{"say": "..."}`, and `{"answer": true|false}`
 //! when asked. Server: `{"line": "..."}` per line of the answer, `{"ask": "..."}` for a y/N
@@ -250,13 +251,42 @@ fn write_summary<'m>(
     Ok(out.trim_end().trim_end_matches(stop).trim().to_string())
 }
 
-/// `kestrel serve --notes DIR [--idle-minutes N] CONFIG`.
+/// The page on 127.0.0.1:`port`: its token beside the memory file (kept across restarts, so a
+/// bookmark keeps working), its address with the token for `kestrel open`, and its own connection
+/// to the memory file for the task list.
+#[cfg(feature = "llama")]
+fn open_web(
+    port: u16,
+    memory: &std::path::Path,
+) -> Result<crate::web::Web, Box<dyn std::error::Error>> {
+    let dir = memory.parent().unwrap_or(std::path::Path::new("."));
+    let token = crate::web::token(&dir.join("web-token"))?;
+    let tasks_db = crate::memory::open(memory)?;
+    let offset = crate::clock::utc_offset();
+    let tasks = move || {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        crate::web::tasks_json(
+            &tasks_db.tasks().unwrap_or_default(),
+            crate::clock::local_date(now, offset),
+            crate::clock::local_minute(now, offset),
+        )
+    };
+    let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks))?;
+    let file = crate::web::url_file(&|k| std::env::var_os(k));
+    crate::web::write_private(&file, &crate::web::url(web.port(), &token))?;
+    Ok(web)
+}
+
+/// `kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] CONFIG`.
 #[cfg(feature = "llama")]
 pub fn serve(
     config: &std::path::Path,
     notes: &std::path::Path,
     memory: &std::path::Path,
     idle: std::time::Duration,
+    web_port: Option<u16>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::os::unix::fs::PermissionsExt;
     use std::os::unix::net::{UnixListener, UnixStream};
@@ -329,6 +359,20 @@ pub fn serve(
     // Tasks with a time ring from their own thread, so a long `kestrel chat` does not hold them up.
     let ring_db = memory.to_path_buf();
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
+    // The browser page; without it the service still answers on the socket.
+    let mut web = web_port.and_then(|port| match open_web(port, memory) {
+        Ok(w) => {
+            eprintln!(
+                "the page is at http://127.0.0.1:{}/ (kestrel open)",
+                w.port()
+            );
+            Some(w)
+        }
+        Err(e) => {
+            eprintln!("the browser page is off: {e}");
+            None
+        }
+    });
     loop {
         match listener.accept() {
             Ok((stream, _)) => {
@@ -341,6 +385,12 @@ pub fn serve(
                 });
             }
             Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                if let Some(w) = web.as_mut()
+                    && let Err(e) = w.poll(&mut |text, confirm| assistant.handle(text, confirm))
+                {
+                    eprintln!("the browser page stopped: {e}");
+                    web = None;
+                }
                 if remote.reap_if_idle(Instant::now()) {
                     eprintln!("the SLM was idle for {} min: unloaded", idle.as_secs() / 60);
                 }

@@ -70,10 +70,12 @@ mod summary;
 mod telemetry;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod times;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod web;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel serve --notes DIR [--idle-minutes N] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print]        the assistant's page in your browser\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -85,6 +87,7 @@ fn main() -> ExitCode {
         Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
         Some("remind") => remind::run(&args[1..], &mut std::io::stdout()),
         Some("chat") => service::chat(None),
+        Some("open") => web::open(&args[1..], &|k| std::env::var_os(k), &mut std::io::stdout()),
         Some("say") => match &args[1..] {
             [] => Err(
                 "say what? e.g. kestrel say \"show my tasks\" (kestrel chat for a conversation)"
@@ -245,13 +248,14 @@ fn plan_eval(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     route(&[])
 }
 
-/// `kestrel serve [--notes DIR] [--idle-minutes N] CONFIG` (ADR-034).
+/// `kestrel serve [--notes DIR] [--idle-minutes N] [--web-port N | --no-web] CONFIG` (ADR-034).
 #[cfg(feature = "llama")]
 fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let mut notes = std::env::var_os("KESTREL_NOTES")
         .filter(|v| !v.is_empty())
         .map(std::path::PathBuf::from);
     let mut idle = 10u64;
+    let mut web_port = Some(web::DEFAULT_PORT);
     let mut args = args;
     loop {
         match args.split_first() {
@@ -263,6 +267,11 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 let (n, rest) = rest.split_first().ok_or(USAGE)?;
                 (idle, args) = (n.parse()?, rest);
             }
+            Some((f, rest)) if f == "--web-port" => {
+                let (n, rest) = rest.split_first().ok_or(USAGE)?;
+                (web_port, args) = (Some(n.parse()?), rest);
+            }
+            Some((f, rest)) if f == "--no-web" => (web_port, args) = (None, rest),
             _ => break,
         }
     }
@@ -276,6 +285,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         &notes,
         &memory,
         std::time::Duration::from_secs(idle * 60),
+        web_port,
     )
 }
 
@@ -324,6 +334,7 @@ mod tests {
         for c in [
             "chat",
             "say",
+            "open",
             "remind",
             "serve",
             "route-items",
