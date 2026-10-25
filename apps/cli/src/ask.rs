@@ -159,7 +159,8 @@ pub fn run(
     let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
         n += 1;
         log.borrow_mut().clear();
-        let said = Request::new(n, text);
+        // ", also" / ", now" join two requests the way "and" does (ADR-034).
+        let said = Request::new(n, &crate::commands::join_words(text));
         let unix_s = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
@@ -179,6 +180,13 @@ pub fn run(
                 Request::new(n, &text)
             }
         };
+        // Task commands (list, done, rename, reschedule) are the app's, before the cascade.
+        if let Some(act) = act.as_mut()
+            && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
+        {
+            act.command(&cmd, now).iter().for_each(|l| println!("{l}"));
+            return;
+        }
         let t0 = Instant::now();
         let (outcome, trace) = cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;

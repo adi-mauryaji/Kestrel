@@ -129,6 +129,14 @@ const BEFORE_DATE: [&str; 6] = ["by", "on", "for", "before", "till", "until"];
 const AFTER_DATE: [&str; 3] = ["ko", "tak", "se"];
 
 /// The first date phrase in `words`, removed from them.
+/// The first date phrase in `text` and the words left around it (normalized), for callers outside
+/// the templates (the app's task commands, ADR-034).
+pub fn split_due(text: &str, today: Date) -> (Option<Date>, Vec<String>) {
+    let mut w = words(text);
+    let due = take_due(&mut w, today);
+    (due, w)
+}
+
 pub(crate) fn take_due(words: &mut Vec<String>, today: Date) -> Option<Date> {
     for i in 0..words.len() {
         let found: Option<(usize, Date)> = if starts(words, i, &["the", "day", "after", "tomorrow"])
@@ -778,6 +786,23 @@ mod tests {
             nodes(&p),
             [("create_task".into(), json!({"title": "review my notes"}))]
         );
+    }
+
+    #[test]
+    fn split_due_gives_the_date_and_the_rest() {
+        let today = Date::parse("2026-10-22").unwrap();
+        let (d, rest) = split_due("Move task 3 to friday", today);
+        assert_eq!(
+            (d.map(|d| d.to_string()), rest),
+            (
+                Some("2026-10-23".into()),
+                vec!["move".into(), "task".into(), "3".into(), "to".into()]
+            )
+        );
+        let (d, rest) = split_due("task 3 kal tak kar do", today);
+        assert_eq!(d.map(|d| d.to_string()), Some("2026-10-23".into()));
+        assert_eq!(rest, ["task", "3", "kar", "do"]);
+        assert_eq!(split_due("rename task 3 to call ravi", today).0, None);
     }
 
     #[test]

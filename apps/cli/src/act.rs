@@ -72,6 +72,18 @@ impl Act {
         self
     }
 
+    /// The local date at Unix time `now`.
+    pub fn today(&self, now: i64) -> Date {
+        crate::clock::local_date(now, self.utc_offset)
+    }
+
+    /// A task command (ADR-034) on the memory file; what was done, as lines to print.
+    pub fn command(&mut self, cmd: &crate::commands::Command, now: i64) -> Vec<String> {
+        let today = self.today(now);
+        crate::commands::run(cmd, self.backend.memory_mut(), today)
+            .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
+    }
+
     /// Every note and document name under the notes folder (relative, '/'-separated, sorted).
     pub fn documents(&self) -> Vec<String> {
         let mut out = Vec::new();
@@ -105,7 +117,7 @@ impl Act {
         let Some(parts) = routed.filter(|p| !p.is_empty()) else {
             return vec!["I'm not sure what you mean. Try saying it another way.".into()];
         };
-        match self.propose(parts, crate::clock::local_date(now, self.utc_offset)) {
+        match self.propose(parts, self.today(now)) {
             Proposal::Plan(mut wire) => {
                 resolve_documents(&mut wire, &self.documents());
                 let stated = matches!(parts, [(Intent::SetPreference, _)]);

@@ -36,6 +36,8 @@ mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod clock;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod commands;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]

@@ -32,6 +32,36 @@ impl Memory {
         Ok(self.conn.last_insert_rowid())
     }
 
+    /// A new title and/or due date (`Some(None)` clears the date; `None` leaves a field as it is).
+    /// False if there was no such task.
+    pub fn update_task(
+        &mut self,
+        id: i64,
+        title: Option<&str>,
+        due: Option<Option<&str>>,
+    ) -> Result<bool, KestrelError> {
+        let exists: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM tasks WHERE id = ?1", [id], |r| {
+                r.get(0)
+            })
+            .map_err(storage)?;
+        if exists == 0 {
+            return Ok(false);
+        }
+        if let Some(t) = title {
+            self.conn
+                .execute("UPDATE tasks SET title = ?1 WHERE id = ?2", params![t, id])
+                .map_err(storage)?;
+        }
+        if let Some(d) = due {
+            self.conn
+                .execute("UPDATE tasks SET due = ?1 WHERE id = ?2", params![d, id])
+                .map_err(storage)?;
+        }
+        Ok(true)
+    }
+
     /// False if there was no such task.
     pub fn delete_task(&mut self, id: i64) -> Result<bool, KestrelError> {
         let n = self
@@ -84,6 +114,26 @@ mod tests {
                 (a, "Call Asha".to_string(), Some("2026-10-24".to_string())),
                 (c, "Buy milk".to_string(), None)
             ]
+        );
+    }
+
+    #[test]
+    fn a_task_can_be_renamed_rescheduled_or_undated() {
+        let mut m = Memory::in_memory().unwrap();
+        let a = m.create_task("call asha", Some("2026-10-24"), 0).unwrap();
+        assert!(m.update_task(a, Some("call asha at 6"), None).unwrap());
+        assert!(m.update_task(a, None, Some(Some("2026-10-30"))).unwrap());
+        let t = &m.tasks().unwrap()[0];
+        assert_eq!(
+            (t.title.as_str(), t.due.as_deref()),
+            ("call asha at 6", Some("2026-10-30"))
+        );
+        assert!(m.update_task(a, None, Some(None)).unwrap());
+        assert_eq!(m.tasks().unwrap()[0].due, None);
+        assert!(!m.update_task(99, Some("x"), None).unwrap(), "no such task");
+        assert!(
+            m.update_task(a, None, None).unwrap(),
+            "nothing to change still finds the task"
         );
     }
 
