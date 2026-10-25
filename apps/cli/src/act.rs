@@ -65,7 +65,8 @@ impl Act {
         })
     }
 
-    /// Dates relative to a zone `seconds` east of UTC instead of the system's.
+    /// Dates relative to a zone `seconds` east of UTC instead of the system's (tests pin it).
+    #[cfg(test)]
     pub fn with_utc_offset(mut self, seconds: i64) -> Self {
         self.utc_offset = seconds;
         self
