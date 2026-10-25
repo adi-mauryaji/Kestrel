@@ -32,6 +32,8 @@ mod act;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod ask;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod assistant;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod clock;

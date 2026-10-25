@@ -100,7 +100,7 @@ pub fn run(
     let intents =
         crate::labels::Intents::check(&crate::labels::parse_list(&std::fs::read_to_string(list)?))?;
     // The notes folder is checked before the models load, so a wrong path fails at once.
-    let mut act = match (notes, memory) {
+    let act = match (notes, memory) {
         (None, _) => None,
         (Some(_), None) => {
             return Err(
@@ -145,8 +145,7 @@ pub fn run(
         models.router.latency_budget_ms
     );
     let telemetry_path = std::env::var_os("KESTREL_TELEMETRY");
-    let mut sink =
-        crate::telemetry::Sink::open(telemetry_path.as_deref().map(std::path::Path::new));
+    let sink = crate::telemetry::Sink::open(telemetry_path.as_deref().map(std::path::Path::new));
     if sink.is_on() {
         eprintln!(
             "content-free telemetry appended to {:?}",
@@ -154,71 +153,11 @@ pub fn run(
         );
     }
 
-    let mut personal = crate::personal::Personal::open(memory);
-    let mut n = 0;
+    let personal = crate::personal::Personal::open(memory);
+    let mut assistant = crate::assistant::Assistant::new(cascade, log, personal, act, sink, brief);
     let mut ask = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| {
-        n += 1;
-        log.borrow_mut().clear();
-        // ", also" / ", now" join two requests the way "and" does (ADR-034).
-        let said = Request::new(n, &crate::commands::join_words(text));
-        let unix_s = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |d| d.as_secs());
-        let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
-        // The request routed is the one with the user's aliases resolved.
-        let req = match personal.before(&said, now, confirm) {
-            crate::personal::Before::Correction(lines) => {
-                lines.iter().for_each(|l| println!("{l}"));
-                return;
-            }
-            crate::personal::Before::Route { lines, text } => {
-                // --brief leaves out the memory context; alias resolutions and notices stay.
-                lines
-                    .iter()
-                    .filter(|l| !(brief && l.starts_with("memory: ")))
-                    .for_each(|l| println!("{l}"));
-                Request::new(n, &text)
-            }
-        };
-        // Task commands (list, done, rename, reschedule) are the app's, before the cascade.
-        if let Some(act) = act.as_mut()
-            && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
-        {
-            act.command(&cmd, now).iter().for_each(|l| println!("{l}"));
-            return;
-        }
-        let t0 = Instant::now();
-        let (outcome, trace) = cascade.route(&req);
-        let ms = t0.elapsed().as_secs_f64() * 1e3;
-        if !brief {
-            print!(
-                "{}",
-                render(&req, &log.borrow(), &outcome, &trace, accept, ms)
-            );
-        }
-        // Acting, the plan's update_preference step stores a stated preference; otherwise this does.
-        if act.is_none() {
-            for l in personal.after(&req, &outcome, now) {
-                println!("{l}");
-            }
-        }
-        if sink.is_on() {
-            let peak = kestrel_bench::rss::peak_rss_kib();
-            sink.write(&crate::telemetry::record(
-                &log.borrow(),
-                &outcome,
-                &trace,
-                ms,
-                unix_s,
-                peak,
-            ));
-        }
-        if let Some(act) = act.as_mut() {
-            let routed = routed_parts(&cascade, &req, &outcome, n);
-            let prompt = crate::act::Prompt(std::cell::RefCell::new(confirm));
-            for l in act.carry_out(routed.as_deref(), n, now, &prompt) {
-                println!("{l}");
-            }
+        for l in assistant.handle(text, confirm) {
+            println!("{l}");
         }
     };
     if let Some(text) = once {
@@ -262,36 +201,6 @@ pub fn run(
         };
         ask(line.trim(), &mut confirm);
         println!();
-    }
-}
-
-/// What `act` plans from: a request that joins several (the routing signal) is split and each part
-/// routed (ADR-025); otherwise the routed request itself. None when the cascade, or a part, abstained.
-#[cfg(feature = "llama")]
-fn routed_parts(
-    cascade: &kestrel_router::Cascade<'_, Intent>,
-    req: &Request,
-    outcome: &Outcome<Intent>,
-    id: u64,
-) -> Option<Vec<(Intent, String)>> {
-    if kestrel_core::features::has_conjunction(&req.text) {
-        let parts = kestrel_tools::compound::split(&req.text);
-        if parts.len() > 1 {
-            return parts
-                .into_iter()
-                .enumerate()
-                .map(
-                    |(k, part)| match cascade.route(&Request::new(id * 100 + k as u64, &part)).0 {
-                        Outcome::Accepted(p) => Some((p.intent, part)),
-                        Outcome::Abstained { .. } => None,
-                    },
-                )
-                .collect();
-        }
-    }
-    match outcome {
-        Outcome::Accepted(p) => Some(vec![(p.intent, req.text.clone())]),
-        Outcome::Abstained { .. } => None,
     }
 }
 

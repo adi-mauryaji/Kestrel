@@ -1,0 +1,238 @@
+//! One request through the assistant (ADR-034): what `kestrel ask` and `kestrel serve` share, so
+//! the terminal and the always-on service answer alike. In order: ", also" / ", now" join two
+//! requests; a taught alias or a correction is handled (src/personal.rs); a task command (list,
+//! done, rename, reschedule) runs on the memory file (src/commands.rs); otherwise the cascade
+//! routes the request, and with a notes folder the routed parts are planned and carried out
+//! (src/act.rs). The answer comes back as lines; the caller prints them or sends them.
+
+use std::time::Instant;
+
+use kestrel_core::{Intent, Request};
+use kestrel_router::{Cascade, Outcome};
+
+use crate::act::{Act, Prompt};
+use crate::ask::{Log, render};
+use crate::personal::{Before, Personal};
+use crate::telemetry::Sink;
+
+pub struct Assistant<'a> {
+    cascade: Cascade<'a, Intent>,
+    log: Log,
+    personal: Personal,
+    act: Option<Act>,
+    sink: Sink,
+    brief: bool,
+    n: u64,
+}
+
+impl<'a> Assistant<'a> {
+    /// `log` is the one the cascade's recorders write to.
+    pub fn new(
+        cascade: Cascade<'a, Intent>,
+        log: Log,
+        personal: Personal,
+        act: Option<Act>,
+        sink: Sink,
+        brief: bool,
+    ) -> Self {
+        Self {
+            cascade,
+            log,
+            personal,
+            act,
+            sink,
+            brief,
+            n: 0,
+        }
+    }
+
+    pub fn handle(&mut self, text: &str, confirm: &mut dyn FnMut(&str) -> bool) -> Vec<String> {
+        self.n += 1;
+        let n = self.n;
+        let mut out = Vec::new();
+        self.log.borrow_mut().clear();
+        // ", also" / ", now" join two requests the way "and" does (ADR-034).
+        let said = Request::new(n, &crate::commands::join_words(text));
+        let unix_s = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
+        // The request routed is the one with the user's aliases resolved.
+        let req = match self.personal.before(&said, now, confirm) {
+            Before::Correction(lines) => return lines,
+            Before::Route { lines, text } => {
+                // --brief leaves out the memory context; alias resolutions and notices stay.
+                out.extend(
+                    lines
+                        .into_iter()
+                        .filter(|l| !(self.brief && l.starts_with("memory: "))),
+                );
+                Request::new(n, &text)
+            }
+        };
+        // Task commands (list, done, rename, reschedule) are the app's, before the cascade.
+        if let Some(act) = self.act.as_mut()
+            && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
+        {
+            out.extend(act.command(&cmd, now));
+            return out;
+        }
+        let t0 = Instant::now();
+        let (outcome, trace) = self.cascade.route(&req);
+        let ms = t0.elapsed().as_secs_f64() * 1e3;
+        if !self.brief {
+            let accept = self.cascade.config().accept;
+            let report = render(&req, &self.log.borrow(), &outcome, &trace, accept, ms);
+            out.extend(report.lines().map(String::from));
+        }
+        // Acting, the plan's update_preference step stores a stated preference; otherwise this does.
+        if self.act.is_none() {
+            out.extend(self.personal.after(&req, &outcome, now));
+        }
+        if self.sink.is_on() {
+            let peak = kestrel_bench::rss::peak_rss_kib();
+            let rec =
+                crate::telemetry::record(&self.log.borrow(), &outcome, &trace, ms, unix_s, peak);
+            self.sink.write(&rec);
+        }
+        if let Some(act) = self.act.as_mut() {
+            let routed = routed_parts(&self.cascade, &req, &outcome, n);
+            let prompt = Prompt(std::cell::RefCell::new(confirm));
+            out.extend(act.carry_out(routed.as_deref(), n, now, &prompt));
+        }
+        out
+    }
+}
+
+/// What `act` plans from: a request that joins several (the routing signal) is split and each part
+/// routed (ADR-025); otherwise the routed request itself. None when the cascade, or a part, abstained.
+pub fn routed_parts(
+    cascade: &Cascade<'_, Intent>,
+    req: &Request,
+    outcome: &Outcome<Intent>,
+    id: u64,
+) -> Option<Vec<(Intent, String)>> {
+    if kestrel_core::features::has_conjunction(&req.text) {
+        let parts = kestrel_tools::compound::split(&req.text);
+        if parts.len() > 1 {
+            return parts
+                .into_iter()
+                .enumerate()
+                .map(
+                    |(k, part)| match cascade.route(&Request::new(id * 100 + k as u64, &part)).0 {
+                        Outcome::Accepted(p) => Some((p.intent, part)),
+                        Outcome::Abstained { .. } => None,
+                    },
+                )
+                .collect();
+        }
+    }
+    match outcome {
+        Outcome::Accepted(p) => Some(vec![(p.intent, req.text.clone())]),
+        Outcome::Abstained { .. } => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ask::Recorder;
+    use kestrel_core::{KestrelError, Tier, TierModel};
+    use kestrel_router::RouterConfig;
+
+    /// Tier 3 that names an intent by the request's first word ("remind" -> create_task, ...).
+    struct ByFirstWord;
+
+    impl TierModel for ByFirstWord {
+        fn tier(&self) -> Tier {
+            Tier::Encoder
+        }
+        fn est_cost_ms(&self) -> u32 {
+            1
+        }
+        fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
+            let intent = match req.text.split(' ').next() {
+                Some("remind") => Intent::CreateTask,
+                Some("search") => Intent::SearchNotes,
+                _ => Intent::Chitchat,
+            };
+            Ok(vec![(intent, 0.99)])
+        }
+    }
+
+    fn assistant(name: &str, brief: bool) -> (Assistant<'static>, std::path::PathBuf) {
+        let d =
+            std::env::temp_dir().join(format!("kestrel_assistant_{name}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("notes")).unwrap();
+        std::fs::write(
+            d.join("notes/2026-10-24-standup.md"),
+            "tags: meeting\nStandup.\n- [ ] send the report\n",
+        )
+        .unwrap();
+        let log = Log::default();
+        let tiers: Vec<Box<dyn TierModel>> =
+            vec![Box::new(Recorder::new(Box::new(ByFirstWord), log.clone()))];
+        let cfg = RouterConfig {
+            accept: [1.0, 1.0, 0.9, 0.0],
+            latency_budget_ms: 1000,
+            multi_intent_to_generative: true,
+        };
+        let act = Act::open(&d.join("notes"), &d.join("memory.db")).unwrap();
+        let a = Assistant::new(
+            Cascade::new(tiers, cfg).unwrap(),
+            log,
+            Personal::open(None),
+            Some(act),
+            Sink::open(None),
+            brief,
+        );
+        (a, d)
+    }
+
+    fn yes() -> impl FnMut(&str) -> bool {
+        |_| true
+    }
+
+    #[test]
+    fn requests_and_task_commands_share_one_memory_file() {
+        let (mut a, _) = assistant("share", true);
+        let out = a.handle("remind me to call asha tomorrow", &mut yes());
+        assert!(
+            out.iter()
+                .any(|l| l.starts_with("created task #1: call asha")),
+            "{out:?}"
+        );
+        let out = a.handle("show my tasks", &mut yes());
+        assert!(out.iter().any(|l| l.contains("#1 call asha")), "{out:?}");
+        assert_eq!(
+            a.handle("task 1 ho gaya", &mut yes()),
+            ["done: #1 call asha"]
+        );
+        assert_eq!(a.handle("show my tasks", &mut yes()), ["no tasks"]);
+    }
+
+    #[test]
+    fn also_joins_two_requests_and_brief_hides_the_tier_report() {
+        let (mut a, _) = assistant("join", true);
+        let out = a.handle(
+            "search my notes for report, also remind me to buy milk",
+            &mut yes(),
+        );
+        assert!(
+            out.iter().any(|l| l.contains("2026-10-24-standup.md")),
+            "{out:?}"
+        );
+        assert!(
+            out.iter().any(|l| l.contains("created task #1: buy milk")),
+            "{out:?}"
+        );
+        assert!(
+            !out.iter().any(|l| l.contains("=>")),
+            "brief has no tier report: {out:?}"
+        );
+        let (mut full, _) = assistant("full", false);
+        let out = full.handle("remind me to call ravi", &mut yes());
+        assert!(out.iter().any(|l| l.contains("=> create_task")), "{out:?}");
+    }
+}
