@@ -282,6 +282,7 @@ impl Memory {
         conn.pragma_update(None, "secure_delete", true)
             .and_then(|_| conn.pragma_update(None, "journal_mode", "DELETE"))
             .and_then(|_| conn.execute_batch(SCHEMA))
+            .and_then(|_| crate::tasks::add_time_columns(&conn))
             .and_then(|_| conn.pragma_update(None, "user_version", SCHEMA_VERSION))
             .map_err(storage)?;
         Ok(Self { conn })

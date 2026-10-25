@@ -122,6 +122,8 @@ mod tests {
             title: title.into(),
             due: due.map(Into::into),
             created_at: 0,
+            due_time: None,
+            notified_at: None,
         }
     }
 
