@@ -34,6 +34,8 @@ mod ask;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod clock;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -43,6 +45,7 @@ mod memory;
 mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
+mod remind;
 #[cfg(feature = "llama")]
 mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -60,6 +63,7 @@ fn main() -> ExitCode {
         Some("bench-items") => bench(&args[1..]),
         Some("plan-eval") => plan_eval(&args[1..]),
         Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
+        Some("remind") => remind::run(&args[1..], &mut std::io::stdout()),
         Some("e4-eval") => e4_eval(&args[1..]),
         _ => Err(USAGE.into()),
     };

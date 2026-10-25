@@ -35,6 +35,9 @@ const BATCH_CONFIRM_ABOVE: usize = 3;
 pub struct Act {
     backend: MemoryBackend,
     notes: PathBuf,
+    /// Seconds east of UTC, for the local date (ADR-034: the UTC date is a day behind in India
+    /// from 00:00 to 05:30).
+    utc_offset: i64,
 }
 
 /// The y/N prompt of `ask`, as the tool runner's confirmation.
@@ -58,7 +61,14 @@ impl Act {
         Ok(Self {
             backend: MemoryBackend::new(sandbox, memory),
             notes,
+            utc_offset: crate::clock::utc_offset(),
         })
+    }
+
+    /// Dates relative to a zone `seconds` east of UTC instead of the system's.
+    pub fn with_utc_offset(mut self, seconds: i64) -> Self {
+        self.utc_offset = seconds;
+        self
     }
 
     /// Every note and document name under the notes folder (relative, '/'-separated, sorted).
@@ -94,7 +104,7 @@ impl Act {
         let Some(parts) = routed.filter(|p| !p.is_empty()) else {
             return vec!["I'm not sure what you mean. Try saying it another way.".into()];
         };
-        match self.propose(parts, Date::from_days(now.div_euclid(86_400))) {
+        match self.propose(parts, crate::clock::local_date(now, self.utc_offset)) {
             Proposal::Plan(mut wire) => {
                 resolve_documents(&mut wire, &self.documents());
                 let stated = matches!(parts, [(Intent::SetPreference, _)]);
@@ -378,7 +388,9 @@ mod tests {
             "Project plan\nMilestone 1: the router.\n",
         );
         write("2026-10-22-groceries.md", "milk, eggs\n- [ ] buy milk\n");
-        Act::open(&notes, &d.join("memory.db")).unwrap()
+        Act::open(&notes, &d.join("memory.db"))
+            .unwrap()
+            .with_utc_offset(0)
     }
 
     fn one(intent: Intent, text: &str) -> Vec<(Intent, String)> {
@@ -387,6 +399,20 @@ mod tests {
 
     fn joined(lines: &[String]) -> String {
         lines.join("\n")
+    }
+
+    #[test]
+    fn tomorrow_is_counted_from_the_local_date() {
+        // 2026-10-24 20:00 UTC = 2026-10-25 01:30 in India: "tomorrow" is the 26th, not the 25th.
+        let mut a = setup("local").with_utc_offset(19_800);
+        let late = Date::parse("2026-10-24").unwrap().days() * 86_400 + 20 * 3600;
+        let out = a.carry_out(
+            Some(&one(Intent::CreateTask, "remind me to call asha tomorrow")),
+            1,
+            late,
+            &yes(),
+        );
+        assert!(joined(&out).contains("2026-10-26"), "{out:?}");
     }
 
     #[test]
