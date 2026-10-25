@@ -50,8 +50,12 @@ mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
 mod remind;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod remote;
 #[cfg(feature = "llama")]
 mod route_items;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod service;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod telemetry;
 
@@ -68,6 +72,10 @@ fn main() -> ExitCode {
         Some("plan-eval") => plan_eval(&args[1..]),
         Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
         Some("remind") => remind::run(&args[1..], &mut std::io::stdout()),
+        Some("chat") => service::chat(None),
+        Some("say") if args.len() > 1 => service::chat(Some(&args[1..].join(" "))),
+        Some("serve") => serve(&args[1..]),
+        Some("tier4-worker") => tier4_worker(&args[1..]),
         Some("e4-eval") => e4_eval(&args[1..]),
         _ => Err(USAGE.into()),
     };
@@ -216,6 +224,58 @@ fn plan_eval(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(not(feature = "llama"))]
 fn plan_eval(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    route(&[])
+}
+
+/// `kestrel serve [--notes DIR] [--idle-minutes N] CONFIG` (ADR-034).
+#[cfg(feature = "llama")]
+fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut notes = std::env::var_os("KESTREL_NOTES")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from);
+    let mut idle = 10u64;
+    let mut args = args;
+    loop {
+        match args.split_first() {
+            Some((f, rest)) if f == "--notes" => {
+                let (dir, rest) = rest.split_first().ok_or(USAGE)?;
+                (notes, args) = (Some(dir.into()), rest);
+            }
+            Some((f, rest)) if f == "--idle-minutes" => {
+                let (n, rest) = rest.split_first().ok_or(USAGE)?;
+                (idle, args) = (n.parse()?, rest);
+            }
+            _ => break,
+        }
+    }
+    let [config] = args else {
+        return Err(USAGE.into());
+    };
+    let notes = notes.ok_or("kestrel serve needs --notes DIR (or KESTREL_NOTES)")?;
+    let memory = memory::default_db(&|k| std::env::var_os(k))?;
+    service::serve(
+        config.as_ref(),
+        &notes,
+        &memory,
+        std::time::Duration::from_secs(idle * 60),
+    )
+}
+
+#[cfg(feature = "llama")]
+fn tier4_worker(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let [config] = args else {
+        return Err("usage: kestrel tier4-worker CONFIG".into());
+    };
+    service::worker(config.as_ref())
+}
+
+#[cfg(not(feature = "llama"))]
+fn serve(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    route(&[])
+}
+
+#[cfg(not(feature = "llama"))]
+fn tier4_worker(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     route(&[])
 }
 
