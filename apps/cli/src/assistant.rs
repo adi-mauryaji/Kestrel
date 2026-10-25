@@ -1,6 +1,6 @@
 //! One request through the assistant (ADR-034): what `kestrel ask` and `kestrel serve` share, so
 //! the terminal and the always-on service answer alike. In order: ", also" / ", now" join two
-//! requests; a taught alias or a correction is handled (src/personal.rs); a task command (list,
+//! requests and chat spellings are normalized (src/hinglish.rs); a taught alias or a correction is handled (src/personal.rs); a task command (list,
 //! done, rename, reschedule) runs on the memory file (src/commands.rs); otherwise the cascade
 //! routes the request, and with a notes folder the routed parts are planned and carried out
 //! (src/act.rs). The answer comes back as lines; the caller prints them or sends them.
@@ -51,8 +51,10 @@ impl<'a> Assistant<'a> {
         let n = self.n;
         let mut out = Vec::new();
         self.log.borrow_mut().clear();
-        // ", also" / ", now" join two requests the way "and" does (ADR-034).
-        let said = Request::new(n, &crate::commands::join_words(text));
+        // ", also" / ", now" join two requests the way "and" does, and chat spellings ("krna",
+        // "kl") become the ones the rules know (ADR-034).
+        let typed = crate::hinglish::normalize(&crate::commands::join_words(text));
+        let said = Request::new(n, &typed);
         let unix_s = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
@@ -205,10 +207,8 @@ mod tests {
         );
         let out = a.handle("show my tasks", &mut yes());
         assert!(out.iter().any(|l| l.contains("#1 call asha")), "{out:?}");
-        assert_eq!(
-            a.handle("task 1 ho gaya", &mut yes()),
-            ["done: #1 call asha"]
-        );
+        // Typed the way people text: "hogya" is "ho gaya".
+        assert_eq!(a.handle("task 1 hogya", &mut yes()), ["done: #1 call asha"]);
         assert_eq!(a.handle("show my tasks", &mut yes()), ["no tasks"]);
     }
 

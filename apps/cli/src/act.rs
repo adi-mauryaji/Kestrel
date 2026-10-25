@@ -10,6 +10,8 @@
 //!
 //! Stage 2 (ADR-034): a time said in a task request ("at 5 pm", "shaam 6 baje", src/times.rs) is
 //! taken out before the template runs and put on the tasks the plan created; the service rings it.
+//! So is Hinglish reminder wording the template does not know ("mujhe yaad dila dena ki ...",
+//! src/hinglish.rs).
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -138,16 +140,15 @@ impl Act {
         let parts: Vec<(Intent, String)> = parts
             .iter()
             .map(|(intent, text)| match intent {
-                Intent::CreateTask => match crate::times::take(text) {
-                    Some((rest, s)) => {
-                        said.push(Some(s));
-                        (*intent, rest)
-                    }
-                    None => {
-                        said.push(None);
-                        (*intent, text.clone())
-                    }
-                },
+                Intent::CreateTask => {
+                    let (rest, s) = match crate::times::take(text) {
+                        Some((rest, s)) => (rest, Some(s)),
+                        None => (text.clone(), None),
+                    };
+                    said.push(s);
+                    // "mujhe yaad dila dena ki ... karna hai": the template knows only the end form.
+                    (*intent, crate::hinglish::task_request(&rest))
+                }
                 _ => (*intent, text.clone()),
             })
             .collect();
@@ -561,6 +562,25 @@ mod tests {
         assert_eq!(
             (row.due_time.as_deref(), row.notified_at),
             (Some("17:00"), None)
+        );
+    }
+
+    #[test]
+    fn hinglish_reminder_wording_leaves_the_title() {
+        let mut a = setup("hinglish");
+        let create = |a: &mut Act, text: &str| {
+            a.carry_out(Some(&one(Intent::CreateTask, text)), 1, NOW, &yes())
+        };
+        assert_eq!(
+            create(&mut a, "mujhe yaad dila dena dataset check karna hai kal"),
+            ["created task #1: dataset check karna (due 2026-10-24)"]
+        );
+        assert_eq!(
+            create(
+                &mut a,
+                "kal shaam 6 baje mujhe remind kar dena ki bill bharna hai"
+            ),
+            ["created task #2: bill bharna (due 2026-10-24 18:00)"]
         );
     }
 
