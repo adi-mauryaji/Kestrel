@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
-    "pyright-lsp@anthropic-plugin-directory": true
+    "pyright-lsp@anthropic-plugin-directory": true,
+    "frontend-design@anthropic-plugin-directory": true
   }
 }
