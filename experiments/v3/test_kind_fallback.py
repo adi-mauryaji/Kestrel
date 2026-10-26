@@ -29,3 +29,25 @@ def test_score_counts_right_wrong_and_asked_decisions():
         "skill_sent_old_way": 1,  # a chat request sent down the app path
         "asked": 2, "asked_right_kind": 1,
     }
+
+
+def test_the_config_carries_what_the_runtime_needs_from_the_dev_run():
+    from kind_fallback import fallback_config
+    meta = {"slm": "gemma", "model_file": "gemma.gguf", "prompt": "tier4_kind_prompt.txt", "prompt_sha256": "p",
+            "shots": [{"text": "hi", "label": "app"}], "head_sha256": "h"}
+    cfg = fallback_config(meta, 1.5, 0.9, "You are the router.")
+    assert {k: cfg[k] for k in ("model_file", "prompt", "prompt_sha256", "system", "shots", "temperature", "tau_g")} == {
+        "model_file": "gemma.gguf", "prompt": "tier4_kind_prompt.txt", "prompt_sha256": "p",
+        "system": "You are the router.", "shots": [{"text": "hi", "label": "app"}], "temperature": 1.5, "tau_g": 0.9}
+
+
+def test_the_committed_config_matches_the_dev_log_and_the_prompt():
+    import hashlib
+    import json
+    from kind_fallback import CONFIG, ROOT, SUMMARY
+    cfg, log = json.loads(CONFIG.read_text()), json.loads(SUMMARY.read_text())
+    prompt = ROOT / "datasets" / "contracts" / cfg["prompt"]
+    assert cfg["prompt_sha256"] == hashlib.sha256(prompt.read_bytes()).hexdigest()
+    assert cfg["system"] == prompt.read_text(encoding="utf-8"), "the runtime uses the dev run's prompt"
+    assert cfg["temperature"] == log["temperature_gemma"] and cfg["shots"] == log["meta"]["shots"]
+    assert str(cfg["tau_g"]) in log["val_head_gemma"]

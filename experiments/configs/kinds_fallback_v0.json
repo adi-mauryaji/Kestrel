@@ -1,0 +1,95 @@
+{
+ "note": "v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; tau_g is a draft",
+ "dev_log": "experiments/logs/v3/kinds/fallback_dev.json",
+ "slm": "gemma-4-e2b-it-q4_0",
+ "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+ "prompt": "tier4_kind_prompt.txt",
+ "prompt_sha256": "af3dc6be88b443add4ea4de30ba2e4015a869b1b999a053f4308109ae60c21f4",
+ "system": "You are the request router of Kestrel, an offline assistant on the user's laptop. Decide what kind of answer the user's request needs and answer with exactly one label from this list:\n\napp: Kestrel's own tools and its limits: the user's notes, documents, tasks, reminders and stored preferences; small talk; and anything that needs the internet, a phone, live data or a calculation\nchat: a written answer from general knowledge: advice, ideas, plans, stories, poems, comparisons, recipes, and explanations of how things work or what something means\nemail: a draft for the user to send to someone: an email, letter, application, message, note or reply\nrewrite: text given in the request, changed in its own language: tone, length, grammar, style, form, a summary or a title of that text\ntranslate: text, a word or a phrase put into another language or script\n\nRules, in order; the first that fits decides:\n1. Finding, opening or summarizing the user's notes or documents; adding, listing, changing or deleting tasks and reminders (also a reminder or task to write, mail or translate something later); keeping or recalling the user's preferences and personal facts: app.\n2. Doing something now that needs the internet, a phone or a device (sending, forwarding or mailing a message, calling, booking, checking an inbox); news, weather, prices, other current facts, or a calculation: app.\n3. Small talk (greetings, thanks, jokes, boredom, how are you) and questions about Kestrel itself: app.\n4. A draft addressed to someone else: email, also when it is written from the user's notes.\n5. Given text, or one of the user's notes, put into another language or script: translate. Changed in its own language: rewrite.\n6. Any other request for a written answer: chat.\n\nRequests may be in English or Hinglish (Hindi written in Latin script); label both the same way. Answer with the label only.\n",
+ "labels": "kinds.txt",
+ "shots": [
+  {
+   "text": "remind me to translate the contract on monday",
+   "label": "app"
+  },
+  {
+   "text": "how can i focus better while studying?",
+   "label": "chat"
+  },
+  {
+   "text": "write an email to my manager asking for leave on friday",
+   "label": "email"
+  },
+  {
+   "text": "make this more formal: hey, can't make it tomorrow, sorry",
+   "label": "rewrite"
+  },
+  {
+   "text": "translate this to hindi: good morning, how are you",
+   "label": "translate"
+  },
+  {
+   "text": "somvar ko contract translate karna yaad dila dena",
+   "label": "app"
+  },
+  {
+   "text": "padhai mein focus kaise karun?",
+   "label": "chat"
+  },
+  {
+   "text": "manager ko friday ki chutti ke liye email likh do",
+   "label": "email"
+  },
+  {
+   "text": "isko formal bana do: kal nahi aa paunga, sorry",
+   "label": "rewrite"
+  },
+  {
+   "text": "isko hindi mein translate karo: good morning, how are you",
+   "label": "translate"
+  },
+  {
+   "text": "open leave-letter.md",
+   "label": "app"
+  },
+  {
+   "text": "give me some ideas for my sister's birthday party",
+   "label": "chat"
+  },
+  {
+   "text": "write a thank you note to my teacher",
+   "label": "email"
+  },
+  {
+   "text": "fix the grammar: me and him goes to school daily",
+   "label": "rewrite"
+  },
+  {
+   "text": "translate to english: mujhe kal der ho jayegi",
+   "label": "translate"
+  },
+  {
+   "text": "leave-letter.md kholo",
+   "label": "app"
+  },
+  {
+   "text": "behen ki birthday party ke liye kuch ideas do",
+   "label": "chat"
+  },
+  {
+   "text": "teacher ke liye thank you note likh do",
+   "label": "email"
+  },
+  {
+   "text": "grammar theek karo: me and him goes to school daily",
+   "label": "rewrite"
+  },
+  {
+   "text": "english mein translate karo: mujhe kal der ho jayegi",
+   "label": "translate"
+  }
+ ],
+ "temperature": 1.65600532605186,
+ "tau_g": 0.9,
+ "head_sha256": "130e8bb079dbfca2a7f0271cd43c7ddbc5adc817b4d74dc4a54da4b585ee8f5a"
+}

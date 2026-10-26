@@ -12,6 +12,9 @@ Gemma's temperature is fitted on cal (BCE of confidence vs correctness, as for T
 A taken decision is right or wrong: a skill the request did not ask for is written, or a skill request
 goes the old way (and is usually refused). An ask is counted, and whether it names the right kind.
 
+The runtime's settings (prompt + its SHA-256, shots, Gemma's T, tau_g) go to
+experiments/configs/kinds_fallback_v0.json, which the service's worker reads (src/kinds.rs).
+
     python experiments/v3/kind_fallback.py            # ~3-5 min of full CPU: Gemma on 231 items
     python experiments/v3/kind_fallback.py --reuse    # the policies again from the logged outputs
 """
@@ -39,6 +42,10 @@ HEAD = ROOT / "experiments" / "artifacts" / "tier3" / f"kinds_v0-{ENCODER}"
 SHOTS_PER = 2  # as for Intents-v0 (ADR-015)
 TAU = 0.7  # kinds.rs TAU (draft)
 TAU_G = (0.5, 0.6, 0.7, 0.8, 0.9)
+# Draft, chosen on val (fallback_dev.json, 2026-10-26): half the asks of the head alone and no wrong
+# skill more; lower values let Gemma's lean to chat through. Judged again on the final head.
+TAU_G_CHOSEN = 0.9
+CONFIG = ROOT / "experiments" / "configs" / "kinds_fallback_v0.json"
 LOG = ROOT / "experiments" / "logs" / "v3" / "kinds"
 OUTPUTS, SUMMARY = LOG / "fallback_outputs.jsonl", LOG / "fallback_dev.json"
 
@@ -61,6 +68,16 @@ def score(decisions, gold):
             "skill_not_asked_for": sum(k != g and k != "app" for k, g in taken),
             "skill_sent_old_way": sum(k == "app" and g != "app" for k, g in taken),
             "asked": len(asked), "asked_right_kind": sum(k == g for k, g in asked)}
+
+
+def fallback_config(meta: dict, temperature: float, tau_g: float, system: str) -> dict:
+    """What the worker needs to run the fallback as the dev run did; `system` is the prompt's text,
+    so the runtime cannot read another prompt than the one measured."""
+    return {"note": "v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; tau_g is a draft",
+            "dev_log": str(SUMMARY.relative_to(ROOT)), "slm": meta["slm"], "model_file": meta["model_file"],
+            "prompt": meta["prompt"], "prompt_sha256": meta["prompt_sha256"], "system": system,
+            "labels": "kinds.txt", "shots": meta["shots"], "temperature": temperature, "tau_g": tau_g,
+            "head_sha256": meta["head_sha256"]}
 
 
 def _sha(path: Path) -> str:
@@ -128,14 +145,20 @@ def main(argv=None):
     else:
         rows, shots = run_models(load_splits("kinds_v0"))
         OUTPUTS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-        meta = {"slm": SLM, "encoder": ENCODER, "head_sha256": _sha(HEAD / "head.bin"),
+        meta = {"slm": SLM, "model_file": model_path(SLM).name, "encoder": ENCODER, "head_sha256": _sha(HEAD / "head.bin"),
                 "prompt": TASKS["kinds_v0"][0].name, "prompt_sha256": _sha(TASKS["kinds_v0"][0]),
                 "shots_per_kind_and_language": SHOTS_PER, "shots": shots,
                 "note": "dev timing on the laptop as found; not a measurement"}
+    meta.setdefault("model_file", model_path(SLM).name)
     out = {"meta": meta} | summarize(rows)
     SUMMARY.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+    prompt = TASKS["kinds_v0"][0]
+    if _sha(prompt) != meta["prompt_sha256"]:
+        raise ValueError(f"{prompt.name} changed since the dev run: run it again (without --reuse)")
+    cfg = fallback_config(meta, out["temperature_gemma"], TAU_G_CHOSEN, prompt.read_text(encoding="utf-8"))
+    CONFIG.write_text(json.dumps(cfg, indent=1, ensure_ascii=False) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k not in ("meta", "val_unsure_items")}, indent=1))
-    print(f"wrote {SUMMARY.relative_to(ROOT)}")
+    print(f"wrote {SUMMARY.relative_to(ROOT)} and {CONFIG.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -88,7 +88,8 @@
     "label": "translate"
    }
   ],
-  "note": "dev timing on the laptop as found; not a measurement"
+  "note": "dev timing on the laptop as found; not a measurement",
+  "model_file": "gemma-4-E2B-it-Q4_0.gguf"
  },
  "temperature_gemma": 1.65600532605186,
  "temperature_note": "fitted on cal (BCE)",

@@ -148,6 +148,52 @@ impl Models {
         )?)
     }
 
+    /// v3's kind fallback (ADR-037) on the config's Tier-4 model, as the dev run measured it
+    /// (crate::kinds::FALLBACK_CONFIG); refused for another model file. Its primed prefix is kept
+    /// beside Tier 4's when the service caches one.
+    pub fn kinds_fallback(&self) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
+        use crate::kinds::{FALLBACK_CONFIG, FallbackConfig, KINDS};
+        let slm = self
+            .slm
+            .as_ref()
+            .ok_or("the kind fallback needs the Tier-4 model")?;
+        let fb = FallbackConfig::load(Path::new(FALLBACK_CONFIG))?;
+        let t4 = &self.cfg.models.tier4;
+        if fb.model_file != t4.model_file {
+            return Err(format!(
+                "the kind fallback was measured on {}, not {}",
+                fb.model_file, t4.model_file
+            )
+            .into());
+        }
+        let arch = slm.architecture()?;
+        let format =
+            ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
+        // As for Tier 4: the dev run normalized the examples like requests.
+        let shots = fb
+            .shots
+            .iter()
+            .map(|s| (normalize(&s.text), s.label.clone()))
+            .collect();
+        let prompt = ChatPrompt::new(format, &fb.system).with_examples(shots);
+        let answers: Vec<_> = KINDS.iter().map(|&k| (k, k.label())).collect();
+        let prefix = self.prefix_file.as_ref().map(|f| {
+            f.with_file_name(format!(
+                "kinds-{}",
+                f.file_name().unwrap_or_default().to_string_lossy()
+            ))
+        });
+        Ok(GenerativeTier::new_cached(
+            slm,
+            prompt,
+            &answers,
+            fb.temperature,
+            TIER4_TIMEOUT,
+            self.cfg.est_cost_ms[Tier::Generative.index()],
+            prefix.as_deref(),
+        )?)
+    }
+
     /// The config's tiers answering in `space`, each passed through `wrap` (identity for
     /// route-items), in a cascade.
     pub fn cascade<'a, S: LabelSpace>(

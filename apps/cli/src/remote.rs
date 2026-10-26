@@ -8,7 +8,9 @@
 //! `{"id": N, "text": "..."}` it answers `{"probs": [["create_task", 0.97], ...]}`, and for each
 //! `{"id": N, "summarize": ["note text", ...]}` (feature 5, src/summary.rs) `{"summary": "..."}`;
 //! for each `{"id": N, "write": {"kind": "...", "text": "..."}}` (v3, src/kinds.rs) the text as it
-//! is written, `{"part": "..."}` per piece, then `{"text": "..."}`; any may be `{"error": "..."}`.
+//! is written, `{"part": "..."}` per piece, then `{"text": "..."}`; for each `{"id": N, "kind":
+//! "..."}` (v3's fallback when the kind head is unsure) `{"probs": [["chat", 0.93]]}` in kinds;
+//! any may be `{"error": "..."}`.
 
 use std::cell::{Cell, RefCell};
 use std::io::{BufRead, BufReader, Write};
@@ -177,14 +179,42 @@ impl TierModel for RemoteTier {
 
     fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
         let v = self.exchange(&json!({"id": req.id, "text": req.text}), &mut |_| {})?;
-        let probs = v["probs"].as_array().ok_or_else(unavailable)?;
-        Ok(probs
-            .iter()
-            .filter_map(|pair| {
-                let label = Intent::from_label(pair.get(0)?.as_str()?)?;
-                Some((label, pair.get(1)?.as_f64()? as f32))
-            })
-            .collect())
+        probs(&v, Intent::from_label)
+    }
+}
+
+/// `{"probs": [[label, p], ...]}` in a label space; labels outside it are dropped.
+fn probs<L>(v: &Value, label: impl Fn(&str) -> Option<L>) -> Result<Vec<(L, f32)>, KestrelError> {
+    let probs = v["probs"].as_array().ok_or_else(unavailable)?;
+    Ok(probs
+        .iter()
+        .filter_map(|pair| {
+            Some((
+                label(pair.get(0)?.as_str()?)?,
+                pair.get(1)?.as_f64()? as f32,
+            ))
+        })
+        .collect())
+}
+
+/// v3's kind fallback (src/kinds.rs) in the same worker: Gemma chooses the kind when the head is
+/// unsure.
+pub struct KindFallback(pub std::rc::Rc<RemoteTier>);
+
+impl TierModel<crate::kinds::Kind> for KindFallback {
+    fn tier(&self) -> Tier {
+        Tier::Generative
+    }
+
+    fn est_cost_ms(&self) -> u32 {
+        self.0.cost
+    }
+
+    fn classify(&self, req: &Request) -> Result<Vec<(crate::kinds::Kind, f32)>, KestrelError> {
+        let v = self
+            .0
+            .exchange(&json!({"id": req.id, "kind": req.text}), &mut |_| {})?;
+        probs(&v, crate::kinds::Kind::from_label)
     }
 }
 
@@ -292,6 +322,30 @@ mod tests {
             t.write(Kind::Chat, "hi", &mut |_| {}),
             Err(KestrelError::Invalid(_))
         ));
+    }
+
+    #[test]
+    fn the_same_worker_chooses_kinds_for_the_fallback() {
+        use crate::kinds::Kind;
+        let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
+            *'"kind":"explain recursion"'*) echo '{"probs": [["chat", 0.93], ["code", 0.01]]}';;
+            *) echo '{"error": "no kind fallback"}';; esac; done"#;
+        let t = std::rc::Rc::new(RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        ));
+        let f = KindFallback(t.clone());
+        assert_eq!(
+            f.classify(&req("explain recursion")).unwrap(),
+            [(Kind::Chat, 0.93)]
+        );
+        assert!(matches!(
+            f.classify(&req("hi")),
+            Err(KestrelError::Invalid(_))
+        ));
+        assert!(t.is_loaded(), "one worker for everything");
     }
 
     #[test]

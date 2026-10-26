@@ -93,3 +93,69 @@ fn the_worker_writes_a_skill_draft_the_same_way_every_time() {
     assert_eq!(start_and_send(&root, &cache, msg).0, first);
     let _ = std::fs::remove_dir_all(&cache);
 }
+
+/// What the dev run logged for a val item: Gemma's kind and its confidence at the fitted T.
+fn logged_kind(root: &Path, id: &str, t: f64) -> (String, String, f64) {
+    let rows =
+        std::fs::read_to_string(root.join("experiments/logs/v3/kinds/fallback_outputs.jsonl"))
+            .unwrap();
+    let row: serde_json::Value = rows
+        .lines()
+        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
+        .find(|r| r["id"] == id)
+        .unwrap();
+    let val =
+        std::fs::read_to_string(root.join("datasets/kestrel_kinds_v0/splits/val.jsonl")).unwrap();
+    let text = val
+        .lines()
+        .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
+        .find(|r| r["id"] == id)
+        .unwrap()["text"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let mut p = 1.0;
+    for s in row["gemma"]["steps"].as_array().unwrap() {
+        let z: Vec<f64> = s["logits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x.as_f64().unwrap() / t)
+            .collect();
+        let m = z.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let sum: f64 = z.iter().map(|x| (x - m).exp()).sum();
+        p *= (z[s["chosen"].as_u64().unwrap() as usize] - m).exp() / sum;
+    }
+    (text, row["gemma"]["label"].as_str().unwrap().to_string(), p)
+}
+
+#[test]
+#[ignore = "needs models/ and --features llama"]
+fn the_worker_chooses_kinds_as_the_dev_run_did() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let cache = std::env::temp_dir().join(format!("kestrel_kind_{}", std::process::id()));
+    let cfg: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("experiments/configs/kinds_fallback_v0.json")).unwrap(),
+    )
+    .unwrap();
+    let t = cfg["temperature"].as_f64().unwrap();
+    // Three the head was unsure of (fallback_dev.json): Gemma app 0.97, chat 0.97, and chat 0.83
+    // for a current fact (below tau_g: the head's app stands).
+    for id in [
+        "app-02/hi-en/0",
+        "chat-15/hi-en/0",
+        "intents:oos-facts-01/hi-en/0/0",
+    ] {
+        let (text, label, p) = logged_kind(&root, id, t);
+        let msg = serde_json::json!({"id": 0, "kind": text}).to_string();
+        let (reply, _) = start_and_send(&root, &cache, &msg);
+        let v: serde_json::Value = serde_json::from_str(&reply).unwrap();
+        let got = &v["probs"][0];
+        assert_eq!(got[0].as_str(), Some(label.as_str()), "{id}: {reply}");
+        assert!(
+            (got[1].as_f64().unwrap() - p).abs() < 1e-4,
+            "{id}: {reply} vs {p}"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&cache);
+}

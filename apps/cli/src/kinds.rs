@@ -5,8 +5,15 @@
 //! normalized request it was trained on; the writer gets the request as typed, because a rewrite or
 //! a translation needs its case and punctuation. In the service the text is shown while Gemma
 //! writes it (src/stream.rs); the answer's lines are then only what follows it.
+//!
+//! When the head's top kind is below τ, Gemma may decide instead (the fallback, ADR-037): its kind
+//! at or above τ_g is taken, otherwise the head's answer stands (a skill is asked about). Gemma's
+//! prompt, examples, temperature and τ_g are the dev run's (experiments/v3/kind_fallback.py).
+
+use std::path::Path;
 
 use kestrel_core::{KestrelError, Request, TierModel};
+use serde::Deserialize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
@@ -106,10 +113,74 @@ pub enum Choice {
 }
 
 pub fn decide(probs: &[(Kind, f32)], tau: f32) -> Choice {
-    match probs.iter().max_by(|a, b| a.1.total_cmp(&b.1)) {
+    match top(probs) {
         None | Some((Kind::App, _)) => Choice::App,
-        Some(&(k, p)) if p >= tau => Choice::Skill(k),
-        Some(&(k, _)) => Choice::Ask(k),
+        Some((k, p)) if p >= tau => Choice::Skill(k),
+        Some((k, _)) => Choice::Ask(k),
+    }
+}
+
+/// `decide`, except that below τ the fallback's kind at or above `tau_g` is taken.
+pub fn decide_fallback(
+    probs: &[(Kind, f32)],
+    tau: f32,
+    fallback: Option<(Kind, f32)>,
+    tau_g: f32,
+) -> Choice {
+    match (top(probs), fallback) {
+        (Some((_, p)), Some((Kind::App, g))) if p < tau && g >= tau_g => Choice::App,
+        (Some((_, p)), Some((k, g))) if p < tau && g >= tau_g => Choice::Skill(k),
+        _ => decide(probs, tau),
+    }
+}
+
+fn top(probs: &[(Kind, f32)]) -> Option<(Kind, f32)> {
+    probs.iter().copied().max_by(|a, b| a.1.total_cmp(&b.1))
+}
+
+/// Where the service finds the fallback's settings (written by experiments/v3/kind_fallback.py).
+pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v0.json";
+
+/// The fallback as the dev run measured it: Gemma's instructions and examples, the temperature
+/// fitted on cal, and τ_g.
+#[derive(Debug, Deserialize)]
+pub struct FallbackConfig {
+    pub model_file: String,
+    pub system: String,
+    pub shots: Vec<Shot>,
+    pub temperature: f32,
+    pub tau_g: f32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Shot {
+    pub text: String,
+    pub label: String,
+}
+
+impl FallbackConfig {
+    pub fn load(path: &Path) -> Result<Self, KestrelError> {
+        let bad = |e: String| KestrelError::Invalid(format!("{}: {e}", path.display()));
+        let text = std::fs::read_to_string(path).map_err(|e| bad(e.to_string()))?;
+        let cfg: Self = serde_json::from_str(&text).map_err(|e| bad(e.to_string()))?;
+        if let Some(s) = cfg
+            .shots
+            .iter()
+            .find(|s| Kind::from_label(&s.label).is_none())
+        {
+            return Err(bad(format!("example label {:?} is not a kind", s.label)));
+        }
+        if !(cfg.temperature.is_finite()
+            && cfg.temperature > 0.0
+            && cfg.tau_g > 0.0
+            && cfg.tau_g <= 1.0)
+        {
+            return Err(bad(format!(
+                "temperature {} or tau_g {} out of range",
+                cfg.temperature, cfg.tau_g
+            )));
+        }
+        Ok(cfg)
     }
 }
 
@@ -128,6 +199,7 @@ pub struct Kinds<'a> {
     head: Box<dyn TierModel<Kind> + 'a>,
     writer: Box<dyn Writer + 'a>,
     tau: f32,
+    fallback: Option<(Box<dyn TierModel<Kind> + 'a>, f32)>,
 }
 
 impl<'a> Kinds<'a> {
@@ -136,7 +208,18 @@ impl<'a> Kinds<'a> {
         writer: Box<dyn Writer + 'a>,
         tau: f32,
     ) -> Self {
-        Self { head, writer, tau }
+        Self {
+            head,
+            writer,
+            tau,
+            fallback: None,
+        }
+    }
+
+    /// Below τ, `fallback`'s kind at or above `tau_g` decides.
+    pub fn with_fallback(mut self, fallback: Box<dyn TierModel<Kind> + 'a>, tau_g: f32) -> Self {
+        self.fallback = Some((fallback, tau_g));
+        self
     }
 
     /// The answer when `req` asks for a skill; `None` sends it the Stage 2 way. With `stream`, the
@@ -150,7 +233,13 @@ impl<'a> Kinds<'a> {
     ) -> Option<Vec<String>> {
         // A head that fails leaves the request to the Stage 2 path.
         let probs = self.head.classify(req).ok()?;
-        let kind = match decide(&probs, self.tau) {
+        // Asked only when the head is unsure; a failed fallback leaves the head's answer.
+        let unsure = top(&probs).is_some_and(|(_, p)| p < self.tau);
+        let (fallback, tau_g) = match &self.fallback {
+            Some((f, tau_g)) if unsure => (f.classify(req).ok().and_then(|p| top(&p)), *tau_g),
+            _ => (None, 1.0),
+        };
+        let kind = match decide_fallback(&probs, self.tau, fallback, tau_g) {
             Choice::App => return None,
             Choice::Skill(k) => k,
             Choice::Ask(k) if confirm(k.question()) => k,
@@ -446,5 +535,113 @@ mod tests {
         let out = out.unwrap();
         assert!(out[0].starts_with("I couldn't write that: "), "{out:?}");
         assert_eq!(out[1..], [CAVEAT.to_string()]);
+    }
+
+    #[test]
+    fn below_tau_a_sure_fallback_decides_and_an_unsure_one_leaves_the_head_alone() {
+        use Kind::*;
+        // The cases of experiments/v3/test_kind_fallback.py, which simulated this policy.
+        let sure_email = [(App, 0.1), (Email, 0.9)];
+        let unsure_chat = [(App, 0.4), (Chat, 0.5), (Email, 0.1)];
+        let unsure_app = [(App, 0.55), (Chat, 0.45)];
+        let d = |p: &[(Kind, f32)], g| decide_fallback(p, 0.7, g, 0.8);
+        assert_eq!(d(&sure_email, Some((Chat, 0.99))), Choice::Skill(Email));
+        assert_eq!(
+            d(&unsure_chat, Some((Rewrite, 0.85))),
+            Choice::Skill(Rewrite)
+        );
+        assert_eq!(d(&unsure_app, Some((Chat, 0.85))), Choice::Skill(Chat));
+        assert_eq!(d(&unsure_chat, Some((Rewrite, 0.6))), Choice::Ask(Chat));
+        assert_eq!(d(&unsure_app, Some((Chat, 0.6))), Choice::App);
+        assert_eq!(d(&unsure_chat, Some((App, 0.95))), Choice::App);
+        assert_eq!(
+            d(&unsure_chat, None),
+            Choice::Ask(Chat),
+            "no fallback answer: the head alone"
+        );
+    }
+
+    /// A fallback that answers `probs` (or fails) and counts its calls.
+    struct Counted(Rc<std::cell::Cell<u32>>, Result<Vec<(Kind, f32)>, ()>);
+
+    impl TierModel<Kind> for Counted {
+        fn tier(&self) -> Tier {
+            Tier::Generative
+        }
+        fn est_cost_ms(&self) -> u32 {
+            400
+        }
+        fn classify(&self, _: &Request) -> Result<Vec<(Kind, f32)>, KestrelError> {
+            self.0.set(self.0.get() + 1);
+            self.1
+                .clone()
+                .map_err(|()| KestrelError::Invalid("worker gone".into()))
+        }
+    }
+
+    #[test]
+    fn the_fallback_is_asked_only_below_tau_and_a_failed_one_leaves_the_head_alone() {
+        let calls = Rc::new(std::cell::Cell::new(0));
+        let with = |probs: Vec<(Kind, f32)>, fallback| {
+            let (k, asked) = kinds(Ok(probs), Ok("written"));
+            (
+                k.with_fallback(Box::new(Counted(calls.clone(), fallback)), 0.9),
+                asked,
+            )
+        };
+        let req = Request::new(1, "x");
+        let no_question = &mut |q: &str| -> bool { panic!("asked {q}") };
+        let (k, _) = with(vec![(Kind::Email, 0.9)], Ok(vec![(Kind::Chat, 0.99)]));
+        assert_eq!(
+            k.handle(&req, "x", no_question, None),
+            Some(vec!["written".into()])
+        );
+        assert_eq!(calls.get(), 0, "a sure head needs no fallback");
+        let (k, asked) = with(
+            vec![(Kind::Chat, 0.5), (Kind::App, 0.4)],
+            Ok(vec![(Kind::Rewrite, 0.95)]),
+        );
+        assert_eq!(
+            k.handle(&req, "x", no_question, None),
+            Some(vec!["written".into()])
+        );
+        assert_eq!((calls.get(), asked.borrow()[0].0), (1, Kind::Rewrite));
+        let (k, _) = with(
+            vec![(Kind::App, 0.55), (Kind::Chat, 0.45)],
+            Ok(vec![(Kind::App, 0.97)]),
+        );
+        assert_eq!(
+            k.handle(&req, "x", no_question, None),
+            None,
+            "the fallback's app: the old path"
+        );
+        let (k, _) = with(vec![(Kind::Chat, 0.5), (Kind::App, 0.4)], Err(()));
+        let mut questions = 0;
+        let out = k.handle(
+            &req,
+            "x",
+            &mut |_| {
+                questions += 1;
+                false
+            },
+            None,
+        );
+        assert_eq!(
+            (out, questions),
+            (None, 1),
+            "a failed fallback: asked, as the head alone"
+        );
+    }
+
+    #[test]
+    fn the_committed_fallback_config_loads() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../experiments/configs/kinds_fallback_v0.json"
+        );
+        let cfg = FallbackConfig::load(std::path::Path::new(path)).unwrap();
+        assert!(cfg.tau_g > 0.0 && cfg.tau_g <= 1.0 && cfg.temperature > 0.0);
+        assert!(cfg.shots.len() >= 10 && cfg.system.contains("\napp: "));
+        assert!(FallbackConfig::load(std::path::Path::new("no/such.json")).is_err());
     }
 }

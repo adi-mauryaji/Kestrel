@@ -234,6 +234,8 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
         ChatFormat::for_architecture(&arch).ok_or(format!("no chat format for {arch:?}"))?;
     let prompt = ChatPrompt::new(format, crate::summary::SYSTEM);
     let mut writer = None;
+    // v3's kind fallback, made at its first request (its prefix is primed once, then saved).
+    let mut kinds = None;
     let mut out = io::stdout().lock();
     writeln!(out, "{}", json!({"ready": true}))?;
     out.flush()?;
@@ -259,6 +261,20 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 Some(Ok(t)) => json!({"text": t}),
                 Some(Err(e)) => json!({"error": e.to_string()}),
                 None => json!({"error": "unknown kind"}),
+            }
+        } else if let Some(text) = v["kind"].as_str() {
+            let tier =
+                kinds.get_or_insert_with(|| models.kinds_fallback().map_err(|e| e.to_string()));
+            let req = Request::new(v["id"].as_u64().unwrap_or(0), text);
+            match tier
+                .as_ref()
+                .map(|t| kestrel_core::TierModel::classify(t, &req))
+            {
+                Ok(Ok(probs)) => {
+                    json!({"probs": probs.iter().map(|(k, p)| json!([k.label(), p])).collect::<Vec<_>>()})
+                }
+                Ok(Err(e)) => json!({"error": e.to_string()}),
+                Err(e) => json!({"error": format!("no kind fallback: {e}")}),
             }
         } else {
             let req = Request::new(
@@ -463,7 +479,17 @@ pub fn serve(
     match models.kinds_tier() {
         Ok(head) => {
             let writer = Box::new(SharedRemote(remote.clone()));
-            let kinds = crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU);
+            let mut kinds = crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU);
+            // Gemma decides when the head is unsure; without its config the head alone asks.
+            match crate::kinds::FallbackConfig::load(std::path::Path::new(
+                crate::kinds::FALLBACK_CONFIG,
+            )) {
+                Ok(fb) => {
+                    let fallback = Box::new(crate::remote::KindFallback(remote.clone()));
+                    kinds = kinds.with_fallback(fallback, fb.tau_g);
+                }
+                Err(e) => eprintln!("the kind fallback is off (unsure requests are asked): {e}"),
+            }
             assistant = assistant.with_kinds(kinds);
         }
         Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate) are off: {e}"),
