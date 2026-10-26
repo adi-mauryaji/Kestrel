@@ -41,7 +41,13 @@ SECTIONS = {
 RENAMES = [("<title>Kestrel Dataset Review</title>", "<title>Kestrel Kinds Review</title>", 1),
            ("<h1>Dataset Review</h1>", "<h1>Kinds Review</h1>", 1),
            ('"kestrel-review:"', '"kestrel-kinds-review:"', 2),
-           ("kestrel-review.json", "kestrel-kinds-review.json", 2)]
+           ("kestrel-review.json", "kestrel-kinds-review.json", 2),
+           ("Claude wrote these three datasets and two word lists;",
+            "Claude wrote this draft of which skill a request asks for;", 1),
+           ("<li>Do the plans and expected results match what the request asks?</li>",
+            "<li>Does each card belong to the kind it is under?</li>", 1),
+           ("<li>Are the word lists missing anything you would say?</li>",
+            "<li>Is the note under an app card the right reason?</li>", 1)]
 
 
 def units() -> list[dict]:

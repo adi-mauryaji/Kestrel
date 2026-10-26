@@ -1,0 +1,150 @@
+# Kestrel-Kinds-v1 draft (ADR-041): the `notes` kind, a question the user's own notes answer, and its
+# boundaries. Drafted by Claude on 2026-10-27; not yet reviewed by the human. Kinds-v1 = Kinds-v0 (once frozen)
+# + these families, built then; until that, this file is reviewed on its own (experiments/v3/notes_review.py).
+#
+# notes: who / when / how much / which, about the user's life, with or without the word "notes"; never a
+# named file (read_document), "what do you remember" (retrieve_memory) or "the last N notes" (summarize), all
+# of which Kestrel-Intents-v0 labels and so stay `app`. chat: the same topics asked in general.
+
+[[family]]
+id = "notes-01"
+kind = "notes"
+domain = "schedule"
+en = ["when is my flight to delhi?", "what time is my train tomorrow?"]
+hi-en = ["meri delhi wali flight kab hai?", "kal meri train kitne baje hai?"]
+
+[[family]]
+id = "notes-02"
+kind = "notes"
+domain = "money"
+en = ["how much did i lend ravi?", "how much is the electricity bill this month?"]
+hi-en = ["maine ravi ko kitne paise udhaar diye the?", "is mahine ka bijli ka bill kitna hai?"]
+
+[[family]]
+id = "notes-03"
+kind = "notes"
+domain = "people"
+en = ["who is handling the dashboard?", "which plumber did the landlord send?"]
+hi-en = ["dashboard kaun bana raha hai?", "landlord ne kaunsa plumber bheja tha?"]
+
+[[family]]
+id = "notes-04"
+kind = "notes"
+domain = "health"
+en = ["what did the doctor say about my cough?", "which tablets am i supposed to take at night?"]
+hi-en = ["doctor ne khansi ke baare mein kya kaha tha?", "raat ko kaunsi goli leni hai?"]
+
+[[family]]
+id = "notes-05"
+kind = "notes"
+domain = "explicit"
+note = "says \"my notes\": still a question about what they say"
+en = ["according to my notes, when is the client demo?", "what do my notes say about the venue for saturday?"]
+hi-en = ["mere notes ke hisaab se client demo kab hai?", "saturday ke venue ke baare mein notes mein kya likha hai?"]
+
+[[family]]
+id = "notes-06"
+kind = "notes"
+domain = "plans"
+en = ["what gift did i plan for papa?", "which restaurant did we pick for the anniversary?"]
+hi-en = ["papa ke liye kaunsa gift socha tha?", "anniversary ke liye kaunsa restaurant decide kiya tha?"]
+
+[[family]]
+id = "notes-07"
+kind = "notes"
+domain = "study"
+en = ["which chapters are in the physics exam?", "when is my maths assignment due?"]
+hi-en = ["physics exam mein kaunse chapters aayenge?", "maths assignment kab tak submit karna hai?"]
+
+[[family]]
+id = "notes-08"
+kind = "notes"
+domain = "home"
+en = ["what size is the bedroom curtain?", "when do i need to book the gas cylinder?"]
+hi-en = ["bedroom ke parde ka size kya hai?", "gas cylinder kab book karna hai?"]
+
+[[family]]
+id = "notes-09"
+kind = "notes"
+domain = "work"
+en = ["what did we decide about pricing in the last call?", "what is the deadline for the q4 report?"]
+hi-en = ["pichhli call mein pricing ke baare mein kya decide hua tha?", "q4 report ki deadline kya hai?"]
+
+[[family]]
+id = "notes-10"
+kind = "notes"
+domain = "travel"
+en = ["where are we staying in manali?", "what's the booking id for the hotel?"]
+hi-en = ["manali mein kahan ruk rahe hain?", "hotel ka booking id kya hai?"]
+
+[[family]]
+id = "notes-11"
+kind = "notes"
+domain = "shopping"
+en = ["which brand of rice does maa want?", "how many chairs do we need for the party?"]
+hi-en = ["maa ko kaunse brand ka chawal chahiye?", "party ke liye kitni kursiyan chahiye?"]
+
+[[family]]
+id = "notes-12"
+kind = "notes"
+domain = "vehicle"
+en = ["when is the bike's next service?", "what is my car's insurance policy number?"]
+hi-en = ["bike ki agli service kab hai?", "car insurance ka policy number kya hai?"]
+
+[[family]]
+id = "notes-13"
+kind = "notes"
+domain = "recipes"
+note = "my own recipe, not how a dish is made (chat-v1-01)"
+en = ["how much sugar did i put in my kheer?", "what did i change in maa's dal recipe?"]
+hi-en = ["meri kheer mein kitni cheeni daali thi?", "maa ki dal recipe mein maine kya badla tha?"]
+
+[[family]]
+id = "notes-14"
+kind = "notes"
+domain = "places"
+en = ["what is the address of the new office?", "which floor is the dentist on?"]
+hi-en = ["naye office ka address kya hai?", "dentist kaunse floor pe hai?"]
+
+[[family]]
+id = "app-v1-01"
+kind = "app"
+note = "search_notes: find notes, not an answer from them"
+en = ["find my notes about the manali trip", "search my notes for the q4 report"]
+hi-en = ["manali trip wale notes dhoondo", "q4 report ke notes search karo"]
+
+[[family]]
+id = "app-v1-02"
+kind = "app"
+note = "summarize_notes: the gist of notes, not one fact"
+en = ["summarize my notes from the pricing call", "give me the key points of my physics notes"]
+hi-en = ["pricing call wale notes ka summary do", "physics notes ke main points batao"]
+
+[[family]]
+id = "app-v1-03"
+kind = "app"
+note = "retrieve_memory: what Kestrel remembers, not the notes"
+en = ["what do you remember about my landlord?", "what did i ask you to remember about the car?"]
+hi-en = ["landlord ke baare mein tumhe kya yaad hai?", "car ke baare mein maine tumhe kya yaad rakhne ko kaha tha?"]
+
+[[family]]
+id = "app-v1-04"
+kind = "app"
+note = "read_document: one named file"
+en = ["open trip-plan.md", "what is written in packing-list.md?"]
+hi-en = ["trip-plan.md kholo", "packing-list.md mein kya likha hai?"]
+
+[[family]]
+id = "chat-v1-01"
+kind = "chat"
+domain = "concepts"
+note = "how things are done in general, not what the user wrote (notes-13)"
+en = ["what should i pack for a trip to manali?", "how much sugar goes into kheer?"]
+hi-en = ["manali trip ke liye kya pack karna chahiye?", "kheer mein kitni cheeni daalte hain?"]
+
+[[family]]
+id = "chat-v1-02"
+kind = "chat"
+domain = "advice"
+en = ["what is a good gift for a father?", "how often should a bike be serviced?"]
+hi-en = ["papa ke liye accha gift kya ho sakta hai?", "bike ki service kitne time mein karani chahiye?"]

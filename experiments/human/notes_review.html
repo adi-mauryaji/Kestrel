@@ -1,0 +1,424 @@
+<title>Kestrel Notes Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of review cards under a sticky bar (dataset tabs, filter, next); the
+   Request Lab's kestrel palette, so the project's two human-facing pages read as one family. */
+:root {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --ink: #1d2128;
+  --muted: #5d6573;
+  --line: #d9dcd6;
+  --chestnut: #9a4523;   /* kestrel back feathers: actions and selection */
+  --chestnut-ink: #ffffff;
+  --slate: #4c5e77;      /* kestrel head and tail: labels and secondary marks */
+  --slate-soft: #e6eaf0;
+  --good: #2f6b3a;
+  --good-soft: #e5f0e6;
+  --warn: #8a5a00;
+  --warn-soft: #f7ecd6;
+  --code-bg: #f0f1ee;
+  --font-display: "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+    --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+    --good: #7cc48a; --good-soft: #1d2b21; --warn: #e6b04f; --warn-soft: #2e2615; --code-bg: #161a20;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171c; --surface: #1c2027; --ink: #e8eaee; --muted: #a2a9b5; --line: #323844;
+  --chestnut: #d47b4f; --chestnut-ink: #1a0f0a; --slate: #9db0ca; --slate-soft: #252c37;
+  --good: #7cc48a; --good-soft: #1d2b21; --warn: #e6b04f; --warn-soft: #2e2615; --code-bg: #161a20;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10;
+  background: var(--bg); }
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 56px; display: grid; gap: 20px; }
+h1 { font: 800 clamp(1.7rem, 5vw, 2.3rem)/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font: 600 1.2rem/1.3 var(--font-display); margin: 0; text-wrap: balance; }
+h3 { font: 700 1rem/1.35 var(--font-body); margin: 0; overflow-wrap: anywhere; }
+p, ul { margin: 0; }
+.intro { display: grid; gap: 10px; }
+.lede { color: var(--muted); max-width: 62ch; }
+.eyebrow { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+.judge { padding-left: 1.2em; display: grid; gap: 2px; max-width: 62ch; }
+.small { font-size: 0.85rem; color: var(--muted); }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3; background: var(--bg); padding-block: 8px;
+  display: grid; gap: 8px; border-bottom: 1px solid var(--line); }
+.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tabs button { font: 700 0.9rem/1.2 var(--font-body); padding: 8px 6px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; gap: 2px; }
+.tabs button .n { font: 400 0.75rem/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tabs button[aria-selected="true"] { background: var(--slate); border-color: var(--slate); color: var(--surface); }
+.tabs button[aria-selected="true"] .n { color: var(--surface); }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.filters { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 600 0.82rem var(--font-body); padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--chestnut); color: var(--chestnut); }
+.primary { font: 700 0.9rem var(--font-body); padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--chestnut);
+  background: var(--chestnut); color: var(--chestnut-ink); cursor: pointer; }
+.secondary { font: 700 0.9rem var(--font-body); padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; }
+.progress { height: 6px; background: var(--slate-soft); border-radius: 3px; overflow: hidden; display: flex; }
+.progress i { display: block; height: 100%; }
+.progress .p-ok { background: var(--good); }
+.progress .p-fix { background: var(--warn); }
+main { display: grid; gap: 28px; }
+section.sec { display: grid; gap: 12px; }
+.sec-head { display: grid; gap: 4px; }
+.sec-head .count { font: 400 0.8rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+details.ref { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; background: var(--surface); }
+details.ref summary { cursor: pointer; font-weight: 700; }
+details.ref details { margin-top: 6px; }
+details.ref details summary { font: 600 0.85rem var(--font-mono); color: var(--slate); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;
+  display: grid; gap: 10px; min-width: 0; }
+.card[data-state="fix"] { background: var(--warn-soft); border-color: var(--warn); }
+.card[data-state="ok"] { border-color: var(--good); }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.card-head h3 { flex: 1 1 14rem; min-width: 0; }
+.tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.note-text { font: 0.8rem/1.5 var(--font-mono); background: var(--code-bg); padding: 8px 10px; border-radius: 6px;
+  white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 0; }
+.tag { font: 600 0.72rem/1 var(--font-mono); padding: 3px 6px; border-radius: 4px; background: var(--slate-soft); color: var(--slate); }
+.pill { font: 700 0.75rem/1 var(--font-body); padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.card[data-state="ok"] .pill { border-color: var(--good); color: var(--good); }
+.card[data-state="fix"] .pill { border-color: var(--warn); color: var(--warn); }
+.card[data-state="stale"] .pill { border-color: var(--chestnut); color: var(--chestnut); }
+dl.lines { margin: 0; display: grid; gap: 6px; }
+.line { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 10px; }
+.line dt { font: 600 0.78rem/1.6 var(--font-mono); color: var(--slate); overflow-wrap: anywhere; }
+.line dd { margin: 0; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.line dd.mono { font: 0.82rem/1.5 var(--font-mono); background: var(--code-bg); padding: 6px 8px; border-radius: 6px;
+  overflow-x: auto; white-space: pre-wrap; }
+@media (max-width: 520px) { .line { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.acts .ok, .acts .fix { font: 700 0.95rem var(--font-body); padding: 8px 16px; border-radius: var(--radius); cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 5.5rem; }
+.acts .ok[aria-pressed="true"] { background: var(--good); border-color: var(--good); color: var(--surface); }
+.acts .fix[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.link { font: 0.85rem var(--font-body); background: none; border: none; color: var(--muted); text-decoration: underline;
+  cursor: pointer; padding: 4px; }
+.note { display: grid; gap: 4px; }
+.note label, .stale-msg { font-size: 0.85rem; color: var(--muted); }
+.stale-msg { color: var(--chestnut); }
+textarea { font: 16px/1.4 var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; }
+textarea[readonly] { font: 0.8rem/1.4 var(--font-mono); min-height: 120px; }
+button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--chestnut); outline-offset: 2px; }
+.empty { color: var(--muted); padding: 12px 0; }
+footer.send { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 20px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-tone="ok"] { color: var(--good); }
+[data-tone="warn"] { color: var(--warn); }
+@media (prefers-reduced-motion: no-preference) { .progress i { transition: width .2s; } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <p class="eyebrow">Kestrel · before the freeze</p>
+    <h1>Notes Review</h1>
+    <p class="lede">Claude wrote these three drafts for v3's notes features; no person has checked them yet. Mark each card
+      <b>OK</b>, or <b>Fix</b> with a note saying what is wrong. Once they are frozen, the experiments run on them unchanged.</p>
+    <ul class="judge">
+      <li>Does the Hinglish sound like real people talking?</li>
+      <li>Is the note, or are the facts, the right answer to what is asked?</li>
+      <li>Does each Kinds-v1 card belong where it is: notes, app or chat?</li>
+    </ul>
+    <p class="small" id="save-state">Your marks are kept in this browser. Saving to your account starts as soon as the page connects.</p>
+  </header>
+
+  <nav class="bar" aria-label="Datasets">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="progress" id="progress" aria-hidden="true"><i class="p-ok"></i><i class="p-fix"></i></div>
+    <div class="tools">
+      <div class="filters" id="filters" role="group" aria-label="Show"></div>
+      <button class="primary" id="next" type="button">Next to review</button>
+    </div>
+  </nav>
+
+  <main id="main"></main>
+
+  <footer class="send">
+    <h2>When you are done</h2>
+    <p class="small" id="send-help">Press Save review file and tell Claude “review done”. Claude reads your marks from
+      the saved file (or from this page's store, where it has one), fixes what you flagged, and freezes each dataset
+      whose cards are all OK. A card Claude changes comes back here marked “Changed since you reviewed it”. Your marks
+      also stay in this browser, so you can stop and come back.</p>
+    <div class="row"><button id="save" type="button">Save review file</button>
+      <button class="secondary" id="copy" type="button">Copy review</button></div>
+    <textarea id="copy-box" readonly hidden aria-label="Your review as text"></textarea>
+    <p class="small" id="status" role="status"></p>
+  </footer>
+</div>
+
+<script>
+const DATA = {"version": 1, "titles": {"notesq": "Kestrel-NotesQ-v0", "notesqa": "Kestrel-NotesQA-v0", "kindsv1": "Kestrel-Kinds-v1 draft (notes)"}, "fixtures": {}, "sections": [{"ds": "notesq", "section": "found", "title": "Searches that should find a note", "help": "A search in other words than the note uses. Is it something you would type, and is the note shown the one it should find?", "units": [{"id": "notesq:found:q-budget", "ds": "notesq", "section": "found", "key": "q-budget", "title": "q-budget · 2026-09-02-budget-plan.md", "lines": [{"k": "en", "v": "saving money every month"}, {"k": "hi-en", "v": "har mahine paise bachana"}, {"k": "Note", "v": "Monthly budget Rent 12000, groceries about 6000, phone and internet 900. Cut the two streaming subscriptions I never watch. Cook at home on weekdays instead of ordering in. Put 5000 into the recurring deposit on the 1st, before spending anything."}], "lang": null, "tags": [], "hash": "80a73452e032d9bf"}, {"id": "notesq:found:q-gym", "ds": "notesq", "section": "found", "key": "q-gym", "title": "q-gym · 2026-09-05-gym-routine.md", "lines": [{"k": "en", "v": "my exercise plan"}, {"k": "hi-en", "v": "meri kasrat ki planning"}, {"k": "Note", "v": "Workout routine Monday, Wednesday, Friday: squats, push-ups, rows, 20 minutes of running. Tuesday and Saturday: stretching and a long walk. Sunday off. Increase the squat weight by 2.5 kg every two weeks."}], "lang": null, "tags": [], "hash": "3c54525470c20d10"}, {"id": "notesq:found:q-mom", "ds": "notesq", "section": "found", "key": "q-mom", "title": "q-mom · 2026-09-08-mom-birthday.md", "lines": [{"k": "en", "v": "present for my mother"}, {"k": "hi-en", "v": "maa ke liye tohfa"}, {"k": "Note", "v": "Maa's birthday, 20 September Gift ideas: a cotton saree in light blue, or the steel tiffin set she liked at the mall. Order the eggless chocolate cake from the corner bakery two days before. Dinner at home with mausi and the cousins."}], "lang": null, "tags": [], "hash": "ee84787bafd6817c"}, {"id": "notesq:found:q-laptop", "ds": "notesq", "section": "found", "key": "q-laptop", "title": "q-laptop · 2026-09-10-laptop-issues.md", "lines": [{"k": "en", "v": "computer overheating and noise"}, {"k": "hi-en", "v": "laptop garam hona aur awaaz"}, {"k": "Note", "v": "Laptop problems The fan gets very loud during video calls and the bottom gets hot. Battery drops from 100 to 40 in two hours. Try: clean the vents, update the BIOS, set the power mode to balanced, check which app keeps the CPU busy."}], "lang": null, "tags": [], "hash": "d151dac1bdc9838d"}, {"id": "notesq:found:q-python", "ds": "notesq", "section": "found", "key": "q-python", "title": "q-python · 2026-09-12-python-learning.md", "lines": [{"k": "en", "v": "getting better at coding"}, {"k": "hi-en", "v": "coding ki practice"}, {"k": "Note", "v": "Python practice List comprehensions, generators and decorators this week. Solve two easy problems on LeetCode every day; read other people's solutions after mine. Next: write a small CLI tool that renames photos by date."}], "lang": null, "tags": [], "hash": "889929838d613b14"}, {"id": "notesq:found:q-goa", "ds": "notesq", "section": "found", "key": "q-goa", "title": "q-goa · 2026-09-15-goa-trip.md", "lines": [{"k": "en", "v": "beach holiday"}, {"k": "hi-en", "v": "samundar wali chhutti"}, {"k": "Note", "v": "Goa trip in November Flights booked for the 14th, back on the 18th. Stay near Palolem. Budget 25000 for both of us. Rent a scooter. Pack: sunscreen, flip-flops, power bank, swimsuit."}], "lang": null, "tags": [], "hash": "bb3d0464f9505758"}, {"id": "notesq:found:q-doctor", "ds": "notesq", "section": "found", "key": "q-doctor", "title": "q-doctor · 2026-09-18-doctor-visit.md", "lines": [{"k": "en", "v": "medicine when i was sick"}, {"k": "hi-en", "v": "bimari ki dawai"}, {"k": "Note", "v": "Doctor visit Fever and cough for three days. Dr. Mehta said it is viral. Paracetamol 650 three times a day after food, steam twice a day, rest for three days. Come back if the fever lasts beyond Friday."}], "lang": null, "tags": [], "hash": "02ab9e0fc5585016"}, {"id": "notesq:found:q-interview", "ds": "notesq", "section": "found", "key": "q-interview", "title": "q-interview · 2026-09-20-interview-prep.md", "lines": [{"k": "en", "v": "job interview practice"}, {"k": "hi-en", "v": "naukri ke interview ki taiyari"}, {"k": "Note", "v": "Interview preparation System design: caching, queues, rate limiting, database indexes. Prepare three STAR stories: the outage I fixed, the migration, the intern I mentored. Mock interview with Ravi on Friday at 7 pm."}], "lang": null, "tags": [], "hash": "8a0ed0fbf4993df2"}, {"id": "notesq:found:q-landlord", "ds": "notesq", "section": "found", "key": "q-landlord", "title": "q-landlord · 2026-09-22-landlord.md", "lines": [{"k": "en", "v": "plumbing problem in the flat"}, {"k": "hi-en", "v": "ghar mein paani ka rissav"}, {"k": "Note", "v": "Flat issues Water leaking from the bathroom ceiling, the wall near the mirror is damp. Mr. Kapoor (landlord) promised to send a plumber this week. Ask about the deposit receipt when he comes."}], "lang": null, "tags": [], "hash": "f266cce21732cf60"}, {"id": "notesq:found:q-recipes", "ds": "notesq", "section": "found", "key": "q-recipes", "title": "q-recipes · 2026-09-25-recipes.md", "lines": [{"k": "en", "v": "how to cook lentils"}, {"k": "hi-en", "v": "dal kaise banate hain"}, {"k": "Note", "v": "Recipes Dal tadka: boil toor dal with turmeric; temper ghee, jeera, garlic, red chilli; mix and add coriander. Poha: rinse the flattened rice, fry mustard seeds, curry leaves, onion, peanuts; add poha, salt, lemon."}], "lang": null, "tags": [], "hash": "803932e08eef97b6"}, {"id": "notesq:found:q-book", "ds": "notesq", "section": "found", "key": "q-book", "title": "q-book · 2026-09-28-book-notes.md", "lines": [{"k": "en", "v": "the book about habits"}, {"k": "hi-en", "v": "aadaton wali kitaab"}, {"k": "Note", "v": "Atomic Habits, notes Small improvements compound over time. Focus on who you want to become, not only on goals. Make good behaviour obvious and easy: keep the book on the pillow, the shoes by the door."}], "lang": null, "tags": [], "hash": "f4244885b54940cc"}, {"id": "notesq:found:q-meeting", "ds": "notesq", "section": "found", "key": "q-meeting", "title": "q-meeting · 2026-10-01-team-meeting.md", "lines": [{"k": "en", "v": "new release date"}, {"k": "hi-en", "v": "release kab hogi"}, {"k": "Note", "v": "Sprint planning The release moves to Monday because the payment tests are failing. Ravi owns the API changes, Asha the dashboard. Demo to the client on Thursday."}], "lang": null, "tags": [], "hash": "d1d5d3ac843150d3"}, {"id": "notesq:found:q-car", "ds": "notesq", "section": "found", "key": "q-car", "title": "q-car · 2026-10-03-car-service.md", "lines": [{"k": "en", "v": "vehicle maintenance"}, {"k": "hi-en", "v": "gaadi ki servicing"}, {"k": "Note", "v": "Car Service due at 30000 km: oil change, air filter, brake check. Tyre pressure 32 psi front and back. Insurance renewal before the 25th of October."}], "lang": null, "tags": [], "hash": "44ca417e3230bb90"}, {"id": "notesq:found:q-plants", "ds": "notesq", "section": "found", "key": "q-plants", "title": "q-plants · 2026-10-06-plants.md", "lines": [{"k": "en", "v": "watering the balcony greenery"}, {"k": "hi-en", "v": "paudhon ko paani"}, {"k": "Note", "v": "Balcony plants Tulsi and money plant: water every second morning, less in winter. The tomato pot needs water every day and some sun. Add compost once a month."}], "lang": null, "tags": [], "hash": "0887d57d6829f422"}, {"id": "notesq:found:q-diwali", "ds": "notesq", "section": "found", "key": "q-diwali", "title": "q-diwali · 2026-10-08-diwali-shopping.md", "lines": [{"k": "en", "v": "festival shopping"}, {"k": "hi-en", "v": "tyohaar ki khareedari"}, {"k": "Note", "v": "Diwali list Lights for the balcony, diyas, rangoli colours. Sweets from Haldiram's: kaju katli and soan papdi. New kurta for me, gifts for the cousins under 1000 each."}], "lang": null, "tags": [], "hash": "9a9f468f44fe7517"}, {"id": "notesq:found:q-kyc", "ds": "notesq", "section": "found", "key": "q-kyc", "title": "q-kyc · 2026-10-11-bank-kyc.md", "lines": [{"k": "en", "v": "documents the bank asked for"}, {"k": "hi-en", "v": "bank ke liye kaagaz"}, {"k": "Note", "v": "Bank KYC The branch asked for the Aadhaar card, PAN card and one passport photo. Go before the 31st or the account gets frozen. Branch opens at 10, token counter on the left."}], "lang": null, "tags": [], "hash": "a3aef435a4b15b91"}, {"id": "notesq:found:q-sleep", "ds": "notesq", "section": "found", "key": "q-sleep", "title": "q-sleep · 2026-10-14-sleep.md", "lines": [{"k": "en", "v": "trouble with insomnia"}, {"k": "hi-en", "v": "neend na aana"}, {"k": "Note", "v": "Sleep Falling asleep only after 2 am this month. No phone after 11, chamomile tea, the same wake-up time every day, a short walk in the evening."}], "lang": null, "tags": [], "hash": "fdbcd4fb06e74868"}, {"id": "notesq:found:q-wifi", "ds": "notesq", "section": "found", "key": "q-wifi", "title": "q-wifi · docs/wifi-setup.md", "lines": [{"k": "en", "v": "changing the internet password"}, {"k": "hi-en", "v": "wifi ka password badalna"}, {"k": "Note", "v": "Home router Admin page at 192.168.1.1, user admin. To change the network password: Wireless, Security, WPA2 key, Save, then reconnect every device. Use channel 6 if the signal keeps dropping."}], "lang": null, "tags": [], "hash": "ad635d4c3b3b0d98"}]}, {"ds": "notesq", "section": "none", "title": "Searches no note fits", "help": "No fixture note is about this: Kestrel should find nothing.", "units": [{"id": "notesq:none:q-none-cat", "ds": "notesq", "section": "none", "key": "q-none-cat", "title": "q-none-cat", "lines": [{"k": "en", "v": "my cat's vaccination"}, {"k": "hi-en", "v": "billi ka teeka"}, {"k": "Note", "v": "No note fits: anything found is noise."}], "lang": null, "tags": [], "hash": "982bbe64c0b2eff0"}, {"id": "notesq:none:q-none-guitar", "ds": "notesq", "section": "none", "key": "q-none-guitar", "title": "q-none-guitar", "lines": [{"k": "en", "v": "learning guitar"}, {"k": "hi-en", "v": "guitar seekhna"}, {"k": "Note", "v": "No note fits: anything found is noise."}], "lang": null, "tags": [], "hash": "5307842cf6864f74"}, {"id": "notesq:none:q-none-stocks", "ds": "notesq", "section": "none", "key": "q-none-stocks", "title": "q-none-stocks", "lines": [{"k": "en", "v": "stock market investing"}, {"k": "hi-en", "v": "share bazaar mein nivesh"}, {"k": "Note", "v": "No note fits: anything found is noise."}], "lang": null, "tags": [], "hash": "19554addd957dd99"}]}, {"ds": "notesqa", "section": "answered", "title": "Questions a note answers", "help": "Would you ask it this way? Does the note answer it, and would a right answer hold every fact listed (the ways separated by /)?", "units": [{"id": "notesqa:answered:qa-rent", "ds": "notesqa", "section": "answered", "key": "qa-rent", "title": "qa-rent · 2026-09-02-budget-plan.md", "lines": [{"k": "en", "v": "how much is my rent?"}, {"k": "hi-en", "v": "mera rent kitna hai?"}, {"k": "Facts", "v": "12000 / 12,000"}, {"k": "Note", "v": "Monthly budget Rent 12000, groceries about 6000, phone and internet 900. Cut the two streaming subscriptions I never watch. Cook at home on weekdays instead of ordering in. Put 5000 into the recurring deposit on the 1st, before spending anything."}], "lang": null, "tags": [], "hash": "ed7858820e83276d"}, {"id": "notesqa:answered:qa-deposit", "ds": "notesqa", "section": "answered", "key": "qa-deposit", "title": "qa-deposit · 2026-09-02-budget-plan.md", "lines": [{"k": "en", "v": "how much do i put in the recurring deposit?"}, {"k": "hi-en", "v": "recurring deposit mein kitna dalna hai?"}, {"k": "Facts", "v": "5000 / 5,000"}, {"k": "Note", "v": "Monthly budget Rent 12000, groceries about 6000, phone and internet 900. Cut the two streaming subscriptions I never watch. Cook at home on weekdays instead of ordering in. Put 5000 into the recurring deposit on the 1st, before spending anything."}], "lang": null, "tags": [], "hash": "269743cad8a30c7b"}, {"id": "notesqa:answered:qa-gym-days", "ds": "notesqa", "section": "answered", "key": "qa-gym-days", "title": "qa-gym-days · 2026-09-05-gym-routine.md", "lines": [{"k": "en", "v": "on which days do i do squats?"}, {"k": "hi-en", "v": "squats kis din karne hain?"}, {"k": "Facts", "v": "monday · wednesday · friday"}, {"k": "Note", "v": "Workout routine Monday, Wednesday, Friday: squats, push-ups, rows, 20 minutes of running. Tuesday and Saturday: stretching and a long walk. Sunday off. Increase the squat weight by 2.5 kg every two weeks."}], "lang": null, "tags": [], "hash": "c33766e7356c0180"}, {"id": "notesqa:answered:qa-mom-cake", "ds": "notesqa", "section": "answered", "key": "qa-mom-cake", "title": "qa-mom-cake · 2026-09-08-mom-birthday.md", "lines": [{"k": "en", "v": "which cake do i order for maa?"}, {"k": "hi-en", "v": "maa ke birthday ke liye kaunsa cake order karna hai?"}, {"k": "Facts", "v": "chocolate · eggless"}, {"k": "Note", "v": "Maa's birthday, 20 September Gift ideas: a cotton saree in light blue, or the steel tiffin set she liked at the mall. Order the eggless chocolate cake from the corner bakery two days before. Dinner at home with mausi and the cousins."}], "lang": null, "tags": [], "hash": "58d9865f66a2dcac"}, {"id": "notesqa:answered:qa-mom-date", "ds": "notesqa", "section": "answered", "key": "qa-mom-date", "title": "qa-mom-date · 2026-09-08-mom-birthday.md", "lines": [{"k": "en", "v": "when is maa's birthday?"}, {"k": "hi-en", "v": "maa ka birthday kab hai?"}, {"k": "Facts", "v": "20 · september / sep"}, {"k": "Note", "v": "Maa's birthday, 20 September Gift ideas: a cotton saree in light blue, or the steel tiffin set she liked at the mall. Order the eggless chocolate cake from the corner bakery two days before. Dinner at home with mausi and the cousins."}], "lang": null, "tags": [], "hash": "8df96d7458fb0ff9"}, {"id": "notesqa:answered:qa-battery", "ds": "notesqa", "section": "answered", "key": "qa-battery", "title": "qa-battery · 2026-09-10-laptop-issues.md", "lines": [{"k": "en", "v": "how low does my laptop battery go in two hours?"}, {"k": "hi-en", "v": "do ghante mein laptop ki battery kitni reh jaati hai?"}, {"k": "Facts", "v": "40"}, {"k": "Note", "v": "Laptop problems The fan gets very loud during video calls and the bottom gets hot. Battery drops from 100 to 40 in two hours. Try: clean the vents, update the BIOS, set the power mode to balanced, check which app keeps the CPU busy."}], "lang": null, "tags": [], "hash": "39a76af393664e4b"}, {"id": "notesqa:answered:qa-goa-flight", "ds": "notesqa", "section": "answered", "key": "qa-goa-flight", "title": "qa-goa-flight · 2026-09-15-goa-trip.md", "lines": [{"k": "en", "v": "on which date do i fly to goa?"}, {"k": "hi-en", "v": "goa ki flight kis tareekh ko hai?"}, {"k": "Facts", "v": "14"}, {"k": "Note", "v": "Goa trip in November Flights booked for the 14th, back on the 18th. Stay near Palolem. Budget 25000 for both of us. Rent a scooter. Pack: sunscreen, flip-flops, power bank, swimsuit."}], "lang": null, "tags": [], "hash": "7d1d55976cc7c7c1"}, {"id": "notesqa:answered:qa-goa-stay", "ds": "notesqa", "section": "answered", "key": "qa-goa-stay", "title": "qa-goa-stay · 2026-09-15-goa-trip.md", "lines": [{"k": "en", "v": "where are we staying in goa?"}, {"k": "hi-en", "v": "goa mein kahan rukna hai?"}, {"k": "Facts", "v": "palolem"}, {"k": "Note", "v": "Goa trip in November Flights booked for the 14th, back on the 18th. Stay near Palolem. Budget 25000 for both of us. Rent a scooter. Pack: sunscreen, flip-flops, power bank, swimsuit."}], "lang": null, "tags": [], "hash": "cdd64114a7371e04"}, {"id": "notesqa:answered:qa-doctor", "ds": "notesqa", "section": "answered", "key": "qa-doctor", "title": "qa-doctor · 2026-09-18-doctor-visit.md", "lines": [{"k": "en", "v": "which doctor did i see for the fever?"}, {"k": "hi-en", "v": "bukhaar ke liye maine kis doctor ko dikhaya tha?"}, {"k": "Facts", "v": "mehta"}, {"k": "Note", "v": "Doctor visit Fever and cough for three days. Dr. Mehta said it is viral. Paracetamol 650 three times a day after food, steam twice a day, rest for three days. Come back if the fever lasts beyond Friday."}], "lang": null, "tags": [], "hash": "d797d97b81d220b5"}, {"id": "notesqa:answered:qa-dose", "ds": "notesqa", "section": "answered", "key": "qa-dose", "title": "qa-dose · 2026-09-18-doctor-visit.md", "lines": [{"k": "en", "v": "how many times a day do i take paracetamol?"}, {"k": "hi-en", "v": "paracetamol din mein kitni baar leni hai?"}, {"k": "Facts", "v": "three / 3 / teen"}, {"k": "Note", "v": "Doctor visit Fever and cough for three days. Dr. Mehta said it is viral. Paracetamol 650 three times a day after food, steam twice a day, rest for three days. Come back if the fever lasts beyond Friday."}], "lang": null, "tags": [], "hash": "14ee123040d6d4e7"}, {"id": "notesqa:answered:qa-mock", "ds": "notesqa", "section": "answered", "key": "qa-mock", "title": "qa-mock · 2026-09-20-interview-prep.md", "lines": [{"k": "en", "v": "when is my mock interview?"}, {"k": "hi-en", "v": "mock interview kab hai?"}, {"k": "Facts", "v": "friday · 7"}, {"k": "Note", "v": "Interview preparation System design: caching, queues, rate limiting, database indexes. Prepare three STAR stories: the outage I fixed, the migration, the intern I mentored. Mock interview with Ravi on Friday at 7 pm."}], "lang": null, "tags": [], "hash": "986fe849dc39b538"}, {"id": "notesqa:answered:qa-landlord", "ds": "notesqa", "section": "answered", "key": "qa-landlord", "title": "qa-landlord · 2026-09-22-landlord.md", "lines": [{"k": "en", "v": "what is my landlord's name?"}, {"k": "hi-en", "v": "mere landlord ka naam kya hai?"}, {"k": "Facts", "v": "kapoor"}, {"k": "Note", "v": "Flat issues Water leaking from the bathroom ceiling, the wall near the mirror is damp. Mr. Kapoor (landlord) promised to send a plumber this week. Ask about the deposit receipt when he comes."}], "lang": null, "tags": [], "hash": "3fcb000e9b46d546"}, {"id": "notesqa:answered:qa-release", "ds": "notesqa", "section": "answered", "key": "qa-release", "title": "qa-release · 2026-10-01-team-meeting.md", "lines": [{"k": "en", "v": "when is the release now?"}, {"k": "hi-en", "v": "release ab kab hai?"}, {"k": "Facts", "v": "monday"}, {"k": "Note", "v": "Sprint planning The release moves to Monday because the payment tests are failing. Ravi owns the API changes, Asha the dashboard. Demo to the client on Thursday."}], "lang": null, "tags": [], "hash": "bb512ef689db6f19"}, {"id": "notesqa:answered:qa-api", "ds": "notesqa", "section": "answered", "key": "qa-api", "title": "qa-api · 2026-10-01-team-meeting.md", "lines": [{"k": "en", "v": "who owns the api changes?"}, {"k": "hi-en", "v": "api changes kaun dekh raha hai?"}, {"k": "Facts", "v": "ravi"}, {"k": "Note", "v": "Sprint planning The release moves to Monday because the payment tests are failing. Ravi owns the API changes, Asha the dashboard. Demo to the client on Thursday."}], "lang": null, "tags": [], "hash": "9a6dba04970c3b1b"}, {"id": "notesqa:answered:qa-tyre", "ds": "notesqa", "section": "answered", "key": "qa-tyre", "title": "qa-tyre · 2026-10-03-car-service.md", "lines": [{"k": "en", "v": "what tyre pressure should i keep?"}, {"k": "hi-en", "v": "tyre mein kitna pressure rakhna hai?"}, {"k": "Facts", "v": "32"}, {"k": "Note", "v": "Car Service due at 30000 km: oil change, air filter, brake check. Tyre pressure 32 psi front and back. Insurance renewal before the 25th of October."}], "lang": null, "tags": [], "hash": "a60ab207671dc9df"}, {"id": "notesqa:answered:qa-insurance", "ds": "notesqa", "section": "answered", "key": "qa-insurance", "title": "qa-insurance · 2026-10-03-car-service.md", "lines": [{"k": "en", "v": "by when do i renew the car insurance?"}, {"k": "hi-en", "v": "car insurance kab tak renew karna hai?"}, {"k": "Facts", "v": "25"}, {"k": "Note", "v": "Car Service due at 30000 km: oil change, air filter, brake check. Tyre pressure 32 psi front and back. Insurance renewal before the 25th of October."}], "lang": null, "tags": [], "hash": "d690e439171c263a"}, {"id": "notesqa:answered:qa-kyc", "ds": "notesqa", "section": "answered", "key": "qa-kyc", "title": "qa-kyc · 2026-10-11-bank-kyc.md", "lines": [{"k": "en", "v": "which documents does the bank need for kyc?"}, {"k": "hi-en", "v": "kyc ke liye bank ko kaunse documents chahiye?"}, {"k": "Facts", "v": "aadhaar / aadhar · pan"}, {"k": "Note", "v": "Bank KYC The branch asked for the Aadhaar card, PAN card and one passport photo. Go before the 31st or the account gets frozen. Branch opens at 10, token counter on the left."}], "lang": null, "tags": [], "hash": "b7591659fd787a75"}, {"id": "notesqa:answered:qa-router", "ds": "notesqa", "section": "answered", "key": "qa-router", "title": "qa-router · docs/wifi-setup.md", "lines": [{"k": "en", "v": "what is the router's admin address?"}, {"k": "hi-en", "v": "router ke admin page ka address kya hai?"}, {"k": "Facts", "v": "192.168.1.1"}, {"k": "Note", "v": "Home router Admin page at 192.168.1.1, user admin. To change the network password: Wireless, Security, WPA2 key, Save, then reconnect every device. Use channel 6 if the signal keeps dropping."}], "lang": null, "tags": [], "hash": "dda54406fe5a8d3a"}]}, {"ds": "notesqa", "section": "unanswered", "title": "Questions the notes do not answer", "help": "The right reply is that the notes do not say. Check that no note does.", "units": [{"id": "notesqa:unanswered:qa-none-passport", "ds": "notesqa", "section": "unanswered", "key": "qa-none-passport", "title": "qa-none-passport", "lines": [{"k": "en", "v": "when does my passport expire?"}, {"k": "hi-en", "v": "mera passport kab expire hoga?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "ce0afc74c64e014a"}, {"id": "notesqa:unanswered:qa-none-salary", "ds": "notesqa", "section": "unanswered", "key": "qa-none-salary", "title": "qa-none-salary", "lines": [{"k": "en", "v": "what is my salary?"}, {"k": "hi-en", "v": "meri salary kitni hai?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "23608cd48f7f4d5c"}, {"id": "notesqa:unanswered:qa-none-dentist", "ds": "notesqa", "section": "unanswered", "key": "qa-none-dentist", "title": "qa-none-dentist", "lines": [{"k": "en", "v": "when is my dentist appointment?"}, {"k": "hi-en", "v": "dentist ka appointment kab hai?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "223d22fc0f23860c"}, {"id": "notesqa:unanswered:qa-none-hotel", "ds": "notesqa", "section": "unanswered", "key": "qa-none-hotel", "title": "qa-none-hotel", "lines": [{"k": "en", "v": "what is the name of our hotel in goa?"}, {"k": "hi-en", "v": "goa wale hotel ka naam kya hai?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "49a254f094afca12"}, {"id": "notesqa:unanswered:qa-none-phone", "ds": "notesqa", "section": "unanswered", "key": "qa-none-phone", "title": "qa-none-phone", "lines": [{"k": "en", "v": "what is ravi's phone number?"}, {"k": "hi-en", "v": "ravi ka phone number kya hai?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "415475f1f8d45649"}, {"id": "notesqa:unanswered:qa-none-cake-price", "ds": "notesqa", "section": "unanswered", "key": "qa-none-cake-price", "title": "qa-none-cake-price", "lines": [{"k": "en", "v": "how much does maa's cake cost?"}, {"k": "hi-en", "v": "maa ke cake ki keemat kitni hai?"}, {"k": "Note", "v": "The notes do not say this: the right reply is that they do not."}], "lang": null, "tags": [], "hash": "70a5b8b12a372a66"}]}, {"ds": "kindsv1", "section": "notes", "title": "notes: a question your own notes answer", "help": "Who, when, how much, which, about your life; with or without the word notes. Not a named file, not \"what do you remember\", not the last N notes (those are app).", "units": [{"id": "kindsv1:notes:notes-01", "ds": "kindsv1", "section": "notes", "key": "notes-01", "title": "notes-01 · notes · schedule", "lines": [{"k": "en", "v": "when is my flight to delhi?"}, {"k": "en", "v": "what time is my train tomorrow?"}, {"k": "hi-en", "v": "meri delhi wali flight kab hai?"}, {"k": "hi-en", "v": "kal meri train kitne baje hai?"}], "lang": null, "tags": [], "hash": "b97cb13450a36285"}, {"id": "kindsv1:notes:notes-02", "ds": "kindsv1", "section": "notes", "key": "notes-02", "title": "notes-02 · notes · money", "lines": [{"k": "en", "v": "how much did i lend ravi?"}, {"k": "en", "v": "how much is the electricity bill this month?"}, {"k": "hi-en", "v": "maine ravi ko kitne paise udhaar diye the?"}, {"k": "hi-en", "v": "is mahine ka bijli ka bill kitna hai?"}], "lang": null, "tags": [], "hash": "63287618371e46da"}, {"id": "kindsv1:notes:notes-03", "ds": "kindsv1", "section": "notes", "key": "notes-03", "title": "notes-03 · notes · people", "lines": [{"k": "en", "v": "who is handling the dashboard?"}, {"k": "en", "v": "which plumber did the landlord send?"}, {"k": "hi-en", "v": "dashboard kaun bana raha hai?"}, {"k": "hi-en", "v": "landlord ne kaunsa plumber bheja tha?"}], "lang": null, "tags": [], "hash": "d47dbe013948aecd"}, {"id": "kindsv1:notes:notes-04", "ds": "kindsv1", "section": "notes", "key": "notes-04", "title": "notes-04 · notes · health", "lines": [{"k": "en", "v": "what did the doctor say about my cough?"}, {"k": "en", "v": "which tablets am i supposed to take at night?"}, {"k": "hi-en", "v": "doctor ne khansi ke baare mein kya kaha tha?"}, {"k": "hi-en", "v": "raat ko kaunsi goli leni hai?"}], "lang": null, "tags": [], "hash": "57a56a9f8b8c8ca4"}, {"id": "kindsv1:notes:notes-05", "ds": "kindsv1", "section": "notes", "key": "notes-05", "title": "notes-05 · notes · explicit", "lines": [{"k": "en", "v": "according to my notes, when is the client demo?"}, {"k": "en", "v": "what do my notes say about the venue for saturday?"}, {"k": "hi-en", "v": "mere notes ke hisaab se client demo kab hai?"}, {"k": "hi-en", "v": "saturday ke venue ke baare mein notes mein kya likha hai?"}, {"k": "Note", "v": "says \"my notes\": still a question about what they say"}], "lang": null, "tags": [], "hash": "8e3d1f9bd060d937"}, {"id": "kindsv1:notes:notes-06", "ds": "kindsv1", "section": "notes", "key": "notes-06", "title": "notes-06 · notes · plans", "lines": [{"k": "en", "v": "what gift did i plan for papa?"}, {"k": "en", "v": "which restaurant did we pick for the anniversary?"}, {"k": "hi-en", "v": "papa ke liye kaunsa gift socha tha?"}, {"k": "hi-en", "v": "anniversary ke liye kaunsa restaurant decide kiya tha?"}], "lang": null, "tags": [], "hash": "09bd08050cc6d89a"}, {"id": "kindsv1:notes:notes-07", "ds": "kindsv1", "section": "notes", "key": "notes-07", "title": "notes-07 · notes · study", "lines": [{"k": "en", "v": "which chapters are in the physics exam?"}, {"k": "en", "v": "when is my maths assignment due?"}, {"k": "hi-en", "v": "physics exam mein kaunse chapters aayenge?"}, {"k": "hi-en", "v": "maths assignment kab tak submit karna hai?"}], "lang": null, "tags": [], "hash": "3bdecc915745e986"}, {"id": "kindsv1:notes:notes-08", "ds": "kindsv1", "section": "notes", "key": "notes-08", "title": "notes-08 · notes · home", "lines": [{"k": "en", "v": "what size is the bedroom curtain?"}, {"k": "en", "v": "when do i need to book the gas cylinder?"}, {"k": "hi-en", "v": "bedroom ke parde ka size kya hai?"}, {"k": "hi-en", "v": "gas cylinder kab book karna hai?"}], "lang": null, "tags": [], "hash": "d6d58916b994590d"}, {"id": "kindsv1:notes:notes-09", "ds": "kindsv1", "section": "notes", "key": "notes-09", "title": "notes-09 · notes · work", "lines": [{"k": "en", "v": "what did we decide about pricing in the last call?"}, {"k": "en", "v": "what is the deadline for the q4 report?"}, {"k": "hi-en", "v": "pichhli call mein pricing ke baare mein kya decide hua tha?"}, {"k": "hi-en", "v": "q4 report ki deadline kya hai?"}], "lang": null, "tags": [], "hash": "2e16997cde25ca77"}, {"id": "kindsv1:notes:notes-10", "ds": "kindsv1", "section": "notes", "key": "notes-10", "title": "notes-10 · notes · travel", "lines": [{"k": "en", "v": "where are we staying in manali?"}, {"k": "en", "v": "what's the booking id for the hotel?"}, {"k": "hi-en", "v": "manali mein kahan ruk rahe hain?"}, {"k": "hi-en", "v": "hotel ka booking id kya hai?"}], "lang": null, "tags": [], "hash": "22fd5a2511b1638d"}, {"id": "kindsv1:notes:notes-11", "ds": "kindsv1", "section": "notes", "key": "notes-11", "title": "notes-11 · notes · shopping", "lines": [{"k": "en", "v": "which brand of rice does maa want?"}, {"k": "en", "v": "how many chairs do we need for the party?"}, {"k": "hi-en", "v": "maa ko kaunse brand ka chawal chahiye?"}, {"k": "hi-en", "v": "party ke liye kitni kursiyan chahiye?"}], "lang": null, "tags": [], "hash": "b840694ae8ce760b"}, {"id": "kindsv1:notes:notes-12", "ds": "kindsv1", "section": "notes", "key": "notes-12", "title": "notes-12 · notes · vehicle", "lines": [{"k": "en", "v": "when is the bike's next service?"}, {"k": "en", "v": "what is my car's insurance policy number?"}, {"k": "hi-en", "v": "bike ki agli service kab hai?"}, {"k": "hi-en", "v": "car insurance ka policy number kya hai?"}], "lang": null, "tags": [], "hash": "7a58393620906b5d"}, {"id": "kindsv1:notes:notes-13", "ds": "kindsv1", "section": "notes", "key": "notes-13", "title": "notes-13 · notes · recipes", "lines": [{"k": "en", "v": "how much sugar did i put in my kheer?"}, {"k": "en", "v": "what did i change in maa's dal recipe?"}, {"k": "hi-en", "v": "meri kheer mein kitni cheeni daali thi?"}, {"k": "hi-en", "v": "maa ki dal recipe mein maine kya badla tha?"}, {"k": "Note", "v": "my own recipe, not how a dish is made (chat-v1-01)"}], "lang": null, "tags": [], "hash": "ac4ecbc5a9f65394"}, {"id": "kindsv1:notes:notes-14", "ds": "kindsv1", "section": "notes", "key": "notes-14", "title": "notes-14 · notes · places", "lines": [{"k": "en", "v": "what is the address of the new office?"}, {"k": "en", "v": "which floor is the dentist on?"}, {"k": "hi-en", "v": "naye office ka address kya hai?"}, {"k": "hi-en", "v": "dentist kaunse floor pe hai?"}], "lang": null, "tags": [], "hash": "39ca0e3ee3beea15"}]}, {"ds": "kindsv1", "section": "app", "title": "Looks like notes, belongs to the old path", "help": "Finding, summarizing or opening notes, or what Kestrel remembers. The note says which.", "units": [{"id": "kindsv1:app:app-v1-01", "ds": "kindsv1", "section": "app", "key": "app-v1-01", "title": "app-v1-01 · app", "lines": [{"k": "en", "v": "find my notes about the manali trip"}, {"k": "en", "v": "search my notes for the q4 report"}, {"k": "hi-en", "v": "manali trip wale notes dhoondo"}, {"k": "hi-en", "v": "q4 report ke notes search karo"}, {"k": "Note", "v": "search_notes: find notes, not an answer from them"}], "lang": null, "tags": [], "hash": "ab10c246fbdf4102"}, {"id": "kindsv1:app:app-v1-02", "ds": "kindsv1", "section": "app", "key": "app-v1-02", "title": "app-v1-02 · app", "lines": [{"k": "en", "v": "summarize my notes from the pricing call"}, {"k": "en", "v": "give me the key points of my physics notes"}, {"k": "hi-en", "v": "pricing call wale notes ka summary do"}, {"k": "hi-en", "v": "physics notes ke main points batao"}, {"k": "Note", "v": "summarize_notes: the gist of notes, not one fact"}], "lang": null, "tags": [], "hash": "670c4742a25ba4a1"}, {"id": "kindsv1:app:app-v1-03", "ds": "kindsv1", "section": "app", "key": "app-v1-03", "title": "app-v1-03 · app", "lines": [{"k": "en", "v": "what do you remember about my landlord?"}, {"k": "en", "v": "what did i ask you to remember about the car?"}, {"k": "hi-en", "v": "landlord ke baare mein tumhe kya yaad hai?"}, {"k": "hi-en", "v": "car ke baare mein maine tumhe kya yaad rakhne ko kaha tha?"}, {"k": "Note", "v": "retrieve_memory: what Kestrel remembers, not the notes"}], "lang": null, "tags": [], "hash": "635367db3eaafe44"}, {"id": "kindsv1:app:app-v1-04", "ds": "kindsv1", "section": "app", "key": "app-v1-04", "title": "app-v1-04 · app", "lines": [{"k": "en", "v": "open trip-plan.md"}, {"k": "en", "v": "what is written in packing-list.md?"}, {"k": "hi-en", "v": "trip-plan.md kholo"}, {"k": "hi-en", "v": "packing-list.md mein kya likha hai?"}, {"k": "Note", "v": "read_document: one named file"}], "lang": null, "tags": [], "hash": "2dd0490e3787f460"}]}, {"ds": "kindsv1", "section": "chat", "title": "The same topics asked in general", "help": "Not about what you wrote: Kestrel answers from general knowledge.", "units": [{"id": "kindsv1:chat:chat-v1-01", "ds": "kindsv1", "section": "chat", "key": "chat-v1-01", "title": "chat-v1-01 · chat · concepts", "lines": [{"k": "en", "v": "what should i pack for a trip to manali?"}, {"k": "en", "v": "how much sugar goes into kheer?"}, {"k": "hi-en", "v": "manali trip ke liye kya pack karna chahiye?"}, {"k": "hi-en", "v": "kheer mein kitni cheeni daalte hain?"}, {"k": "Note", "v": "how things are done in general, not what the user wrote (notes-13)"}], "lang": null, "tags": [], "hash": "ab22c9763b15932d"}, {"id": "kindsv1:chat:chat-v1-02", "ds": "kindsv1", "section": "chat", "key": "chat-v1-02", "title": "chat-v1-02 · chat · advice", "lines": [{"k": "en", "v": "what is a good gift for a father?"}, {"k": "en", "v": "how often should a bike be serviced?"}, {"k": "hi-en", "v": "papa ke liye accha gift kya ho sakta hai?"}, {"k": "hi-en", "v": "bike ki service kitne time mein karani chahiye?"}], "lang": null, "tags": [], "hash": "f01395891573ef56"}]}]};
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("kestrel-notes-review:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("kestrel-notes-review:" + k, JSON.stringify(v)); } catch {} },
+};
+const FILTERS = [["todo", "To review"], ["fix", "To fix"], ["ok", "OK"], ["all", "All"]];
+const PILL = { todo: "To review", stale: "Changed since you reviewed it", ok: "OK", fix: "To fix" };
+const units = new Map();
+DATA.sections.forEach((s) => s.units.forEach((u) => units.set(u.id, u)));
+const dsList = Object.keys(DATA.titles);
+const state = {
+  ds: dsList.includes(store.get("ds", "")) ? store.get("ds", "") : dsList[0],
+  filter: FILTERS.some(([f]) => f === store.get("filter", "")) ? store.get("filter", "") : "todo",
+  decisions: store.get("decisions", {}),
+};
+let db = null, canWrite = false;
+const writes = new Map();   // unit id -> the chain of its writes (one at a time per document)
+const noteTimers = new Map();
+
+function stateOf(u) {
+  const d = state.decisions[u.id];
+  if (!d) return "todo";
+  return d.hash !== u.hash ? "stale" : d.decision;
+}
+function counts(ds) {
+  const c = { units: 0, ok: 0, fix: 0, todo: 0 };
+  units.forEach((u) => { if (u.ds !== ds) return; c.units += 1; const s = stateOf(u); c[s === "stale" ? "todo" : s] += 1; });
+  return c;
+}
+function shows(u) {
+  const s = stateOf(u);
+  return state.filter === "all" || (state.filter === "todo" ? s === "todo" || s === "stale" : s === state.filter);
+}
+function setStatus(msg, tone) { const el = $("status"); el.textContent = msg; el.dataset.tone = tone || ""; }
+function setSave(msg, tone) { const el = $("save-state"); el.textContent = msg; el.dataset.tone = tone || ""; }
+
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); });
+  kids.forEach((k) => k && e.append(k));
+  return e;
+}
+
+function renderTabs() {
+  const tabs = $("tabs");
+  tabs.replaceChildren(...dsList.map((ds) => {
+    const c = counts(ds);
+    const b = el("button", { type: "button", role: "tab", "aria-selected": String(ds === state.ds), id: "tab-" + ds },
+      el("span", { text: DATA.titles[ds].replace("Kestrel-", "") }), el("span", { class: "n", text: `${c.ok + c.fix}/${c.units}` }));
+    b.addEventListener("click", () => { state.ds = ds; store.set("ds", ds); renderAll(); window.scrollTo({ top: 0 }); });
+    return b;
+  }));
+  const c = counts(state.ds);
+  const [ok, fix] = $("progress").children;
+  ok.style.width = (100 * c.ok / c.units) + "%";
+  fix.style.width = (100 * c.fix / c.units) + "%";
+}
+
+function renderFilters() {
+  $("filters").replaceChildren(...FILTERS.map(([f, label]) => {
+    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(f === state.filter), text: label });
+    b.addEventListener("click", () => { state.filter = f; store.set("filter", f); renderAll(); });
+    return b;
+  }));
+}
+
+function card(u) {
+  const c = el("article", { class: "card", id: "u-" + u.id });
+  const tags = el("span", { class: "tags" });
+  [u.lang, ...(u.tags || [])].filter(Boolean).forEach((t) => tags.append(el("span", { class: "tag", text: t })));
+  c.append(el("header", { class: "card-head" }, el("h3", { text: u.title }), tags, el("span", { class: "pill" })));
+  const dl = el("dl", { class: "lines" });
+  u.lines.forEach((l) => dl.append(el("div", { class: "line" }, el("dt", { text: l.k }), el("dd", { class: l.mono ? "mono" : "", text: l.v }))));
+  c.append(dl);
+  const ok = el("button", { type: "button", class: "ok", text: "OK" });
+  const fix = el("button", { type: "button", class: "fix", text: "Fix…" });
+  const clear = el("button", { type: "button", class: "link", text: "Clear" });
+  ok.addEventListener("click", () => decide(u, "ok"));
+  fix.addEventListener("click", () => { decide(u, "fix"); const t = c.querySelector("textarea"); t && t.focus(); });
+  clear.addEventListener("click", () => { delete state.decisions[u.id]; changed(u); });
+  c.append(el("div", { class: "acts" }, ok, fix, clear));
+  const nid = "n-" + u.id;
+  const ta = el("textarea", { id: nid, placeholder: "e.g. the Hinglish should say “kal” not “tomorrow”" });
+  ta.addEventListener("input", () => noteChanged(u, ta.value));
+  ta.addEventListener("blur", () => flushNote(u));
+  c.append(el("div", { class: "note" }, el("label", { for: nid, text: "What should change?" }), ta));
+  c.append(el("p", { class: "stale-msg", text: "Claude changed this card after you reviewed it. Please look again." }));
+  paint(u, c);
+  return c;
+}
+
+function paint(u, c = $("u-" + u.id)) {
+  if (!c) return;
+  const s = stateOf(u), d = state.decisions[u.id];
+  c.dataset.state = s;
+  c.querySelector(".pill").textContent = PILL[s];
+  c.querySelector(".ok").setAttribute("aria-pressed", String(s === "ok"));
+  c.querySelector(".fix").setAttribute("aria-pressed", String(s === "fix"));
+  c.querySelector(".link").hidden = !d;
+  const ta = c.querySelector("textarea");
+  c.querySelector(".note").hidden = !(s === "fix" || (d && d.note));
+  if (document.activeElement !== ta) ta.value = d ? d.note || "" : "";
+  c.querySelector(".stale-msg").hidden = s !== "stale";
+}
+
+function renderMain() {
+  const secs = DATA.sections.filter((s) => s.ds === state.ds);
+  const out = [];
+  if (DATA.fixtures[state.ds]) {
+    const notes = DATA.fixtures[state.ds];
+    const ref = el("details", { class: "ref" }, el("summary", { text: `Fixture notes (${notes.length}): what the expected results refer to` }));
+    notes.forEach((n) => ref.append(el("details", {}, el("summary", { text: n.path }), el("pre", { class: "note-text", text: n.text }))));
+    out.push(ref);
+  }
+  secs.forEach((s) => {
+    const shown = s.units.filter(shows);
+    const sec = el("section", { class: "sec", "aria-labelledby": "h-" + s.section + "-" + s.ds });
+    sec.append(el("div", { class: "sec-head" }, el("h2", { id: "h-" + s.section + "-" + s.ds, text: s.title }),
+      el("p", { class: "small", text: s.help }), el("span", { class: "count", text: `${shown.length} shown of ${s.units.length}` })));
+    shown.forEach((u) => sec.append(card(u)));
+    out.push(sec);
+  });
+  if (!secs.some((s) => s.units.some(shows))) {
+    const c = counts(state.ds);
+    out.push(el("p", { class: "empty", text: c.todo === 0
+      ? `Every card in ${DATA.titles[state.ds]} has a mark (${c.ok} OK, ${c.fix} to fix). Pick another dataset above, or show All.`
+      : "No cards match this filter." }));
+  }
+  $("main").replaceChildren(...out);
+}
+
+function renderAll() { renderTabs(); renderFilters(); renderMain(); }
+
+function changed(u) {
+  store.set("decisions", state.decisions);
+  paint(u); renderTabs(); persist(u.id);
+}
+function decide(u, decision) {
+  const prev = state.decisions[u.id];
+  state.decisions[u.id] = { hash: u.hash, decision, note: prev && prev.hash === u.hash ? prev.note || "" : "", at: new Date().toISOString() };
+  changed(u);
+}
+function noteChanged(u, text) {
+  const d = state.decisions[u.id] || { hash: u.hash, decision: "fix", note: "", at: "" };
+  state.decisions[u.id] = { ...d, hash: u.hash, note: text, at: new Date().toISOString() };
+  store.set("decisions", state.decisions);
+  clearTimeout(noteTimers.get(u.id));
+  noteTimers.set(u.id, setTimeout(() => flushNote(u), 800));
+}
+function flushNote(u) {
+  if (!noteTimers.has(u.id)) return;
+  clearTimeout(noteTimers.get(u.id)); noteTimers.delete(u.id);
+  paint(u); renderTabs(); persist(u.id);
+}
+
+function persist(id) {
+  if (!db || !canWrite) { setSave("Kept in this browser. Use Save review file at the bottom to send it to Claude."); return; }
+  const prev = writes.get(id) || Promise.resolve();
+  const next = prev.then(async () => {
+    const d = state.decisions[id];
+    const ref = db.doc("reviews/" + id);
+    if (d) await ref.set({ kind: "kestrel-review", version: 1, unit: id, ...d });
+    else await ref.delete();
+  }).then(() => setSave("Saved to your account at " + new Date().toLocaleTimeString() + ".", "ok"), (e) => {
+    if (e && e.code === "invalid_argument") { canWrite = false; setSave("This account can't save here. Use Save review file at the bottom.", "warn"); }
+    else setSave("Saving failed (" + (e && e.code || "error") + "). Your marks are still in this browser; try again or use Save review file.", "warn");
+  });
+  writes.set(id, next);
+}
+
+function nextToReview() {
+  const order = [state.ds, ...dsList.filter((d) => d !== state.ds)];
+  for (const ds of order) {
+    for (const s of DATA.sections.filter((x) => x.ds === ds)) {
+      const u = s.units.find((x) => { const st = stateOf(x); return st === "todo" || st === "stale"; });
+      if (!u) continue;
+      if (ds !== state.ds || !shows(u)) { state.ds = ds; store.set("ds", ds); if (!shows(u)) { state.filter = "todo"; store.set("filter", "todo"); } renderAll(); }
+      const c = $("u-" + u.id);
+      c.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      c.querySelector(".ok").focus({ preventScroll: true });
+      return;
+    }
+  }
+  setStatus("Every card has a mark. Tell Claude “review done”.", "ok");
+}
+
+/** The marks as ingest_review.py reads them: [count, text]. */
+function reviewSet() {
+  const reviews = Object.entries(state.decisions).filter(([id]) => units.has(id)).map(([unit, d]) => ({ unit, ...d }));
+  return [reviews.length, JSON.stringify({ kind: "kestrel-review-set", version: 1, reviews })];
+}
+
+function saveReview() {
+  const [n, text] = reviewSet();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = "kestrel-notes-review.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  setStatus(`Saved ${n} mark${n === 1 ? "" : "s"} as kestrel-notes-review.json (usually in Downloads). Tell Claude “review done”.`, "ok");
+}
+
+async function copyReview() {
+  const [n, text] = reviewSet();
+  const box = $("copy-box");
+  try { await navigator.clipboard.writeText(text); box.hidden = true; setStatus(`Copied ${n} mark${n === 1 ? "" : "s"}. Paste them to Claude.`, "ok"); }
+  catch { box.hidden = false; box.value = text; box.focus(); box.select(); setStatus("Copying was blocked here. The text is selected below: copy it yourself.", "warn"); }
+}
+
+async function connect() {
+  try {
+    const [d, u] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
+    if (!d) { setSave("Saving to your account isn't available here. Marks stay in this browser; use Save review file to send them."); return; }
+    const can = u ? await u.can("data.write") : null;
+    if (can === false) { setSave("This account can read but not save marks here. Use Save review file to send yours."); return; }
+    db = d; canWrite = true;
+    setSave("Connected: each mark saves to your account as you make it.", "ok");
+    const remote = {};  // unit id -> the time of the store's mark
+    let synced = false;
+    db.collection("reviews").limit(1000).onSnapshot((snap) => {
+      let touched = false;
+      snap.docChanges().forEach((ch) => {
+        const r = ch.doc.data();
+        if (!r || !units.has(r.unit)) return;
+        const mine = state.decisions[r.unit];
+        if (ch.type === "removed") {
+          delete remote[r.unit];
+          if (mine && (mine.at || "") <= (r.at || "")) { delete state.decisions[r.unit]; touched = true; }
+          return;
+        }
+        remote[r.unit] = r.at || "";
+        if (!mine || (r.at || "") > (mine.at || "")) {
+          state.decisions[r.unit] = { hash: r.hash, decision: r.decision, note: r.note || "", at: r.at || "" };
+          touched = true;
+        }
+      });
+      if (touched) { store.set("decisions", state.decisions); units.forEach((x) => paint(x)); renderTabs(); }
+      if (!synced) {  // marks made in this browser before it connected, and newer than the store's, go up once
+        synced = true;
+        Object.entries(state.decisions).forEach(([id, d]) => {
+          if (units.has(id) && (!(id in remote) || (d.at || "") > remote[id])) persist(id);
+        });
+      }
+    }, () => setSave("Live updates stopped. Your marks still save; reload the page to see marks from other devices.", "warn"));
+  } catch { setSave("Saving to your account isn't available here. Marks stay in this browser; use Save review file to send them."); }
+}
+
+function start() {
+  $("next").addEventListener("click", nextToReview);
+  $("save").addEventListener("click", saveReview);
+  $("copy").addEventListener("click", copyReview);
+  renderAll();
+  connect();
+}
+start();
+</script>

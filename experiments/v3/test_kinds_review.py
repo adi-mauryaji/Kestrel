@@ -21,6 +21,7 @@ def test_the_page_keeps_its_marks_apart_from_the_dataset_review(tmp_path):
     assert "<title>Kestrel Kinds Review</title>" in html
     assert html.count('"kestrel-kinds-review:"') == 2 and '"kestrel-review:"' not in html
     assert "kestrel-kinds-review.json" in html and "kestrel-review.json" not in html
+    assert "this draft of which skill a request asks for" in html and "word lists" not in html
 
 
 def _set(path, unit, hash_):
