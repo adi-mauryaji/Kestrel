@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use kestrel_core::normalize::normalize;
 use kestrel_core::{Request, Tier, TierModel};
-use kestrel_inference::llama::{LlamaConfig, LlamaEncoder, LlamaSlm};
+use kestrel_inference::llama::{LlamaConfig, LlamaEmbedSession, LlamaEncoder, LlamaSlm};
 use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
 use kestrel_inference::tier::GenerativeTier;
 use kestrel_nlu::encoder::{EncoderTier, LinearHead};
@@ -110,6 +110,42 @@ impl Models {
             slm: slm.transpose()?,
             prefix_file: None,
         })
+    }
+
+    /// v3's kind head (ADR-037) on the Tier-3 encoder: experiments/artifacts/tier3/kinds_v0-<encoder>,
+    /// refused unless it was trained on the same encoder file as the config's Tier-3 head.
+    pub fn kinds_tier(
+        &self,
+    ) -> Result<EncoderTier<LlamaEmbedSession<'_>, crate::kinds::Kind>, DynError> {
+        let t3 = &self.cfg.models.tier3;
+        let encoder = self
+            .encoder
+            .as_ref()
+            .ok_or("the kind head needs the Tier-3 encoder")?;
+        let heads = Path::new("experiments/artifacts/tier3");
+        let stem = Path::new(&t3.encoder_file)
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy();
+        let dir = heads.join(format!("kinds_v0-{stem}"));
+        let trained_on = |d: &Path| -> Result<String, DynError> {
+            let meta: Value = serde_json::from_str(&std::fs::read_to_string(d.join("head.json"))?)?;
+            Ok(meta["encoder_sha256"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string())
+        };
+        if trained_on(&dir)? != trained_on(&heads.join(&t3.head))? {
+            return Err(format!("{} was trained on another encoder", dir.display()).into());
+        }
+        let head = LinearHead::load(&dir)?;
+        let cost = self.cfg.est_cost_ms[Tier::Encoder.index()];
+        Ok(EncoderTier::new(
+            encoder.session()?,
+            head,
+            cost,
+            crate::kinds::Kind::from_label,
+        )?)
     }
 
     /// The config's tiers answering in `space`, each passed through `wrap` (identity for

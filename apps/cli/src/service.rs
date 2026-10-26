@@ -206,6 +206,17 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 Ok(s) => json!({"summary": s}),
                 Err(e) => json!({"error": e.to_string()}),
             }
+        } else if v["write"].is_object() {
+            // v3 (ADR-037): a skill request, written with its kind's instructions.
+            let kind = v["write"]["kind"]
+                .as_str()
+                .and_then(crate::kinds::Kind::from_label);
+            let text = v["write"]["text"].as_str().unwrap_or_default();
+            match kind.map(|k| write_skill(slm, &mut writer, format, k, text)) {
+                Some(Ok(t)) => json!({"text": t}),
+                Some(Err(e)) => json!({"error": e.to_string()}),
+                None => json!({"error": "unknown kind"}),
+            }
         } else {
             let req = Request::new(
                 v["id"].as_u64().unwrap_or(0),
@@ -232,9 +243,6 @@ fn write_summary<'m>(
     prompt: &kestrel_inference::prompt::ChatPrompt,
     texts: &[&str],
 ) -> Result<String, kestrel_core::KestrelError> {
-    use kestrel_core::resources::{CancelToken, Deadline};
-    use kestrel_inference::generate::{GenParams, Generator};
-
     let user = crate::summary::user_message(texts);
     // Note text must not open or close chat turns (as for requests, tier.rs).
     if slm.has_special_tokens(&user)? {
@@ -242,6 +250,41 @@ fn write_summary<'m>(
             "the notes contain control-token text".into(),
         ));
     }
+    answer(slm, writer, prompt, &user, crate::summary::MAX_TOKENS)
+}
+
+/// A v3 skill's text (src/kinds.rs) for the request as typed, in `writer`'s context.
+#[cfg(feature = "llama")]
+fn write_skill<'m>(
+    slm: &'m kestrel_inference::llama::LlamaSlm,
+    writer: &mut Option<kestrel_inference::llama::LlamaSession<'m>>,
+    format: kestrel_inference::prompt::ChatFormat,
+    kind: crate::kinds::Kind,
+    request: &str,
+) -> Result<String, kestrel_core::KestrelError> {
+    // The request must not open or close chat turns (as for Tier 4, tier.rs).
+    if slm.has_special_tokens(request)? {
+        return Err(kestrel_core::KestrelError::Invalid(
+            "the request contains control-token text".into(),
+        ));
+    }
+    let prompt = kestrel_inference::prompt::ChatPrompt::new(format, kind.system());
+    answer(slm, writer, &prompt, request, kind.max_tokens())
+}
+
+/// Gemma's greedy answer (at most `max_tokens`) to `user` under `prompt`, in `writer`'s context
+/// (made at the first use).
+#[cfg(feature = "llama")]
+fn answer<'m>(
+    slm: &'m kestrel_inference::llama::LlamaSlm,
+    writer: &mut Option<kestrel_inference::llama::LlamaSession<'m>>,
+    prompt: &kestrel_inference::prompt::ChatPrompt,
+    user: &str,
+    max_tokens: usize,
+) -> Result<String, kestrel_core::KestrelError> {
+    use kestrel_core::resources::{CancelToken, Deadline};
+    use kestrel_inference::generate::{GenParams, Generator};
+
     let session = match writer {
         Some(s) => s,
         None => writer.insert(slm.session()?),
@@ -249,11 +292,11 @@ fn write_summary<'m>(
     let stop = prompt.end_of_answer();
     let p = GenParams {
         stop: vec![stop.into()],
-        ..GenParams::greedy(crate::summary::MAX_TOKENS)
+        ..GenParams::greedy(max_tokens)
     };
     let mut out = String::new();
     session.generate(
-        &(prompt.prefix() + &prompt.suffix(&user)),
+        &(prompt.prefix() + &prompt.suffix(user)),
         &p,
         &CancelToken::new(),
         &Deadline::after(std::time::Duration::from_secs(120)),
@@ -356,6 +399,15 @@ pub fn serve(
     let act = act.with_summarizer(Box::new(SharedRemote(remote.clone())));
     let mut assistant =
         crate::assistant::Assistant::new(cascade, log, personal, Some(act), sink, true);
+    // v3 (ADR-037): the kind head, once experiments/tier3/train.py has made it.
+    match models.kinds_tier() {
+        Ok(head) => {
+            let writer = Box::new(SharedRemote(remote.clone()));
+            let kinds = crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU);
+            assistant = assistant.with_kinds(kinds);
+        }
+        Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate) are off: {e}"),
+    }
 
     let listener = UnixListener::bind(&path)?;
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))?;

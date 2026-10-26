@@ -131,6 +131,14 @@ impl crate::summary::Summarizer for RemoteTier {
     }
 }
 
+impl crate::kinds::Writer for RemoteTier {
+    fn write(&self, kind: crate::kinds::Kind, request: &str) -> Result<String, KestrelError> {
+        let v =
+            self.exchange(&json!({"id": 0, "write": {"kind": kind.label(), "text": request}}))?;
+        v["text"].as_str().map(String::from).ok_or_else(unavailable)
+    }
+}
+
 fn unavailable() -> KestrelError {
     KestrelError::ModelUnavailable(Tier::Generative)
 }
@@ -167,7 +175,7 @@ impl TierModel for RemoteTier {
 }
 
 /// The service's Tier 4: the cascade owns one handle, the service keeps another to stop the
-/// worker when it is idle, and the summaries use a third.
+/// worker when it is idle, and the summaries and the v3 skills use others.
 pub struct SharedRemote(pub std::rc::Rc<RemoteTier>);
 
 impl TierModel for SharedRemote {
@@ -181,6 +189,12 @@ impl TierModel for SharedRemote {
 
     fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
         self.0.classify(req)
+    }
+}
+
+impl crate::kinds::Writer for SharedRemote {
+    fn write(&self, kind: crate::kinds::Kind, request: &str) -> Result<String, KestrelError> {
+        self.0.write(kind, request)
     }
 }
 
@@ -237,6 +251,28 @@ mod tests {
             t.classify(&req("find y")).unwrap(),
             [(Intent::SearchNotes, 1.0)]
         );
+    }
+
+    #[test]
+    fn the_same_worker_writes_skill_drafts() {
+        use crate::kinds::{Kind, Writer};
+        let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
+            *'"write":{"kind":"email","text":"leave mail"}'*) echo '{"text": "Subject: Leave"}';;
+            *) echo '{"error": "unexpected"}';; esac; done"#;
+        let t = RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        );
+        assert_eq!(
+            t.write(Kind::Email, "leave mail").unwrap(),
+            "Subject: Leave"
+        );
+        assert!(matches!(
+            t.write(Kind::Chat, "hi"),
+            Err(KestrelError::Invalid(_))
+        ));
     }
 
     #[test]

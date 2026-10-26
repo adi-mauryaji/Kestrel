@@ -3,7 +3,9 @@
 //! requests and chat spellings are normalized (src/hinglish.rs); a taught alias or a correction is handled (src/personal.rs); a task command (list,
 //! done, rename, reschedule) runs on the memory file (src/commands.rs); otherwise the cascade
 //! routes the request, and with a notes folder the routed parts are planned and carried out
-//! (src/act.rs). The answer comes back as lines; the caller prints them or sends them.
+//! (src/act.rs). In the service, a request for a v3 skill (chat, email, rewrite, translate) is
+//! written before the cascade (src/kinds.rs). The answer comes back as lines; the caller prints
+//! them or sends them.
 
 use std::time::Instant;
 
@@ -23,6 +25,7 @@ pub struct Assistant<'a> {
     sink: Sink,
     brief: bool,
     n: u64,
+    kinds: Option<crate::kinds::Kinds<'a>>,
 }
 
 impl<'a> Assistant<'a> {
@@ -43,7 +46,14 @@ impl<'a> Assistant<'a> {
             sink,
             brief,
             n: 0,
+            kinds: None,
         }
+    }
+
+    /// v3: requests for a skill (chat, email, rewrite, translate) are written before the cascade.
+    pub fn with_kinds(mut self, kinds: crate::kinds::Kinds<'a>) -> Self {
+        self.kinds = Some(kinds);
+        self
     }
 
     pub fn handle(&mut self, text: &str, confirm: &mut dyn FnMut(&str) -> bool) -> Vec<String> {
@@ -77,6 +87,13 @@ impl<'a> Assistant<'a> {
             && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
         {
             out.extend(act.command(&cmd, now));
+            return out;
+        }
+        // v3 (ADR-037): a request for a skill is written now, from the text as typed.
+        if let Some(kinds) = self.kinds.as_ref()
+            && let Some(lines) = kinds.handle(&req, text, confirm)
+        {
+            out.extend(lines);
             return out;
         }
         let t0 = Instant::now();
@@ -139,6 +156,7 @@ pub fn routed_parts(
 mod tests {
     use super::*;
     use crate::ask::Recorder;
+    use crate::kinds::{Kind, Kinds, TAU, Writer};
     use kestrel_core::{KestrelError, Tier, TierModel};
     use kestrel_router::RouterConfig;
 
@@ -194,6 +212,58 @@ mod tests {
 
     fn yes() -> impl FnMut(&str) -> bool {
         |_| true
+    }
+
+    /// The kind head by first word: "draft" is a sure email, "maybe" an unsure rewrite.
+    struct KindByFirstWord;
+
+    impl TierModel<Kind> for KindByFirstWord {
+        fn tier(&self) -> Tier {
+            Tier::Encoder
+        }
+        fn est_cost_ms(&self) -> u32 {
+            1
+        }
+        fn classify(&self, req: &Request) -> Result<Vec<(Kind, f32)>, KestrelError> {
+            Ok(match req.text.split(' ').next() {
+                Some("draft") => vec![(Kind::Email, 0.9), (Kind::App, 0.1)],
+                Some("maybe") => vec![(Kind::Rewrite, 0.5), (Kind::App, 0.4)],
+                _ => vec![(Kind::App, 0.95)],
+            })
+        }
+    }
+
+    /// Writes "<kind> draft of: <request>".
+    struct Drafts;
+
+    impl Writer for Drafts {
+        fn write(&self, kind: Kind, request: &str) -> Result<String, KestrelError> {
+            Ok(format!("{} draft of: {request}", kind.label()))
+        }
+    }
+
+    #[test]
+    fn a_skill_is_written_before_the_cascade_and_other_requests_take_the_old_path() {
+        let (a, _) = assistant("kinds", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        // The first request also carries the session's one memory notice.
+        let out = a.handle("remind me to call asha tomorrow", &mut yes());
+        assert!(
+            out.iter()
+                .any(|l| l.starts_with("created task #1: call asha")),
+            "{out:?}"
+        );
+        assert_eq!(
+            a.handle("Draft a mail to Asha: Leave on Friday!", &mut yes()),
+            ["email draft of: Draft a mail to Asha: Leave on Friday!"]
+        );
+        // Unsure: a "no" keeps the old path, a "yes" writes.
+        let out = a.handle("maybe shorten this: Hello There", &mut |_| false);
+        assert!(!out.iter().any(|l| l.contains("draft of")), "{out:?}");
+        assert_eq!(
+            a.handle("maybe shorten this: Hello There", &mut yes()),
+            ["rewrite draft of: maybe shorten this: Hello There"]
+        );
     }
 
     #[test]

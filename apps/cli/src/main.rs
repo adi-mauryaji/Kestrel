@@ -51,6 +51,8 @@ mod grounding;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod hinglish;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod kinds;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
