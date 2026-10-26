@@ -41,10 +41,8 @@ pub fn cache_dir(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
     Some(cache.join("kestrel"))
 }
 
-/// What answers a request: (text, a y/N question asker) -> the answer's lines.
-pub type Handler<'h> = dyn FnMut(&str, &mut dyn FnMut(&str) -> bool) -> Vec<String> + 'h;
-
-/// A `Handler` that also hands text over while it is written: (text, asker, part sink) -> lines.
+/// What answers a request: (text, a y/N question asker, a sink for text while it is written)
+/// -> the answer's lines (what follows the written text).
 pub type Streamer<'h> =
     dyn FnMut(&str, &mut dyn FnMut(&str) -> bool, &mut dyn FnMut(&str)) -> Vec<String> + 'h;
 
@@ -535,7 +533,9 @@ pub fn serve(
             }
             Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                 if let Some(w) = web.as_mut()
-                    && let Err(e) = w.poll(&mut |text, confirm| assistant.handle(text, confirm))
+                    && let Err(e) = w.poll(&mut |text, confirm, part| {
+                        assistant.handle_streaming(text, confirm, part)
+                    })
                 {
                     eprintln!("the browser page stopped: {e}");
                     web = None;

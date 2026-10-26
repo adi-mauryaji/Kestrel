@@ -600,6 +600,7 @@ async function send(text) {
     const reader = r.body.getReader();
     const dec = new TextDecoder();
     let buf = "";
+    let written = null; // the paragraph a skill's text grows in while it is written
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -608,6 +609,13 @@ async function send(text) {
       while ((nl = buf.indexOf("\n")) >= 0) {
         const msg = JSON.parse(buf.slice(0, nl));
         buf = buf.slice(nl + 1);
+        if (msg.part !== undefined) {
+          wait.hidden = true;
+          if (!written) reply.append(written = el("p", "", ""));
+          written.textContent += msg.part;
+          continue;
+        }
+        written = null;
         if (msg.line !== undefined) reply.append(el("p", "", msg.line));
         if (msg.ask !== undefined) { wait.hidden = true; ask(reply, msg.ask); }
       }

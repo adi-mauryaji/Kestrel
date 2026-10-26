@@ -4,14 +4,16 @@
 //! - `GET /` is the page (apps/cli/web/page.html, one file, nothing fetched from elsewhere: its
 //!   Content-Security-Policy allows only this server).
 //! - `GET /api/tasks`: the tasks, today's date and the minute now. `POST /api/say {"text"}`: the
-//!   answer as JSON lines, `{"line"}` ..., `{"ask"}` for a y/N question, `{"done": true}`; the
-//!   page answers a question with `POST /api/answer {"answer": bool}`, served while it waits.
+//!   answer as JSON lines, `{"part"}` ... while a skill's text is written (v3), `{"line"}` ...,
+//!   `{"ask"}` for a y/N question, `{"done": true}`; the page answers a question with
+//!   `POST /api/answer {"answer": bool}`, served while it waits.
 //! - Who may ask: every request must name this server in `Host` (a web page elsewhere cannot
 //!   reach it by DNS rebinding); the API also needs `X-Kestrel-Token`, a secret kept in a 0600
 //!   file that `kestrel open` passes in the URL fragment (never sent to a server). The page itself
 //!   holds no secret.
 //! - One request at a time, like the Unix socket; a read stalls at most `READ_TIMEOUT`.
 
+use std::cell::RefCell;
 use std::io::{self, BufRead, Read, Write};
 use std::path::Path;
 
@@ -19,7 +21,7 @@ use kestrel_memory::TaskRow;
 use kestrel_tools::date::Date;
 use serde_json::{Value, json};
 
-use crate::service::Handler;
+use crate::service::Streamer;
 
 pub const DEFAULT_PORT: u16 = 7811;
 pub const PAGE: &str = include_str!("../web/page.html");
@@ -238,7 +240,7 @@ impl Web {
     }
 
     /// Answers every browser request waiting now, through `say`; returns when none is left.
-    pub fn poll(&mut self, say: &mut Handler<'_>) -> io::Result<()> {
+    pub fn poll(&mut self, say: &mut Streamer<'_>) -> io::Result<()> {
         loop {
             match self.listener.accept() {
                 // One browser that goes away only ends its own request.
@@ -251,7 +253,7 @@ impl Web {
         }
     }
 
-    fn serve(&self, stream: std::net::TcpStream, say: &mut Handler<'_>) -> io::Result<()> {
+    fn serve(&self, stream: std::net::TcpStream, say: &mut Streamer<'_>) -> io::Result<()> {
         let Some((req, mut out)) = self.read(stream)? else {
             return Ok(());
         };
@@ -325,7 +327,7 @@ impl Web {
                         &req,
                         &mut out,
                         &*self.tasks,
-                        &mut |_, _| vec![],
+                        &mut |_, _, _| vec![],
                         &mut || None,
                     );
                 }
@@ -336,12 +338,12 @@ impl Web {
 }
 
 /// Answers one allowed request. `tasks` reads the task list, `say` handles a request (its y/N
-/// questions go to the page), `answer` waits for the page's answer to one.
+/// questions and written parts go to the page), `answer` waits for the page's answer to one.
 pub fn respond(
     req: &HttpRequest,
     out: &mut dyn Write,
     tasks: &dyn Fn() -> Value,
-    say: &mut Handler<'_>,
+    say: &mut Streamer<'_>,
     answer: &mut dyn FnMut() -> Option<bool>,
 ) -> io::Result<()> {
     match (req.method.as_str(), req.path.as_str()) {
@@ -356,14 +358,23 @@ pub fn respond(
                 return reply(out, "400 Bad Request", TEXT, b"send {\"text\": \"...\"}");
             };
             head(out, "200 OK", "application/x-ndjson", None)?;
+            let out = RefCell::new(out);
             let lines = {
                 // A question goes to the page; no answer in time counts as no.
                 let mut confirm = |q: &str| -> bool {
-                    let sent = writeln!(out, "{}", json!({"ask": q})).and_then(|()| out.flush());
+                    let mut o = out.borrow_mut();
+                    let sent = writeln!(o, "{}", json!({"ask": q})).and_then(|()| o.flush());
+                    drop(o);
                     sent.is_ok() && answer().unwrap_or(false)
                 };
-                say(&text, &mut confirm)
+                // Written text is sent as it comes; a page gone mid-answer only loses its answer.
+                let mut part = |p: &str| {
+                    let mut o = out.borrow_mut();
+                    let _ = writeln!(o, "{}", json!({"part": p})).and_then(|()| o.flush());
+                };
+                say(&text, &mut confirm, &mut part)
             };
+            let out = out.into_inner();
             for l in lines {
                 writeln!(out, "{}", json!({"line": l}))?;
             }
@@ -539,8 +550,16 @@ mod tests {
     fn answer_to(r: &HttpRequest, page_says: Option<bool>) -> (String, Vec<String>) {
         let mut heard = Vec::new();
         let mut out = Vec::new();
-        let mut say = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| -> Vec<String> {
+        let mut say = |text: &str,
+                       confirm: &mut dyn FnMut(&str) -> bool,
+                       part: &mut dyn FnMut(&str)|
+         -> Vec<String> {
             heard.push(text.to_string());
+            if text == "explain recursion" {
+                part("Recursion is");
+                part(" a function calling itself.");
+                return vec!["(note)".into()];
+            }
             if text == "delete task 2" {
                 let yes = confirm("delete task 2?");
                 return vec![
@@ -584,6 +603,17 @@ mod tests {
         let body = out.split("\r\n\r\n").nth(1).unwrap();
         assert_eq!(body, "{\"line\":\"no tasks\"}\n{\"done\":true}\n");
         assert!(out.contains("Content-Type: application/x-ndjson"));
+    }
+
+    #[test]
+    fn a_written_answer_goes_to_the_page_in_parts() {
+        let (out, _) = answer_to(&post("/api/say", r#"{"text":"explain recursion"}"#), None);
+        let body = out.split("\r\n\r\n").nth(1).unwrap();
+        assert_eq!(
+            body,
+            "{\"part\":\"Recursion is\"}\n{\"part\":\" a function calling itself.\"}\n\
+             {\"line\":\"(note)\"}\n{\"done\":true}\n"
+        );
     }
 
     #[test]
@@ -659,7 +689,10 @@ mod tests {
             said.read_to_string(&mut rest).unwrap();
             (asked, busy, answered, rest)
         });
-        let mut say = |text: &str, confirm: &mut dyn FnMut(&str) -> bool| -> Vec<String> {
+        let mut say = |text: &str,
+                       confirm: &mut dyn FnMut(&str) -> bool,
+                       _: &mut dyn FnMut(&str)|
+         -> Vec<String> {
             assert_eq!(text, "delete task 2");
             vec![
                 if confirm("delete task 2?") {
