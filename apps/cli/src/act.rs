@@ -117,9 +117,14 @@ impl Act {
             today,
             documents: &documents,
         };
+        let nothing_to_do =
+            |(i, _): &(Intent, String)| matches!(i, Intent::Chitchat | Intent::Unsupported);
         match parts {
             [] => Proposal::NeedsModel,
             [(intent, text)] => templates::propose(*intent, text, &ctx),
+            // "tum kya kya kar sakte ho aur tum kaun ho": small talk joined by "aur" is still small talk.
+            // A part with something to do keeps the whole on plan_parts, so no misrouted part is dropped.
+            parts if parts.iter().all(nothing_to_do) => Proposal::NoAction,
             parts => plan_parts(parts, &ctx),
         }
     }
@@ -737,6 +742,27 @@ mod tests {
         );
         assert!(out.contains("created task #4: send the slides"), "{out}");
         assert_eq!(asked.1.borrow().as_slice(), ["create 4 tasks?"]);
+    }
+
+    #[test]
+    fn a_compound_of_small_talk_answers_like_small_talk() {
+        // "tum kya kya kar sakte ho aur tum kaun ho": two chitchat parts, nothing to plan.
+        let mut a = setup("smalltalk");
+        let parts = vec![
+            (Intent::Chitchat, "tum kya kya kar sakte ho".to_string()),
+            (Intent::Chitchat, "tum kaun ho".to_string()),
+        ];
+        let out = a.carry_out(Some(&parts), 1, NOW, &yes());
+        assert_eq!(
+            out,
+            ["Hi! I can find, open and summarize your notes, and keep your tasks."]
+        );
+        let parts = vec![
+            (Intent::Chitchat, "hello".to_string()),
+            (Intent::Unsupported, "book a flight to delhi".to_string()),
+        ];
+        let out = joined(&a.carry_out(Some(&parts), 2, NOW, &yes()));
+        assert!(out.starts_with("I can't do that."), "{out}");
     }
 
     #[test]
