@@ -26,7 +26,7 @@
 //! aliases on Kestrel-Personas-v0, gold intents, no model.
 //!
 //! Daily use (Stage 2, ADR-034): serve is the always-on assistant, chat and say talk to it
-//! (src/service.rs), remind lists what is due (src/remind.rs).
+//! (src/service.rs), stop stops it (src/control.rs), remind lists what is due (src/remind.rs).
 
 // Without the llama feature nothing builds tiers from the config, but its tests still run.
 // The ask report is plain code with tests; only reading requests needs the models.
@@ -44,6 +44,7 @@ mod clock;
 mod commands;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
+mod control;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod grounding;
@@ -75,7 +76,7 @@ mod web;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print]        the assistant's page in your browser\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print]        the assistant's page in your browser\n       kestrel stop                  stops it and frees its memory; open, chat or say start it again\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -86,15 +87,18 @@ fn main() -> ExitCode {
         Some("plan-eval") => plan_eval(&args[1..]),
         Some("memory") => memory::run(&args[1..], &mut std::io::stdout()),
         Some("remind") => remind::run(&args[1..], &mut std::io::stdout()),
-        Some("chat") => service::chat(None),
-        Some("open") => web::open(&args[1..], &|k| std::env::var_os(k), &mut std::io::stdout()),
+        // A stopped service starts again for the commands that talk to it (src/control.rs).
+        Some("chat") => control::wake_here(false).and_then(|()| service::chat(None)),
+        Some("open") => control::wake_here(true)
+            .and_then(|()| web::open(&args[1..], &|k| std::env::var_os(k), &mut std::io::stdout())),
         Some("say") => match &args[1..] {
             [] => Err(
                 "say what? e.g. kestrel say \"show my tasks\" (kestrel chat for a conversation)"
                     .into(),
             ),
-            words => service::chat(Some(&words.join(" "))),
+            words => control::wake_here(false).and_then(|()| service::chat(Some(&words.join(" ")))),
         },
+        Some("stop") => control::stop_here(&mut std::io::stdout()),
         Some("serve") => serve(&args[1..]),
         Some("tier4-worker") => tier4_worker(&args[1..]),
         Some("e4-eval") => e4_eval(&args[1..]),
@@ -335,6 +339,7 @@ mod tests {
             "chat",
             "say",
             "open",
+            "stop",
             "remind",
             "serve",
             "route-items",

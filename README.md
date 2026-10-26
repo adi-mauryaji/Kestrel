@@ -29,11 +29,14 @@ Talk to it in the browser (`kestrel open`, or Kestrel in the applications menu) 
 ```
 kestrel chat                                  # a conversation; "quit" ends it
 kestrel say "mere tasks btao"                 # one request
+kestrel stop                                  # frees its memory; open, chat or say start it again
 ```
 
 Most requests take a fraction of a second (rules, encoder). The first one that needs the language model
-loads it (about 20 s); it is unloaded again after 10 idle minutes. Run the two scripts again after an
-update; `--remove` takes either away (notes and tasks stay). Examples:
+loads it (about 20 s); it is unloaded again after 10 idle minutes. `kestrel stop` frees all of it until
+the next `kestrel open`, `chat` or `say` (about a second to start again) or the next login; reminders with
+a time pop up only while it runs. Run the two scripts again after an update; `--remove` takes either
+away (notes and tasks stay). Examples:
 
 | You say | It does |
 |---|---|

@@ -3,6 +3,7 @@
 # rules + encoder loaded (~300 MB); Gemma loads only when a request needs it and unloads after 10
 # idle minutes. Talk to it with `kestrel chat` or `kestrel say ...` (instant: nothing loads), or in
 # the browser: `kestrel open`, or "Kestrel" in the applications menu (installed here too).
+# `kestrel stop` stops it until the next open, chat or say (which start it again) or the next login.
 #
 #   scripts/install_service.sh ~/notes      install and start (or set KESTREL_NOTES)
 #   scripts/install_service.sh --remove     stop and remove the service (notes and tasks are kept)
