@@ -1,6 +1,6 @@
 {
  "dataset": "kestrel-personas-v0",
- "status": "draft",
+ "status": "reviewed",
  "seed": 0,
  "today": "2026-10-23",
  "personas": {
@@ -26,7 +26,7 @@
   }
  },
  "sources": {
-  "personas.toml": "f09d89d73530c1f24dd4037ccbe5216875f6fb73016556510d5d67ba28d35979"
+  "personas.toml": "63d76797c1c0548e508d0b0ca609a659cbbbb28cb80236e2f191eeacc0a7b4a1"
  },
  "items_sha256": "b45969a4df6bfc7181d4012cbf9a87437fcd20c7cb588fb3ce3b55b9f9bb29a6",
  "events_sha256": "79df0ce04656fe76262c3676df98b642261630a655cd9710c4962d4cbbb74ecc"

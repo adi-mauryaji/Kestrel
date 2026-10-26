@@ -11,7 +11,7 @@
 
 now = "2026-10-23"          # retrieval time; ages and expiries are relative to it
 default_author = "claude-draft"
-default_reviewed = false
+default_reviewed = true  # the human, 2026-10-26: experiments/logs/human/dataset_review.json
 
 # --- memories: id, group (the split unit), kind, key, value, source, importance (1-5),
 # age_days (updated that long before `now`), optional expires_in_days (negative = already expired),

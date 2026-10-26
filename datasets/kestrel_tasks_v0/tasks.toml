@@ -18,7 +18,7 @@
 
 schema = 1
 default_author = "claude-draft"
-default_reviewed = false
+default_reviewed = true  # the human, 2026-10-26: experiments/logs/human/dataset_review.json
 
 [fixture]
 today = "2026-10-22"   # a Thursday

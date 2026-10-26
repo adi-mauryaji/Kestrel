@@ -1,8 +1,7 @@
-# Kestrel-Memory-v0 (DRAFT)
+# Kestrel-Memory-v0 (frozen 2026-10-26)
 
 Retrieval evaluation for Kestrel's memory (blueprint Ch. 18; Week 10 "R": a retrieval dev set for recall@k;
-ADR-026). Synthetic: drafted by Claude on 2026-10-23, **not yet reviewed by the human**. Freezing needs that
-review; after freezing, any change is a new version with a new fingerprint.
+ADR-026). Synthetic: drafted by Claude on 2026-10-23, reviewed by the human on 2026-10-26 (every unit OK, experiments/logs/human/dataset_review.json; Personas-v0 and Memory-v0 marked at about 2–3 s per card on the first pass, re-read without new marks) and frozen: any change is a new version with a new fingerprint.
 
 ## What is in it
 

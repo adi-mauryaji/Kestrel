@@ -68,7 +68,7 @@ def test_build_writes_the_store_the_queries_and_a_manifest(tmp_path):
     queries = [json.loads(line) for line in (tmp_path / "queries.jsonl").read_text().splitlines()]
     assert len(store) == manifest["memories"] == len(load()["memories"])
     assert len(queries) == manifest["queries"]
-    assert manifest["status"] == "draft"
+    assert manifest["status"] == "reviewed"
     assert manifest["splits"]["dev"]["queries"] + manifest["splits"]["test"]["queries"] == len(queries)
     assert manifest["now_unix"] == load()["now_unix"]
     on_disk = json.loads((tmp_path / "manifest.json").read_text())

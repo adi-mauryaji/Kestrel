@@ -1,9 +1,8 @@
-# Kestrel-Personas-v0 (DRAFT)
+# Kestrel-Personas-v0 (frozen 2026-10-26)
 
 Synthetic users who teach Kestrel their own words, for E4 (H4: does correction-based personalization through
 structured memory help on a user's held-out requests without hurting the others? Ch. 1, 22.2, 34; ADR-028).
-Drafted by Claude on 2026-10-23, **not yet reviewed by the human**. Freezing needs that review; after freezing, any change
-is a new version with a new fingerprint. **Label as synthetic in every table.**
+Drafted by Claude on 2026-10-23, reviewed by the human on 2026-10-26 (every unit OK, experiments/logs/human/dataset_review.json; Personas-v0 and Memory-v0 marked at about 2–3 s per card on the first pass, re-read without new marks) and frozen: any change is a new version with a new fingerprint. **Label as synthetic in every table.**
 
 ## What is in it
 

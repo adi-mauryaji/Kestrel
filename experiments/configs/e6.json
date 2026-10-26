@@ -2,7 +2,6 @@
  "experiment": "E6 (H6)",
  "status": "BLOCKED",
  "blocked_by": [
-  "Kestrel-Tasks-v0 review and freeze (it is a draft)",
   "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
   "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring rule"
  ],

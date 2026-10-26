@@ -1,13 +1,11 @@
 {
  "experiment": "E4 (H4; ADR-028, protocol ADR-030)",
- "status": "BLOCKED",
- "blocked_by": [
-  "Kestrel-Personas-v0 review and freeze (it is a draft)"
- ],
+ "status": "CANDIDATE (frozen by the PREREG amendment v1.1, ADR-031)",
+ "blocked_by": [],
  "test": "K5 vs off on the 60 exact personalized test requests: bootstrap p over the 20 test aliases, each with its 3 exact requests (ADR-030); no regression: general success at K5 >= off - delta",
  "dataset": {
   "name": "kestrel-personas-v0",
-  "status": "draft",
+  "status": "reviewed",
   "test_personas": [
    "p2",
    "p3",
