@@ -1130,10 +1130,10 @@
    "at": "2026-10-26T15:27:15.421Z"
   },
   "tasks:family:cmp-01": {
-   "hash": "f1bfe33c75eed585",
+   "hash": "86c33e4fd5b78cb3",
    "decision": "ok",
-   "note": "instead \"meri last teen meeting notes summarize karo aur unse task list bana do\" it will be \"meri last teen meeting ke notes ko summarize karo aur unse task list bana do\"",
-   "at": "2026-10-26T14:54:19.121Z"
+   "note": "",
+   "at": "2026-10-26T15:47:22.210Z"
   },
   "tasks:family:cmp-02": {
    "hash": "25d36bcd800f1de2",
@@ -1190,16 +1190,16 @@
    "at": "2026-10-26T15:01:18.462Z"
   },
   "tasks:family:create-01": {
-   "hash": "fc86e5a05b54f74c",
+   "hash": "2190cdbace5c2a53",
    "decision": "ok",
-   "note": "usually people say \"kal asha ko call karna yaad dila dena\" instead \"kal asha ko call karna yaad dilana\"",
-   "at": "2026-10-26T15:02:09.383Z"
+   "note": "",
+   "at": "2026-10-26T15:47:31.185Z"
   },
   "tasks:family:create-02": {
-   "hash": "6721902867bc6526",
+   "hash": "1f1e23ebcf09b154",
    "decision": "ok",
-   "note": "\"maa ke liye birthday gift lene ka task add karo\" generally log ise \"maa ke liye birthday gift lena hai yaad dila dena\" and people use multiple words for maa like (mummy,ammi,amma,mom)",
-   "at": "2026-10-26T15:10:17.091Z"
+   "note": "",
+   "at": "2026-10-26T15:47:50.389Z"
   },
   "tasks:family:create-03": {
    "hash": "11dbea4a780cc77d",
