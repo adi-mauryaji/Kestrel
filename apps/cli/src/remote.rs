@@ -7,7 +7,8 @@
 //! Protocol, one JSON object per line: the worker says `{"ready": true}` once loaded; then for each
 //! `{"id": N, "text": "..."}` it answers `{"probs": [["create_task", 0.97], ...]}`, and for each
 //! `{"id": N, "summarize": ["note text", ...]}` (feature 5, src/summary.rs) `{"summary": "..."}`;
-//! either may be `{"error": "..."}`.
+//! for each `{"id": N, "write": {"kind": "...", "text": "..."}}` (v3, src/kinds.rs) the text as it
+//! is written, `{"part": "..."}` per piece, then `{"text": "..."}`; any may be `{"error": "..."}`.
 
 use std::cell::{Cell, RefCell};
 use std::io::{BufRead, BufReader, Write};
@@ -94,9 +95,9 @@ impl RemoteTier {
 }
 
 impl RemoteTier {
-    /// Sends `msg` to the worker (started if it is not running) and returns its answer; the
-    /// worker's own error is `Invalid`.
-    fn exchange(&self, msg: &Value) -> Result<Value, KestrelError> {
+    /// Sends `msg` to the worker (started if it is not running) and returns its answer, handing
+    /// the `{"part"}` lines before it to `on_part`; the worker's own error is `Invalid`.
+    fn exchange(&self, msg: &Value, on_part: &mut dyn FnMut(&str)) -> Result<Value, KestrelError> {
         if !self.is_loaded() {
             let w = self.start()?;
             *self.worker.borrow_mut() = Some(w);
@@ -108,7 +109,15 @@ impl RemoteTier {
             writeln!(w.stdin, "{msg}")
                 .and_then(|()| w.stdin.flush())
                 .ok()
-                .and_then(|()| read_json(&mut w.stdout))
+                .and_then(|()| {
+                    loop {
+                        let v = read_json(&mut w.stdout)?;
+                        match v["part"].as_str() {
+                            Some(p) => on_part(p),
+                            None => return Some(v),
+                        }
+                    }
+                })
         };
         let Some(v) = answer else {
             *self.worker.borrow_mut() = None; // dead or speaking garbage: the next request starts anew
@@ -123,7 +132,7 @@ impl RemoteTier {
 
 impl crate::summary::Summarizer for RemoteTier {
     fn summarize(&self, texts: &[&str]) -> Result<String, KestrelError> {
-        let v = self.exchange(&json!({"id": 0, "summarize": texts}))?;
+        let v = self.exchange(&json!({"id": 0, "summarize": texts}), &mut |_| {})?;
         v["summary"]
             .as_str()
             .map(String::from)
@@ -132,9 +141,14 @@ impl crate::summary::Summarizer for RemoteTier {
 }
 
 impl crate::kinds::Writer for RemoteTier {
-    fn write(&self, kind: crate::kinds::Kind, request: &str) -> Result<String, KestrelError> {
-        let v =
-            self.exchange(&json!({"id": 0, "write": {"kind": kind.label(), "text": request}}))?;
+    fn write(
+        &self,
+        kind: crate::kinds::Kind,
+        request: &str,
+        on_part: &mut dyn FnMut(&str),
+    ) -> Result<String, KestrelError> {
+        let msg = json!({"id": 0, "write": {"kind": kind.label(), "text": request}});
+        let v = self.exchange(&msg, on_part)?;
         v["text"].as_str().map(String::from).ok_or_else(unavailable)
     }
 }
@@ -162,7 +176,7 @@ impl TierModel for RemoteTier {
     }
 
     fn classify(&self, req: &Request) -> Result<Vec<(Intent, f32)>, KestrelError> {
-        let v = self.exchange(&json!({"id": req.id, "text": req.text}))?;
+        let v = self.exchange(&json!({"id": req.id, "text": req.text}), &mut |_| {})?;
         let probs = v["probs"].as_array().ok_or_else(unavailable)?;
         Ok(probs
             .iter()
@@ -193,8 +207,13 @@ impl TierModel for SharedRemote {
 }
 
 impl crate::kinds::Writer for SharedRemote {
-    fn write(&self, kind: crate::kinds::Kind, request: &str) -> Result<String, KestrelError> {
-        self.0.write(kind, request)
+    fn write(
+        &self,
+        kind: crate::kinds::Kind,
+        request: &str,
+        on_part: &mut dyn FnMut(&str),
+    ) -> Result<String, KestrelError> {
+        self.0.write(kind, request, on_part)
     }
 }
 
@@ -266,13 +285,35 @@ mod tests {
             Duration::from_secs(600),
         );
         assert_eq!(
-            t.write(Kind::Email, "leave mail").unwrap(),
+            t.write(Kind::Email, "leave mail", &mut |_| {}).unwrap(),
             "Subject: Leave"
         );
         assert!(matches!(
-            t.write(Kind::Chat, "hi"),
+            t.write(Kind::Chat, "hi", &mut |_| {}),
             Err(KestrelError::Invalid(_))
         ));
+    }
+
+    #[test]
+    fn a_draft_comes_in_parts_before_its_text() {
+        use crate::kinds::{Kind, Writer};
+        let script = r#"echo '{"ready": true}'; while read -r l; do echo '{"part": "Subject:"}';
+            echo '{"part": " Leave"}'; echo '{"text": "Subject: Leave"}'; done"#;
+        let t = RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        );
+        for _ in 0..2 {
+            // Each answer's parts are its own: the second request starts clean.
+            let mut parts = Vec::new();
+            let text = t.write(Kind::Email, "leave mail", &mut |p| {
+                parts.push(p.to_string())
+            });
+            assert_eq!(text.unwrap(), "Subject: Leave");
+            assert_eq!(parts, ["Subject:", " Leave"]);
+        }
     }
 
     #[test]

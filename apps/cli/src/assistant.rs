@@ -5,7 +5,7 @@
 //! routes the request, and with a notes folder the routed parts are planned and carried out
 //! (src/act.rs). In the service, a request for a v3 skill (chat, email, rewrite, translate) is
 //! written before the cascade (src/kinds.rs). The answer comes back as lines; the caller prints
-//! them or sends them.
+//! them or sends them. `handle_streaming` also hands a written skill's text over as it comes.
 
 use std::time::Instant;
 
@@ -60,6 +60,26 @@ impl<'a> Assistant<'a> {
     }
 
     pub fn handle(&mut self, text: &str, confirm: &mut dyn FnMut(&str) -> bool) -> Vec<String> {
+        self.respond(text, confirm, None)
+    }
+
+    /// As `handle`, with a written skill's text handed to `part` while Gemma writes it; the lines
+    /// are then what follows it (src/kinds.rs).
+    pub fn handle_streaming(
+        &mut self,
+        text: &str,
+        confirm: &mut dyn FnMut(&str) -> bool,
+        part: &mut dyn FnMut(&str),
+    ) -> Vec<String> {
+        self.respond(text, confirm, Some(part))
+    }
+
+    fn respond(
+        &mut self,
+        text: &str,
+        confirm: &mut dyn FnMut(&str) -> bool,
+        part: Option<&mut dyn FnMut(&str)>,
+    ) -> Vec<String> {
         self.n += 1;
         let n = self.n;
         let mut out = Vec::new();
@@ -94,7 +114,7 @@ impl<'a> Assistant<'a> {
         }
         // v3 (ADR-037): a request for a skill is written now, from the text as typed.
         if let Some(kinds) = self.kinds.as_ref()
-            && let Some(lines) = kinds.handle(&req, text, confirm)
+            && let Some(lines) = kinds.handle(&req, text, confirm, part)
         {
             out.extend(lines);
             return out;
@@ -240,7 +260,12 @@ mod tests {
     struct Drafts;
 
     impl Writer for Drafts {
-        fn write(&self, kind: Kind, request: &str) -> Result<String, KestrelError> {
+        fn write(
+            &self,
+            kind: Kind,
+            request: &str,
+            _: &mut dyn FnMut(&str),
+        ) -> Result<String, KestrelError> {
             Ok(format!("{} draft of: {request}", kind.label()))
         }
     }
@@ -267,6 +292,27 @@ mod tests {
             a.handle("maybe shorten this: Hello There", &mut yes()),
             ["rewrite draft of: maybe shorten this: Hello There"]
         );
+    }
+
+    #[test]
+    fn a_streamed_skill_comes_in_parts_and_the_old_path_in_lines() {
+        let (a, _) = assistant("stream", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        let mut parts: Vec<String> = Vec::new();
+        let out = a.handle_streaming("remind me to call asha tomorrow", &mut yes(), &mut |p| {
+            parts.push(p.into())
+        });
+        assert!(parts.is_empty(), "{parts:?}");
+        assert!(
+            out.iter()
+                .any(|l| l.starts_with("created task #1: call asha")),
+            "{out:?}"
+        );
+        let out = a.handle_streaming("draft a mail to asha", &mut yes(), &mut |p| {
+            parts.push(p.into())
+        });
+        assert_eq!(parts, ["email draft of: draft a mail to asha"]);
+        assert!(out.is_empty(), "{out:?}");
     }
 
     #[test]

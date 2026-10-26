@@ -68,6 +68,8 @@ mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod service;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod stream;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod summary;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod telemetry;

@@ -7,9 +7,11 @@
 //! the browser page answers on 127.0.0.1 (src/web.rs, `kestrel open`).
 //!
 //! Protocol, one JSON object per line. Client: `{"say": "..."}`, and `{"answer": true|false}`
-//! when asked. Server: `{"line": "..."}` per line of the answer, `{"ask": "..."}` for a y/N
-//! question, `{"done": true}` at the end of an answer.
+//! when asked. Server: `{"part": "..."}` per piece of a skill's text while Gemma writes it (v3;
+//! the client shows it at once and ends its line before what follows), `{"line": "..."}` per line
+//! of the answer, `{"ask": "..."}` for a y/N question, `{"done": true}` at the end of an answer.
 
+use std::cell::RefCell;
 use std::ffi::OsString;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
@@ -42,12 +44,18 @@ pub fn cache_dir(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
 /// What answers a request: (text, a y/N question asker) -> the answer's lines.
 pub type Handler<'h> = dyn FnMut(&str, &mut dyn FnMut(&str) -> bool) -> Vec<String> + 'h;
 
-/// Serves one client: each `{"say"}` goes to `handle`, whose y/N questions travel to the client.
+/// A `Handler` that also hands text over while it is written: (text, asker, part sink) -> lines.
+pub type Streamer<'h> =
+    dyn FnMut(&str, &mut dyn FnMut(&str) -> bool, &mut dyn FnMut(&str)) -> Vec<String> + 'h;
+
+/// Serves one client: each `{"say"}` goes to `handle`, whose y/N questions and written parts
+/// travel to the client.
 pub fn handle_connection(
     reader: &mut dyn BufRead,
     writer: &mut dyn Write,
-    handle: &mut Handler<'_>,
+    handle: &mut Streamer<'_>,
 ) -> io::Result<()> {
+    let writer = RefCell::new(writer);
     let mut line = String::new();
     loop {
         line.clear();
@@ -63,12 +71,14 @@ pub fn handle_connection(
         let lines = {
             // A question goes to the client; no readable answer counts as no.
             let mut confirm = |q: &str| -> bool {
-                if writeln!(writer, "{}", json!({"ask": q}))
-                    .and_then(|()| writer.flush())
+                let mut w = writer.borrow_mut();
+                if writeln!(w, "{}", json!({"ask": q}))
+                    .and_then(|()| w.flush())
                     .is_err()
                 {
                     return false;
                 }
+                drop(w);
                 let mut a = String::new();
                 match reader.read_line(&mut a) {
                     Ok(n) if n > 0 => serde_json::from_str::<Value>(&a)
@@ -78,27 +88,36 @@ pub fn handle_connection(
                     _ => false,
                 }
             };
-            handle(&text, &mut confirm)
+            // A part is sent at once; a client gone mid-answer only ends its own connection.
+            let mut part = |p: &str| {
+                let mut w = writer.borrow_mut();
+                let _ = writeln!(w, "{}", json!({"part": p})).and_then(|()| w.flush());
+            };
+            handle(&text, &mut confirm, &mut part)
         };
+        let mut w = writer.borrow_mut();
         for l in lines {
-            writeln!(writer, "{}", json!({"line": l}))?;
+            writeln!(w, "{}", json!({"line": l}))?;
         }
-        writeln!(writer, "{}", json!({"done": true}))?;
-        writer.flush()?;
+        writeln!(w, "{}", json!({"done": true}))?;
+        w.flush()?;
     }
 }
 
-/// One request from the client's side: send it, print its lines, answer its questions.
+/// One request from the client's side: send it, print its lines, answer its questions, and show
+/// written text as it comes (`part`), ended by a "\n" part before anything that follows it.
 pub fn client_exchange(
     reader: &mut dyn BufRead,
     writer: &mut dyn Write,
     text: &str,
     answer: &mut dyn FnMut(&str) -> bool,
     print: &mut dyn FnMut(&str),
+    part: &mut dyn FnMut(&str),
 ) -> io::Result<()> {
     writeln!(writer, "{}", json!({"say": text}))?;
     writer.flush()?;
     let mut line = String::new();
+    let mut open = false; // parts shown since the last end of line
     loop {
         line.clear();
         if reader.read_line(&mut line)? == 0 {
@@ -110,6 +129,14 @@ pub fn client_exchange(
         let Ok(v) = serde_json::from_str::<Value>(&line) else {
             continue;
         };
+        if let Some(p) = v["part"].as_str() {
+            part(p);
+            open = true;
+            continue;
+        }
+        if std::mem::take(&mut open) {
+            part("\n");
+        }
         if let Some(l) = v["line"].as_str() {
             print(l);
         } else if let Some(q) = v["ask"].as_str() {
@@ -150,8 +177,19 @@ pub fn chat(once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
         )
     };
     let mut print = |l: &str| println!("{l}");
+    let mut part = |p: &str| {
+        print!("{p}");
+        let _ = io::stdout().flush();
+    };
     if let Some(text) = once {
-        client_exchange(&mut reader, &mut writer, text, &mut answer, &mut print)?;
+        client_exchange(
+            &mut reader,
+            &mut writer,
+            text,
+            &mut answer,
+            &mut print,
+            &mut part,
+        )?;
         return Ok(());
     }
     eprintln!(
@@ -173,6 +211,7 @@ pub fn chat(once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
             line.trim(),
             &mut answer,
             &mut print,
+            &mut part,
         )?;
         println!();
     }
@@ -212,7 +251,11 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 .as_str()
                 .and_then(crate::kinds::Kind::from_label);
             let text = v["write"]["text"].as_str().unwrap_or_default();
-            match kind.map(|k| write_skill(slm, &mut writer, format, k, text)) {
+            // Each piece goes out as written (src/remote.rs); the whole text follows.
+            let mut part = |p: &str| {
+                let _ = writeln!(out, "{}", json!({"part": p})).and_then(|()| out.flush());
+            };
+            match kind.map(|k| write_skill(slm, &mut writer, format, k, text, &mut part)) {
                 Some(Ok(t)) => json!({"text": t}),
                 Some(Err(e)) => json!({"error": e.to_string()}),
                 None => json!({"error": "unknown kind"}),
@@ -250,7 +293,14 @@ fn write_summary<'m>(
             "the notes contain control-token text".into(),
         ));
     }
-    answer(slm, writer, prompt, &user, crate::summary::MAX_TOKENS)
+    answer(
+        slm,
+        writer,
+        prompt,
+        &user,
+        crate::summary::MAX_TOKENS,
+        &mut |_| {},
+    )
 }
 
 /// A v3 skill's text (src/kinds.rs) for the request as typed, in `writer`'s context.
@@ -261,6 +311,7 @@ fn write_skill<'m>(
     format: kestrel_inference::prompt::ChatFormat,
     kind: crate::kinds::Kind,
     request: &str,
+    on_part: &mut dyn FnMut(&str),
 ) -> Result<String, kestrel_core::KestrelError> {
     // The request must not open or close chat turns (as for Tier 4, tier.rs).
     if slm.has_special_tokens(request)? {
@@ -269,11 +320,12 @@ fn write_skill<'m>(
         ));
     }
     let prompt = kestrel_inference::prompt::ChatPrompt::new(format, kind.system());
-    answer(slm, writer, &prompt, request, kind.max_tokens())
+    answer(slm, writer, &prompt, request, kind.max_tokens(), on_part)
 }
 
 /// Gemma's greedy answer (at most `max_tokens`) to `user` under `prompt`, in `writer`'s context
-/// (made at the first use).
+/// (made at the first use), trimmed of space and the stop string; its pieces go to `on_part` as
+/// they are written (src/stream.rs), and they join to the answer.
 #[cfg(feature = "llama")]
 fn answer<'m>(
     slm: &'m kestrel_inference::llama::LlamaSlm,
@@ -281,6 +333,7 @@ fn answer<'m>(
     prompt: &kestrel_inference::prompt::ChatPrompt,
     user: &str,
     max_tokens: usize,
+    on_part: &mut dyn FnMut(&str),
 ) -> Result<String, kestrel_core::KestrelError> {
     use kestrel_core::resources::{CancelToken, Deadline};
     use kestrel_inference::generate::{GenParams, Generator};
@@ -294,15 +347,22 @@ fn answer<'m>(
         stop: vec![stop.into()],
         ..GenParams::greedy(max_tokens)
     };
-    let mut out = String::new();
+    let (mut trimmed, mut out) = (crate::stream::Trimmed::new(stop), String::new());
+    let mut show = |s: String| {
+        if !s.is_empty() {
+            on_part(&s);
+            out.push_str(&s);
+        }
+    };
     session.generate(
         &(prompt.prefix() + &prompt.suffix(user)),
         &p,
         &CancelToken::new(),
         &Deadline::after(std::time::Duration::from_secs(120)),
-        &mut |t| out.push_str(t),
+        &mut |t| show(trimmed.push(t)),
     )?;
-    Ok(out.trim_end().trim_end_matches(stop).trim().to_string())
+    show(trimmed.finish());
+    Ok(out)
 }
 
 /// The page on 127.0.0.1:`port`: its token beside the memory file (kept across restarts, so a
@@ -443,8 +503,8 @@ pub fn serve(
                 let mut reader = io::BufReader::new(stream.try_clone()?);
                 let mut writer = stream;
                 // A client that goes away mid-answer only ends its own connection.
-                let _ = handle_connection(&mut reader, &mut writer, &mut |text, confirm| {
-                    assistant.handle(text, confirm)
+                let _ = handle_connection(&mut reader, &mut writer, &mut |text, confirm, part| {
+                    assistant.handle_streaming(text, confirm, part)
                 });
             }
             Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -518,7 +578,7 @@ mod tests {
         );
         let mut output = Vec::new();
         let mut seen = Vec::new();
-        handle_connection(&mut input, &mut output, &mut |text, confirm| {
+        handle_connection(&mut input, &mut output, &mut |text, confirm, _| {
             seen.push(text.to_string());
             if text.starts_with("delete") {
                 let yes = confirm("delete task 2?");
@@ -539,7 +599,7 @@ mod tests {
     fn a_client_without_an_answer_says_no_and_garbage_is_skipped() {
         let mut input = Cursor::new(b"{\"say\": \"delete task 2\"}\nnot json\n".to_vec());
         let mut output = Vec::new();
-        handle_connection(&mut input, &mut output, &mut |_, confirm| {
+        handle_connection(&mut input, &mut output, &mut |_, confirm, _| {
             vec![format!("answered {}", confirm("sure?"))]
         })
         .unwrap();
@@ -566,6 +626,7 @@ mod tests {
                 false
             },
             &mut |l| printed.push(l.to_string()),
+            &mut |_| panic!("no parts"),
         )
         .unwrap();
         assert_eq!(
@@ -581,8 +642,67 @@ mod tests {
         );
         let mut cut = Cursor::new(b"{\"line\":\"a\"}\n".to_vec());
         assert!(
-            client_exchange(&mut cut, &mut Vec::new(), "x", &mut |_| false, &mut |_| {}).is_err(),
+            client_exchange(
+                &mut cut,
+                &mut Vec::new(),
+                "x",
+                &mut |_| false,
+                &mut |_| {},
+                &mut |_| {}
+            )
+            .is_err(),
             "server went away"
         );
+    }
+
+    #[test]
+    fn the_server_relays_parts_as_they_come() {
+        let mut input = Cursor::new(b"{\"say\": \"explain recursion\"}\n".to_vec());
+        let mut output = Vec::new();
+        handle_connection(&mut input, &mut output, &mut |_, _, part| {
+            part("Recursion is");
+            part(" a function calling itself.");
+            vec!["(note)".into()]
+        })
+        .unwrap();
+        assert_eq!(
+            String::from_utf8(output).unwrap(),
+            "{\"part\":\"Recursion is\"}\n{\"part\":\" a function calling itself.\"}\n\
+             {\"line\":\"(note)\"}\n{\"done\":true}\n"
+        );
+    }
+
+    #[test]
+    fn the_client_shows_parts_at_once_and_ends_their_line_before_what_follows() {
+        let mut from_server = Cursor::new(
+            b"{\"part\":\"Dear\"}\n{\"part\":\" Asha\"}\n{\"line\":\"(note)\"}\n{\"done\":true}\n\
+              {\"part\":\"Hi\"}\n{\"done\":true}\n"
+                .to_vec(),
+        );
+        for (parts_seen, lines_seen) in [
+            (vec!["Dear", " Asha", "\n"], vec!["(note)"]),
+            (vec!["Hi", "\n"], vec![]),
+        ] {
+            let (mut parts, mut printed) = (Vec::new(), Vec::new());
+            client_exchange(
+                &mut from_server,
+                &mut Vec::new(),
+                "x",
+                &mut |_| false,
+                &mut |l| printed.push(l.to_string()),
+                &mut |p| parts.push(p.to_string()),
+            )
+            .unwrap();
+            assert_eq!(
+                (parts, printed),
+                (
+                    parts_seen.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                    lines_seen
+                        .iter()
+                        .map(|s: &&str| s.to_string())
+                        .collect::<Vec<_>>()
+                )
+            );
+        }
     }
 }

@@ -3,7 +3,8 @@
 //! probability per kind: `app` keeps the Stage 2 path unchanged, a skill at or above τ is written
 //! by Gemma (the worker, src/remote.rs), and below τ the user is asked first. The head sees the
 //! normalized request it was trained on; the writer gets the request as typed, because a rewrite or
-//! a translation needs its case and punctuation.
+//! a translation needs its case and punctuation. In the service the text is shown while Gemma
+//! writes it (src/stream.rs); the answer's lines are then only what follows it.
 
 use kestrel_core::{KestrelError, Request, TierModel};
 
@@ -112,9 +113,15 @@ pub fn decide(probs: &[(Kind, f32)], tau: f32) -> Choice {
     }
 }
 
-/// Writes what a skill request asks for.
+/// Writes what a skill request asks for: the whole text, after handing it to `on_part` piece by
+/// piece as it is written (a writer that cannot stream may hand over nothing).
 pub trait Writer {
-    fn write(&self, kind: Kind, request: &str) -> Result<String, KestrelError>;
+    fn write(
+        &self,
+        kind: Kind,
+        request: &str,
+        on_part: &mut dyn FnMut(&str),
+    ) -> Result<String, KestrelError>;
 }
 
 pub struct Kinds<'a> {
@@ -132,12 +139,14 @@ impl<'a> Kinds<'a> {
         Self { head, writer, tau }
     }
 
-    /// The answer when `req` asks for a skill; `None` sends it the Stage 2 way.
+    /// The answer when `req` asks for a skill; `None` sends it the Stage 2 way. With `stream`, the
+    /// written text goes there as it comes, and the lines hold only what follows it.
     pub fn handle(
         &self,
         req: &Request,
         typed: &str,
         confirm: &mut dyn FnMut(&str) -> bool,
+        mut stream: Option<&mut dyn FnMut(&str)>,
     ) -> Option<Vec<String>> {
         // A head that fails leaves the request to the Stage 2 path.
         let probs = self.head.classify(req).ok()?;
@@ -147,16 +156,30 @@ impl<'a> Kinds<'a> {
             Choice::Ask(k) if confirm(k.question()) => k,
             Choice::Ask(_) => return None,
         };
-        Some(match self.writer.write(kind, typed.trim()) {
-            Ok(text) => {
-                let mut lines: Vec<String> = text.lines().map(String::from).collect();
-                if kind == Kind::Chat {
-                    lines.push(CAVEAT.into());
-                }
-                lines
+        let mut shown = String::new();
+        let written = self.writer.write(kind, typed.trim(), &mut |p| {
+            if let Some(show) = stream.as_mut() {
+                shown.push_str(p);
+                show(p);
             }
-            Err(e) => vec![format!("I couldn't write that: {e}")],
-        })
+        });
+        let finished = written.is_ok();
+        let mut lines = match (written, stream) {
+            (Ok(text), Some(show)) => {
+                // What the writer did not stream is shown now.
+                if let Some(rest) = text.strip_prefix(shown.as_str()).filter(|r| !r.is_empty()) {
+                    show(rest);
+                }
+                Vec::new()
+            }
+            (Ok(text), None) => text.lines().map(String::from).collect(),
+            (Err(e), _) => vec![format!("I couldn't write that: {e}")],
+        };
+        // Model-written text on screen, even cut off, carries the caveat (ADR-038).
+        if kind == Kind::Chat && (finished || !shown.is_empty()) {
+            lines.push(CAVEAT.into());
+        }
+        Some(lines)
     }
 }
 
@@ -227,7 +250,12 @@ mod tests {
     struct Records(Asked, Result<&'static str, ()>);
 
     impl Writer for Records {
-        fn write(&self, kind: Kind, request: &str) -> Result<String, KestrelError> {
+        fn write(
+            &self,
+            kind: Kind,
+            request: &str,
+            _: &mut dyn FnMut(&str),
+        ) -> Result<String, KestrelError> {
             self.0.borrow_mut().push((kind, request.into()));
             self.1
                 .map(String::from)
@@ -257,7 +285,7 @@ mod tests {
             Ok("Could you send me the file?\nThanks."),
         );
         let req = Request::new(1, TYPED);
-        let out = k.handle(&req, TYPED, &mut |_| panic!("no question when sure"));
+        let out = k.handle(&req, TYPED, &mut |_| panic!("no question when sure"), None);
         assert_eq!(
             out,
             Some(vec!["Could you send me the file?".into(), "Thanks.".into()])
@@ -281,6 +309,7 @@ mod tests {
             &Request::new(1, "explain recursion"),
             "explain recursion",
             &mut |_| true,
+            None,
         );
         assert_eq!(
             out,
@@ -298,16 +327,21 @@ mod tests {
         let mut questions = Vec::new();
         let req = Request::new(1, "leave mail");
         assert_eq!(
-            k.handle(&req, "leave mail", &mut |q| {
-                questions.push(q.to_string());
-                false
-            }),
+            k.handle(
+                &req,
+                "leave mail",
+                &mut |q| {
+                    questions.push(q.to_string());
+                    false
+                },
+                None
+            ),
             None
         );
         assert_eq!(questions, ["Write this as an email or message draft?"]);
         assert!(asked.borrow().is_empty());
         assert_eq!(
-            k.handle(&req, "leave mail", &mut |_| true),
+            k.handle(&req, "leave mail", &mut |_| true, None),
             Some(vec!["Subject: Leave".into()])
         );
     }
@@ -316,12 +350,17 @@ mod tests {
     fn app_requests_and_a_failed_head_go_the_old_way_and_a_failed_writer_says_so() {
         let (k, asked) = kinds(Ok(vec![(Kind::App, 0.99)]), Ok("never"));
         assert_eq!(
-            k.handle(&Request::new(1, "remind me"), "remind me", &mut |_| true),
+            k.handle(
+                &Request::new(1, "remind me"),
+                "remind me",
+                &mut |_| true,
+                None
+            ),
             None
         );
         let (broken, _) = kinds(Err(()), Ok("never"));
         assert_eq!(
-            broken.handle(&Request::new(1, "x"), "x", &mut |_| true),
+            broken.handle(&Request::new(1, "x"), "x", &mut |_| true, None),
             None
         );
         assert!(asked.borrow().is_empty());
@@ -331,6 +370,7 @@ mod tests {
                 &Request::new(1, "translate hi"),
                 "translate hi",
                 &mut |_| true,
+                None,
             )
             .unwrap();
         assert_eq!(out.len(), 1);
@@ -338,5 +378,73 @@ mod tests {
             out[0].starts_with("I couldn't write that: ") && out[0].ends_with("worker gone"),
             "{out:?}"
         );
+    }
+
+    /// A writer that hands its answer over in two pieces; with `fails`, it stops after the first.
+    struct Streams(&'static str, bool);
+
+    impl Writer for Streams {
+        fn write(
+            &self,
+            _: Kind,
+            _: &str,
+            on_part: &mut dyn FnMut(&str),
+        ) -> Result<String, KestrelError> {
+            let (a, b) = self.0.split_at(self.0.len() / 2);
+            on_part(a);
+            if self.1 {
+                return Err(KestrelError::Invalid("worker gone".into()));
+            }
+            on_part(b);
+            Ok(self.0.into())
+        }
+    }
+
+    #[test]
+    fn a_streamed_answer_goes_to_the_stream_and_only_what_follows_it_is_returned() {
+        const ANSWER: &str = "Recursion is a function calling itself.";
+        let chat = |fails| {
+            Kinds::new(
+                Box::new(Fixed(Ok(vec![(Kind::Chat, 0.95)]))),
+                Box::new(Streams(ANSWER, fails)),
+                TAU,
+            )
+        };
+        let req = Request::new(1, "explain recursion");
+        let mut parts: Vec<String> = Vec::new();
+        let out = chat(false).handle(
+            &req,
+            "explain recursion",
+            &mut |_| true,
+            Some(&mut |p: &str| parts.push(p.into())),
+        );
+        assert_eq!((parts.len(), parts.concat()), (2, ANSWER.to_string()));
+        assert_eq!(out, Some(vec![CAVEAT.into()]));
+        // A writer that does not stream still shows its text, in one part.
+        let (k, _) = kinds(
+            Ok(vec![(Kind::Email, 0.9)]),
+            Ok("Subject: Leave\n\nDear Asha,"),
+        );
+        let mut parts: Vec<String> = Vec::new();
+        let out = k.handle(
+            &req,
+            "leave mail",
+            &mut |_| true,
+            Some(&mut |p: &str| parts.push(p.into())),
+        );
+        assert_eq!(parts, ["Subject: Leave\n\nDear Asha,"]);
+        assert_eq!(out, Some(vec![]));
+        // Cut off: what was shown stays, the failure is said, and a chat answer keeps its caveat.
+        let mut parts: Vec<String> = Vec::new();
+        let out = chat(true).handle(
+            &req,
+            "explain recursion",
+            &mut |_| true,
+            Some(&mut |p: &str| parts.push(p.into())),
+        );
+        assert_eq!(parts.len(), 1);
+        let out = out.unwrap();
+        assert!(out[0].starts_with("I couldn't write that: "), "{out:?}");
+        assert_eq!(out[1..], [CAVEAT.to_string()]);
     }
 }
