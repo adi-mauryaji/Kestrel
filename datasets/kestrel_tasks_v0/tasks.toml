@@ -35,7 +35,7 @@ memories = ["Asha prefers calls after 6 pm", "The q4 budget is due on 2026-10-31
 id = "create-01"
 category = "create_task"
 en = ["remind me to call asha tomorrow"]
-hi-en = ["kal asha ko call karna yaad dilana"]
+hi-en = ["kal asha ko call karna yaad dila dena"]
 plan = '{"nodes": [{"id": "t", "op": "create_task", "args": {"title": "call asha", "due": "2026-10-23"}}]}'
 expect = { tasks_added = [{ title = "call asha", due = "2026-10-23" }] }
 plan_hi-en = '{"nodes": [{"id": "t", "op": "create_task", "args": {"title": "asha ko call karna", "due": "2026-10-23"}}]}'
@@ -45,7 +45,7 @@ expect_hi-en = { tasks_added = [{ title = "asha ko call karna", due = "2026-10-2
 id = "create-02"
 category = "create_task"
 en = ["add a task to buy a birthday gift for maa"]
-hi-en = ["maa ke liye birthday gift lene ka task add karo"]
+hi-en = ["maa ke liye birthday gift lena hai yaad dila dena"]
 plan = '{"nodes": [{"id": "t", "op": "create_task", "args": {"title": "buy a birthday gift for maa"}}]}'
 expect = { tasks_added = [{ title = "buy a birthday gift for maa" }] }
 plan_hi-en = '{"nodes": [{"id": "t", "op": "create_task", "args": {"title": "maa ke liye birthday gift lena"}}]}'
@@ -330,7 +330,7 @@ id = "cmp-01"
 category = "compound"
 note = "the Chapter 8 request; extraction reads the notes, not the summary"
 en = ["summarize my last three meeting notes and create a task list"]
-hi-en = ["meri last teen meeting notes summarize karo aur unse task list bana do"]
+hi-en = ["meri last teen meeting ke notes ko summarize karo aur unse task list bana do"]
 plan = '{"nodes": [{"id": "f", "op": "fetch_recent_notes", "args": {"n": 3, "tag": "meeting"}}, {"id": "s", "op": "summarize", "deps": ["f"]}, {"id": "x", "op": "extract_action_items", "deps": ["f"]}, {"id": "t", "op": "create_task", "args": {}, "deps": ["x"]}]}'
 expect = { read = ["meetings/2026-10-22-planning.md", "meetings/2026-10-21-retro.md", "meetings/2026-10-20-standup.md"], tasks_added = [{ title = "send the q4 budget draft to finance" }, { title = "email the budget to asha" }, { title = "fix the flaky build" }] }
 

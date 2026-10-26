@@ -29,7 +29,7 @@ answer must contain. Gold plans are never shown to a model.
 
 Action items in the fixture notes are lines written `- [ ] ...`, `Action: ...` or `TODO: ...`, the rule of the
 deterministic `MarkedItems` text ops, so the expected tasks are exact. A task title taken from the request keeps the user's words (ADR-024): the Hinglish item of 9 families has its own
-gold plan (`plan_hi-en`, e.g. "asha ko call karna" for "kal asha ko call karna yaad dilana"). A model writes its own task titles and
+gold plan (`plan_hi-en`, e.g. "asha ko call karna" for "kal asha ko call karna yaad dila dena"). A model writes its own task titles and
 summaries; how those are scored (e.g. normalized-title match) is decided and written into the PREREG before the 9d
 run, not after it.
 

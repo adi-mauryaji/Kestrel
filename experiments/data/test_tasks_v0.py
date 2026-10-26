@@ -30,7 +30,7 @@ def test_items_carry_both_languages_and_the_default_expectations():
         by_fam.setdefault(r["family"], set()).add(r["lang"])
     assert all(langs == {"en", "hi-en"} for langs in by_fam.values())
     one = next(r for r in rows if r["family"] == "create-01" and r["lang"] == "hi-en")
-    assert one["text"] == "kal asha ko call karna yaad dilana"
+    assert one["text"] == "kal asha ko call karna yaad dila dena"
     assert one["plan"]["nodes"][0]["op"] == "create_task"
     assert one["expect"]["outcome"] == "done" and one["expect"]["tasks_deleted"] == []
     clarify = next(r for r in rows if r["family"] == "create-08")
