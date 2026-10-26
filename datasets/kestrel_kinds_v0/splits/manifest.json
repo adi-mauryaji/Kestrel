@@ -10,7 +10,7 @@
   "translate"
  ],
  "sources": {
-  "kinds.toml": "bbb5694090980ba2d256c594624e2d4c93f18e037332b332cdbdfb9f1db855ae",
+  "kinds.toml": "880b6188146f1529fd30eaefa82825dc2c09f3781c01ad966898350d61da0d7b",
   "contracts/kinds.txt": "62834c95d7b9843b070c2e26b4fdfbf27448288cd24aea46773dabeb3ee9e0f1",
   "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
   "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",
@@ -19,63 +19,63 @@
  "conflicts_dropped": [],
  "splits": {
   "train": {
-   "items": 652,
-   "fingerprint": "333c1b35a9b752e21827de91d377e1ffbf2219218b28f5485da4f5725edece37",
+   "items": 744,
+   "fingerprint": "0490c860679fe8e75ee06a0bbdeed580adc222024007b5440c8e8aa5160a63c3",
    "by_label": {
-    "app": 540,
-    "chat": 28,
-    "email": 28,
-    "rewrite": 28,
-    "translate": 28
+    "app": 552,
+    "chat": 48,
+    "email": 48,
+    "rewrite": 48,
+    "translate": 48
    },
    "by_lang": {
-    "en": 326,
-    "hi-en": 326
+    "en": 372,
+    "hi-en": 372
    }
   },
   "cal": {
-   "items": 84,
-   "fingerprint": "32e6f99df67dbe354fd081d8e622cf1db81aa2bbfc0e9f98d30ee362c6f3e093",
+   "items": 100,
+   "fingerprint": "cb3351bc63fce289152814d8e9a21b5b36ed123198469de91a39c117d73e38c6",
    "by_label": {
     "app": 68,
-    "chat": 4,
-    "email": 4,
-    "rewrite": 4,
-    "translate": 4
+    "chat": 8,
+    "email": 8,
+    "rewrite": 8,
+    "translate": 8
    },
    "by_lang": {
-    "en": 42,
-    "hi-en": 42
+    "en": 50,
+    "hi-en": 50
    }
   },
   "val": {
-   "items": 124,
-   "fingerprint": "8372d38a227a8d5c89b7416f483cbd85a4b54aab2a2a7d9249722a047883f5ac",
+   "items": 128,
+   "fingerprint": "32b4f53d8a500aae9125dfdab7a326891862fa8844ce77f922cc2ffb39261f02",
    "by_label": {
-    "app": 92,
+    "app": 96,
     "chat": 8,
     "email": 8,
     "rewrite": 8,
     "translate": 8
    },
    "by_lang": {
-    "en": 62,
-    "hi-en": 62
+    "en": 64,
+    "hi-en": 64
    }
   },
   "test": {
-   "items": 204,
-   "fingerprint": "aba6fe645a8119a001621e7d8a08007d8a1ac69a20ea1f4198f20d76ddc198b7",
+   "items": 240,
+   "fingerprint": "5365f63b1636eae401b0e257e0e1978247e140353d621005bdd06820f938b06b",
    "by_label": {
-    "app": 172,
-    "chat": 8,
-    "email": 8,
-    "rewrite": 8,
-    "translate": 8
+    "app": 176,
+    "chat": 16,
+    "email": 16,
+    "rewrite": 16,
+    "translate": 16
    },
    "by_lang": {
-    "en": 102,
-    "hi-en": 102
+    "en": 120,
+    "hi-en": 120
    }
   }
  }

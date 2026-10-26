@@ -65,6 +65,16 @@ def classes_for(dataset, splits):
     return sorted({r["label"] for r in splits["train"]})
 
 
+def per_class(y, pred, classes) -> dict:
+    """{class: n, precision, recall}; a class never predicted has precision 0."""
+    out = {}
+    for k, c in enumerate(classes):
+        tp, fp, fn = int(((pred == k) & (y == k)).sum()), int(((pred == k) & (y != k)).sum()), int(((pred != k) & (y == k)).sum())
+        out[c] = {"n": int((y == k).sum()), "precision": tp / (tp + fp) if tp + fp else 0.0,
+                  "recall": tp / (tp + fn) if tp + fn else 0.0}
+    return out
+
+
 def _scores(p, y, classes):
     pred, conf = p.argmax(axis=1), p.max(axis=1)
     gold = [classes[i] for i in y]
@@ -108,6 +118,8 @@ def run(dataset, encoder_name, c_grid=C_GRID):
         for lang in ("en", "hi-en"):
             m = np.array([r["lang"] == lang for r in val_rows])
             out[f"val_calibrated_{lang}"] = _scores(p[m], y_val[m], classes)
+    if dataset == "kinds_v0":
+        out["val_per_class"] = per_class(y_val, z_val.argmax(axis=1), classes)
     if dataset == "intents_v0":
         compound = x["val"][val_other]
         out["val_compound"] = {"n": len(val_other),

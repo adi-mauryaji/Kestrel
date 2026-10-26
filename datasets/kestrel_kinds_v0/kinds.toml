@@ -381,3 +381,247 @@ kind = "app"
 note = "chitchat about Kestrel"
 en = ["can you write emails?", "do you know hindi?"]
 hi-en = ["kya tum email likh sakte ho?", "tumhe hindi aati hai?"]
+
+# ================================================================ second draft (2026-10-26, ADR-038): more family types
+# ---------------------------------------------------------------- chat
+[[family]]
+id = "chat-13"
+kind = "chat"
+domain = "advice"
+en = ["how do i stop procrastinating?", "any tips to stop putting things off"]
+hi-en = ["kaam taalna kaise band karun?", "cheezein baad pe daalne ki aadat kaise chhodun"]
+
+[[family]]
+id = "chat-14"
+kind = "chat"
+domain = "advice"
+en = ["how should i prepare for a job interview?", "what questions should i practise before an interview"]
+hi-en = ["job interview ki taiyari kaise karun?", "interview se pehle kaun se sawaal practice karun"]
+
+[[family]]
+id = "chat-15"
+kind = "chat"
+domain = "advice"
+en = ["i get nervous before presentations, any advice?", "how do i speak confidently in front of a class"]
+hi-en = ["presentation se pehle nervous ho jata hoon, koi advice?", "class ke saamne confidently kaise bolun"]
+
+[[family]]
+id = "chat-16"
+kind = "chat"
+domain = "ideas"
+en = ["give me gift ideas for my dad under 2000 rupees", "what can i gift my mom on her birthday"]
+hi-en = ["papa ke liye 2000 ke andar gift ideas do", "mummy ke birthday pe kya gift dun"]
+
+[[family]]
+id = "chat-17"
+kind = "chat"
+domain = "creative"
+en = ["write a funny limerick about my cat", "write a short rhyming wish for my brother's wedding"]
+hi-en = ["meri billi pe ek funny shayari likho", "bhai ki shaadi ke liye ek chhoti si tukbandi likh do"]
+
+[[family]]
+id = "chat-18"
+kind = "chat"
+domain = "decide"
+en = ["which is better for a beginner, guitar or keyboard?", "should i take the bus or learn to drive"]
+hi-en = ["beginner ke liye guitar better hai ya keyboard?", "bus se jaun ya driving seekh lun"]
+
+[[family]]
+id = "chat-19"
+kind = "chat"
+domain = "concepts"
+en = ["what's the difference between ram and storage?", "how does a credit score work"]
+hi-en = ["ram aur storage mein kya fark hai?", "credit score kaise kaam karta hai"]
+
+[[family]]
+id = "chat-20"
+kind = "chat"
+domain = "ideas"
+en = ["plan a two day itinerary for goa", "what should i see in jaipur in one day"]
+hi-en = ["goa ki do din ki trip ka plan bana do", "jaipur mein ek din mein kya kya dekhun"]
+
+# ---------------------------------------------------------------- email
+[[family]]
+id = "email-13"
+kind = "email"
+note = "a reminder written to others is a draft; a reminder for the user is a task (app-02)"
+en = ["write a gentle reminder email to the team about timesheets", "draft a reminder mail asking everyone to submit their reports"]
+hi-en = ["team ko timesheet bharne ka reminder mail likh do", "sabko report submit karne ka yaad dilane wala mail draft karo"]
+
+[[family]]
+id = "email-14"
+kind = "email"
+en = ["write an email asking hr for my salary slip", "draft a mail requesting my experience letter"]
+hi-en = ["hr se salary slip maangne ka mail likho", "experience letter ke liye request mail draft kar do"]
+
+[[family]]
+id = "email-15"
+kind = "email"
+en = ["write a congratulations message to my colleague on her promotion", "draft a note congratulating the team on the launch"]
+hi-en = ["colleague ko promotion ki badhai ka message likh do", "launch ke liye team ko congratulate karne ka note likho"]
+
+[[family]]
+id = "email-16"
+kind = "email"
+en = ["write a short condolence message for my friend", "draft a message of sympathy to my neighbour"]
+hi-en = ["dost ke liye ek chhota condolence message likho", "padosi ko dukh jatane ka message likh do"]
+
+[[family]]
+id = "email-17"
+kind = "email"
+en = ["draft an email to schedule a meeting with the vendor next week", "write to the client proposing a call on tuesday"]
+hi-en = ["vendor ke saath agle hafte meeting fix karne ka mail draft karo", "client ko tuesday ko call ka proposal mail likho"]
+
+[[family]]
+id = "email-18"
+kind = "email"
+en = ["write an out of office reply for next week", "draft an auto reply saying i'm on leave till monday"]
+hi-en = ["agle hafte ke liye out of office reply likh do", "monday tak chutti pe hoon, iska auto reply bana do"]
+
+[[family]]
+id = "email-19"
+kind = "email"
+en = ["write an email to the airline asking for a refund", "draft a complaint to the courier company about a lost parcel"]
+hi-en = ["airline ko refund maangne ka email likho", "courier company ko parcel kho jaane ki complaint mail likh do"]
+
+[[family]]
+id = "email-20"
+kind = "email"
+note = "a reply to a given message is a draft, not a rewrite of it"
+en = ["reply to this email politely: can you send the slides by today?", "write a reply to this: are you free for lunch tomorrow?"]
+hi-en = ["is mail ka polite reply likh do: can you send the slides by today?", "iska jawab likho: are you free for lunch tomorrow?"]
+
+# ---------------------------------------------------------------- rewrite
+[[family]]
+id = "rewrite-13"
+kind = "rewrite"
+note = "a summary of text given in the request; a summary of the user's notes is app (app-07, app-15)"
+en = ["summarize this paragraph: the meeting covered the budget, two new hires and the office move", "give me the gist of this: the store will close early on friday and reopen on monday with new stock"]
+hi-en = ["is paragraph ka summary do: meeting mein budget, do nayi hiring aur office shift pe baat hui", "iska saar batao: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi"]
+
+[[family]]
+id = "rewrite-14"
+kind = "rewrite"
+en = ["add more detail to this: the event was a success", "elaborate on this: we fixed the login bug"]
+hi-en = ["isme thoda aur detail daal do: event successful raha", "ise elaborate karo: humne login bug fix kar diya"]
+
+[[family]]
+id = "rewrite-15"
+kind = "rewrite"
+en = ["make this sound more confident: i think maybe i could lead the project", "rewrite this assertively: sorry to bother, could you possibly review it"]
+hi-en = ["isko confident tone mein likho: i think maybe i could lead the project", "ise thoda strong tareeke se likho: sorry to bother, could you possibly review it"]
+
+[[family]]
+id = "rewrite-16"
+kind = "rewrite"
+en = ["make this easier for kids to read: photosynthesis converts light energy into chemical energy", "simplify this for a ten year old: the economy grew by three percent"]
+hi-en = ["bacchon ke liye aasaan bana do: photosynthesis converts light energy into chemical energy", "das saal ke bacche ke liye simple kar do: the economy grew by three percent"]
+
+[[family]]
+id = "rewrite-17"
+kind = "rewrite"
+en = ["turn these notes into full sentences: meeting 5pm, bring laptop, discuss budget", "write this out properly: milk eggs bread, pick up at 6"]
+hi-en = ["in points ko poore sentences mein likho: meeting 5pm, laptop lana, budget discuss karna", "ise theek se likh do: doodh ande bread, 6 baje lena"]
+
+[[family]]
+id = "rewrite-18"
+kind = "rewrite"
+en = ["give this a title: our team won the hackathon after two days of coding", "suggest a subject line for this mail: the office will be closed on friday"]
+hi-en = ["iska ek title bana do: hamari team ne do din coding karke hackathon jeeta", "is mail ki subject line bata do: office friday ko band rahega"]
+
+[[family]]
+id = "rewrite-19"
+kind = "rewrite"
+en = ["tighten this up: i just wanted to just say that i really really liked it", "remove the repetition in this: the plan is a good plan and a good idea"]
+hi-en = ["isko crisp bana do: i just wanted to just say that i really really liked it", "isme se repeat wale shabd hata do: the plan is a good plan and a good idea"]
+
+[[family]]
+id = "rewrite-20"
+kind = "rewrite"
+en = ["rewrite this in past tense: i go to the gym and eat healthy", "change this to third person: i am a hardworking student"]
+hi-en = ["ise past tense mein likho: i go to the gym and eat healthy", "isko third person mein badlo: i am a hardworking student"]
+
+# ---------------------------------------------------------------- translate
+[[family]]
+id = "translate-13"
+kind = "translate"
+en = ["convert this to hinglish: please submit the form before friday", "put this in hinglish: the shop is closed today"]
+hi-en = ["ise hinglish mein convert karo: please submit the form before friday", "hinglish mein likh do: the shop is closed today"]
+
+[[family]]
+id = "translate-14"
+kind = "translate"
+en = ["write this in roman hindi: i miss you a lot", "type this in hindi using english letters: what are you doing"]
+hi-en = ["roman hindi mein likho: i miss you a lot", "english letters mein hindi likho: what are you doing"]
+
+[[family]]
+id = "translate-15"
+kind = "translate"
+en = ["what does jaldi karo mean in english", "what's the meaning of chalta hai in english"]
+hi-en = ["jaldi karo ka english mein matlab kya hai", "chalta hai ko english mein kaise samjhayein"]
+
+[[family]]
+id = "translate-16"
+kind = "translate"
+en = ["translate this message from my landlord into english: kal se paani do ghante band rahega", "translate my maid's message: kal chhutti chahiye"]
+hi-en = ["landlord ka ye message english mein translate karo: kal se paani do ghante band rahega", "kaamwali ka message english mein badlo: kal chhutti chahiye"]
+
+[[family]]
+id = "translate-17"
+kind = "translate"
+en = ["translate good luck into urdu", "how do you say welcome in kannada"]
+hi-en = ["good luck ko urdu mein kya kehte hain", "welcome ko kannada mein kaise bolte hain"]
+
+[[family]]
+id = "translate-18"
+kind = "translate"
+en = ["translate this paragraph to hindi: the library will remain closed on sunday for maintenance", "put this notice into hindi: the lift is under repair until thursday"]
+hi-en = ["is paragraph ko hindi mein translate karo: the library will remain closed on sunday for maintenance", "ye notice hindi mein karo: the lift is under repair until thursday"]
+
+[[family]]
+id = "translate-19"
+kind = "translate"
+en = ["what does let it be mean in hindi", "translate this song line into hindi: here comes the sun"]
+hi-en = ["let it be ka hindi mein matlab kya hai", "is gaane ki line ko hindi mein translate karo: here comes the sun"]
+
+[[family]]
+id = "translate-20"
+kind = "translate"
+en = ["give me welcome in hindi and marathi", "how do i say thank you in both tamil and telugu"]
+hi-en = ["welcome ko hindi aur marathi dono mein batao", "thank you tamil aur telugu dono mein kaise bolte hain"]
+
+# ---------------------------------------------------------------- app boundary
+[[family]]
+id = "app-11"
+kind = "app"
+note = "a task about an email is create_task"
+en = ["create a task to reply to the client email", "add a to-do to send the invoice mail on friday"]
+hi-en = ["client ke email ka reply karne ka task bana do", "friday ko invoice mail bhejne ka to-do add karo"]
+
+[[family]]
+id = "app-12"
+kind = "app"
+note = "delete_task"
+en = ["delete the task about the cover letter", "remove the reminder to translate the brochure"]
+hi-en = ["cover letter wala task delete karo", "brochure translate karne wala reminder hata do"]
+
+[[family]]
+id = "app-13"
+kind = "app"
+note = "search_notes"
+en = ["search my notes for the hindi translation of the poem", "find the note where i wrote the leave email"]
+hi-en = ["mere notes mein poem ka hindi translation dhoondo", "wo note dhoondo jismein maine leave email likha tha"]
+
+[[family]]
+id = "app-14"
+kind = "app"
+note = "live data stays unsupported"
+en = ["what's the time in london right now?", "is the metro running late today"]
+hi-en = ["london mein abhi kitne baje hain?", "aaj metro late chal rahi hai kya"]
+
+[[family]]
+id = "app-15"
+kind = "app"
+note = "summarize_notes: the user's notes, not given text"
+en = ["summarize all my notes from this week", "recap my notes on the client calls"]
+hi-en = ["is hafte ke saare notes ka summary do", "client calls wale notes ka recap do"]
