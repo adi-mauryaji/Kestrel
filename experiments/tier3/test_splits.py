@@ -16,6 +16,13 @@ def test_intents_v0_splits_have_the_frozen_sizes_and_fields():
     assert {"text", "label", "lang"} <= set(row)
 
 
+def test_kinds_v0_dev_splits_load_with_the_contract_classes():
+    s = load_splits("kinds_v0")
+    assert set(s) == set(DEV_SPLITS)
+    assert {r["label"] for r in s["train"]} == {"app", "chat", "email", "rewrite", "translate"}
+    assert all({"text", "label", "lang"} <= set(r) for r in s["val"])
+
+
 @pytest.mark.skipif(not CLINC_RAW.exists(), reason="needs datasets/raw (scripts/fetch_datasets.py)")
 def test_clinc150_splits_match_the_manifest_sizes():
     s = load_splits("clinc150")

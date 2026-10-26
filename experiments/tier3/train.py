@@ -103,16 +103,17 @@ def run(dataset, encoder_name, c_grid=C_GRID):
            "val_calibrated": _scores(softmax(z_val, t), y_val, classes) | {"nll": nll(z_val, y_val, t)}}
 
     val_rows = [splits["val"][i] for i in val_keep]
-    if dataset == "intents_v0":
+    if dataset in ("intents_v0", "kinds_v0"):
         p = softmax(z_val, t)
         for lang in ("en", "hi-en"):
             m = np.array([r["lang"] == lang for r in val_rows])
             out[f"val_calibrated_{lang}"] = _scores(p[m], y_val[m], classes)
+    if dataset == "intents_v0":
         compound = x["val"][val_other]
         out["val_compound"] = {"n": len(val_other),
                                "mean_top_prob": float(softmax(logits(compound, w, b), t).max(axis=1).mean()),
                                "mean_top_prob_single": float(p.max(axis=1).mean())}
-    else:
+    elif dataset == "clinc150":
         oos = x["val"][val_other]
         top_in = softmax(z_val, t).max(axis=1)
         top_oos = softmax(logits(oos, w, b), t).max(axis=1)

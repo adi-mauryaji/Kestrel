@@ -1,0 +1,82 @@
+{
+ "dataset": "kestrel-kinds-v0",
+ "status": "draft",
+ "seed": 0,
+ "labels": [
+  "app",
+  "chat",
+  "email",
+  "rewrite",
+  "translate"
+ ],
+ "sources": {
+  "kinds.toml": "bbb5694090980ba2d256c594624e2d4c93f18e037332b332cdbdfb9f1db855ae",
+  "contracts/kinds.txt": "62834c95d7b9843b070c2e26b4fdfbf27448288cd24aea46773dabeb3ee9e0f1",
+  "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
+  "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",
+  "kestrel_intents_v0/splits/val.jsonl": "9672f4cc5b3dc7397739fa2004a960b33411974f1ec63859daf41f9c237ed4bc"
+ },
+ "conflicts_dropped": [],
+ "splits": {
+  "train": {
+   "items": 652,
+   "fingerprint": "333c1b35a9b752e21827de91d377e1ffbf2219218b28f5485da4f5725edece37",
+   "by_label": {
+    "app": 540,
+    "chat": 28,
+    "email": 28,
+    "rewrite": 28,
+    "translate": 28
+   },
+   "by_lang": {
+    "en": 326,
+    "hi-en": 326
+   }
+  },
+  "cal": {
+   "items": 84,
+   "fingerprint": "32e6f99df67dbe354fd081d8e622cf1db81aa2bbfc0e9f98d30ee362c6f3e093",
+   "by_label": {
+    "app": 68,
+    "chat": 4,
+    "email": 4,
+    "rewrite": 4,
+    "translate": 4
+   },
+   "by_lang": {
+    "en": 42,
+    "hi-en": 42
+   }
+  },
+  "val": {
+   "items": 124,
+   "fingerprint": "8372d38a227a8d5c89b7416f483cbd85a4b54aab2a2a7d9249722a047883f5ac",
+   "by_label": {
+    "app": 92,
+    "chat": 8,
+    "email": 8,
+    "rewrite": 8,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 62,
+    "hi-en": 62
+   }
+  },
+  "test": {
+   "items": 204,
+   "fingerprint": "aba6fe645a8119a001621e7d8a08007d8a1ac69a20ea1f4198f20d76ddc198b7",
+   "by_label": {
+    "app": 172,
+    "chat": 8,
+    "email": 8,
+    "rewrite": 8,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 102,
+    "hi-en": 102
+   }
+  }
+ }
+}

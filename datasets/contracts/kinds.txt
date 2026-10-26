@@ -1,0 +1,6 @@
+# Kestrel-Kinds-v0 labels (ADR-037), in the head's class order. app = the existing Stage 2 path.
+app
+chat
+email
+rewrite
+translate
