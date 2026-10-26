@@ -1,0 +1,350 @@
+{
+ "tag": "prompts-a-note",
+ "commit": "4ee1420",
+ "prompts_changed_since_commit": true,
+ "binary_mtime": "2026-10-26 23:16",
+ "n": 23,
+ "pass": 19,
+ "groups": {
+  "rewrite-hinglish": {
+   "n": 6,
+   "pass": 5
+  },
+  "rewrite-english": {
+   "n": 5,
+   "pass": 5
+  },
+  "translate-hindi": {
+   "n": 4,
+   "pass": 4
+  },
+  "translate-hinglish": {
+   "n": 4,
+   "pass": 1
+  },
+  "translate-english": {
+   "n": 4,
+   "pass": 4
+  }
+ },
+ "items": [
+  {
+   "id": "wl-01",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "isko polite bana do: abhi file bhejo",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Please send the file now.",
+   "error": null,
+   "s": 1.97,
+   "pass": false
+  },
+  {
+   "id": "wl-02",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "ise chhota kar do: maine socha aapko bata doon ki kal ki meeting cancel ho gayi hai aur nayi date baad mein batayenge",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Kal ki meeting cancel ho gayi hai, nayi date baad mein batayenge.",
+   "error": null,
+   "s": 3.12,
+   "pass": true
+  },
+  {
+   "id": "wl-03",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "grammar theek karo: main kal office nahi aaya kyunki meri tabiyat kharab tha",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Main kal office nahi aaya kyunki meri tabiyat kharab thi.",
+   "error": null,
+   "s": 3.2,
+   "pass": true
+  },
+  {
+   "id": "wl-04",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "isko formal bana do: bhai kal nahi aa paunga, kaam hai",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Bhai, main kal nahi aa paunga, mere paas kaam hai.",
+   "error": null,
+   "s": 3.29,
+   "pass": true
+  },
+  {
+   "id": "wl-05",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "isko thoda friendly bana do: aapka order cancel ho gaya hai",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Aapka order cancel ho gaya hai, sorry!",
+   "error": null,
+   "s": 2.9,
+   "pass": true
+  },
+  {
+   "id": "wl-06",
+   "group": "rewrite-hinglish",
+   "kind": "rewrite",
+   "text": "isko professional bana do: boss maine report bhej di hai, dekh lena",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Boss, maine report bhej di hai, please check kar lena.",
+   "error": null,
+   "s": 3.08,
+   "pass": true
+  },
+  {
+   "id": "wl-07",
+   "group": "rewrite-english",
+   "kind": "rewrite",
+   "text": "isko polite bana do: send me the report today",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "Could you please send me the report today?",
+   "error": null,
+   "s": 2.15,
+   "pass": true
+  },
+  {
+   "id": "wl-08",
+   "group": "rewrite-english",
+   "kind": "rewrite",
+   "text": "ise chhota kar do: i wanted to let you know that the meeting has been moved to next week because the client is travelling",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "Meeting next week, client is travelling.",
+   "error": null,
+   "s": 2.27,
+   "pass": true
+  },
+  {
+   "id": "wl-09",
+   "group": "rewrite-english",
+   "kind": "rewrite",
+   "text": "grammar theek karo: he don't know what to do with the money",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "He doesn't know what to do with the money.",
+   "error": null,
+   "s": 2.94,
+   "pass": true
+  },
+  {
+   "id": "wl-10",
+   "group": "rewrite-english",
+   "kind": "rewrite",
+   "text": "make this more formal: hey, can't come tomorrow, something came up",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "I am unable to attend tomorrow; an unforeseen circumstance has arisen.",
+   "error": null,
+   "s": 3.55,
+   "pass": true
+  },
+  {
+   "id": "wl-11",
+   "group": "rewrite-english",
+   "kind": "rewrite",
+   "text": "make it friendlier: your request has been denied",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "Sorry, we couldn't fulfill your request.",
+   "error": null,
+   "s": 2.56,
+   "pass": true
+  },
+  {
+   "id": "wl-12",
+   "group": "translate-hindi",
+   "kind": "translate",
+   "text": "translate this to hindi: the train will be late by one hour",
+   "want": {
+    "script": "devanagari"
+   },
+   "answer": "ट्रेन एक घंटे लेट होगी",
+   "error": null,
+   "s": 2.0,
+   "pass": true
+  },
+  {
+   "id": "wl-13",
+   "group": "translate-hindi",
+   "kind": "translate",
+   "text": "isko hindi mein translate karo: please call me after the meeting",
+   "want": {
+    "script": "devanagari"
+   },
+   "answer": "कृपया मीटिंग के बाद मुझे कॉल करें",
+   "error": null,
+   "s": 2.02,
+   "pass": true
+  },
+  {
+   "id": "wl-14",
+   "group": "translate-hindi",
+   "kind": "translate",
+   "text": "hindi mein likho: thank you for your help yesterday",
+   "want": {
+    "script": "devanagari"
+   },
+   "answer": "कल आपकी मदद के लिए धन्यवाद",
+   "error": null,
+   "s": 1.83,
+   "pass": true
+  },
+  {
+   "id": "wl-15",
+   "group": "translate-hindi",
+   "kind": "translate",
+   "text": "ye hindi mein bata do: where is the nearest hospital",
+   "want": {
+    "script": "devanagari"
+   },
+   "answer": "नजदीकी अस्पताल कहाँ है",
+   "error": null,
+   "s": 1.78,
+   "pass": true
+  },
+  {
+   "id": "wl-16",
+   "group": "translate-hinglish",
+   "kind": "translate",
+   "text": "ise hinglish mein likho: the meeting has been moved to monday",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "the meeting has been moved to monday",
+   "error": null,
+   "s": 1.79,
+   "pass": false
+  },
+  {
+   "id": "wl-17",
+   "group": "translate-hinglish",
+   "kind": "translate",
+   "text": "roman hindi mein likho: i am stuck in traffic, will reach in twenty minutes",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Main traffic mein phans gaya hoon, bees minute mein pahunch jaunga.",
+   "error": null,
+   "s": 2.65,
+   "pass": true
+  },
+  {
+   "id": "wl-18",
+   "group": "translate-hinglish",
+   "kind": "translate",
+   "text": "convert this to hinglish: please send the bill by friday",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Please send the bill by Friday",
+   "error": null,
+   "s": 2.54,
+   "pass": false
+  },
+  {
+   "id": "wl-19",
+   "group": "translate-hinglish",
+   "kind": "translate",
+   "text": "translate into hinglish: don't forget to bring your id card",
+   "want": {
+    "script": "latin",
+    "lang": "hinglish"
+   },
+   "answer": "Don't forget to bring your id card",
+   "error": null,
+   "s": 2.69,
+   "pass": false
+  },
+  {
+   "id": "wl-20",
+   "group": "translate-english",
+   "kind": "translate",
+   "text": "translate to english: mujhe kal der ho jayegi kyunki gaadi kharab hai",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "I will be late tomorrow because the car is broken.",
+   "error": null,
+   "s": 2.24,
+   "pass": true
+  },
+  {
+   "id": "wl-21",
+   "group": "translate-english",
+   "kind": "translate",
+   "text": "english mein translate karo: aaj dopahar mein bahut garmi thi",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "It was very hot this afternoon.",
+   "error": null,
+   "s": 1.96,
+   "pass": true
+  },
+  {
+   "id": "wl-22",
+   "group": "translate-english",
+   "kind": "translate",
+   "text": "is line ka english translation do: main ghar pahunch gaya hoon",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "I have reached home.",
+   "error": null,
+   "s": 1.79,
+   "pass": true
+  },
+  {
+   "id": "wl-23",
+   "group": "translate-english",
+   "kind": "translate",
+   "text": "isko english mein likho: kripya darwaza band kar dijiye",
+   "want": {
+    "script": "latin",
+    "lang": "english"
+   },
+   "answer": "Please close the door.",
+   "error": null,
+   "s": 1.73,
+   "pass": true
+  }
+ ]
+}

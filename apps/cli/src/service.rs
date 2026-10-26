@@ -334,7 +334,12 @@ fn write_skill<'m>(
         ));
     }
     let prompt = kestrel_inference::prompt::ChatPrompt::new(format, kind.system());
-    answer(slm, writer, &prompt, request, kind.max_tokens(), on_part)
+    // The answer's language once more, right after the request (src/kinds.rs).
+    let user = match crate::kinds::language_note(kind, request) {
+        Some(note) => format!("{request}\n\n{note}"),
+        None => request.to_string(),
+    };
+    answer(slm, writer, &prompt, &user, kind.max_tokens(), on_part)
 }
 
 /// Gemma's greedy answer (at most `max_tokens`) to `user` under `prompt`, in `writer`'s context

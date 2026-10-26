@@ -85,12 +85,16 @@ impl Kind {
             Kind::Rewrite => {
                 "You rewrite the text given in the request, the way the request asks (tone, \
                  length, grammar, form). Answer with the rewritten text only, no explanation. Keep \
-                 its meaning and its language."
+                 its meaning and the language of the text itself, whatever language the \
+                 instruction is in: Hinglish text (Hindi in Latin letters, like \"kal milte \
+                 hain\") stays Hinglish in Latin letters, and English text stays English. Do not \
+                 switch to English or to Devanagari."
             }
             Kind::Translate => {
                 "You translate the text given in the request into the language it asks for. \
-                 Answer with the translation only. Hinglish and Roman Hindi mean Hindi written in \
-                 Latin letters; Hindi and other Indian languages otherwise use their own script."
+                 Answer with the translation only. Hindi means Devanagari script (like \"कल \
+                 मिलते हैं\"). Hinglish or Roman Hindi means Hindi words in Latin letters (like \
+                 \"kal milte hain\"). Other Indian languages use their own script."
             }
         }
     }
@@ -102,6 +106,99 @@ impl Kind {
             Kind::Translate => 192,
             _ => 256,
         }
+    }
+}
+
+/// Common Hindi words in Latin letters; experiments/v3/writer_lang.py's check reads the same list.
+const HINGLISH_WORDS: &str = include_str!("../../../datasets/contracts/hinglish_words.txt");
+
+/// Latin text with enough common Hindi words (at least 2, and 15% of its words) is Hinglish.
+pub fn is_hinglish(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    let words: Vec<&str> = lower
+        .split(|c: char| !c.is_ascii_lowercase())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let hindi = |w: &str| {
+        HINGLISH_WORDS
+            .lines()
+            .any(|l| !l.starts_with('#') && l.trim() == w)
+    };
+    let hits = words.iter().filter(|w| hindi(w)).count();
+    hits >= 2 && hits * 100 >= 15 * words.len().max(1)
+}
+
+fn devanagari(text: &str) -> bool {
+    let hindi = text
+        .chars()
+        .filter(|c| ('\u{0900}'..='\u{097F}').contains(c))
+        .count();
+    hindi > text.chars().filter(char::is_ascii_alphabetic).count()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Lang {
+    Hindi,
+    Hinglish,
+    English,
+}
+
+/// The language a translation is asked into, from the instruction: the one after "to" / "into" /
+/// "in" or before "mein" / "me", else the only one named; "roman hindi" is Hinglish.
+fn target(instruction: &str) -> Option<Lang> {
+    let lower = instruction
+        .to_lowercase()
+        .replace("roman hindi", "hinglish");
+    let words: Vec<&str> = lower
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .collect();
+    let named: Vec<(usize, Lang)> = (words.iter().enumerate())
+        .filter_map(|(i, w)| match *w {
+            "hindi" => Some((i, Lang::Hindi)),
+            "hinglish" => Some((i, Lang::Hinglish)),
+            "english" => Some((i, Lang::English)),
+            _ => None,
+        })
+        .collect();
+    let marked: Vec<Lang> = (named.iter())
+        .filter(|&&(i, _)| {
+            (i > 0 && matches!(words[i - 1], "to" | "into" | "in"))
+                || matches!(words.get(i + 1), Some(&("mein" | "me")))
+        })
+        .map(|&(_, l)| l)
+        .collect();
+    match (marked.as_slice(), named.as_slice()) {
+        ([l], _) | ([], [(_, l)]) => Some(*l),
+        _ => None,
+    }
+}
+
+/// The language the answer must be in, said once more after the request (Gemma follows that
+/// better than the system prompt alone; experiments/v3/writer_lang.py): a translation's target
+/// from its instruction (before ":"), a rewrite's from the text after ":". None when unknown.
+pub fn language_note(kind: Kind, request: &str) -> Option<&'static str> {
+    let (instruction, text) = match request.split_once(':') {
+        Some((i, t)) => (i, Some(t)),
+        None => (request, None),
+    };
+    match kind {
+        Kind::Translate => Some(match target(instruction)? {
+            Lang::Hindi => "Write the translation in Hindi, in Devanagari script.",
+            Lang::Hinglish => "Write the translation in Hinglish: Hindi words in Latin letters.",
+            Lang::English => "Write the translation in English.",
+        }),
+        Kind::Rewrite => {
+            let text = text?;
+            Some(if devanagari(text) {
+                "The text is Hindi: write the result in Hindi, in Devanagari script."
+            } else if is_hinglish(text) {
+                "The text is Hinglish: write the result in Hinglish, in Latin letters."
+            } else {
+                "The text is English: write the result in English."
+            })
+        }
+        _ => None,
     }
 }
 
@@ -643,5 +740,80 @@ mod tests {
         assert!(cfg.tau_g > 0.0 && cfg.tau_g <= 1.0 && cfg.temperature > 0.0);
         assert!(cfg.shots.len() >= 10 && cfg.system.contains("\napp: "));
         assert!(FallbackConfig::load(std::path::Path::new("no/such.json")).is_err());
+    }
+
+    #[test]
+    fn hinglish_is_told_by_its_hindi_words_as_in_the_python_check() {
+        // experiments/v3/test_writer_lang.py's cases.
+        for (text, want) in [
+            ("Kya aap please abhi file bhej sakte hain?", true),
+            ("Meeting shaam 5 baje hai.", true),
+            ("Apna id card lena mat bhoolna.", true),
+            ("Main traffic mein phans gaya hoon.", true),
+            ("Could you please send the file now?", false),
+            ("The main issue is the date.", false),
+            ("Thank you, see you tomorrow.", false),
+        ] {
+            assert_eq!(is_hinglish(text), want, "{text}");
+        }
+    }
+
+    #[test]
+    fn the_writer_is_told_the_language_once_more() {
+        use Kind::*;
+        let hindi = Some("Write the translation in Hindi, in Devanagari script.");
+        let hinglish = Some("Write the translation in Hinglish: Hindi words in Latin letters.");
+        let english = Some("Write the translation in English.");
+        assert_eq!(
+            language_note(Translate, "translate this to hindi: the train is late"),
+            hindi
+        );
+        assert_eq!(
+            language_note(Translate, "isko hindi mein translate karo: call me"),
+            hindi
+        );
+        assert_eq!(
+            language_note(Translate, "ise hinglish mein likho: see you"),
+            hinglish
+        );
+        assert_eq!(
+            language_note(Translate, "roman hindi mein likho: i am late"),
+            hinglish
+        );
+        assert_eq!(
+            language_note(
+                Translate,
+                "translate this hindi line to english: mujhe der ho jayegi"
+            ),
+            english
+        );
+        assert_eq!(
+            language_note(Translate, "isko english mein likho: kripya ruko"),
+            english
+        );
+        // The text's own words do not choose the language.
+        assert_eq!(
+            language_note(Translate, "translate to english: hindi kaun bolta hai"),
+            english
+        );
+        assert_eq!(language_note(Translate, "what does jaldi karo mean"), None);
+        assert_eq!(
+            language_note(Rewrite, "isko polite bana do: abhi file bhejo"),
+            Some("The text is Hinglish: write the result in Hinglish, in Latin letters.")
+        );
+        assert_eq!(
+            language_note(Rewrite, "isko polite bana do: send me the report today"),
+            Some("The text is English: write the result in English.")
+        );
+        assert_eq!(
+            language_note(Rewrite, "ise formal karo: मैं कल नहीं आऊँगा"),
+            Some("The text is Hindi: write the result in Hindi, in Devanagari script.")
+        );
+        assert_eq!(
+            language_note(Rewrite, "make this shorter"),
+            None,
+            "no text to tell"
+        );
+        assert_eq!(language_note(Chat, "explain recursion: simply"), None);
     }
 }
