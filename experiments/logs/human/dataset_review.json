@@ -1,0 +1,1672 @@
+{
+ "version": 1,
+ "decisions": {
+  "memory:memory:asha-birthday": {
+   "hash": "3a313f9393f29b10",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:22.526Z"
+  },
+  "memory:memory:asha-food": {
+   "hash": "8aa9e048d54bf13c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:26.017Z"
+  },
+  "memory:memory:asha-role": {
+   "hash": "c5fab91a94b6cb19",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:23.939Z"
+  },
+  "memory:memory:college-exam": {
+   "hash": "658317f3e02b7998",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:11.156Z"
+  },
+  "memory:memory:college-library": {
+   "hash": "82ae1239e84ed481",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:15.208Z"
+  },
+  "memory:memory:college-partner": {
+   "hash": "39c15836c05114f6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:12.859Z"
+  },
+  "memory:memory:guess-asha-spicy": {
+   "hash": "03ca6cb368434d91",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:27.840Z"
+  },
+  "memory:memory:guess-meeting-time": {
+   "hash": "34ddc45555b1c74e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:20.612Z"
+  },
+  "memory:memory:guess-work-late": {
+   "hash": "92ad966e3bfd111b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:46.809Z"
+  },
+  "memory:memory:health-dentist": {
+   "hash": "e1391d4925494b92",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:38.668Z"
+  },
+  "memory:memory:health-gym": {
+   "hash": "4f762abb0205b5c9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:36.845Z"
+  },
+  "memory:memory:home-landlord": {
+   "hash": "b3fa86710f13c654",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:43.807Z"
+  },
+  "memory:memory:home-maid": {
+   "hash": "0c22327c96f80b56",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:49.145Z"
+  },
+  "memory:memory:home-milk": {
+   "hash": "7eeb5e87e6913c4e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:46.361Z"
+  },
+  "memory:memory:home-rent": {
+   "hash": "af02a23e93ae4638",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:42.708Z"
+  },
+  "memory:memory:kestrel-deadline": {
+   "hash": "09bda4f3242a4390",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:36.228Z"
+  },
+  "memory:memory:kestrel-laptop": {
+   "hash": "1fd6dc36e4bd6a91",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:39.531Z"
+  },
+  "memory:memory:kestrel-review": {
+   "hash": "8bf36a0983183c57",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:37.399Z"
+  },
+  "memory:memory:money-budget": {
+   "hash": "efbce3e9deb1da79",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:31.682Z"
+  },
+  "memory:memory:money-sip": {
+   "hash": "6f9c0f882fbca672",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:33.578Z"
+  },
+  "memory:memory:money-split": {
+   "hash": "deeee210cf9ec4f3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:35.697Z"
+  },
+  "memory:memory:mummy-call": {
+   "hash": "12b113dec517c6e5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:59.737Z"
+  },
+  "memory:memory:papa-birthday": {
+   "hash": "ed3ac98c4aa4366e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:55.824Z"
+  },
+  "memory:memory:pref-lang": {
+   "hash": "3acc7748a271645b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:19.187Z"
+  },
+  "memory:memory:pref-length": {
+   "hash": "1ce513ae4b38aa4e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:15.714Z"
+  },
+  "memory:memory:pref-style": {
+   "hash": "4d0f2f80e1d7dce4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:16.819Z"
+  },
+  "memory:memory:rao-advisor": {
+   "hash": "5fcea8d1864c03fd",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:30.359Z"
+  },
+  "memory:memory:rao-email": {
+   "hash": "297058f56cfb30db",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:34.422Z"
+  },
+  "memory:memory:rao-hours": {
+   "hash": "ac7c90442b2ce1b5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:33.348Z"
+  },
+  "memory:memory:sister-city": {
+   "hash": "e1a61f15e9a58386",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:02.297Z"
+  },
+  "memory:memory:summary-w41": {
+   "hash": "176bf578b55d3e31",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:29.592Z"
+  },
+  "memory:memory:summary-w42": {
+   "hash": "72eff4eb88ce12ab",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:25.951Z"
+  },
+  "memory:memory:task-asha-call": {
+   "hash": "0a6865ec5fdc6c90",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:23.650Z"
+  },
+  "memory:memory:task-budget": {
+   "hash": "d8b941850a71c0be",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:16.935Z"
+  },
+  "memory:memory:task-demo-room": {
+   "hash": "d434f557184afff3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:19.327Z"
+  },
+  "memory:memory:travel-flight": {
+   "hash": "e64dc768fbccb9f0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:04.700Z"
+  },
+  "memory:memory:travel-hotel": {
+   "hash": "d7dfdebc07c70961",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:08.861Z"
+  },
+  "memory:memory:travel-seat": {
+   "hash": "ae02240218489af4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:06.856Z"
+  },
+  "memory:memory:work-it": {
+   "hash": "108d78e3d5edc478",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:43.826Z"
+  },
+  "memory:memory:work-standup": {
+   "hash": "fa7fe5fc6fd6d687",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:41.314Z"
+  },
+  "memory:query:q-asha-01": {
+   "hash": "05a778b6b878b0fc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:48.995Z"
+  },
+  "memory:query:q-asha-02": {
+   "hash": "562d57170a8d71fa",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:50.728Z"
+  },
+  "memory:query:q-asha-03": {
+   "hash": "e88b0c0179c6228b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:53.875Z"
+  },
+  "memory:query:q-asha-04": {
+   "hash": "f5407aaa23252a4a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:37:56.302Z"
+  },
+  "memory:query:q-asha-05": {
+   "hash": "da2304eb7249f38f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:00.964Z"
+  },
+  "memory:query:q-asha-06": {
+   "hash": "26ce180f139ba6c9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:03.355Z"
+  },
+  "memory:query:q-col-01": {
+   "hash": "befe0d12a43f8e02",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:05.911Z"
+  },
+  "memory:query:q-col-02": {
+   "hash": "ed8f1801e6dbb8e1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:07.058Z"
+  },
+  "memory:query:q-col-03": {
+   "hash": "ffd8592a9551edc7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:09.576Z"
+  },
+  "memory:query:q-col-04": {
+   "hash": "b6e5502915566fc9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:11.908Z"
+  },
+  "memory:query:q-fam-01": {
+   "hash": "0c5d0ad0bee4a929",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:13.091Z"
+  },
+  "memory:query:q-fam-02": {
+   "hash": "3e274bbe2f0fef5c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:15.253Z"
+  },
+  "memory:query:q-fam-03": {
+   "hash": "33209db7335e0aeb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:17.712Z"
+  },
+  "memory:query:q-fam-04": {
+   "hash": "bcf26707390c320a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:19.112Z"
+  },
+  "memory:query:q-fam-05": {
+   "hash": "b0ad27dee6e2b01e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:21.051Z"
+  },
+  "memory:query:q-hea-01": {
+   "hash": "50635115ae396bd7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:23.679Z"
+  },
+  "memory:query:q-hea-02": {
+   "hash": "22226c4086de1cad",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:26.728Z"
+  },
+  "memory:query:q-hea-03": {
+   "hash": "96efbc2b59ded569",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:29.922Z"
+  },
+  "memory:query:q-home-01": {
+   "hash": "a61a12b8c573667d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:32.816Z"
+  },
+  "memory:query:q-home-02": {
+   "hash": "1affb046e61335c8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:35.623Z"
+  },
+  "memory:query:q-home-03": {
+   "hash": "5ccb95e9d91de5ef",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:37.682Z"
+  },
+  "memory:query:q-home-04": {
+   "hash": "68a06f6616baedaf",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:39.862Z"
+  },
+  "memory:query:q-home-05": {
+   "hash": "503bf70414a3cefe",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:42.188Z"
+  },
+  "memory:query:q-home-06": {
+   "hash": "1f22f4d19670e942",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:44.923Z"
+  },
+  "memory:query:q-kes-01": {
+   "hash": "afc8fd5d5085aa87",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:46.451Z"
+  },
+  "memory:query:q-kes-02": {
+   "hash": "b8b3ce78f274221e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:48.704Z"
+  },
+  "memory:query:q-kes-03": {
+   "hash": "217df3807323191e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:50.926Z"
+  },
+  "memory:query:q-kes-04": {
+   "hash": "91f99da676efe876",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:54.181Z"
+  },
+  "memory:query:q-kes-05": {
+   "hash": "0454bc45f62dd589",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:56.306Z"
+  },
+  "memory:query:q-mon-01": {
+   "hash": "9a923e3f77469a74",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:38:57.370Z"
+  },
+  "memory:query:q-mon-02": {
+   "hash": "facaa87fa91f18b3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:00.940Z"
+  },
+  "memory:query:q-mon-03": {
+   "hash": "4ed501dd9c3d828a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:05.855Z"
+  },
+  "memory:query:q-mon-04": {
+   "hash": "d5e6d3e2113014e9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:07.902Z"
+  },
+  "memory:query:q-neg-01": {
+   "hash": "5fbb5ff4e1bc4f27",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:09.925Z"
+  },
+  "memory:query:q-neg-02": {
+   "hash": "65b37b2598fbc040",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:12.775Z"
+  },
+  "memory:query:q-neg-03": {
+   "hash": "c2bf2b0dd5d9b1c8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:14.937Z"
+  },
+  "memory:query:q-neg-04": {
+   "hash": "b0badd8143faf211",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:17.317Z"
+  },
+  "memory:query:q-neg-05": {
+   "hash": "45a0cb674c787612",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:25.857Z"
+  },
+  "memory:query:q-neg-06": {
+   "hash": "adff3f293b06a4e1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:27.982Z"
+  },
+  "memory:query:q-pref-01": {
+   "hash": "b6d480ef26a848cb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:30.338Z"
+  },
+  "memory:query:q-pref-02": {
+   "hash": "02da73a32fe60648",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:32.083Z"
+  },
+  "memory:query:q-pref-03": {
+   "hash": "12717c2220eabee3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:34.541Z"
+  },
+  "memory:query:q-pref-04": {
+   "hash": "51622433a2068587",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:36.557Z"
+  },
+  "memory:query:q-pref-05": {
+   "hash": "500672221ed5570a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:38.641Z"
+  },
+  "memory:query:q-pref-06": {
+   "hash": "451e4ee9bc51bf70",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:40.820Z"
+  },
+  "memory:query:q-rao-01": {
+   "hash": "54921e10ace7cb2c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:42.892Z"
+  },
+  "memory:query:q-rao-02": {
+   "hash": "81e9156c4e44e5f5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:46.569Z"
+  },
+  "memory:query:q-rao-03": {
+   "hash": "c4e669510949306d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:44.915Z"
+  },
+  "memory:query:q-rao-04": {
+   "hash": "35af4199df4e56d3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:50.591Z"
+  },
+  "memory:query:q-rao-05": {
+   "hash": "37123c19d787cd48",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:51.702Z"
+  },
+  "memory:query:q-sum-01": {
+   "hash": "9d819df1216173fb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:39:58.580Z"
+  },
+  "memory:query:q-sum-02": {
+   "hash": "6d3d841a695e5274",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:00.699Z"
+  },
+  "memory:query:q-sum-03": {
+   "hash": "0a6cc8574ce59bc1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:02.348Z"
+  },
+  "memory:query:q-sum-04": {
+   "hash": "e1b4602b07072612",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:04.709Z"
+  },
+  "memory:query:q-task-01": {
+   "hash": "b294ce3cf30afac0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:06.986Z"
+  },
+  "memory:query:q-task-02": {
+   "hash": "47bbc3c9c7aa97b5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:09.069Z"
+  },
+  "memory:query:q-task-03": {
+   "hash": "285799ce4351b0f6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:10.863Z"
+  },
+  "memory:query:q-task-04": {
+   "hash": "b231cad5dc2f2c2e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:13.508Z"
+  },
+  "memory:query:q-tr-01": {
+   "hash": "2294c2a2a186e161",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:16.123Z"
+  },
+  "memory:query:q-tr-02": {
+   "hash": "a60c011bd84c8c9c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:18.193Z"
+  },
+  "memory:query:q-tr-03": {
+   "hash": "f990480aaa2d8be3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:19.571Z"
+  },
+  "memory:query:q-tr-04": {
+   "hash": "44a08a54bb6a134d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:22.850Z"
+  },
+  "memory:query:q-wor-01": {
+   "hash": "a2ccc843564bcdf1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:24.015Z"
+  },
+  "memory:query:q-wor-02": {
+   "hash": "5757b93f2f980371",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:25.507Z"
+  },
+  "memory:query:q-wor-03": {
+   "hash": "2eec76a8629bf85b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:27.747Z"
+  },
+  "memory:query:q-wor-04": {
+   "hash": "5470a61fe118d7c2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:40:29.837Z"
+  },
+  "personas:general:en-01": {
+   "hash": "e696e24733930052",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:35.502Z"
+  },
+  "personas:general:en-02": {
+   "hash": "2936c25da7aa9a4c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:37.628Z"
+  },
+  "personas:general:en-03": {
+   "hash": "c1cdcc9ef73a636e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:39.887Z"
+  },
+  "personas:general:en-04": {
+   "hash": "41a27197157e2638",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:43.028Z"
+  },
+  "personas:general:en-05": {
+   "hash": "3a35d811bfc3ddc9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:45.444Z"
+  },
+  "personas:general:en-06": {
+   "hash": "103e5a84f352fd4f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:47.263Z"
+  },
+  "personas:general:en-07": {
+   "hash": "3e1d71c293bdf972",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:50.259Z"
+  },
+  "personas:general:en-08": {
+   "hash": "a2fb19141ae416b7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:51.708Z"
+  },
+  "personas:general:en-09": {
+   "hash": "9c5ced24565d8235",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:57.222Z"
+  },
+  "personas:general:en-10": {
+   "hash": "5dbb2f6361cad08a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:59.149Z"
+  },
+  "personas:general:hi-en-01": {
+   "hash": "358a3c56dbb14b09",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:00.991Z"
+  },
+  "personas:general:hi-en-02": {
+   "hash": "90d50e534e1662b0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:02.247Z"
+  },
+  "personas:general:hi-en-03": {
+   "hash": "d9897bd412b6e293",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:04.192Z"
+  },
+  "personas:general:hi-en-04": {
+   "hash": "99d34eb8be6b1e4e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:10.279Z"
+  },
+  "personas:general:hi-en-05": {
+   "hash": "287bab2b38e00339",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:13.136Z"
+  },
+  "personas:general:hi-en-06": {
+   "hash": "75851b42f34743ff",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:14.356Z"
+  },
+  "personas:general:hi-en-07": {
+   "hash": "a88dd1303ffd3d0b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:16.554Z"
+  },
+  "personas:general:hi-en-08": {
+   "hash": "6f7c691d1a2b77c7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:18.396Z"
+  },
+  "personas:general:hi-en-09": {
+   "hash": "32178af61f95c692",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:20.492Z"
+  },
+  "personas:general:hi-en-10": {
+   "hash": "d8a4fb15709c1701",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:31:26.857Z"
+  },
+  "personas:pattern:cnt-give-en": {
+   "hash": "ffe40d1b40976e80",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:15.241Z"
+  },
+  "personas:pattern:cnt-karo-hi": {
+   "hash": "0534909465654489",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:28.375Z"
+  },
+  "personas:pattern:cnt-sum-en": {
+   "hash": "9bb0bbb7a0cb59f9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:12.728Z"
+  },
+  "personas:pattern:cnt-sum-hi": {
+   "hash": "6422bd833c559a99",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:24.093Z"
+  },
+  "personas:pattern:cnt-the-en": {
+   "hash": "c5842267edcb3beb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:17.825Z"
+  },
+  "personas:pattern:cnt-var-en": {
+   "hash": "02500bbd1beb3451",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:21.358Z"
+  },
+  "personas:pattern:cnt-var-hi": {
+   "hash": "add23d2071a8b026",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:31.122Z"
+  },
+  "personas:pattern:cnt-want-hi": {
+   "hash": "0fb74dc196f3e574",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:26.587Z"
+  },
+  "personas:pattern:day-bank-en": {
+   "hash": "38ae1beef9a4b11d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:18.869Z"
+  },
+  "personas:pattern:day-bank-hi": {
+   "hash": "978a729076479698",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:30.302Z"
+  },
+  "personas:pattern:day-bill-en": {
+   "hash": "b6abd6d2e89c547f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:16.128Z"
+  },
+  "personas:pattern:day-form-en": {
+   "hash": "ead061061c7eb939",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:13.748Z"
+  },
+  "personas:pattern:day-rent-hi": {
+   "hash": "31b99ea4a716ff85",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:24.873Z"
+  },
+  "personas:pattern:day-report-hi": {
+   "hash": "f773a38c585a2119",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:22.940Z"
+  },
+  "personas:pattern:day-var-en": {
+   "hash": "14d07e9c49d6a7d8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:20.886Z"
+  },
+  "personas:pattern:day-var-hi": {
+   "hash": "a79a6d19bb1fdc41",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:32.640Z"
+  },
+  "personas:pattern:doc-open-en": {
+   "hash": "2e6d496d9801baf1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:58.339Z"
+  },
+  "personas:pattern:doc-open-hi": {
+   "hash": "9552b0e6a7d404a6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:08.603Z"
+  },
+  "personas:pattern:doc-read-hi": {
+   "hash": "db8bcf6e2a53cd87",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:13.296Z"
+  },
+  "personas:pattern:doc-show-en": {
+   "hash": "41c53cdda4b494ba",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:01.950Z"
+  },
+  "personas:pattern:doc-show-hi": {
+   "hash": "34d760ce9445d2d3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:10.300Z"
+  },
+  "personas:pattern:doc-sum-en": {
+   "hash": "06b026bbc7687a9b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:04.558Z"
+  },
+  "personas:pattern:doc-var-en": {
+   "hash": "a9d0368e81af2598",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:06.617Z"
+  },
+  "personas:pattern:doc-var-hi": {
+   "hash": "9c3b01745031dd91",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:16.007Z"
+  },
+  "personas:pattern:grp-call-en": {
+   "hash": "b43837850b7013c6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:18.737Z"
+  },
+  "personas:pattern:grp-call-hi": {
+   "hash": "79c941533e702a43",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:29.371Z"
+  },
+  "personas:pattern:grp-dinner-en": {
+   "hash": "361c072b6ec0466d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:21.255Z"
+  },
+  "personas:pattern:grp-meet-hi": {
+   "hash": "db6dba720e01823b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:41.127Z"
+  },
+  "personas:pattern:grp-msg-hi": {
+   "hash": "ecc5a6e642b804b5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:31.786Z"
+  },
+  "personas:pattern:grp-text-en": {
+   "hash": "f278d7f3deb4ecb2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:23.966Z"
+  },
+  "personas:pattern:grp-var-en": {
+   "hash": "0771a9e1c75a3ac6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:27.155Z"
+  },
+  "personas:pattern:grp-var-hi": {
+   "hash": "4e49094e8c1fb3bc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:43.682Z"
+  },
+  "personas:pattern:plc-book-en": {
+   "hash": "de6a8ef04571d611",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:40.742Z"
+  },
+  "personas:pattern:plc-chai-hi": {
+   "hash": "95923cb991c6fc78",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:51.231Z"
+  },
+  "personas:pattern:plc-drop-en": {
+   "hash": "4abc07f3ad69dba6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:45.742Z"
+  },
+  "personas:pattern:plc-meet-en": {
+   "hash": "ffc6d67fd24720d5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:43.375Z"
+  },
+  "personas:pattern:plc-milna-hi": {
+   "hash": "1df5f0e72504b8a1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:53.925Z"
+  },
+  "personas:pattern:plc-samosa-hi": {
+   "hash": "d937320eed3e2874",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:56.763Z"
+  },
+  "personas:pattern:plc-var-en": {
+   "hash": "e4405f8c6de918f5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:48.025Z"
+  },
+  "personas:pattern:plc-var-hi": {
+   "hash": "f5bc02545845e1be",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:30:11.120Z"
+  },
+  "personas:pattern:tag-all-hi": {
+   "hash": "d6f591f97f1bf080",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:03.242Z"
+  },
+  "personas:pattern:tag-last2-en": {
+   "hash": "fec7fa20b53fb305",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:46.098Z"
+  },
+  "personas:pattern:tag-last2-hi": {
+   "hash": "4402b33548dee1a9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:59.896Z"
+  },
+  "personas:pattern:tag-last3-en": {
+   "hash": "c264b94daa5474a5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:55.687Z"
+  },
+  "personas:pattern:tag-last3-hi": {
+   "hash": "bb6ab2e5e05d351a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:06.309Z"
+  },
+  "personas:pattern:tag-latest-en": {
+   "hash": "3a3948f5a5ae7fd0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:50.053Z"
+  },
+  "personas:pattern:tag-var-en": {
+   "hash": "516e4d916be00403",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:28:57.861Z"
+  },
+  "personas:pattern:tag-var-hi": {
+   "hash": "8a569e960a1e1232",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:29:09.123Z"
+  },
+  "personas:persona:p1": {
+   "hash": "55565c41751586b7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:30.138Z"
+  },
+  "personas:persona:p2": {
+   "hash": "7f3e87101757b5e7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:33.036Z"
+  },
+  "personas:persona:p3": {
+   "hash": "7a642a32947a2527",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:35.699Z"
+  },
+  "personas:persona:p4": {
+   "hash": "9e805448a7542d85",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:39.334Z"
+  },
+  "personas:persona:p5": {
+   "hash": "a6c7aaec4533eed8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:42.076Z"
+  },
+  "personas:persona:p6": {
+   "hash": "7fb243c7cb09f97a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:44.384Z"
+  },
+  "personas:persona:p7": {
+   "hash": "9e3710679f73a6eb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:47.247Z"
+  },
+  "personas:persona:p8": {
+   "hash": "535e0e3a02c322dc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:50.930Z"
+  },
+  "personas:teach:en-1": {
+   "hash": "b67eae68ff16c3d2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:49.546Z"
+  },
+  "personas:teach:en-2": {
+   "hash": "1075c74d9b12cec3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:01.949Z"
+  },
+  "personas:teach:en-3": {
+   "hash": "03edf9d3fbf8e141",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:04.455Z"
+  },
+  "personas:teach:hi-en-1": {
+   "hash": "c31fa259fc583dfe",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:05.518Z"
+  },
+  "personas:teach:hi-en-2": {
+   "hash": "8df99f50bb6779c9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:07.765Z"
+  },
+  "personas:teach:hi-en-3": {
+   "hash": "6dd9b0c0d95c8cf6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:27:15.421Z"
+  },
+  "tasks:family:cmp-01": {
+   "hash": "f1bfe33c75eed585",
+   "decision": "ok",
+   "note": "instead \"meri last teen meeting notes summarize karo aur unse task list bana do\" it will be \"meri last teen meeting ke notes ko summarize karo aur unse task list bana do\"",
+   "at": "2026-10-26T14:54:19.121Z"
+  },
+  "tasks:family:cmp-02": {
+   "hash": "25d36bcd800f1de2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:54:56.873Z"
+  },
+  "tasks:family:cmp-03": {
+   "hash": "0bc5eb731179bf8e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:55:35.708Z"
+  },
+  "tasks:family:cmp-04": {
+   "hash": "6bb5675cc5c9a0be",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:57:47.668Z"
+  },
+  "tasks:family:cmp-05": {
+   "hash": "2390518a4e852b46",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:58:01.089Z"
+  },
+  "tasks:family:cmp-06": {
+   "hash": "c3dabde3b353461b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:58:23.044Z"
+  },
+  "tasks:family:cmp-07": {
+   "hash": "8d3e085540816a85",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:58:37.326Z"
+  },
+  "tasks:family:cmp-08": {
+   "hash": "cd226e147f0a11ba",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T14:59:57.691Z"
+  },
+  "tasks:family:cmp-09": {
+   "hash": "3db0fbd4ecc2e06a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:01:09.927Z"
+  },
+  "tasks:family:cmp-10": {
+   "hash": "d69bd66c23d5b968",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:01:18.462Z"
+  },
+  "tasks:family:create-01": {
+   "hash": "fc86e5a05b54f74c",
+   "decision": "ok",
+   "note": "usually people say \"kal asha ko call karna yaad dila dena\" instead \"kal asha ko call karna yaad dilana\"",
+   "at": "2026-10-26T15:02:09.383Z"
+  },
+  "tasks:family:create-02": {
+   "hash": "6721902867bc6526",
+   "decision": "ok",
+   "note": "\"maa ke liye birthday gift lene ka task add karo\" generally log ise \"maa ke liye birthday gift lena hai yaad dila dena\" and people use multiple words for maa like (mummy,ammi,amma,mom)",
+   "at": "2026-10-26T15:10:17.091Z"
+  },
+  "tasks:family:create-03": {
+   "hash": "11dbea4a780cc77d",
+   "decision": "ok",
+   "note": "peolpe also say yaad dila dena when they want to say task bna dena \n",
+   "at": "2026-10-26T15:16:36.869Z"
+  },
+  "tasks:family:create-04": {
+   "hash": "f444ad38dcdeaf5e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:17:01.049Z"
+  },
+  "tasks:family:create-05": {
+   "hash": "9a39b01a20e1b460",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:17:14.273Z"
+  },
+  "tasks:family:create-06": {
+   "hash": "8d6cd13631a07326",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:17:31.682Z"
+  },
+  "tasks:family:create-07": {
+   "hash": "6eefef727de2fd86",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:02.485Z"
+  },
+  "tasks:family:create-08": {
+   "hash": "244486690081c988",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:06.277Z"
+  },
+  "tasks:family:del-01": {
+   "hash": "f99e326aa5bd6bf3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:11.209Z"
+  },
+  "tasks:family:del-02": {
+   "hash": "ff7cd337f2d92872",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:17.078Z"
+  },
+  "tasks:family:del-03": {
+   "hash": "2f576714c66169d0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:25.591Z"
+  },
+  "tasks:family:del-04": {
+   "hash": "d4d1d714926589f5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:30.054Z"
+  },
+  "tasks:family:mem-01": {
+   "hash": "1b5b2df9e4f2ab1d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:39.429Z"
+  },
+  "tasks:family:mem-02": {
+   "hash": "8937a01e15172267",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:51.987Z"
+  },
+  "tasks:family:mem-03": {
+   "hash": "a9d1431447cf5897",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:19:57.602Z"
+  },
+  "tasks:family:pref-01": {
+   "hash": "9c84656352c30a9c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:20:04.382Z"
+  },
+  "tasks:family:pref-02": {
+   "hash": "a52a6b8339ed3daf",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:20:16.210Z"
+  },
+  "tasks:family:pref-03": {
+   "hash": "50ba41d18380e8c3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:20:29.295Z"
+  },
+  "tasks:family:read-01": {
+   "hash": "e436a61fb0116321",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:20:33.606Z"
+  },
+  "tasks:family:read-02": {
+   "hash": "24650360604e15ee",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:20:53.640Z"
+  },
+  "tasks:family:read-03": {
+   "hash": "f5b9b059b2646804",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:21:16.762Z"
+  },
+  "tasks:family:read-04": {
+   "hash": "6a64585dc4fec729",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:21:24.418Z"
+  },
+  "tasks:family:search-01": {
+   "hash": "d0c6006939d1fcf3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:21:34.098Z"
+  },
+  "tasks:family:search-02": {
+   "hash": "9b262804e3280cfb",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:21:46.139Z"
+  },
+  "tasks:family:search-03": {
+   "hash": "4383e0f7a1ed3a5d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:21:55.854Z"
+  },
+  "tasks:family:search-04": {
+   "hash": "7a55cd80eb6829c5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:22:43.270Z"
+  },
+  "tasks:family:search-05": {
+   "hash": "d96fb74459bb0a86",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:22:55.958Z"
+  },
+  "tasks:family:search-06": {
+   "hash": "eaaf90f3285fc15b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:23:21.589Z"
+  },
+  "tasks:family:sum-01": {
+   "hash": "0692acc8882d7f20",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:23:43.998Z"
+  },
+  "tasks:family:sum-02": {
+   "hash": "3397432938386fb4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:23:51.083Z"
+  },
+  "tasks:family:sum-03": {
+   "hash": "405a33be0f2d117f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:23:58.614Z"
+  },
+  "tasks:family:sum-04": {
+   "hash": "771c66648126296c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:24:14.362Z"
+  },
+  "tasks:family:sum-05": {
+   "hash": "087ba343a0cb788a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:24:30.081Z"
+  },
+  "tasks:family:sum-06": {
+   "hash": "716298466cf3a9e6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:24:34.164Z"
+  },
+  "tasks:malformed:bad-01": {
+   "hash": "b7715d0709836f89",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:03.137Z"
+  },
+  "tasks:malformed:bad-02": {
+   "hash": "f8a91563fbf5c6bd",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:04.876Z"
+  },
+  "tasks:malformed:bad-03": {
+   "hash": "7da47738be42f063",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:07.285Z"
+  },
+  "tasks:malformed:bad-04": {
+   "hash": "806ec1ecee00e86f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:08.856Z"
+  },
+  "tasks:malformed:bad-05": {
+   "hash": "d99d8e3edfdcbb1f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:13.879Z"
+  },
+  "tasks:malformed:bad-06": {
+   "hash": "cfa098187405e498",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:16.192Z"
+  },
+  "tasks:malformed:bad-07": {
+   "hash": "ffd2d1eff7eea158",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:19.531Z"
+  },
+  "tasks:malformed:bad-08": {
+   "hash": "2438fdefdd48de17",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:22.194Z"
+  },
+  "tasks:malformed:bad-09": {
+   "hash": "4ea64423aafee83a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:25.389Z"
+  },
+  "tasks:malformed:bad-10": {
+   "hash": "f2bf603aa62639ef",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:28.686Z"
+  },
+  "tasks:malformed:bad-11": {
+   "hash": "196e6f8a3f0464b1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:30.812Z"
+  },
+  "tasks:malformed:bad-12": {
+   "hash": "4522bd6c84f8ae2d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:32.328Z"
+  },
+  "tasks:malformed:bad-13": {
+   "hash": "e5b9e1a0886554b4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:35.209Z"
+  },
+  "tasks:malformed:bad-14": {
+   "hash": "fc21f5fc0360c801",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:37.823Z"
+  },
+  "tasks:malformed:bad-15": {
+   "hash": "93a37386b03e949e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:40.143Z"
+  },
+  "tasks:malformed:bad-16": {
+   "hash": "963d2d6b15c3fcc4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:42.420Z"
+  },
+  "tasks:malformed:bad-17": {
+   "hash": "1e5e2d4d844f5c72",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:44.328Z"
+  },
+  "tasks:malformed:bad-18": {
+   "hash": "3a2a0a904d0b4442",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:46.266Z"
+  },
+  "tasks:malformed:bad-19": {
+   "hash": "dce9a320028b158b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:47.564Z"
+  },
+  "tasks:malformed:bad-20": {
+   "hash": "eae5c896c9eb73df",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:51.719Z"
+  },
+  "tasks:malformed:bad-21": {
+   "hash": "34dd49239b34bb3c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:54.067Z"
+  },
+  "tasks:malformed:bad-22": {
+   "hash": "88df852fe3065dff",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:56.096Z"
+  },
+  "tasks:malformed:bad-23": {
+   "hash": "77113f25bc0b4f80",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:25:59.031Z"
+  },
+  "tasks:malformed:bad-24": {
+   "hash": "548b0e323031253f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:00.970Z"
+  },
+  "tasks:malformed:bad-25": {
+   "hash": "7e7b6fccb95c1007",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:03.336Z"
+  },
+  "tasks:malformed:bad-26": {
+   "hash": "cc726af6a5c9af65",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:05.529Z"
+  },
+  "tasks:malformed:bad-27": {
+   "hash": "5a5505ee40665f9d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:07.455Z"
+  },
+  "tasks:malformed:bad-28": {
+   "hash": "69b318757999e0a3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:09.714Z"
+  },
+  "tasks:malformed:bad-29": {
+   "hash": "0afa121de1622d72",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:26:12.419Z"
+  },
+  "words:alias:OPENERS": {
+   "hash": "140466a1b7c2d1e5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:35:38.789Z"
+  },
+  "words:alias:SAY": {
+   "hash": "f5e9a823032aebf5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:35:41.113Z"
+  },
+  "words:alias:SAY_HABIT": {
+   "hash": "6c531a16b92f13bc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:35:53.917Z"
+  },
+  "words:alias:phrasings": {
+   "hash": "d8d1849c78da633c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:36:01.068Z"
+  },
+  "words:correction:DURABLE": {
+   "hash": "3d4e9c32b78294b7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:33:54.225Z"
+  },
+  "words:correction:EXCEPTION": {
+   "hash": "337d48885e1e9926",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:33:23.917Z"
+  },
+  "words:correction:NEGATE_AFTER": {
+   "hash": "d2941ce5c26bec4f",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:35:00.304Z"
+  },
+  "words:correction:NEGATE_BEFORE": {
+   "hash": "40cd938ad0704904",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:34:32.326Z"
+  },
+  "words:correction:ONE_OFF": {
+   "hash": "a18b5fadc83be80e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:33:37.004Z"
+  },
+  "words:correction:OPENERS": {
+   "hash": "28811b9d04a930bd",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:32:26.730Z"
+  },
+  "words:correction:STYLES": {
+   "hash": "37b3dc35eead02f8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T15:34:28.690Z"
+  }
+ },
+ "status": {
+  "tasks": {
+   "units": 73,
+   "ok": 73,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  },
+  "personas": {
+   "units": 82,
+   "ok": 82,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  },
+  "memory": {
+   "units": 106,
+   "ok": 106,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  },
+  "words": {
+   "units": 11,
+   "ok": 11,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  }
+ },
+ "fixes": []
+}
