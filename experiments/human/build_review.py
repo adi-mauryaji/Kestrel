@@ -3,9 +3,9 @@
     python experiments/human/build_review.py
 
 Writes experiments/human/review.html (review.template.html with the units of review_data.py and the
-fixture notes inlined; published as an Artifact with the `db` and `user` capabilities). Each decision
-the reviewer makes is one document `reviews/<unit id>` in the page's store; ingest_review.py reads
-them back.
+fixture notes inlined). Opened from disk, marks stay in the browser and "Save review file" writes
+kestrel-review.json; published as an Artifact with the `db` and `user` capabilities, each decision is
+also one document `reviews/<unit id>` in the page's store. ingest_review.py reads either.
 """
 from __future__ import annotations
 
