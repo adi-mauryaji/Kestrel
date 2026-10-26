@@ -1,0 +1,580 @@
+{
+ "version": 1,
+ "decisions": {
+  "kinds:app:app-01": {
+   "hash": "395f39a1b175c7f9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:05.165Z"
+  },
+  "kinds:app:app-02": {
+   "hash": "3cc566f215970b94",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:07.043Z"
+  },
+  "kinds:app:app-03": {
+   "hash": "4d1c2da4fe6e9d51",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:09.078Z"
+  },
+  "kinds:app:app-04": {
+   "hash": "92e4487717c5f187",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:12.032Z"
+  },
+  "kinds:app:app-05": {
+   "hash": "f95933d51d392913",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:13.819Z"
+  },
+  "kinds:app:app-06": {
+   "hash": "188c5dcd3c1ade83",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:15.685Z"
+  },
+  "kinds:app:app-07": {
+   "hash": "372eb125b5f83445",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:17.407Z"
+  },
+  "kinds:app:app-08": {
+   "hash": "a86191026da140da",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:20.401Z"
+  },
+  "kinds:app:app-09": {
+   "hash": "56f6dea00c72420c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:21.929Z"
+  },
+  "kinds:app:app-10": {
+   "hash": "1ef2ba66b6bcc42a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:23.862Z"
+  },
+  "kinds:app:app-11": {
+   "hash": "7adcf6bb504d0c1d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:26.337Z"
+  },
+  "kinds:app:app-12": {
+   "hash": "f63106b49f9afe57",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:28.216Z"
+  },
+  "kinds:app:app-13": {
+   "hash": "eb632deb620efe47",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:31.325Z"
+  },
+  "kinds:app:app-14": {
+   "hash": "471a8e8ced5da34d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:34.907Z"
+  },
+  "kinds:app:app-15": {
+   "hash": "77b36c15c73bb22a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:37.612Z"
+  },
+  "kinds:chat:chat-01": {
+   "hash": "8ec95b745661dc3b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:28.230Z"
+  },
+  "kinds:chat:chat-02": {
+   "hash": "1aa23c8c930119e0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:31.975Z"
+  },
+  "kinds:chat:chat-03": {
+   "hash": "548a2eafa0eb8bd9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:36.299Z"
+  },
+  "kinds:chat:chat-04": {
+   "hash": "156895385d989c66",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:39.748Z"
+  },
+  "kinds:chat:chat-05": {
+   "hash": "2582fc5038bcf914",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:42.495Z"
+  },
+  "kinds:chat:chat-06": {
+   "hash": "138458e00850967a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:45.673Z"
+  },
+  "kinds:chat:chat-07": {
+   "hash": "4b631deada4c3314",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:43:50.559Z"
+  },
+  "kinds:chat:chat-08": {
+   "hash": "a097b78bc83576ad",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:04.675Z"
+  },
+  "kinds:chat:chat-09": {
+   "hash": "e507979a7f6ea9c7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:08.045Z"
+  },
+  "kinds:chat:chat-10": {
+   "hash": "c83e97038e69e892",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:10.141Z"
+  },
+  "kinds:chat:chat-11": {
+   "hash": "f67dc0e9897ba5e8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:13.651Z"
+  },
+  "kinds:chat:chat-12": {
+   "hash": "c4d0194943e6b557",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:16.364Z"
+  },
+  "kinds:chat:chat-13": {
+   "hash": "cdc1c1911c266b5c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:21.225Z"
+  },
+  "kinds:chat:chat-14": {
+   "hash": "23d1b4016d1b544c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:24.282Z"
+  },
+  "kinds:chat:chat-15": {
+   "hash": "eed18650b03eb19e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:29.233Z"
+  },
+  "kinds:chat:chat-16": {
+   "hash": "0ae0a70e89d37f90",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:32.900Z"
+  },
+  "kinds:chat:chat-17": {
+   "hash": "4fee31557d892e08",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:41.500Z"
+  },
+  "kinds:chat:chat-18": {
+   "hash": "22fc0404385cf411",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:46.984Z"
+  },
+  "kinds:chat:chat-19": {
+   "hash": "4da613a0c103102e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:49.588Z"
+  },
+  "kinds:chat:chat-20": {
+   "hash": "ff8a5105b34a6528",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:53.774Z"
+  },
+  "kinds:email:email-01": {
+   "hash": "ccae757212e5b00d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:44:59.815Z"
+  },
+  "kinds:email:email-02": {
+   "hash": "58162ad4099a952d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:02.721Z"
+  },
+  "kinds:email:email-03": {
+   "hash": "2c0eda189dad3151",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:05.941Z"
+  },
+  "kinds:email:email-04": {
+   "hash": "a8cfd8405a2f5448",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:08.345Z"
+  },
+  "kinds:email:email-05": {
+   "hash": "71895e9b347df273",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:10.320Z"
+  },
+  "kinds:email:email-06": {
+   "hash": "ea31ec209caa9bc5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:19.738Z"
+  },
+  "kinds:email:email-07": {
+   "hash": "7396c286ec0ffab3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:29.203Z"
+  },
+  "kinds:email:email-08": {
+   "hash": "c3170054c2678422",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:46.930Z"
+  },
+  "kinds:email:email-09": {
+   "hash": "8d94de70f92d96f2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:45:51.321Z"
+  },
+  "kinds:email:email-10": {
+   "hash": "58fee7f59e9badd5",
+   "decision": "ok",
+   "note": "meri dost riya ke birthday ke liye ek birthday wish likho",
+   "at": "2026-10-26T16:48:05.765Z"
+  },
+  "kinds:email:email-11": {
+   "hash": "ade27c64c14751be",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:48:24.630Z"
+  },
+  "kinds:email:email-12": {
+   "hash": "19d987d13a564b3e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:48:42.087Z"
+  },
+  "kinds:email:email-13": {
+   "hash": "29807753e4c75268",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:49:15.547Z"
+  },
+  "kinds:email:email-14": {
+   "hash": "f0ad5a043aa33d86",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:49:58.135Z"
+  },
+  "kinds:email:email-15": {
+   "hash": "2692950fb19e056a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:51:23.417Z"
+  },
+  "kinds:email:email-16": {
+   "hash": "2c9ce7f772376f6c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:51:39.918Z"
+  },
+  "kinds:email:email-17": {
+   "hash": "24d67dd431909fd6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T16:58:01.429Z"
+  },
+  "kinds:email:email-18": {
+   "hash": "deb769a65331146c",
+   "decision": "ok",
+   "note": "agle hafte ke liye out of office reply draft kro",
+   "at": "2026-10-26T16:59:19.183Z"
+  },
+  "kinds:email:email-19": {
+   "hash": "ed35a41c82df742e",
+   "decision": "ok",
+   "note": "airline ko refund ke liye email likho",
+   "at": "2026-10-26T17:01:00.535Z"
+  },
+  "kinds:email:email-20": {
+   "hash": "35901d22930c60e3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:01:49.564Z"
+  },
+  "kinds:rewrite:rewrite-01": {
+   "hash": "62a85480f555ca4d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:03:21.114Z"
+  },
+  "kinds:rewrite:rewrite-02": {
+   "hash": "a8f32a6bd5d502bb",
+   "decision": "ok",
+   "note": "ise chhota kar do: mujhe apko batana tha ki meeting agle hafte shift ho gayi hai",
+   "at": "2026-10-26T17:04:30.770Z"
+  },
+  "kinds:rewrite:rewrite-03": {
+   "hash": "4621b51f5331016a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:05:26.907Z"
+  },
+  "kinds:rewrite:rewrite-04": {
+   "hash": "4c3ceba641f5fe97",
+   "decision": "ok",
+   "note": "\nisko polite banake do: abhi file bhejo\n\nsay this nicely: tum phir se payment bhool gaye",
+   "at": "2026-10-26T17:06:34.642Z"
+  },
+  "kinds:rewrite:rewrite-05": {
+   "hash": "701fcbae07a6a70d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:16:19.693Z"
+  },
+  "kinds:rewrite:rewrite-06": {
+   "hash": "f83259e2a0f3e64b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:19:33.549Z"
+  },
+  "kinds:rewrite:rewrite-07": {
+   "hash": "5ae55ca93aaca05c",
+   "decision": "ok",
+   "note": "ye casual way me likho: party 8 baje shuru hogi",
+   "at": "2026-10-26T17:20:03.158Z"
+  },
+  "kinds:rewrite:rewrite-08": {
+   "hash": "f6aa4fd0150bdde5",
+   "decision": "ok",
+   "note": "isko poora paragraph bana do: project late hai, nayi date agle mahine ki hogi\n\n",
+   "at": "2026-10-26T17:21:30.118Z"
+  },
+  "kinds:rewrite:rewrite-09": {
+   "hash": "6e6551a4ecb7e4db",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:23:08.273Z"
+  },
+  "kinds:rewrite:rewrite-11": {
+   "hash": "02c7418e7ba0db54",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:27:40.872Z"
+  },
+  "kinds:rewrite:rewrite-12": {
+   "hash": "0b4f8af6bc74d00a",
+   "decision": "ok",
+   "note": "iska tweet bana do: humne aaj naya app launch kiya aur ye free hai",
+   "at": "2026-10-26T17:28:20.807Z"
+  },
+  "kinds:rewrite:rewrite-13": {
+   "hash": "61bc70775e7e7002",
+   "decision": "ok",
+   "note": "iska gist do: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi",
+   "at": "2026-10-26T17:34:41.550Z"
+  },
+  "kinds:rewrite:rewrite-14": {
+   "hash": "5ee1ee21b9696554",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:35:11.328Z"
+  },
+  "kinds:rewrite:rewrite-15": {
+   "hash": "24916a3ac1dd7498",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:36:01.402Z"
+  },
+  "kinds:rewrite:rewrite-16": {
+   "hash": "8d1b91135ed6646d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:43:25.986Z"
+  },
+  "kinds:rewrite:rewrite-17": {
+   "hash": "3a5c4abf7e544c50",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:43:32.956Z"
+  },
+  "kinds:rewrite:rewrite-18": {
+   "hash": "0f3d329892b9445b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:43:37.613Z"
+  },
+  "kinds:rewrite:rewrite-19": {
+   "hash": "8f29d75d0b2a0503",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:20.872Z"
+  },
+  "kinds:rewrite:rewrite-20": {
+   "hash": "99ab1286f6650464",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:25.353Z"
+  },
+  "kinds:translate:translate-01": {
+   "hash": "f685ffa67eb0c901",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:22.986Z"
+  },
+  "kinds:translate:translate-02": {
+   "hash": "1991873d897c8f07",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:27.485Z"
+  },
+  "kinds:translate:translate-03": {
+   "hash": "e8d99473e619b265",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:28.560Z"
+  },
+  "kinds:translate:translate-04": {
+   "hash": "c23ae34f23dbf857",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:30.722Z"
+  },
+  "kinds:translate:translate-05": {
+   "hash": "c41209201f1592bf",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:31.942Z"
+  },
+  "kinds:translate:translate-06": {
+   "hash": "f738dfda1a6065d8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:33.669Z"
+  },
+  "kinds:translate:translate-07": {
+   "hash": "d67bfad2027562b3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:35.469Z"
+  },
+  "kinds:translate:translate-08": {
+   "hash": "22d7f66bfacc89c8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:39.334Z"
+  },
+  "kinds:translate:translate-09": {
+   "hash": "f6539a80c3993892",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:41.333Z"
+  },
+  "kinds:translate:translate-10": {
+   "hash": "f2a8cdc4e980c98e",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:43.277Z"
+  },
+  "kinds:translate:translate-11": {
+   "hash": "13669383aff09228",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:45.928Z"
+  },
+  "kinds:translate:translate-12": {
+   "hash": "0fcd522cd730c3c6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:48.108Z"
+  },
+  "kinds:translate:translate-13": {
+   "hash": "03f68b9d24b5d99a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:50.468Z"
+  },
+  "kinds:translate:translate-14": {
+   "hash": "5b07d7e44d75f2f2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:52.431Z"
+  },
+  "kinds:translate:translate-15": {
+   "hash": "56ac901a253f6559",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:53.880Z"
+  },
+  "kinds:translate:translate-16": {
+   "hash": "d8d273b9b8d4dff9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:55.921Z"
+  },
+  "kinds:translate:translate-17": {
+   "hash": "4d4e74d39dd0e4de",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:57.558Z"
+  },
+  "kinds:translate:translate-18": {
+   "hash": "2aa5df7223458696",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:44:58.988Z"
+  },
+  "kinds:translate:translate-19": {
+   "hash": "bc5c7e9ec60c0184",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:00.824Z"
+  },
+  "kinds:translate:translate-20": {
+   "hash": "bb5f0579158ed266",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-26T17:45:02.677Z"
+  }
+ },
+ "status": {
+  "kinds": {
+   "units": 95,
+   "ok": 94,
+   "fix": 0,
+   "stale": 0,
+   "missing": 1,
+   "ready": false
+  }
+ },
+ "fixes": []
+}
