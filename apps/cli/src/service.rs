@@ -501,6 +501,33 @@ pub fn serve(
         }
         Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate) are off: {e}"),
     }
+    // v3 (ADR-039): notes found by meaning; a Hinglish query is first put into English by Gemma.
+    let vectors = cache_dir(&|k| std::env::var_os(k)).map(|d| d.join("notes-meaning.json"));
+    if let Some(d) = vectors.as_ref().and_then(|f| f.parent()) {
+        let _ = std::fs::create_dir_all(d);
+    }
+    match models.meaning_index(notes, vectors) {
+        Ok(mut index) => {
+            let translate =
+                crate::meaning::MeaningConfig::load(std::path::Path::new(crate::meaning::CONFIG))
+                    .is_ok_and(|c| c.translate);
+            if translate {
+                let writer = SharedRemote(remote.clone());
+                index = index.with_translation(Box::new(move |q| {
+                    let ask = format!("translate to english: {q}");
+                    crate::kinds::Writer::write(
+                        &writer,
+                        crate::kinds::Kind::Translate,
+                        &ask,
+                        &mut |_| {},
+                    )
+                    .ok()
+                }));
+            }
+            assistant = assistant.with_meaning(Box::new(index));
+        }
+        Err(e) => eprintln!("notes by meaning are off (the keyword search alone): {e}"),
+    }
 
     let listener = UnixListener::bind(&path)?;
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))?;

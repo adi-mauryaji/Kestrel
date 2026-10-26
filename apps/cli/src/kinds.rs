@@ -112,6 +112,13 @@ impl Kind {
 /// Common Hindi words in Latin letters; experiments/v3/writer_lang.py's check reads the same list.
 const HINGLISH_WORDS: &str = include_str!("../../../datasets/contracts/hinglish_words.txt");
 
+/// One of the common Hindi words (lowercase).
+pub fn hindi_word(w: &str) -> bool {
+    HINGLISH_WORDS
+        .lines()
+        .any(|l| !l.starts_with('#') && l.trim() == w)
+}
+
 /// Latin text with enough common Hindi words (at least 2, and 15% of its words) is Hinglish.
 pub fn is_hinglish(text: &str) -> bool {
     let lower = text.to_lowercase();
@@ -119,12 +126,7 @@ pub fn is_hinglish(text: &str) -> bool {
         .split(|c: char| !c.is_ascii_lowercase())
         .filter(|w| !w.is_empty())
         .collect();
-    let hindi = |w: &str| {
-        HINGLISH_WORDS
-            .lines()
-            .any(|l| !l.starts_with('#') && l.trim() == w)
-    };
-    let hits = words.iter().filter(|w| hindi(w)).count();
+    let hits = words.iter().filter(|w| hindi_word(w)).count();
     hits >= 2 && hits * 100 >= 15 * words.len().max(1)
 }
 

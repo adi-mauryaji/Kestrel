@@ -148,6 +148,44 @@ impl Models {
         )?)
     }
 
+    /// v3's notes by meaning (ADR-039) over `notes` with the config's Tier-3 encoder, as the dev run
+    /// measured it (crate::meaning::CONFIG); refused for another encoder file. Chunk vectors are
+    /// kept in `cache` (a file) when given.
+    pub fn meaning_index(
+        &self,
+        notes: &Path,
+        cache: Option<std::path::PathBuf>,
+    ) -> Result<crate::meaning::MeaningIndex<'_>, DynError> {
+        use crate::meaning::{CONFIG, MeaningConfig, MeaningIndex};
+        let mc = MeaningConfig::load(Path::new(CONFIG))?;
+        let t3 = &self.cfg.models.tier3;
+        if mc.encoder_file != t3.encoder_file {
+            return Err(format!(
+                "notes by meaning were measured with {}, not {}",
+                mc.encoder_file, t3.encoder_file
+            )
+            .into());
+        }
+        let encoder = self
+            .encoder
+            .as_ref()
+            .ok_or("notes by meaning need the Tier-3 encoder")?;
+        let size = std::fs::metadata(Path::new("models").join(&t3.encoder_file))?.len();
+        let sandbox = kestrel_tools::sandbox::Sandbox::new(&[notes.to_path_buf()])?;
+        let index = MeaningIndex::new(
+            Box::new(encoder.session()?),
+            kestrel_tools::notes::Notes::new(sandbox),
+            mc.theta,
+            mc.k,
+            mc.added,
+            &format!("{} {size}", t3.encoder_file),
+        );
+        Ok(match cache {
+            Some(file) => index.with_cache(file),
+            None => index,
+        })
+    }
+
     /// v3's kind fallback (ADR-037) on the config's Tier-4 model, as the dev run measured it
     /// (crate::kinds::FALLBACK_CONFIG); refused for another model file. Its primed prefix is kept
     /// beside Tier 4's when the service caches one.

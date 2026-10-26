@@ -12,6 +12,9 @@
 //! taken out before the template runs and put on the tasks the plan created; the service rings it.
 //! So is Hinglish reminder wording the template does not know ("mujhe yaad dila dena ki ...",
 //! src/hinglish.rs).
+//!
+//! v3 (ADR-039): with a meaning index (`carry_out_with`), a search the keywords answer with fewer
+//! than k notes gets notes found by meaning after its hits, listed with "(by meaning)".
 
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -25,10 +28,12 @@ use kestrel_tools::backend::MemoryBackend;
 use kestrel_tools::compound::plan_parts;
 use kestrel_tools::date::Date;
 use kestrel_tools::plan::{self, Data, Execution, NodeStatus, Op, ValidPlan};
-use kestrel_tools::runner::Runner;
+use kestrel_tools::runner::{Runner, Store};
 use kestrel_tools::sandbox::Sandbox;
 use kestrel_tools::templates::{self, Context, Proposal};
-use kestrel_tools::tools::{Confirm, Policy};
+use kestrel_tools::tools::{Backend, Confirm, Note, Policy, ToolOutput, ValidatedCall};
+
+use crate::meaning::Meaning;
 
 use crate::summary::{ModelText, Summarizer};
 use crate::times::Said;
@@ -138,12 +143,26 @@ impl Act {
     }
 
     /// Plans and runs the request; `routed` is None when the cascade (or one part) abstained.
+    #[cfg(test)]
     pub fn carry_out(
         &mut self,
         routed: Option<&[(Intent, String)]>,
         id: u64,
         now: i64,
         confirm: &dyn Confirm,
+    ) -> Vec<String> {
+        self.carry_out_with(routed, id, now, confirm, None)
+    }
+
+    /// `carry_out`, with notes found by `meaning` added to a search the keywords answer with fewer
+    /// than its k notes.
+    pub fn carry_out_with(
+        &mut self,
+        routed: Option<&[(Intent, String)]>,
+        id: u64,
+        now: i64,
+        confirm: &dyn Confirm,
+        meaning: Option<&mut dyn Meaning>,
     ) -> Vec<String> {
         let Some(parts) = routed.filter(|p| !p.is_empty()) else {
             return vec!["I'm not sure what you mean. Try saying it another way.".into()];
@@ -169,7 +188,7 @@ impl Act {
             Proposal::Plan(mut wire) => {
                 resolve_documents(&mut wire, &self.documents());
                 let stated = matches!(parts[..], [(Intent::SetPreference, _)]);
-                self.run(&wire.to_string(), stated, id, now, confirm, &said)
+                self.run(&wire.to_string(), stated, id, now, confirm, &said, meaning)
             }
             Proposal::Clarify(slot) => vec![clarify(slot)],
             // One part no template fits: usually notes it cannot pick out; several: a plan only the model
@@ -185,6 +204,7 @@ impl Act {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn run(
         &mut self,
         wire: &str,
@@ -193,6 +213,7 @@ impl Act {
         now: i64,
         confirm: &dyn Confirm,
         said: &[Option<Said>],
+        meaning: Option<&mut dyn Meaning>,
     ) -> Vec<String> {
         let plan = match plan::parse(wire) {
             Ok(p) => p,
@@ -201,8 +222,21 @@ impl Act {
         self.backend.begin_request(id, now);
         let before: HashSet<i64> = self.task_ids();
         let mut text = ModelText::new(self.summarizer.as_deref());
+        let mut by_meaning = HashSet::new();
+        let mut with_meaning;
+        let store: &mut dyn Store = match meaning {
+            Some(meaning) => {
+                with_meaning = WithMeaning {
+                    inner: &mut self.backend,
+                    meaning,
+                    added: &mut by_meaning,
+                };
+                &mut with_meaning
+            }
+            None => &mut self.backend,
+        };
         let mut runner = Runner {
-            store: &mut self.backend,
+            store,
             text: &mut text,
             confirm,
             policy: Policy {
@@ -228,7 +262,7 @@ impl Act {
         };
         let fell_back = text.fell_back.take();
         let note = self.set_times(&new(self), said, now);
-        let mut out = render(&plan, &ex, &new(self));
+        let mut out = render(&plan, &ex, &new(self), &by_meaning);
         out.extend(fell_back.map(|why| {
             format!("(the model's summary was not used: {why}; these are the notes' first lines)")
         }));
@@ -288,9 +322,63 @@ impl Act {
     }
 }
 
+/// The store a plan runs on when a meaning index is given: the memory backend, with notes found by
+/// meaning after the keyword hits of a search that found fewer than min(limit, k); `added` collects
+/// their names for the "(by meaning)" label.
+struct WithMeaning<'s> {
+    inner: &'s mut MemoryBackend,
+    meaning: &'s mut dyn Meaning,
+    added: &'s mut HashSet<String>,
+}
+
+impl Backend for WithMeaning<'_> {
+    fn run(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError> {
+        let out = self.inner.run(c)?;
+        let (ValidatedCall::SearchNotes { query, limit }, ToolOutput::Notes(hits)) = (c, &out)
+        else {
+            return Ok(out);
+        };
+        let room = (*limit as usize).min(self.meaning.k());
+        if hits.len() >= room {
+            return Ok(out);
+        }
+        let mut notes: Vec<Note> = hits.clone();
+        for n in self.meaning.find(query) {
+            if notes.len() >= room {
+                break;
+            }
+            if notes.iter().all(|m| m.name != n.name) {
+                self.added.insert(n.name.clone());
+                notes.push(n);
+            }
+        }
+        Ok(ToolOutput::Notes(notes))
+    }
+
+    /// The memory backend stores a confirmed preference as the user's (ADR-026).
+    fn run_confirmed(&mut self, c: &ValidatedCall) -> Result<ToolOutput, KestrelError> {
+        self.inner.run_confirmed(c)
+    }
+}
+
+impl Store for WithMeaning<'_> {
+    fn sandbox(&self) -> &Sandbox {
+        Store::sandbox(&*self.inner)
+    }
+
+    fn recent(&self, n: u32, tag: Option<&str>) -> Result<Vec<Note>, KestrelError> {
+        self.inner.recent(n, tag)
+    }
+}
+
 /// What the plan found or did, step by step: every step's failure or refusal, and the output of the
 /// steps nothing else consumed (a summary, a search's notes, a document), plus the tasks created.
-fn render(plan: &ValidPlan, ex: &Execution, created: &[TaskRow]) -> Vec<String> {
+fn render(
+    plan: &ValidPlan,
+    ex: &Execution,
+    created: &[TaskRow],
+    by_meaning: &HashSet<String>,
+) -> Vec<String> {
     let consumed: HashSet<usize> = plan
         .nodes
         .iter()
@@ -312,7 +400,9 @@ fn render(plan: &ValidPlan, ex: &Execution, created: &[TaskRow]) -> Vec<String> 
                 Op::UpdatePreference { key, value } => {
                     out.push(format!("saved preference: {key} = {value}"))
                 }
-                op if !consumed.contains(&i) => out.extend(show(op, ex.outputs[i].as_ref())),
+                op if !consumed.contains(&i) => {
+                    out.extend(show(op, ex.outputs[i].as_ref(), by_meaning))
+                }
                 _ => {}
             },
             NodeStatus::Declined => out.push(match &node.op {
@@ -338,7 +428,7 @@ fn render(plan: &ValidPlan, ex: &Execution, created: &[TaskRow]) -> Vec<String> 
     out
 }
 
-fn show(op: &Op, data: Option<&Data>) -> Vec<String> {
+fn show(op: &Op, data: Option<&Data>, by_meaning: &HashSet<String>) -> Vec<String> {
     match (op, data) {
         (Op::ReadDocument { .. }, Some(Data::Notes(notes))) => notes
             .iter()
@@ -363,7 +453,10 @@ fn show(op: &Op, data: Option<&Data>) -> Vec<String> {
                 notes
                     .iter()
                     .take(SHOW_NOTES)
-                    .map(|n| format!("- {}", n.name)),
+                    .map(|n| match by_meaning.contains(&n.name) {
+                        true => format!("- {} (by meaning)", n.name),
+                        false => format!("- {}", n.name),
+                    }),
             );
             if notes.len() > SHOW_NOTES {
                 v.push(format!("… and {} more", notes.len() - SHOW_NOTES));
@@ -675,6 +768,76 @@ mod tests {
             &yes(),
         ));
         assert_eq!(out, "no notes matched", "the query kept \"at 5 pm\"");
+    }
+
+    /// Finds the same notes by meaning for every query, and counts the queries.
+    struct ByMeaning(Vec<&'static str>, usize);
+
+    impl crate::meaning::Meaning for ByMeaning {
+        fn find(&mut self, _: &str) -> Vec<kestrel_tools::tools::Note> {
+            self.1 += 1;
+            (self.0.iter())
+                .map(|n| kestrel_tools::tools::Note {
+                    name: n.to_string(),
+                    text: format!("text of {n}"),
+                })
+                .collect()
+        }
+        fn k(&self) -> usize {
+            3
+        }
+    }
+
+    #[test]
+    fn notes_found_by_meaning_follow_the_keyword_hits_up_to_k_and_say_so() {
+        let mut a = setup("meaning");
+        let mut m = ByMeaning(
+            vec![
+                "docs/project-plan.md",
+                "meetings/2026-10-20-standup.md",
+                "2026-10-22-groceries.md",
+                "meetings/2026-10-21-design.md",
+            ],
+            0,
+        );
+        // The keywords miss: the first k by meaning.
+        let search = |t: &str| one(Intent::SearchNotes, t);
+        let out = joined(&a.carry_out_with(
+            Some(&search("search my notes for saving money")),
+            1,
+            NOW,
+            &yes(),
+            Some(&mut m),
+        ));
+        assert_eq!(
+            out,
+            "found 3 notes:\n- docs/project-plan.md (by meaning)\n\
+             - meetings/2026-10-20-standup.md (by meaning)\n- 2026-10-22-groceries.md (by meaning)"
+        );
+        // Two keyword hits, then one by meaning; a note found both ways is a keyword hit.
+        let out = joined(&a.carry_out_with(
+            Some(&search("search my notes for budget")),
+            2,
+            NOW,
+            &yes(),
+            Some(&mut m),
+        ));
+        assert!(out.starts_with("found 3 notes:"), "{out}");
+        assert!(out.contains("- meetings/2026-10-20-standup.md\n"), "{out}");
+        assert!(out.contains("- meetings/2026-10-22-planning.md"), "{out}");
+        assert!(
+            out.ends_with("- docs/project-plan.md (by meaning)"),
+            "{out}"
+        );
+        assert_eq!(m.1, 2);
+        // Without an index, the search is the keyword search alone.
+        let out = joined(&a.carry_out(
+            Some(&search("search my notes for saving money")),
+            3,
+            NOW,
+            &yes(),
+        ));
+        assert_eq!(out, "no notes matched");
     }
 
     #[test]

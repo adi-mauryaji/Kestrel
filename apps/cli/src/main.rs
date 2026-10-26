@@ -54,6 +54,8 @@ mod hinglish;
 mod kinds;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod meaning;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod personal;

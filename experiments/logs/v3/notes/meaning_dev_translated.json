@@ -2,6 +2,7 @@
  "encoder": "multilingual-e5-small-q8_0",
  "translate": true,
  "k": 3,
+ "added": 1,
  "chunks": 52,
  "dev_queries": 22,
  "keyword_only_found": 0.0,
@@ -12,6 +13,7 @@
   1.0,
   0.0
  ],
+ "wrong_added_per_found_query": 0.0,
  "by_lang_at_theta": {
   "en": [
    1.0,

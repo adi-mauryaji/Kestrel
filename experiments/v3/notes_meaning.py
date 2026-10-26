@@ -6,6 +6,11 @@ enough (cosine at or above theta) are added after its hits. Meaning: multilingua
 through the Tier-3 runtime embedder (experiments/tier3/embed.py), "query: " + the query, "passage: "
 + each chunk of a note (its title and one paragraph); a note's score is its best chunk's.
 
+Only the closest note by meaning is added (ADDED = 1): with up to k of them, the dev run added 9 wrong
+notes to its 18 found queries (a summary then mixes in an unrelated note, seen end to end); the
+closest alone added none. That choice came after looking at dev (2026-10-26); the wrong notes added
+per found query are reported from then on, for the test split too.
+
 theta is chosen on dev by a rule fixed before looking: on a grid 0.70..0.95 (step 0.01), the value
 with the highest (share of queries whose note is among the k results) - (share of no-note queries
 that get any note by meaning); ties go to the higher theta (fewer additions). The test split stays
@@ -14,6 +19,7 @@ closed until the human has reviewed NotesQ-v0.
     python experiments/v3/notes_meaning.py        # seconds: 18 notes + 22 queries through e5
     python experiments/v3/notes_meaning.py --translate   # + Gemma: a query with any Hindi word is
                                                          # translated to English first (~30 s)
+    ... --translate --write-config    # also experiments/configs/notes_meaning_v0.json for the service
 """
 from __future__ import annotations
 
@@ -34,8 +40,10 @@ from writer_lang import HINDI_WORDS, write_all  # noqa: E402
 DATA = ROOT / "datasets" / "kestrel_notesq_v0"
 ENCODER = "multilingual-e5-small-q8_0"
 K = 3
+ADDED = 1  # notes added by meaning at most
 GRID = [round(0.70 + 0.01 * i, 2) for i in range(26)]
 LOG = ROOT / "experiments" / "logs" / "v3" / "notes" / "meaning_dev.json"
+CONFIG = ROOT / "experiments" / "configs" / "notes_meaning_v0.json"
 
 
 def needs_translation(query: str) -> bool:
@@ -55,21 +63,26 @@ def chunks(text: str) -> list[str]:
 
 
 def lexical(query: str, notes: dict[str, str]) -> list[str]:
-    """Notes::search's rule: every term occurs (case-insensitive); most occurrences first."""
+    """Notes::search's rule: every term occurs (case-insensitive); most occurrences first. As there,
+    a first line "tags: ..." is not searched."""
     terms = query.lower().split()
     hits = []
     for name, text in notes.items():
+        first, _, rest = text.partition("\n")
+        text = rest if first.startswith("tags:") else text
         counts = [text.lower().count(t) for t in terms]
         if all(counts):
             hits.append((-sum(counts), name))
     return [name for _, name in sorted(hits)]
 
 
-def policy(keyword: list[str], scores: dict[str, float], theta: float, k: int) -> tuple[list[str], set[str]]:
-    """The k results: the keyword hits, then notes by meaning at or above theta; and which came by meaning."""
+def policy(keyword: list[str], scores: dict[str, float], theta: float, k: int,
+           added: int = ADDED) -> tuple[list[str], set[str]]:
+    """The results: the keyword hits, then up to `added` notes by meaning at or above theta, k in all;
+    and which came by meaning."""
     out = keyword[:k]
-    added = [n for n, s in sorted(scores.items(), key=lambda kv: -kv[1]) if s >= theta and n not in out]
-    added = added[: k - len(out)]
+    best = [n for n, s in sorted(scores.items(), key=lambda kv: -kv[1])[:added] if s >= theta and n not in out]
+    added = best[: k - len(out)]
     return out + added, set(added)
 
 
@@ -86,9 +99,17 @@ def _rates(rows, theta):
     return hit / len(found), noise / len(none) if none else 0.0
 
 
+def _wrong_added(rows, theta):
+    """Notes added by meaning that the query did not want, per query with a note."""
+    found = [r for r in rows if r["notes"]]
+    res = [policy(r["keyword"], r["scores"], theta, K) for r in found]
+    return sum(len(added - set(r["notes"])) for r, (_, added) in zip(found, res)) / len(found)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--translate", action="store_true", help="translate queries with Hindi words to English (Gemma)")
+    ap.add_argument("--write-config", action="store_true", help="write the service's config from this run")
     args = ap.parse_args(argv)
     notes = {p.relative_to(DATA / "notes").as_posix(): p.read_text(encoding="utf-8")
              for p in sorted((DATA / "notes").rglob("*.md"))}
@@ -121,11 +142,12 @@ def main(argv=None):
     theta = choose_theta(table)
     found, none = [r for r in rows if r["notes"]], [r for r in rows if not r["notes"]]
     out = {
-        "encoder": ENCODER, "translate": args.translate, "k": K, "chunks": len(texts), "dev_queries": len(rows),
+        "encoder": ENCODER, "translate": args.translate, "k": K, "added": ADDED, "chunks": len(texts), "dev_queries": len(rows),
         "keyword_only_found": sum(bool(set(r["notes"]) & set(r["keyword"][:K])) for r in found) / len(found),
         "meaning_rank1": sum(r["note_rank"] == 1 for r in found) / len(found),
         "meaning_rank_le_k": sum(r["note_rank"] <= K for r in found) / len(found),
         "theta": theta, "found_and_noise_at_theta": table[theta],
+        "wrong_added_per_found_query": _wrong_added(rows, theta),
         "by_lang_at_theta": {lang: _rates([r for r in rows if r["lang"] == lang], theta) for lang in ("en", "hi-en")},
         "grid": {str(t): v for t, v in table.items()},
         "none_best_scores": [r["best"][1] for r in none],
@@ -137,6 +159,12 @@ def main(argv=None):
     log.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({k: v for k, v in out.items() if k not in ("grid", "queries")}, indent=1))
     print(f"wrote {log.relative_to(ROOT)}")
+    if args.write_config:
+        cfg = {"note": "v3 notes by meaning (ADR-039), from experiments/v3/notes_meaning.py; theta chosen on dev",
+               "dev_log": str(log.relative_to(ROOT)), "encoder": ENCODER, "encoder_file": enc.path.name,
+               "theta": theta, "k": K, "added": ADDED, "translate": args.translate}
+        CONFIG.write_text(json.dumps(cfg, indent=1) + "\n")
+        print(f"wrote {CONFIG.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+{
+ "note": "v3 notes by meaning (ADR-039), from experiments/v3/notes_meaning.py; theta chosen on dev",
+ "dev_log": "experiments/logs/v3/notes/meaning_dev_translated.json",
+ "encoder": "multilingual-e5-small-q8_0",
+ "encoder_file": "multilingual-e5-small-q8_0.gguf",
+ "theta": 0.83,
+ "k": 3,
+ "added": 1,
+ "translate": true
+}

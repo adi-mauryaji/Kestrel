@@ -6,6 +6,7 @@
 //! (src/act.rs). In the service, a request for a v3 skill (chat, email, rewrite, translate) is
 //! written before the cascade (src/kinds.rs). The answer comes back as lines; the caller prints
 //! them or sends them. `handle_streaming` also hands a written skill's text over as it comes.
+//! With a meaning index (v3, ADR-039), a notes search the keywords miss also finds notes by meaning.
 
 use std::time::Instant;
 
@@ -26,6 +27,7 @@ pub struct Assistant<'a> {
     brief: bool,
     n: u64,
     kinds: Option<crate::kinds::Kinds<'a>>,
+    meaning: Option<Box<dyn crate::meaning::Meaning + 'a>>,
 }
 
 impl<'a> Assistant<'a> {
@@ -47,7 +49,14 @@ impl<'a> Assistant<'a> {
             brief,
             n: 0,
             kinds: None,
+            meaning: None,
         }
+    }
+
+    /// v3 (ADR-039): notes searches also find notes by meaning.
+    pub fn with_meaning(mut self, meaning: Box<dyn crate::meaning::Meaning + 'a>) -> Self {
+        self.meaning = Some(meaning);
+        self
     }
 
     /// v3: requests for a skill (chat, email, rewrite, translate) are written before the cascade.
@@ -140,7 +149,11 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_mut() {
             let routed = routed_parts(&self.cascade, &req, &outcome, n);
             let prompt = Prompt(std::cell::RefCell::new(confirm));
-            out.extend(act.carry_out(routed.as_deref(), n, now, &prompt));
+            let meaning = self
+                .meaning
+                .as_deref_mut()
+                .map(|m| m as &mut dyn crate::meaning::Meaning);
+            out.extend(act.carry_out_with(routed.as_deref(), n, now, &prompt, meaning));
         }
         out
     }
@@ -330,6 +343,32 @@ mod tests {
             out.last().unwrap(),
             "Hi! I can find, open and summarize your notes, keep your tasks, draft emails and \
              messages, rewrite or translate text, and chat."
+        );
+    }
+
+    /// Finds the standup note by meaning for every query.
+    struct Standup;
+
+    impl crate::meaning::Meaning for Standup {
+        fn find(&mut self, _: &str) -> Vec<kestrel_tools::tools::Note> {
+            vec![kestrel_tools::tools::Note {
+                name: "2026-10-24-standup.md".into(),
+                text: "Standup.".into(),
+            }]
+        }
+        fn k(&self) -> usize {
+            3
+        }
+    }
+
+    #[test]
+    fn a_search_the_keywords_miss_finds_notes_by_meaning() {
+        let (a, _) = assistant("meaning", true);
+        let mut a = a.with_meaning(Box::new(Standup));
+        let out = a.handle("search my notes for saving money", &mut yes());
+        assert_eq!(
+            out[out.len() - 2..],
+            ["found 1 note:", "- 2026-10-24-standup.md (by meaning)"]
         );
     }
 
