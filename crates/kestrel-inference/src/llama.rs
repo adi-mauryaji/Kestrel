@@ -2,7 +2,8 @@
 //! llama.cpp 26394b4e, the commit the CLI benchmarks use (ADR-006/007). Safe API only: the
 //! workspace forbids `unsafe`, and the crate keeps all FFI on its side.
 //!
-//! - Weights load without mmap (PREREG D12), so peak RSS is the real footprint.
+//! - Weights load without mmap by default (PREREG D12), so peak RSS is the real footprint;
+//!   `LlamaConfig::mmap` maps them instead (v3 service, ADR-036).
 //! - Greedy decoding only; any other temperature is rejected until sampling is implemented with
 //!   a recorded seed.
 //! - `LlamaSlm` owns the weights; `LlamaSession` owns one context (KV cache) and implements
@@ -55,6 +56,9 @@ pub struct LlamaConfig {
     pub n_ctx: u32,
     /// Threads for prefill and decode: one per physical core (6 on the target laptop, ADR-011).
     pub n_threads: i32,
+    /// Map the weights instead of copying them (v3 service, ADR-036). Off by default: research
+    /// measurements load without mmap (PREREG D12).
+    pub mmap: bool,
 }
 
 impl Default for LlamaConfig {
@@ -62,6 +66,7 @@ impl Default for LlamaConfig {
         Self {
             n_ctx: 2048,
             n_threads: 6,
+            mmap: false,
         }
     }
 }
@@ -83,7 +88,7 @@ impl LlamaSlm {
         if cfg.n_ctx == 0 || cfg.n_threads < 1 {
             return Err(invalid(format!("bad config {cfg:?}")));
         }
-        let params = LlamaModelParams::default().with_use_mmap(false);
+        let params = LlamaModelParams::default().with_use_mmap(cfg.mmap);
         let model = LlamaModel::load_from_file(backend()?, path, &params)
             .map_err(|_| KestrelError::ModelUnavailable(Tier::Generative))?;
         Ok(Self { model, cfg })
@@ -577,6 +582,10 @@ mod tests {
     use super::*;
 
     fn slm() -> LlamaSlm {
+        slm_with(LlamaConfig::default())
+    }
+
+    fn slm_with(cfg: LlamaConfig) -> LlamaSlm {
         let rel = std::env::var("KESTREL_SLM").expect("set KESTREL_SLM to a GGUF model path");
         let workspace = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let path = PathBuf::from(&rel);
@@ -585,7 +594,7 @@ mod tests {
         } else {
             workspace.join(path)
         };
-        LlamaSlm::load(&path, LlamaConfig::default()).unwrap()
+        LlamaSlm::load(&path, cfg).unwrap()
     }
 
     fn far() -> Deadline {
@@ -615,6 +624,37 @@ mod tests {
         if st.tokens >= 2 {
             assert!(st.decode_tokens_per_s().unwrap() > 0.0);
         }
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn mmap_maps_the_weights_and_keeps_the_greedy_bytes() {
+        let file_kib = || kestrel_bench::rss_breakdown().unwrap().file_kib;
+        let run = |mmap| {
+            let before = file_kib();
+            let m = slm_with(LlamaConfig {
+                mmap,
+                ..LlamaConfig::default()
+            });
+            let mut text = String::new();
+            m.session()
+                .unwrap()
+                .generate(
+                    PROMPT,
+                    &GenParams::greedy(24),
+                    &CancelToken::new(),
+                    &far(),
+                    &mut |t| text.push_str(t),
+                )
+                .unwrap();
+            (text, file_kib().saturating_sub(before))
+        };
+        let (copied, _) = run(false);
+        let (mapped, mapped_kib) = run(true);
+        // The load mode changes where the weights live, never the tokens.
+        assert_eq!(copied, mapped);
+        // Weights the model touched count as file-backed pages only when mapped.
+        assert!(mapped_kib > 100 * 1024, "RssFile grew {mapped_kib} KiB");
     }
 
     #[test]
