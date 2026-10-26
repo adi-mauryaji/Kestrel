@@ -625,3 +625,152 @@ kind = "app"
 note = "summarize_notes: the user's notes, not given text"
 en = ["summarize all my notes from this week", "recap my notes on the client calls"]
 hi-en = ["is hafte ke saare notes ka summary do", "client calls wale notes ka recap do"]
+
+# ---------------------------------------------------------------- third draft (2026-10-26, after dev_v2)
+# Aimed at the kinds of request dev_v2 missed on val (concept questions, recipes, letters and
+# applications, notes vs given text, mail-karo vs mail-likho), not at val's own sentences. Pinned to
+# train (split = "train"): val and test stay the sets dev_v0–v2 were measured on.
+
+[[family]]
+id = "chat-21"
+kind = "chat"
+domain = "concepts"
+split = "train"
+en = ["what is inflation?", "explain inflation like i'm ten years old"]
+hi-en = ["inflation kya hota hai?", "inflation ko aise samjhao jaise main das saal ka hoon"]
+
+[[family]]
+id = "chat-22"
+kind = "chat"
+domain = "concepts"
+split = "train"
+en = ["how does a refrigerator keep food cold?", "how do vaccines work?"]
+hi-en = ["fridge khana thanda kaise rakhta hai?", "vaccine kaam kaise karti hai?"]
+
+[[family]]
+id = "chat-23"
+kind = "chat"
+domain = "concepts"
+split = "train"
+en = ["what is an api in programming?", "explain what cloud computing means"]
+hi-en = ["programming mein api kya hoti hai?", "cloud computing ka matlab samjhao"]
+
+[[family]]
+id = "chat-24"
+kind = "chat"
+domain = "concepts"
+split = "train"
+en = ["why do onions make us cry?", "why do we get hiccups?"]
+hi-en = ["pyaaz kaatne pe aansu kyun aate hain?", "hichki kyun aati hai?"]
+
+[[family]]
+id = "chat-25"
+kind = "chat"
+domain = "concepts"
+split = "train"
+note = "recipes: train had none"
+en = ["how do i make poha?", "give me a simple recipe for dal tadka"]
+hi-en = ["poha kaise banate hain?", "dal tadka ki simple recipe batao"]
+
+[[family]]
+id = "chat-26"
+kind = "chat"
+domain = "concepts"
+split = "train"
+en = ["what's the difference between a debit card and a credit card?", "how does compound interest work?"]
+hi-en = ["debit card aur credit card mein kya fark hai?", "compound interest kaise kaam karta hai, samjha do"]
+
+[[family]]
+id = "chat-27"
+kind = "chat"
+domain = "concepts"
+split = "train"
+note = "a topic, not the user's notes (app-19 is the notes side)"
+en = ["tell me about the solar system", "teach me the basics of chess"]
+hi-en = ["solar system ke baare mein batao", "chess ke basics sikhao"]
+
+[[family]]
+id = "chat-28"
+kind = "chat"
+domain = "concepts"
+split = "train"
+note = "short what-is questions (written after fresh probes: \"what is machine learning?\" went to app at 0.92)"
+en = ["what is gst?", "what does a vpn do?"]
+hi-en = ["gst kya hota hai?", "vpn kya karta hai?"]
+
+[[family]]
+id = "email-21"
+kind = "email"
+split = "train"
+note = "letters and applications"
+en = ["write an application to the bank manager to close my account", "write a letter to the society secretary about the parking problem"]
+hi-en = ["bank manager ko account band karne ki application likho", "society secretary ko parking problem ke baare mein letter likho"]
+
+[[family]]
+id = "email-22"
+kind = "email"
+split = "train"
+note = "letters and applications"
+en = ["write a complaint letter to the electricity board about a wrong bill", "draft a complaint to the courier company about a damaged parcel"]
+hi-en = ["electricity board ko galat bill ke liye complaint letter likho", "courier company ko toote hue parcel ki complaint likh do"]
+
+[[family]]
+id = "email-23"
+kind = "email"
+split = "train"
+en = ["write a mail to the client with this week's project update", "draft a message to my team that the release moves to monday"]
+hi-en = ["client ko is hafte ka project update mail likh do", "team ke liye message draft karo ki release monday ko shift ho gayi hai"]
+
+[[family]]
+id = "email-24"
+kind = "email"
+split = "train"
+en = ["write a follow up email after my job interview", "draft my resignation email to my manager"]
+hi-en = ["interview ke baad follow up mail likho", "manager ko resignation mail draft karo"]
+
+[[family]]
+id = "email-25"
+kind = "email"
+split = "train"
+note = "messages and notes for someone, without the word email"
+en = ["write a message to my neighbour asking them to keep the noise down at night", "write a note for my son's teacher saying he was sick yesterday"]
+hi-en = ["padosi ke liye message likho ki raat ko shor kam karein", "bete ki teacher ke liye note likho ki wo kal beemar tha"]
+
+[[family]]
+id = "email-26"
+kind = "email"
+split = "train"
+en = ["make a mail for the principal saying the school bus comes late", "prepare an email asking the hotel to confirm my booking"]
+hi-en = ["principal ko mail bana do ki school bus late aati hai", "hotel ko booking confirm karne ke liye mail ready karo"]
+
+[[family]]
+id = "app-16"
+kind = "app"
+split = "train"
+note = "summarize_notes: shorten the user's notes, not given text"
+en = ["shorten my notes from the client call", "give me the gist of my notes on the new project"]
+hi-en = ["client call wale notes chhote karke do", "naye project wale notes ka gist do"]
+
+[[family]]
+id = "app-17"
+kind = "app"
+split = "train"
+note = "sending: mail karo / forward, not mail likho"
+en = ["forward the vendor's mail to ravi", "mail the invoice to the client"]
+hi-en = ["vendor ka mail ravi ko forward karo", "client ko invoice mail kar do"]
+
+[[family]]
+id = "app-18"
+kind = "app"
+split = "train"
+note = "a task to write, not the writing"
+en = ["add a task to write the project report", "make a to-do to draft the newsletter on friday"]
+hi-en = ["project report likhne ka task add karo", "friday ko newsletter draft karne ka to-do bana do"]
+
+[[family]]
+id = "app-19"
+kind = "app"
+split = "train"
+note = "the user's notes, not a topic (chat-27 is the topic side)"
+en = ["explain my physics notes in simple words", "what do my notes say about the solar system project?"]
+hi-en = ["meri physics notes simple words mein samjhao", "solar system project ke baare mein mere notes mein kya hai?"]

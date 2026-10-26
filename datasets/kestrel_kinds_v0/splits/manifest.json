@@ -10,7 +10,7 @@
   "translate"
  ],
  "sources": {
-  "kinds.toml": "b1ea2ea804f3d18859c7953a0fab3f71acedd3bf3f0c09954244bfc1f6aba392",
+  "kinds.toml": "5aa7067340ba52977c4bbcb5284e8113b321d9118799a016ed2fac025e2f526a",
   "contracts/kinds.txt": "62834c95d7b9843b070c2e26b4fdfbf27448288cd24aea46773dabeb3ee9e0f1",
   "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
   "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",
@@ -19,18 +19,18 @@
  "conflicts_dropped": [],
  "splits": {
   "train": {
-   "items": 748,
-   "fingerprint": "7f91d0bb0e7e7859f5eac3589cc8f30ede885d216d91d7b7fd8f6ef44d8e3536",
+   "items": 820,
+   "fingerprint": "db9b89f16ef27d79224ad5f85c900e0d8e0587d491644e81ca553da37499a77c",
    "by_label": {
-    "app": 552,
-    "chat": 48,
-    "email": 50,
+    "app": 568,
+    "chat": 80,
+    "email": 74,
     "rewrite": 50,
     "translate": 48
    },
    "by_lang": {
-    "en": 372,
-    "hi-en": 376
+    "en": 408,
+    "hi-en": 412
    }
   },
   "cal": {

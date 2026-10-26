@@ -61,12 +61,14 @@ def fit_temperature(z, y) -> float:
     return float(np.exp(res.x))
 
 
-def train_head(x, y, n_classes: int, c: float):
-    """(W [K x D] f32, b [K] f32) for labels y in 0..n_classes-1; L2 penalty 1/c."""
+def train_head(x, y, n_classes: int, c: float, class_weight=None):
+    """(W [K x D] f32, b [K] f32) for labels y in 0..n_classes-1; L2 penalty 1/c.
+    class_weight "balanced" weighs each item n / (K * n_class) (sklearn), so a small class counts as
+    much as a big one; None (the research heads) weighs every item 1."""
     missing = sorted(set(range(n_classes)) - set(np.unique(y).tolist()))
     if missing:
         raise ValueError(f"class {missing[0]} has no training example")
-    clf = LogisticRegression(C=c, max_iter=10000, tol=1e-6).fit(x, y)
+    clf = LogisticRegression(C=c, max_iter=10000, tol=1e-6, class_weight=class_weight).fit(x, y)
     w, b = clf.coef_, clf.intercept_
     if n_classes == 2:  # sklearn keeps one row for binary; softmax([-a/2, a/2]) = sigmoid(a)
         w, b = np.vstack([-w / 2, w / 2]), np.array([-b[0] / 2, b[0] / 2])

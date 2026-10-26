@@ -7,12 +7,15 @@ Labels: `datasets/contracts/kinds.txt`. Drafted by Claude on 2026-10-26, **not y
 | Part | Where |
 |---|---|
 | 80 families of the four new kinds (20 each) and 15 `app` boundary families, each in English and Romanized Hinglish | `kinds.toml` |
+| Third draft: 8 `chat`, 6 `email` and 4 `app` boundary families written after dev_v2's val errors, pinned to train (`split = "train"`) so val and test stay unchanged | `kinds.toml` |
 | Kestrel-Intents-v0's train / cal / val items, all `app` (its test split is never read) | borrowed at build time |
 | train / cal / val / test, split whole by family, and a manifest with every source's SHA-256 | `splits/` |
 
 Build: `python experiments/data/kinds_v0.py` (`--check` validates only); the output is the same bytes every time.
 Head (dev only, test closed): `python experiments/tier3/train.py --datasets kinds_v0 --encoders
-multilingual-e5-small-q8_0 --out experiments/logs/v3/kinds/dev_v0.json`.
+multilingual-e5-small-q8_0 --out experiments/logs/v3/kinds/dev_v0.json`. dev_v2 → dev_v4 share val and test;
+dev_v3 is dev_v2 with `--class-weight balanced` (worse on val; not used). dev_v4's val is optimistic: the third draft
+was written after looking at val's errors. The closed test split is the measure.
 
 Review: `python experiments/v3/kinds_review.py` writes `experiments/human/kinds_review.html` (its own browser storage
 and file, `kestrel-kinds-review.json`); `python experiments/v3/kinds_review.py ingest FILE` merges the marks into

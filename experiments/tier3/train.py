@@ -12,6 +12,7 @@ For each dataset x encoder, on the development splits only (the test sets stay c
 
     python experiments/tier3/train.py                  # writes experiments/logs/tier3/week5_dev.json
     python experiments/tier3/train.py --encoders multilingual-e5-small-f16 --c 100 --out …/e5_quant.json
+    python experiments/tier3/train.py --datasets kinds_v0 --class-weight balanced …  # v3 option only
 """
 from __future__ import annotations
 
@@ -83,7 +84,7 @@ def _scores(p, y, classes):
             "ece": ece(conf.tolist(), (pred == y).tolist(), n_bins=ECE_BINS)}
 
 
-def run(dataset, encoder_name, c_grid=C_GRID):
+def run(dataset, encoder_name, c_grid=C_GRID, class_weight=None):
     enc = load_encoder(encoder_name)
     splits = load_splits(dataset)
     classes = classes_for(dataset, splits)
@@ -95,11 +96,11 @@ def run(dataset, encoder_name, c_grid=C_GRID):
 
     c_scores = {}
     for c in c_grid:
-        w, b = train_head(x_tr, y_tr, len(classes), c)
+        w, b = train_head(x_tr, y_tr, len(classes), c, class_weight)
         pred = logits(x_val, w, b).argmax(axis=1)
         c_scores[c] = macro_f1([classes[i] for i in y_val], [classes[i] for i in pred])
     c = choose_c(c_scores)
-    w, b = train_head(x_tr, y_tr, len(classes), c)
+    w, b = train_head(x_tr, y_tr, len(classes), c, class_weight)
 
     z_cal, z_val = logits(x_cal, w, b), logits(x_val, w, b)
     cal_errors = int((z_cal.argmax(axis=1) != y_cal).sum())
@@ -107,7 +108,9 @@ def run(dataset, encoder_name, c_grid=C_GRID):
         t, t_note = fit_temperature(z_cal, y_cal), "fitted on cal"
     except ValueError as e:
         t, t_note = 1.0, f"NOT FITTED ({e}); T = 1 kept"
-    out = {"dataset": dataset, "encoder": encoder_name, "classes": len(classes), "c_grid_val_macro_f1": c_scores,
+    weighting = {"class_weight": class_weight} if class_weight else {}  # research logs: no new key
+    out = {"dataset": dataset, "encoder": encoder_name, "classes": len(classes)} | weighting | {
+           "c_grid_val_macro_f1": c_scores,
            "c": c, "temperature": t, "temperature_note": t_note, "cal_n": int(len(y_cal)), "cal_errors": cal_errors,
            "val_raw": _scores(softmax(z_val, 1.0), y_val, classes) | {"nll": nll(z_val, y_val, 1.0)},
            "val_calibrated": _scores(softmax(z_val, t), y_val, classes) | {"nll": nll(z_val, y_val, t)}}
@@ -136,7 +139,7 @@ def run(dataset, encoder_name, c_grid=C_GRID):
     export_head(head_dir, w, b, t, classes, {
         "encoder": encoder_name, "encoder_sha256": enc.sha256, "input_prefix": enc.prefix,
         "embedding": "llama-embedding, model pooling, L2-normalized", "dataset": dataset,
-        "train_n": int(len(y_tr)), "c": c, "solver": f"sklearn {sklearn.__version__} LogisticRegression lbfgs",
+        "train_n": int(len(y_tr)), "c": c, **weighting, "solver": f"sklearn {sklearn.__version__} LogisticRegression lbfgs",
         "seed": None, "temperature_note": t_note})
     sample = x_val[:100].astype(np.float32)
     (head_dir / "cases.json").write_text(json.dumps({
@@ -146,17 +149,23 @@ def run(dataset, encoder_name, c_grid=C_GRID):
     return out
 
 
-def main(argv=None):
+def parser():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--datasets", nargs="+", default=["intents_v0", "clinc150"])
     ap.add_argument("--encoders", nargs="+", default=["bge-small-en-v1.5-q8_0", "multilingual-e5-small-q8_0"])
     ap.add_argument("--c", type=float, help="fixed C instead of the grid (one fit per run; Ch. 33.3 cost)")
     ap.add_argument("--out", type=Path, default=LOG, help="results JSON")
-    args = ap.parse_args(argv)
+    ap.add_argument("--class-weight", choices=["balanced"],
+                    help="weigh classes equally in training (v3 kind head); default: every item weighs 1")
+    return ap
+
+
+def main(argv=None):
+    args = parser().parse_args(argv)
     results = []
     for ds in args.datasets:
         for name in args.encoders:
-            r = run(ds, name, (args.c,) if args.c else C_GRID)
+            r = run(ds, name, (args.c,) if args.c else C_GRID, args.class_weight)
             results.append(r)
             raw, cal = r["val_raw"], r["val_calibrated"]
             print(f"{ds:10s} {name:28s} C={r['c']:<6g} T={r['temperature']:.3f} cal_err={r['cal_errors']:<3d} "

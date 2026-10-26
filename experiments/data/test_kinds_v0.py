@@ -15,6 +15,8 @@ def test_validate_refuses_unknown_kinds_missing_languages_and_repeated_ids():
     assert validate([fam(kind="code")]) == ["chat-01: kind 'code' is not in datasets/contracts/kinds.txt"]
     assert validate([fam(**{"hi-en": []})]) == ["chat-01: needs at least one en and one hi-en request"]
     assert validate([fam(), fam()]) == ["chat-01: id used twice"]
+    assert validate([fam(split="train")]) == []
+    assert validate([fam(split="dev")]) == ["chat-01: split 'dev' is not one of train, cal, val, test"]
 
 
 def test_every_new_kind_has_families_in_both_languages():
@@ -39,6 +41,17 @@ def test_families_never_straddle_splits_and_every_split_has_every_label():
         assert {r["label"] for r in rs} == set(LABELS), name
         for r in rs:
             assert home.setdefault(r["group"], name) == name, r["group"]
+
+
+def test_a_pinned_family_lands_in_its_split_and_moves_no_other_family():
+    # Families written after looking at dev errors are pinned to train, so val and test stay the
+    # sets the earlier heads were measured on.
+    before = split(rows(load())[0])
+    extra = fam(id="chat-99", split="train", en=["how does a kettle boil water?"], **{"hi-en": ["kettle paani kaise ubalti hai?"]})
+    after = split(rows(load() + [extra])[0])
+    assert [name for name, rs in after.items() if any(r["family"] == "chat-99" for r in rs)] == ["train"]
+    for name in before:
+        assert [r for r in after[name] if r["family"] != "chat-99"] == before[name], name
 
 
 def test_the_build_is_byte_for_byte_deterministic(tmp_path):

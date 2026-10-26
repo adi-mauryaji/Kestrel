@@ -38,3 +38,11 @@ def test_per_class_counts_precision_and_recall_from_predictions():
         "chat": {"n": 2, "precision": 2 / 3, "recall": 1.0},
         "email": {"n": 1, "precision": 0.0, "recall": 0.0},
     }
+
+
+def test_class_weight_is_an_option_and_the_default_is_unweighted():
+    from train import parser
+    assert parser().parse_args([]).class_weight is None  # research heads: unchanged
+    assert parser().parse_args(["--class-weight", "balanced"]).class_weight == "balanced"
+    with pytest.raises(SystemExit):
+        parser().parse_args(["--class-weight", "uniform"])

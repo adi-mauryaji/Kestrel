@@ -8,7 +8,10 @@ Rows: every phrasing of every kinds.toml family (label = its kind), plus every K
 train / cal / val item as `app` (its test split is never read). Families are split whole into
 train / cal / val / test (prep.group_split4, seed 0), stratified by kind; the borrowed items by their
 Intents-v0 intent and grouped as Intents-v0 groups them, so every split holds every intent; Claude's
-`app` boundary families are their own stratum. A duplicate text keeps its first copy; a text with two
+`app` boundary families are their own stratum. A family with `split = "<name>"` is pinned there and left out
+of the shuffle, so adding it moves no other family (families written after looking at dev errors are
+pinned to train: val and test stay the sets earlier heads were measured on; such rows carry "pinned").
+A duplicate text keeps its first copy; a text with two
 labels is dropped and listed in the manifest. Output is sorted: a build is the same bytes every time.
 """
 from __future__ import annotations
@@ -46,6 +49,8 @@ def validate(families: list[dict]) -> list[str]:
             problems.append(f"{fid}: kind {f.get('kind')!r} is not in datasets/contracts/kinds.txt")
         if not all(f.get(lang) for lang in LANGS):
             problems.append(f"{fid}: needs at least one en and one hi-en request")
+        if "split" in f and f["split"] not in NAMES:
+            problems.append(f"{fid}: split {f['split']!r} is not one of {', '.join(NAMES)}")
     return problems
 
 
@@ -54,10 +59,11 @@ def rows(families: list[dict]) -> tuple[list[dict], list]:
     out = []
     for f in families:
         stratum = "app-boundary" if f["kind"] == "app" else f["kind"]
+        pin = {"pinned": f["split"]} if "split" in f else {}
         for lang in LANGS:
             for i, text in enumerate(f[lang]):
                 out.append({"id": f"{f['id']}/{lang}/{i}", "text": text, "label": f["kind"], "lang": lang,
-                            "family": f["id"], "group": f["id"], "stratum": stratum, "source": "kinds_v0"})
+                            "family": f["id"], "group": f["id"], "stratum": stratum, "source": "kinds_v0"} | pin)
     for name in ("train", "cal", "val"):
         for line in (INTENTS / f"{name}.jsonl").open(encoding="utf-8"):
             r = json.loads(line)
@@ -69,8 +75,10 @@ def rows(families: list[dict]) -> tuple[list[dict], list]:
 
 
 def split(rs: list[dict]) -> dict[str, list[dict]]:
-    idx = group_split4(rs, "group", "stratum", seed=SEED)
-    return {name: sorted((rs[i] for i in idx[name]), key=lambda r: r["id"]) for name in NAMES}
+    free = [r for r in rs if "pinned" not in r]
+    idx = group_split4(free, "group", "stratum", seed=SEED)
+    return {name: sorted([free[i] for i in idx[name]] + [r for r in rs if r.get("pinned") == name],
+                         key=lambda r: r["id"]) for name in NAMES}
 
 
 def _sha(path: Path) -> str:

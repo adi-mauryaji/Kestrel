@@ -139,3 +139,16 @@ def test_committed_parity_fixture_is_current(tmp_path):
     write_parity_fixture(tmp_path)
     for name in ("head.json", "head.bin", "head_bias.bin", "cases.json"):
         assert (tmp_path / name).read_bytes() == (PARITY_DIR / name).read_bytes(), name
+
+
+def test_train_head_balanced_weighs_each_class_equally():
+    # 40 points of class 0 around the origin, 4 of class 1 just beside them: unweighted, the big
+    # class takes the shared region; "balanced" (n / (k * n_c) per item) moves the boundary
+    # towards class 0, so more of the small class is recovered.
+    rng = np.random.default_rng(1)
+    x = np.r_[rng.normal(0.0, 1.0, (40, 2)), rng.normal(0.8, 1.0, (4, 2))].astype(np.float32)
+    y = np.r_[np.zeros(40, dtype=np.int64), np.ones(4, dtype=np.int64)]
+    plain = logits(x, *train_head(x, y, 2, c=1.0)).argmax(axis=1)
+    balanced = logits(x, *train_head(x, y, 2, c=1.0, class_weight="balanced")).argmax(axis=1)
+    assert (balanced == 1).sum() > (plain == 1).sum()
+    assert np.array_equal(train_head(x, y, 2, c=1.0)[0], train_head(x, y, 2, c=1.0, class_weight=None)[0])

@@ -1,0 +1,73 @@
+[
+ {
+  "dataset": "kinds_v0",
+  "encoder": "multilingual-e5-small-q8_0",
+  "classes": 5,
+  "class_weight": "balanced",
+  "c_grid_val_macro_f1": {
+   "0.1": 0.6509804706392488,
+   "1.0": 0.7593562718164921,
+   "10.0": 0.8348901098901098,
+   "100.0": 0.8364538451494973,
+   "1000.0": 0.8184613415258577
+  },
+  "c": 100.0,
+  "temperature": 1.0042595253188742,
+  "temperature_note": "fitted on cal",
+  "cal_n": 103,
+  "cal_errors": 12,
+  "val_raw": {
+   "n": 128,
+   "accuracy": 0.90625,
+   "macro_f1": 0.8364538451494973,
+   "ece": 0.07950544314238453,
+   "nll": 0.24204787185937315
+  },
+  "val_calibrated": {
+   "n": 128,
+   "accuracy": 0.90625,
+   "macro_f1": 0.8364538451494973,
+   "ece": 0.08013773615940907,
+   "nll": 0.2427229173581899
+  },
+  "val_calibrated_en": {
+   "n": 64,
+   "accuracy": 0.921875,
+   "macro_f1": 0.8676798378926038,
+   "ece": 0.09527640199208773
+  },
+  "val_calibrated_hi-en": {
+   "n": 64,
+   "accuracy": 0.890625,
+   "macro_f1": 0.8081018981018981,
+   "ece": 0.08266959337551359
+  },
+  "val_per_class": {
+   "app": {
+    "n": 96,
+    "precision": 0.9887640449438202,
+    "recall": 0.9166666666666666
+   },
+   "chat": {
+    "n": 8,
+    "precision": 1.0,
+    "recall": 0.875
+   },
+   "email": {
+    "n": 8,
+    "precision": 0.4666666666666667,
+    "recall": 0.875
+   },
+   "rewrite": {
+    "n": 8,
+    "precision": 0.8571428571428571,
+    "recall": 0.75
+   },
+   "translate": {
+    "n": 8,
+    "precision": 0.8,
+    "recall": 1.0
+   }
+  }
+ }
+]
