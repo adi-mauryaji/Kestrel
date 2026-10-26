@@ -1,0 +1,20 @@
+{"family": "q-car", "id": "q-car/en/0", "lang": "en", "notes": ["2026-10-03-car-service.md"], "text": "vehicle maintenance"}
+{"family": "q-car", "id": "q-car/hi-en/0", "lang": "hi-en", "notes": ["2026-10-03-car-service.md"], "text": "gaadi ki servicing"}
+{"family": "q-diwali", "id": "q-diwali/en/0", "lang": "en", "notes": ["2026-10-08-diwali-shopping.md"], "text": "festival shopping"}
+{"family": "q-diwali", "id": "q-diwali/hi-en/0", "lang": "hi-en", "notes": ["2026-10-08-diwali-shopping.md"], "text": "tyohaar ki khareedari"}
+{"family": "q-goa", "id": "q-goa/en/0", "lang": "en", "notes": ["2026-09-15-goa-trip.md"], "text": "beach holiday"}
+{"family": "q-goa", "id": "q-goa/hi-en/0", "lang": "hi-en", "notes": ["2026-09-15-goa-trip.md"], "text": "samundar wali chhutti"}
+{"family": "q-gym", "id": "q-gym/en/0", "lang": "en", "notes": ["2026-09-05-gym-routine.md"], "text": "my exercise plan"}
+{"family": "q-gym", "id": "q-gym/hi-en/0", "lang": "hi-en", "notes": ["2026-09-05-gym-routine.md"], "text": "meri kasrat ki planning"}
+{"family": "q-landlord", "id": "q-landlord/en/0", "lang": "en", "notes": ["2026-09-22-landlord.md"], "text": "plumbing problem in the flat"}
+{"family": "q-landlord", "id": "q-landlord/hi-en/0", "lang": "hi-en", "notes": ["2026-09-22-landlord.md"], "text": "ghar mein paani ka rissav"}
+{"family": "q-meeting", "id": "q-meeting/en/0", "lang": "en", "notes": ["2026-10-01-team-meeting.md"], "text": "new release date"}
+{"family": "q-meeting", "id": "q-meeting/hi-en/0", "lang": "hi-en", "notes": ["2026-10-01-team-meeting.md"], "text": "release kab hogi"}
+{"family": "q-none-guitar", "id": "q-none-guitar/en/0", "lang": "en", "notes": [], "text": "learning guitar"}
+{"family": "q-none-guitar", "id": "q-none-guitar/hi-en/0", "lang": "hi-en", "notes": [], "text": "guitar seekhna"}
+{"family": "q-plants", "id": "q-plants/en/0", "lang": "en", "notes": ["2026-10-06-plants.md"], "text": "watering the balcony greenery"}
+{"family": "q-plants", "id": "q-plants/hi-en/0", "lang": "hi-en", "notes": ["2026-10-06-plants.md"], "text": "paudhon ko paani"}
+{"family": "q-python", "id": "q-python/en/0", "lang": "en", "notes": ["2026-09-12-python-learning.md"], "text": "getting better at coding"}
+{"family": "q-python", "id": "q-python/hi-en/0", "lang": "hi-en", "notes": ["2026-09-12-python-learning.md"], "text": "coding ki practice"}
+{"family": "q-wifi", "id": "q-wifi/en/0", "lang": "en", "notes": ["docs/wifi-setup.md"], "text": "changing the internet password"}
+{"family": "q-wifi", "id": "q-wifi/hi-en/0", "lang": "hi-en", "notes": ["docs/wifi-setup.md"], "text": "wifi ka password badalna"}

@@ -39,6 +39,7 @@ ghar
 hai
 hain
 hamara
+har
 ho
 hoga
 hogi
@@ -78,6 +79,7 @@ kyun
 kyunki
 lekin
 lena
+liye
 lo
 magar
 maine

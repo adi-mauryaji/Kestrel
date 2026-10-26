@@ -1,0 +1,132 @@
+# Kestrel-NotesQ-v0 (DRAFT, ADR-039): what a notes search asks for, in other words than the note uses.
+# Drafted by Claude on 2026-10-26; not yet reviewed by the human.
+#
+# Each family: the notes (paths under notes/) a search for its query should find, or none; one English
+# and one Romanized Hinglish query, written as the search tool receives them (the topic after "search my
+# notes for ..."). The q-none families have no note: anything found for them is noise.
+
+[[family]]
+id = "q-budget"
+notes = ["2026-09-02-budget-plan.md"]
+en = ["saving money every month"]
+hi-en = ["har mahine paise bachana"]
+
+[[family]]
+id = "q-gym"
+notes = ["2026-09-05-gym-routine.md"]
+en = ["my exercise plan"]
+hi-en = ["meri kasrat ki planning"]
+
+[[family]]
+id = "q-mom"
+notes = ["2026-09-08-mom-birthday.md"]
+en = ["present for my mother"]
+hi-en = ["maa ke liye tohfa"]
+
+[[family]]
+id = "q-laptop"
+notes = ["2026-09-10-laptop-issues.md"]
+en = ["computer overheating and noise"]
+hi-en = ["laptop garam hona aur awaaz"]
+
+[[family]]
+id = "q-python"
+notes = ["2026-09-12-python-learning.md"]
+en = ["getting better at coding"]
+hi-en = ["coding ki practice"]
+
+[[family]]
+id = "q-goa"
+notes = ["2026-09-15-goa-trip.md"]
+en = ["beach holiday"]
+hi-en = ["samundar wali chhutti"]
+
+[[family]]
+id = "q-doctor"
+notes = ["2026-09-18-doctor-visit.md"]
+en = ["medicine when i was sick"]
+hi-en = ["bimari ki dawai"]
+
+[[family]]
+id = "q-interview"
+notes = ["2026-09-20-interview-prep.md"]
+en = ["job interview practice"]
+hi-en = ["naukri ke interview ki taiyari"]
+
+[[family]]
+id = "q-landlord"
+notes = ["2026-09-22-landlord.md"]
+en = ["plumbing problem in the flat"]
+hi-en = ["ghar mein paani ka rissav"]
+
+[[family]]
+id = "q-recipes"
+notes = ["2026-09-25-recipes.md"]
+en = ["how to cook lentils"]
+hi-en = ["dal kaise banate hain"]
+
+[[family]]
+id = "q-book"
+notes = ["2026-09-28-book-notes.md"]
+en = ["the book about habits"]
+hi-en = ["aadaton wali kitaab"]
+
+[[family]]
+id = "q-meeting"
+notes = ["2026-10-01-team-meeting.md"]
+en = ["new release date"]
+hi-en = ["release kab hogi"]
+
+[[family]]
+id = "q-car"
+notes = ["2026-10-03-car-service.md"]
+en = ["vehicle maintenance"]
+hi-en = ["gaadi ki servicing"]
+
+[[family]]
+id = "q-plants"
+notes = ["2026-10-06-plants.md"]
+en = ["watering the balcony greenery"]
+hi-en = ["paudhon ko paani"]
+
+[[family]]
+id = "q-diwali"
+notes = ["2026-10-08-diwali-shopping.md"]
+en = ["festival shopping"]
+hi-en = ["tyohaar ki khareedari"]
+
+[[family]]
+id = "q-kyc"
+notes = ["2026-10-11-bank-kyc.md"]
+en = ["documents the bank asked for"]
+hi-en = ["bank ke liye kaagaz"]
+
+[[family]]
+id = "q-sleep"
+notes = ["2026-10-14-sleep.md"]
+en = ["trouble with insomnia"]
+hi-en = ["neend na aana"]
+
+[[family]]
+id = "q-wifi"
+notes = ["docs/wifi-setup.md"]
+en = ["changing the internet password"]
+hi-en = ["wifi ka password badalna"]
+
+[[family]]
+id = "q-none-cat"
+notes = []
+en = ["my cat's vaccination"]
+hi-en = ["billi ka teeka"]
+
+[[family]]
+id = "q-none-guitar"
+notes = []
+en = ["learning guitar"]
+hi-en = ["guitar seekhna"]
+
+[[family]]
+id = "q-none-stocks"
+notes = []
+en = ["stock market investing"]
+hi-en = ["share bazaar mein nivesh"]

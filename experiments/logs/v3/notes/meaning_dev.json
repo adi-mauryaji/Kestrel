@@ -1,0 +1,459 @@
+{
+ "encoder": "multilingual-e5-small-q8_0",
+ "translate": false,
+ "k": 3,
+ "chunks": 52,
+ "dev_queries": 22,
+ "keyword_only_found": 0.0,
+ "meaning_rank1": 0.6111111111111112,
+ "meaning_rank_le_k": 0.7777777777777778,
+ "theta": 0.82,
+ "found_and_noise_at_theta": [
+  0.7222222222222222,
+  0.25
+ ],
+ "by_lang_at_theta": {
+  "en": [
+   1.0,
+   0.0
+  ],
+  "hi-en": [
+   0.4444444444444444,
+   0.5
+  ]
+ },
+ "grid": {
+  "0.7": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.71": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.72": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.73": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.74": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.75": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.76": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.77": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.78": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.79": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.8": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.81": [
+   0.7777777777777778,
+   1.0
+  ],
+  "0.82": [
+   0.7222222222222222,
+   0.25
+  ],
+  "0.83": [
+   0.6666666666666666,
+   0.25
+  ],
+  "0.84": [
+   0.5555555555555556,
+   0.25
+  ],
+  "0.85": [
+   0.3888888888888889,
+   0.0
+  ],
+  "0.86": [
+   0.2222222222222222,
+   0.0
+  ],
+  "0.87": [
+   0.16666666666666666,
+   0.0
+  ],
+  "0.88": [
+   0.0,
+   0.0
+  ],
+  "0.89": [
+   0.0,
+   0.0
+  ],
+  "0.9": [
+   0.0,
+   0.0
+  ],
+  "0.91": [
+   0.0,
+   0.0
+  ],
+  "0.92": [
+   0.0,
+   0.0
+  ],
+  "0.93": [
+   0.0,
+   0.0
+  ],
+  "0.94": [
+   0.0,
+   0.0
+  ],
+  "0.95": [
+   0.0,
+   0.0
+  ]
+ },
+ "none_best_scores": [
+  0.8146,
+  0.8482,
+  0.8104,
+  0.8194
+ ],
+ "found_note_scores": [
+  0.847,
+  0.8155,
+  0.867,
+  0.8177,
+  0.8553,
+  0.8185,
+  0.8511,
+  0.8727,
+  0.8742,
+  0.8494,
+  0.8712,
+  0.8474,
+  0.8556,
+  0.8163,
+  0.8393,
+  0.7885,
+  0.8342,
+  0.824
+ ],
+ "queries": [
+  {
+   "id": "q-book/en/0",
+   "text": "the book about habits",
+   "asked": "the book about habits",
+   "notes": [
+    "2026-09-28-book-notes.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-28-book-notes.md",
+    0.847
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-book/hi-en/0",
+   "text": "aadaton wali kitaab",
+   "asked": "aadaton wali kitaab",
+   "notes": [
+    "2026-09-28-book-notes.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-06-plants.md",
+    0.8228
+   ],
+   "note_rank": 3
+  },
+  {
+   "id": "q-budget/en/0",
+   "text": "saving money every month",
+   "asked": "saving money every month",
+   "notes": [
+    "2026-09-02-budget-plan.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-02-budget-plan.md",
+    0.867
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-budget/hi-en/0",
+   "text": "har mahine paise bachana",
+   "asked": "har mahine paise bachana",
+   "notes": [
+    "2026-09-02-budget-plan.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-06-plants.md",
+    0.8406
+   ],
+   "note_rank": 12
+  },
+  {
+   "id": "q-doctor/en/0",
+   "text": "medicine when i was sick",
+   "asked": "medicine when i was sick",
+   "notes": [
+    "2026-09-18-doctor-visit.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-18-doctor-visit.md",
+    0.8553
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-doctor/hi-en/0",
+   "text": "bimari ki dawai",
+   "asked": "bimari ki dawai",
+   "notes": [
+    "2026-09-18-doctor-visit.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-08-diwali-shopping.md",
+    0.8331
+   ],
+   "note_rank": 11
+  },
+  {
+   "id": "q-interview/en/0",
+   "text": "job interview practice",
+   "asked": "job interview practice",
+   "notes": [
+    "2026-09-20-interview-prep.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-20-interview-prep.md",
+    0.8511
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-interview/hi-en/0",
+   "text": "naukri ke interview ki taiyari",
+   "asked": "naukri ke interview ki taiyari",
+   "notes": [
+    "2026-09-20-interview-prep.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-20-interview-prep.md",
+    0.8727
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-kyc/en/0",
+   "text": "documents the bank asked for",
+   "asked": "documents the bank asked for",
+   "notes": [
+    "2026-10-11-bank-kyc.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-11-bank-kyc.md",
+    0.8742
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-kyc/hi-en/0",
+   "text": "bank ke liye kaagaz",
+   "asked": "bank ke liye kaagaz",
+   "notes": [
+    "2026-10-11-bank-kyc.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.8533
+   ],
+   "note_rank": 2
+  },
+  {
+   "id": "q-laptop/en/0",
+   "text": "computer overheating and noise",
+   "asked": "computer overheating and noise",
+   "notes": [
+    "2026-09-10-laptop-issues.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-10-laptop-issues.md",
+    0.8712
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-laptop/hi-en/0",
+   "text": "laptop garam hona aur awaaz",
+   "asked": "laptop garam hona aur awaaz",
+   "notes": [
+    "2026-09-10-laptop-issues.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-10-laptop-issues.md",
+    0.8474
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-mom/en/0",
+   "text": "present for my mother",
+   "asked": "present for my mother",
+   "notes": [
+    "2026-09-08-mom-birthday.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-08-mom-birthday.md",
+    0.8556
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-mom/hi-en/0",
+   "text": "maa ke liye tohfa",
+   "asked": "maa ke liye tohfa",
+   "notes": [
+    "2026-09-08-mom-birthday.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.8277
+   ],
+   "note_rank": 6
+  },
+  {
+   "id": "q-none-cat/en/0",
+   "text": "my cat's vaccination",
+   "asked": "my cat's vaccination",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-09-18-doctor-visit.md",
+    0.8146
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-none-cat/hi-en/0",
+   "text": "billi ka teeka",
+   "asked": "billi ka teeka",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.8482
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-none-stocks/en/0",
+   "text": "stock market investing",
+   "asked": "stock market investing",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-10-01-team-meeting.md",
+    0.8104
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-none-stocks/hi-en/0",
+   "text": "share bazaar mein nivesh",
+   "asked": "share bazaar mein nivesh",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-10-08-diwali-shopping.md",
+    0.8194
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-recipes/en/0",
+   "text": "how to cook lentils",
+   "asked": "how to cook lentils",
+   "notes": [
+    "2026-09-25-recipes.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-25-recipes.md",
+    0.8393
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-recipes/hi-en/0",
+   "text": "dal kaise banate hain",
+   "asked": "dal kaise banate hain",
+   "notes": [
+    "2026-09-25-recipes.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-08-diwali-shopping.md",
+    0.8298
+   ],
+   "note_rank": 16
+  },
+  {
+   "id": "q-sleep/en/0",
+   "text": "trouble with insomnia",
+   "asked": "trouble with insomnia",
+   "notes": [
+    "2026-10-14-sleep.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-14-sleep.md",
+    0.8342
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-sleep/hi-en/0",
+   "text": "neend na aana",
+   "asked": "neend na aana",
+   "notes": [
+    "2026-10-14-sleep.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.827
+   ],
+   "note_rank": 3
+  }
+ ]
+}
