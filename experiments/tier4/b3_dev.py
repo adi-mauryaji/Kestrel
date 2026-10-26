@@ -41,6 +41,7 @@ CONTRACTS = ROOT / "datasets" / "contracts"
 TASKS = {
     "intents_v0": (CONTRACTS / "tier4_intent_prompt.txt", CONTRACTS / "intents.txt", 2048),
     "clinc150": (CONTRACTS / "tier4_clinc150_prompt.txt", CONTRACTS / "clinc150_labels.txt", 6144),
+    "kinds_v0": (CONTRACTS / "tier4_kind_prompt.txt", CONTRACTS / "kinds.txt", 2048),  # v3 (ADR-037)
 }
 PROMPT, LABELS, _ = TASKS["intents_v0"]
 LOG_DIR = ROOT / "experiments" / "logs" / "tier4"
