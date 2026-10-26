@@ -386,6 +386,7 @@ fn answer<'m>(
 fn open_web(
     port: u16,
     memory: &std::path::Path,
+    skills: bool,
 ) -> Result<crate::web::Web, Box<dyn std::error::Error>> {
     let dir = memory.parent().unwrap_or(std::path::Path::new("."));
     let token = crate::web::token(&dir.join("web-token"))?;
@@ -399,6 +400,7 @@ fn open_web(
             &tasks_db.tasks().unwrap_or_default(),
             crate::clock::local_date(now, offset),
             crate::clock::local_minute(now, offset),
+            skills,
         )
     };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks))?;
@@ -474,6 +476,7 @@ pub fn serve(
     let mut assistant =
         crate::assistant::Assistant::new(cascade, log, personal, Some(act), sink, true);
     // v3 (ADR-037): the kind head, once experiments/tier3/train.py has made it.
+    let mut skills = false;
     match models.kinds_tier() {
         Ok(head) => {
             let writer = Box::new(SharedRemote(remote.clone()));
@@ -489,6 +492,7 @@ pub fn serve(
                 Err(e) => eprintln!("the kind fallback is off (unsure requests are asked): {e}"),
             }
             assistant = assistant.with_kinds(kinds);
+            skills = true;
         }
         Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate) are off: {e}"),
     }
@@ -507,7 +511,7 @@ pub fn serve(
     let ring_db = memory.to_path_buf();
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
     // The browser page; without it the service still answers on the socket.
-    let mut web = web_port.and_then(|port| match open_web(port, memory) {
+    let mut web = web_port.and_then(|port| match open_web(port, memory, skills) {
         Ok(w) => {
             eprintln!(
                 "the page is at http://127.0.0.1:{}/ (kestrel open)",

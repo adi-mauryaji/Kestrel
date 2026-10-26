@@ -3,7 +3,8 @@
 //!
 //! - `GET /` is the page (apps/cli/web/page.html, one file, nothing fetched from elsewhere: its
 //!   Content-Security-Policy allows only this server).
-//! - `GET /api/tasks`: the tasks, today's date and the minute now. `POST /api/say {"text"}`: the
+//! - `GET /api/tasks`: the tasks, today's date, the minute now and whether v3's skills are on
+//!   (the page then names them). `POST /api/say {"text"}`: the
 //!   answer as JSON lines, `{"part"}` ... while a skill's text is written (v3), `{"line"}` ...,
 //!   `{"ask"}` for a y/N question, `{"done": true}`; the page answers a question with
 //!   `POST /api/answer {"answer": bool}`, served while it waits.
@@ -205,12 +206,12 @@ pub fn token(path: &Path) -> io::Result<String> {
 }
 
 /// What `GET /api/tasks` answers.
-pub fn tasks_json(tasks: &[TaskRow], today: Date, minute: u32) -> Value {
+pub fn tasks_json(tasks: &[TaskRow], today: Date, minute: u32, skills: bool) -> Value {
     let rows: Vec<Value> = tasks
         .iter()
         .map(|t| json!({"id": t.id, "title": t.title, "due": t.due, "time": t.due_time}))
         .collect();
-    json!({"today": today.to_string(), "minute": minute, "tasks": rows})
+    json!({"today": today.to_string(), "minute": minute, "skills": skills, "tasks": rows})
 }
 
 /// The browser side of `kestrel serve`: a listener on 127.0.0.1 polled from the service loop.
@@ -532,18 +533,22 @@ mod tests {
             ],
             today,
             1180,
+            false,
         );
         assert_eq!(
             v,
             json!({
                 "today": "2026-10-25",
                 "minute": 1180,
+                "skills": false,
                 "tasks": [
                     {"id": 6, "title": "bill bharna", "due": "2026-10-25", "time": "18:00"},
                     {"id": 1, "title": "fix the flaky build", "due": null, "time": null}
                 ]
             })
         );
+        // With v3's skills on, the page says so (and offers one to try).
+        assert_eq!(tasks_json(&[], today, 0, true)["skills"], true);
     }
 
     /// Runs `respond` with a stand-in assistant; the response as text.
