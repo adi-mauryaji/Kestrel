@@ -1,8 +1,7 @@
-# Kestrel-Tasks-v0 (DRAFT)
+# Kestrel-Tasks-v0 (frozen 2026-10-26)
 
 Multi-step task evaluation for Kestrel's planner and tools (blueprint Ch. 31, 14–16; ADR-023). Synthetic:
-drafted by Claude on 2026-10-22, **not yet reviewed by the human**. Freezing needs that review (as for
-Kestrel-Intents-v0, ADR-010 (4)); after freezing, any change is a new version with a new fingerprint.
+drafted by Claude on 2026-10-22, three Hinglish requests reworded by the human, reviewed by the human on 2026-10-26 (every unit OK, experiments/logs/human/dataset_review.json; Personas-v0 and Memory-v0 marked at about 2–3 s per card on the first pass, re-read without new marks) and frozen: any change is a new version with a new fingerprint.
 
 ## What is in it
 

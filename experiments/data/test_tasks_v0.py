@@ -80,6 +80,6 @@ def test_build_is_deterministic_and_writes_what_the_rust_check_reads(tmp_path):
         assert (a / name).read_bytes() == (b / name).read_bytes(), name
     fixture = json.loads((a / "fixture.json").read_text())
     assert fixture["today"] == "2026-10-22" and fixture["notes"].endswith("fixtures/notes")
-    assert ma["status"] == "draft" and ma["families"] == len(load()["families"])
+    assert ma["status"] == "reviewed" and ma["families"] == len(load()["families"])
     assert ma["malformed"] == len(load()["malformed"])
     assert set(ma["splits"]) == {"dev", "test"}

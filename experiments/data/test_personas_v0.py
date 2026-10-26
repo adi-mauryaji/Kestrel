@@ -79,4 +79,4 @@ def test_build_writes_items_events_fixture_and_manifest(tmp_path):
     assert (len(rows), len(evs)) == (240, 40) == (m["items"], m["events"])
     assert fixture == {"today": "2026-10-23", "notes": "datasets/kestrel_personas_v0/fixtures/notes",
                        "tasks": [], "memories": []}
-    assert m["status"] == "draft"
+    assert m["status"] == "reviewed"

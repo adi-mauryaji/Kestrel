@@ -21,7 +21,7 @@
 today = "2026-10-23"   # a Friday
 notes = "fixtures/notes"
 default_author = "claude-draft"
-default_reviewed = false
+default_reviewed = true  # the human, 2026-10-26: experiments/logs/human/dataset_review.json
 
 # --- teaching phrasings: event i of a persona uses template (persona index + i) mod 3 of its language
 [[teach]]

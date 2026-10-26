@@ -59,11 +59,21 @@ def _json(rel: str, root: Path = ROOT):
     return json.loads((root / rel).read_text(encoding="utf-8"))
 
 
+def _open(blockers: list[str]) -> str:
+    """E4 / E6 before their freeze: blocked, or a candidate that the PREREG amendment v1.1 freezes (ADR-031)."""
+    return "BLOCKED" if blockers else "CANDIDATE (frozen by the PREREG amendment v1.1, ADR-031)"
+
+
+def review_blocker(title: str, status: str) -> list[str]:
+    """A draft dataset blocks its experiment until the human has reviewed it (its build says "reviewed")."""
+    return [] if status == "reviewed" else [f"{title} review and freeze (it is a draft)"]
+
+
 def e4() -> dict:
     personas = _json("datasets/kestrel_personas_v0/build/manifest.json")
     router = _json(f"{CONFIGS}/router_intents_v0.json")
-    return {"experiment": "E4 (H4; ADR-028, protocol ADR-030)", "status": "BLOCKED",
-            "blocked_by": ["Kestrel-Personas-v0 review and freeze (it is a draft)"],
+    blockers = review_blocker("Kestrel-Personas-v0", personas["status"])
+    return {"experiment": "E4 (H4; ADR-028, protocol ADR-030)", "status": _open(blockers), "blocked_by": blockers,
             "test": "K5 vs off on the 60 exact personalized test requests: bootstrap p over the 20 test aliases, "
                     "each with its 3 exact requests (ADR-030); no regression: general success at K5 >= off - delta",
             "dataset": {"name": "kestrel-personas-v0", "status": personas["status"], "test_personas":
@@ -91,13 +101,13 @@ def e5() -> dict:
 def e6() -> dict:
     models = tomllib.loads((ROOT / "models" / "MANIFEST.toml").read_text())["model"]
     router = _json(f"{CONFIGS}/router_intents_v0.json")
+    tasks = _json("datasets/kestrel_tasks_v0/build/manifest.json")
     grid = [{"model": m["name"], "file": m["file"], "quant": m["quant"], "sha256": m["sha256"]}
             for m in models if m.get("role") == "slm" and m["name"].startswith(SLMS)]
-    return {"experiment": "E6 (H6)", "status": "BLOCKED",
-            "blocked_by": ["Kestrel-Tasks-v0 review and freeze (it is a draft)",
-                           "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
-                           "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring "
-                           "rule"],
+    blockers = review_blocker("Kestrel-Tasks-v0", tasks["status"]) + [
+        "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
+        "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring rule"]
+    return {"experiment": "E6 (H6)", "status": _open(blockers), "blocked_by": blockers,
             "planner": "LM-only (apps/cli/src/planner.rs), the model file swapped per grid entry (ADR-030); "
                        "ADR-025's hybrid is reported for gemma-4-e2b-it-q4_0 only, outside H6",
             "grid": grid, "baseline": "Q8_0 of the same model", "threads": "6, one per physical core (PREREG §4)",
@@ -132,10 +142,12 @@ def build(write: bool = True) -> dict:
                    "one shared tau over the cascade", "metric": "selective risk at coverage 0.80 and AURC on the "
                    "test outputs (PREREG §3, D4); no threshold is chosen", "temperatures": temps},
             "E3": {"status": _status("E3"), "files": [f"{CONFIGS}/e3_candidates.json"]},
-            "E4": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e4.json"])["blocked_by"],
+            "E4": {"status": json.loads(texts[f"{CONFIGS}/e4.json"])["status"],
+                   "blocked_by": json.loads(texts[f"{CONFIGS}/e4.json"])["blocked_by"],
                    "test": json.loads(texts[f"{CONFIGS}/e4.json"])["test"], "files": [f"{CONFIGS}/e4.json"]},
             "E5": {"status": _status("E5"), "files": [f"{CONFIGS}/e5.json"]},
-            "E6": {"status": "BLOCKED", "blocked_by": json.loads(texts[f"{CONFIGS}/e6.json"])["blocked_by"],
+            "E6": {"status": json.loads(texts[f"{CONFIGS}/e6.json"])["status"],
+                   "blocked_by": json.loads(texts[f"{CONFIGS}/e6.json"])["blocked_by"],
                    "planner": json.loads(texts[f"{CONFIGS}/e6.json"])["planner"], "files": [f"{CONFIGS}/e6.json"],
                    "grid": e6_grid},
         },

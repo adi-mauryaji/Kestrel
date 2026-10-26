@@ -45,10 +45,8 @@
    ]
   },
   "E4": {
-   "status": "BLOCKED",
-   "blocked_by": [
-    "Kestrel-Personas-v0 review and freeze (it is a draft)"
-   ],
+   "status": "CANDIDATE (frozen by the PREREG amendment v1.1, ADR-031)",
+   "blocked_by": [],
    "test": "K5 vs off on the 60 exact personalized test requests: bootstrap p over the 20 test aliases, each with its 3 exact requests (ADR-030); no regression: general success at K5 >= off - delta",
    "files": [
     "experiments/configs/e4.json"
@@ -63,7 +61,6 @@
   "E6": {
    "status": "BLOCKED",
    "blocked_by": [
-    "Kestrel-Tasks-v0 review and freeze (it is a draft)",
     "delta3 from its pilot (~1 h of Gemma, asked before it runs)",
     "the PREREG E6 metrics item (plan validity / end state, ADR-023) and the title-scoring rule"
    ],
@@ -119,15 +116,15 @@
   "experiments/configs/router_clinc150_r0.json": "a24491eac391621829c21579f7d3e2a3e2f997d7839c61e6b555365d054ad182",
   "experiments/configs/router_clinc150_r1.json": "22fe1fa0b17c05a05cf0f3f8938aad7608bd7c82060f404f92f5a0f9461c18cc",
   "experiments/configs/e3_candidates.json": "725d31da44fd40ab98f5a1ca7f3ad761736719a7bbc1d3886ecb24b169f96cc8",
-  "experiments/configs/e4.json": "e7c447f57c931bcf29d943a191f6ff1ca1200edc2c8bdf5f692592adf0bf55ed",
+  "experiments/configs/e4.json": "59fd6ca2a80873c013c16332ba15d6c703e3fdaa84dcc80d25b257d07b432f76",
   "experiments/configs/e5.json": "73212699798fe1f6f2b850587b4269f4e31ae987afac09dead341f001c33b61c",
-  "experiments/configs/e6.json": "78868203d3c5aed14e0c009f4e207e618fac859b53eb92671ce3e4622611d3f6",
-  "datasets/kestrel_tasks_v0/build/manifest.json": "2f11c42b77e700f8df058aa6afb6b7007c54d5bdc4d612d987ca06364a5f29b4",
+  "experiments/configs/e6.json": "ae1f4072d0f06c572872abd4c67c9c1272550c4c75356f0ece7ebbd0266ba42c",
+  "datasets/kestrel_tasks_v0/build/manifest.json": "dbe45a90ad0f31d42d4449ab7c46d18422330bd7651faee06ca981f5294ccdf4",
   "datasets/kestrel_tasks_v0/build/items.jsonl": "7ef8b313b5655143ab5fc2b6f63f3d52a053dcf65a138047e9ca5ff95935babd",
-  "datasets/kestrel_memory_v0/build/manifest.json": "c82ed91998ccbd8ba858a8b85ae22ad41c6d7635a8f0532c6f8b46c6569b2e5e",
+  "datasets/kestrel_memory_v0/build/manifest.json": "cb4a7851ff21566a818f4cd2a94ddb533bdb669d501296d054b44b8a11452a12",
   "datasets/kestrel_memory_v0/build/store.jsonl": "94556d986d629922547ab29f38c457c8cc7f00055facfd2271e1c7aa6185e2ed",
   "datasets/kestrel_memory_v0/build/queries.jsonl": "5c56a2724ba21fa67844fdc999a7a98342934ec685bec45689f860a3f6c473eb",
-  "datasets/kestrel_personas_v0/build/manifest.json": "79cdf56d7662c5fa4538cec18aa060323bac6cccfcf71938f3c81ab6fd69a8be",
+  "datasets/kestrel_personas_v0/build/manifest.json": "a7e6da1eef238e9282248722904a461c3d734bfadda80589abb93d2663883a50",
   "datasets/kestrel_personas_v0/build/items.jsonl": "b45969a4df6bfc7181d4012cbf9a87437fcd20c7cb588fb3ce3b55b9f9bb29a6",
   "datasets/kestrel_personas_v0/build/events.jsonl": "79df0ce04656fe76262c3676df98b642261630a655cd9710c4962d4cbbb74ecc",
   "models/MANIFEST.toml": "1f0fa90b4457c101f8f8e05513ceceb5372963a819f8864b071df860f003a95b",
