@@ -3,7 +3,8 @@
 Decisions arrive two ways, as for the Request Lab (ingest.py):
 - the page's store: export the `reviews` collection with ArtifactData `list` + `out_dir`, which writes
   each document's body as reviews/<unit id>.json (a {"id", "data"} wrapper is read too);
-- pasted text: the page's "Copy review" (a kestrel-review-set), saved as a .txt/.json file.
+- a file: the page's "Save review file" (kestrel-review.json, a kestrel-review-set), or its "Copy review"
+  text pasted and saved as a .txt/.json file.
 
     python experiments/human/ingest_review.py EXPORT_DIR_OR_INBOX [...]   # validate, merge, write the log
     python experiments/human/ingest_review.py --status                    # from the log

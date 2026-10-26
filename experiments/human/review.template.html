@@ -153,10 +153,12 @@ footer.send { display: grid; gap: 10px; border-top: 1px solid var(--line); paddi
 
   <footer class="send">
     <h2>When you are done</h2>
-    <p class="small" id="send-help">Tell Claude “review done”. Claude reads your marks from this page, fixes what you
-      flagged, and freezes each dataset whose cards are all OK. A card Claude changes comes back here marked “Changed
-      since you reviewed it”. If saving to your account is not available, use Copy review and paste it to Claude.</p>
-    <div class="row"><button class="secondary" id="copy" type="button">Copy review</button></div>
+    <p class="small" id="send-help">Press Save review file and tell Claude “review done”. Claude reads your marks from
+      the saved file (or from this page's store, where it has one), fixes what you flagged, and freezes each dataset
+      whose cards are all OK. A card Claude changes comes back here marked “Changed since you reviewed it”. Your marks
+      also stay in this browser, so you can stop and come back.</p>
+    <div class="row"><button id="save" type="button">Save review file</button>
+      <button class="secondary" id="copy" type="button">Copy review</button></div>
     <textarea id="copy-box" readonly hidden aria-label="Your review as text"></textarea>
     <p class="small" id="status" role="status"></p>
   </footer>
@@ -320,7 +322,7 @@ function flushNote(u) {
 }
 
 function persist(id) {
-  if (!db || !canWrite) { setSave("Kept in this browser. Use Copy review at the bottom to send it to Claude."); return; }
+  if (!db || !canWrite) { setSave("Kept in this browser. Use Save review file at the bottom to send it to Claude."); return; }
   const prev = writes.get(id) || Promise.resolve();
   const next = prev.then(async () => {
     const d = state.decisions[id];
@@ -328,8 +330,8 @@ function persist(id) {
     if (d) await ref.set({ kind: "kestrel-review", version: 1, unit: id, ...d });
     else await ref.delete();
   }).then(() => setSave("Saved to your account at " + new Date().toLocaleTimeString() + ".", "ok"), (e) => {
-    if (e && e.code === "invalid_argument") { canWrite = false; setSave("This account can't save here. Use Copy review at the bottom.", "warn"); }
-    else setSave("Saving failed (" + (e && e.code || "error") + "). Your marks are still in this browser; try again or use Copy review.", "warn");
+    if (e && e.code === "invalid_argument") { canWrite = false; setSave("This account can't save here. Use Save review file at the bottom.", "warn"); }
+    else setSave("Saving failed (" + (e && e.code || "error") + "). Your marks are still in this browser; try again or use Save review file.", "warn");
   });
   writes.set(id, next);
 }
@@ -350,20 +352,35 @@ function nextToReview() {
   setStatus("Every card has a mark. Tell Claude “review done”.", "ok");
 }
 
-async function copyReview() {
+/** The marks as ingest_review.py reads them: [count, text]. */
+function reviewSet() {
   const reviews = Object.entries(state.decisions).filter(([id]) => units.has(id)).map(([unit, d]) => ({ unit, ...d }));
-  const text = JSON.stringify({ kind: "kestrel-review-set", version: 1, reviews });
+  return [reviews.length, JSON.stringify({ kind: "kestrel-review-set", version: 1, reviews })];
+}
+
+function saveReview() {
+  const [n, text] = reviewSet();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = "kestrel-review.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  setStatus(`Saved ${n} mark${n === 1 ? "" : "s"} as kestrel-review.json (usually in Downloads). Tell Claude “review done”.`, "ok");
+}
+
+async function copyReview() {
+  const [n, text] = reviewSet();
   const box = $("copy-box");
-  try { await navigator.clipboard.writeText(text); box.hidden = true; setStatus(`Copied ${reviews.length} marks. Paste them to Claude.`, "ok"); }
+  try { await navigator.clipboard.writeText(text); box.hidden = true; setStatus(`Copied ${n} mark${n === 1 ? "" : "s"}. Paste them to Claude.`, "ok"); }
   catch { box.hidden = false; box.value = text; box.focus(); box.select(); setStatus("Copying was blocked here. The text is selected below: copy it yourself.", "warn"); }
 }
 
 async function connect() {
   try {
     const [d, u] = await Promise.all([window.claude?.use?.("db"), window.claude?.use?.("user")]);
-    if (!d) { setSave("Saving to your account isn't available here. Marks stay in this browser; use Copy review to send them."); return; }
+    if (!d) { setSave("Saving to your account isn't available here. Marks stay in this browser; use Save review file to send them."); return; }
     const can = u ? await u.can("data.write") : null;
-    if (can === false) { setSave("This account can read but not save marks here. Use Copy review to send yours."); return; }
+    if (can === false) { setSave("This account can read but not save marks here. Use Save review file to send yours."); return; }
     db = d; canWrite = true;
     setSave("Connected: each mark saves to your account as you make it.", "ok");
     const remote = {};  // unit id -> the time of the store's mark
@@ -393,11 +410,12 @@ async function connect() {
         });
       }
     }, () => setSave("Live updates stopped. Your marks still save; reload the page to see marks from other devices.", "warn"));
-  } catch { setSave("Saving to your account isn't available here. Marks stay in this browser; use Copy review to send them."); }
+  } catch { setSave("Saving to your account isn't available here. Marks stay in this browser; use Save review file to send them."); }
 }
 
 function start() {
   $("next").addEventListener("click", nextToReview);
+  $("save").addEventListener("click", saveReview);
   $("copy").addEventListener("click", copyReview);
   renderAll();
   connect();
