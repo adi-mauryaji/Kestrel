@@ -151,7 +151,7 @@ hi-en = ["budget meeting ke notes se asha ke liye email likho", "kal ki standup 
 id = "email-10"
 kind = "email"
 en = ["write a whatsapp message wishing my uncle happy anniversary", "draft a birthday wish message for my friend riya"]
-hi-en = ["chacha ko anniversary wish karne ka whatsapp message likh do", "riya ke birthday ke liye ek wish message likho"]
+hi-en = ["chacha ko anniversary wish karne ka whatsapp message likh do", "riya ke birthday ke liye ek wish message likho", "meri dost riya ke birthday ke liye ek birthday wish likho"]
 
 [[family]]
 id = "email-11"
@@ -176,7 +176,7 @@ hi-en = ["isko formal bana do: kal nahi aa paunga, sorry", "ye formal tareeke se
 id = "rewrite-02"
 kind = "rewrite"
 en = ["shorten this: i wanted to let you know that the meeting has been moved to next week", "make this shorter please: we are writing to inform you that your order has shipped"]
-hi-en = ["ise chhota kar do: maine socha aapko bata doon ki meeting agle hafte shift ho gayi hai", "thoda short kar do ye: aapka order ship ho gaya hai ye batane ke liye message kar rahe hain"]
+hi-en = ["ise chhota kar do: maine socha aapko bata doon ki meeting agle hafte shift ho gayi hai", "thoda short kar do ye: aapka order ship ho gaya hai ye batane ke liye message kar rahe hain", "ise chhota kar do: mujhe apko batana tha ki meeting agle hafte shift ho gayi hai"]
 
 [[family]]
 id = "rewrite-03"
@@ -188,7 +188,7 @@ hi-en = ["grammar theek karo: me and him goes to school daily", "is sentence ki 
 id = "rewrite-04"
 kind = "rewrite"
 en = ["make it polite: send me the file now", "say this nicely: you forgot to pay again"]
-hi-en = ["isko polite bana do: abhi file bhejo", "ye pyaar se bolo: tumne phir se payment bhool gaye"]
+hi-en = ["isko polite bana do: abhi file bhejo", "say this nicely: tum phir se payment bhool gaye", "isko polite banake do: abhi file bhejo"]
 
 [[family]]
 id = "rewrite-05"
@@ -206,13 +206,13 @@ hi-en = ["isko points mein likh do: doodh lena, plumber ko bulana, rent bharna a
 id = "rewrite-07"
 kind = "rewrite"
 en = ["make this sound friendlier: your request has been rejected", "rewrite this casually: please be informed that the party starts at 8"]
-hi-en = ["isko thoda friendly bana do: aapki request reject ho gayi hai", "ye casual tareeke se likho: party 8 baje shuru hogi"]
+hi-en = ["isko thoda friendly bana do: aapki request reject ho gayi hai", "ye casual tareeke se likho: party 8 baje shuru hogi", "ye casual way me likho: party 8 baje shuru hogi"]
 
 [[family]]
 id = "rewrite-08"
 kind = "rewrite"
 en = ["expand this into a full paragraph: project delayed, new date next month", "make this longer and more detailed: thanks for the help"]
-hi-en = ["isko poora paragraph bana do: project late hai, nayi date agle mahine", "ise thoda detail mein likho: help ke liye thanks"]
+hi-en = ["isko poora paragraph bana do: project late hai, nayi date agle mahine ki hogi", "ise thoda detail mein likho: help ke liye thanks"]
 
 [[family]]
 id = "rewrite-09"
@@ -236,7 +236,7 @@ hi-en = ["ise proofread kar do: i will reach their by 5 pm tommorow", "spelling 
 id = "rewrite-12"
 kind = "rewrite"
 en = ["rewrite this as a tweet: we launched our new app today and it's free", "make a catchy caption out of this: our cafe now serves cold coffee"]
-hi-en = ["ise tweet bana do: humne aaj naya app launch kiya aur free hai", "isse catchy caption banao: hamare cafe mein ab cold coffee milti hai"]
+hi-en = ["iska tweet bana do: humne aaj naya app launch kiya aur ye free hai", "isse catchy caption banao: hamare cafe mein ab cold coffee milti hai"]
 
 # ---------------------------------------------------------------- translate
 [[family]]
@@ -476,13 +476,13 @@ hi-en = ["vendor ke saath agle hafte meeting fix karne ka mail draft karo", "cli
 id = "email-18"
 kind = "email"
 en = ["write an out of office reply for next week", "draft an auto reply saying i'm on leave till monday"]
-hi-en = ["agle hafte ke liye out of office reply likh do", "monday tak chutti pe hoon, iska auto reply bana do"]
+hi-en = ["agle hafte ke liye out of office reply likh do", "monday tak chutti pe hoon, iska auto reply bana do", "agle hafte ke liye out of office reply draft kro"]
 
 [[family]]
 id = "email-19"
 kind = "email"
 en = ["write an email to the airline asking for a refund", "draft a complaint to the courier company about a lost parcel"]
-hi-en = ["airline ko refund maangne ka email likho", "courier company ko parcel kho jaane ki complaint mail likh do"]
+hi-en = ["airline ko refund maangne ka email likho", "courier company ko parcel kho jaane ki complaint mail likh do", "airline ko refund ke liye email likho"]
 
 [[family]]
 id = "email-20"
@@ -497,7 +497,7 @@ id = "rewrite-13"
 kind = "rewrite"
 note = "a summary of text given in the request; a summary of the user's notes is app (app-07, app-15)"
 en = ["summarize this paragraph: the meeting covered the budget, two new hires and the office move", "give me the gist of this: the store will close early on friday and reopen on monday with new stock"]
-hi-en = ["is paragraph ka summary do: meeting mein budget, do nayi hiring aur office shift pe baat hui", "iska saar batao: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi"]
+hi-en = ["is paragraph ka summary do: meeting mein budget, do nayi hiring aur office shift pe baat hui", "iska saar batao: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi", "iska gist do: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi"]
 
 [[family]]
 id = "rewrite-14"

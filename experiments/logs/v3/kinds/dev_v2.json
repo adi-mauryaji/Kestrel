@@ -1,0 +1,72 @@
+[
+ {
+  "dataset": "kinds_v0",
+  "encoder": "multilingual-e5-small-q8_0",
+  "classes": 5,
+  "c_grid_val_macro_f1": {
+   "0.1": 0.17142857142857143,
+   "1.0": 0.17142857142857143,
+   "10.0": 0.8515575966322235,
+   "100.0": 0.8491666666666667,
+   "1000.0": 0.8571052631578947
+  },
+  "c": 1000.0,
+  "temperature": 1.8256351080202016,
+  "temperature_note": "fitted on cal",
+  "cal_n": 103,
+  "cal_errors": 12,
+  "val_raw": {
+   "n": 128,
+   "accuracy": 0.9375,
+   "macro_f1": 0.8571052631578947,
+   "ece": 0.04435237625948299,
+   "nll": 0.16654094493147276
+  },
+  "val_calibrated": {
+   "n": 128,
+   "accuracy": 0.9375,
+   "macro_f1": 0.8571052631578947,
+   "ece": 0.12068648502260006,
+   "nll": 0.23600820958898716
+  },
+  "val_calibrated_en": {
+   "n": 64,
+   "accuracy": 0.921875,
+   "macro_f1": 0.8351127819548871,
+   "ece": 0.09414148012755792
+  },
+  "val_calibrated_hi-en": {
+   "n": 64,
+   "accuracy": 0.953125,
+   "macro_f1": 0.8812280701754386,
+   "ece": 0.14963382266542752
+  },
+  "val_per_class": {
+   "app": {
+    "n": 96,
+    "precision": 0.9893617021276596,
+    "recall": 0.96875
+   },
+   "chat": {
+    "n": 8,
+    "precision": 0.875,
+    "recall": 0.875
+   },
+   "email": {
+    "n": 8,
+    "precision": 0.5454545454545454,
+    "recall": 0.75
+   },
+   "rewrite": {
+    "n": 8,
+    "precision": 0.8571428571428571,
+    "recall": 0.75
+   },
+   "translate": {
+    "n": 8,
+    "precision": 1.0,
+    "recall": 1.0
+   }
+  }
+ }
+]

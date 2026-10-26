@@ -106,6 +106,7 @@
 {"family": "email-10", "group": "email-10", "id": "email-10/en/1", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "draft a birthday wish message for my friend riya"}
 {"family": "email-10", "group": "email-10", "id": "email-10/hi-en/0", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "chacha ko anniversary wish karne ka whatsapp message likh do"}
 {"family": "email-10", "group": "email-10", "id": "email-10/hi-en/1", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "riya ke birthday ke liye ek wish message likho"}
+{"family": "email-10", "group": "email-10", "id": "email-10/hi-en/2", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "meri dost riya ke birthday ke liye ek birthday wish likho"}
 {"family": "email-12", "group": "email-12", "id": "email-12/en/0", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "write a cover letter for a junior developer job"}
 {"family": "email-12", "group": "email-12", "id": "email-12/en/1", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "draft a short email applying for the internship"}
 {"family": "email-12", "group": "email-12", "id": "email-12/hi-en/0", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "junior developer job ke liye cover letter likh do"}
@@ -126,6 +127,7 @@
 {"family": "email-19", "group": "email-19", "id": "email-19/en/1", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "draft a complaint to the courier company about a lost parcel"}
 {"family": "email-19", "group": "email-19", "id": "email-19/hi-en/0", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "airline ko refund maangne ka email likho"}
 {"family": "email-19", "group": "email-19", "id": "email-19/hi-en/1", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "courier company ko parcel kho jaane ki complaint mail likh do"}
+{"family": "email-19", "group": "email-19", "id": "email-19/hi-en/2", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "airline ko refund ke liye email likho"}
 {"family": "email-20", "group": "email-20", "id": "email-20/en/0", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "reply to this email politely: can you send the slides by today?"}
 {"family": "email-20", "group": "email-20", "id": "email-20/en/1", "label": "email", "lang": "en", "source": "kinds_v0", "stratum": "email", "text": "write a reply to this: are you free for lunch tomorrow?"}
 {"family": "email-20", "group": "email-20", "id": "email-20/hi-en/0", "label": "email", "lang": "hi-en", "source": "kinds_v0", "stratum": "email", "text": "is mail ka polite reply likh do: can you send the slides by today?"}
@@ -657,7 +659,8 @@
 {"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/en/0", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "make it polite: send me the file now"}
 {"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/en/1", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "say this nicely: you forgot to pay again"}
 {"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/hi-en/0", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "isko polite bana do: abhi file bhejo"}
-{"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/hi-en/1", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "ye pyaar se bolo: tumne phir se payment bhool gaye"}
+{"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/hi-en/1", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "say this nicely: tum phir se payment bhool gaye"}
+{"family": "rewrite-04", "group": "rewrite-04", "id": "rewrite-04/hi-en/2", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "isko polite banake do: abhi file bhejo"}
 {"family": "rewrite-09", "group": "rewrite-09", "id": "rewrite-09/en/0", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "say this differently: i am very happy with your work"}
 {"family": "rewrite-09", "group": "rewrite-09", "id": "rewrite-09/en/1", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "paraphrase this: the train was late because of fog"}
 {"family": "rewrite-09", "group": "rewrite-09", "id": "rewrite-09/hi-en/0", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "ise doosre shabdon mein likho: main aapke kaam se bahut khush hoon"}
@@ -674,6 +677,7 @@
 {"family": "rewrite-13", "group": "rewrite-13", "id": "rewrite-13/en/1", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "give me the gist of this: the store will close early on friday and reopen on monday with new stock"}
 {"family": "rewrite-13", "group": "rewrite-13", "id": "rewrite-13/hi-en/0", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "is paragraph ka summary do: meeting mein budget, do nayi hiring aur office shift pe baat hui"}
 {"family": "rewrite-13", "group": "rewrite-13", "id": "rewrite-13/hi-en/1", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "iska saar batao: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi"}
+{"family": "rewrite-13", "group": "rewrite-13", "id": "rewrite-13/hi-en/2", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "iska gist do: dukaan friday ko jaldi band hogi aur monday ko naye stock ke saath khulegi"}
 {"family": "rewrite-14", "group": "rewrite-14", "id": "rewrite-14/en/0", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "add more detail to this: the event was a success"}
 {"family": "rewrite-14", "group": "rewrite-14", "id": "rewrite-14/en/1", "label": "rewrite", "lang": "en", "source": "kinds_v0", "stratum": "rewrite", "text": "elaborate on this: we fixed the login bug"}
 {"family": "rewrite-14", "group": "rewrite-14", "id": "rewrite-14/hi-en/0", "label": "rewrite", "lang": "hi-en", "source": "kinds_v0", "stratum": "rewrite", "text": "isme thoda aur detail daal do: event successful raha"}

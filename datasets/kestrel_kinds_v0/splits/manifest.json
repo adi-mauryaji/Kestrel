@@ -10,7 +10,7 @@
   "translate"
  ],
  "sources": {
-  "kinds.toml": "880b6188146f1529fd30eaefa82825dc2c09f3781c01ad966898350d61da0d7b",
+  "kinds.toml": "b1ea2ea804f3d18859c7953a0fab3f71acedd3bf3f0c09954244bfc1f6aba392",
   "contracts/kinds.txt": "62834c95d7b9843b070c2e26b4fdfbf27448288cd24aea46773dabeb3ee9e0f1",
   "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
   "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",
@@ -19,33 +19,33 @@
  "conflicts_dropped": [],
  "splits": {
   "train": {
-   "items": 744,
-   "fingerprint": "0490c860679fe8e75ee06a0bbdeed580adc222024007b5440c8e8aa5160a63c3",
+   "items": 748,
+   "fingerprint": "7f91d0bb0e7e7859f5eac3589cc8f30ede885d216d91d7b7fd8f6ef44d8e3536",
    "by_label": {
     "app": 552,
     "chat": 48,
-    "email": 48,
-    "rewrite": 48,
+    "email": 50,
+    "rewrite": 50,
     "translate": 48
    },
    "by_lang": {
     "en": 372,
-    "hi-en": 372
+    "hi-en": 376
    }
   },
   "cal": {
-   "items": 100,
-   "fingerprint": "cb3351bc63fce289152814d8e9a21b5b36ed123198469de91a39c117d73e38c6",
+   "items": 103,
+   "fingerprint": "ed0c248d2646658cf6d467ca435cb609858d8fcd70721309dd52e01bc9103e2d",
    "by_label": {
     "app": 68,
     "chat": 8,
-    "email": 8,
-    "rewrite": 8,
+    "email": 9,
+    "rewrite": 10,
     "translate": 8
    },
    "by_lang": {
     "en": 50,
-    "hi-en": 50
+    "hi-en": 53
    }
   },
   "val": {
@@ -65,7 +65,7 @@
   },
   "test": {
    "items": 240,
-   "fingerprint": "5365f63b1636eae401b0e257e0e1978247e140353d621005bdd06820f938b06b",
+   "fingerprint": "8e970cf038a8d5e9b7779d7fc4f6e64dc1d6febf94441842a4c8edd76d70a156",
    "by_label": {
     "app": 176,
     "chat": 16,
