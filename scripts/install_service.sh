@@ -20,11 +20,13 @@ BIN_DIR="$DATA/kestrel/bin"
 APP="$DATA/applications/kestrel.desktop"
 LINK="$HOME/.local/bin/kestrel"
 ICON="$DATA/icons/hicolor/scalable/apps/kestrel.svg"
+# The Gemma worker's saved prompt prefix (ADR-036): valid only for the binary that wrote it.
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/kestrel"
 CONFIG=experiments/configs/router_intents_v0.json
 
 if [[ ${1:-} == --remove ]]; then
   systemctl --user disable --now kestrel.service 2>/dev/null || true
-  rm -f "$UNIT_DIR/kestrel.service" "$APP" "$ICON"
+  rm -f "$UNIT_DIR/kestrel.service" "$APP" "$ICON" "$CACHE"/tier4-*.kv
   # The command on PATH goes only if it is still ours.
   if [[ -L $LINK && $(readlink "$LINK") == "$BIN_DIR/kestrel" ]]; then rm -f "$LINK"; fi
   systemctl --user daemon-reload
@@ -45,6 +47,7 @@ NOTES="$(cd "$NOTES" 2>/dev/null && pwd)" || {
 cargo build --release -p kestrel-cli --features llama
 mkdir -p "$BIN_DIR" "$UNIT_DIR"
 install -m 0755 target/release/kestrel "$BIN_DIR/kestrel"
+rm -f "$CACHE"/tier4-*.kv
 
 ENV_LINE=""
 if [[ -n ${KESTREL_MEMORY:-} ]]; then

@@ -5,6 +5,7 @@
 //! construction, so requests pay only for their own tokens.
 
 use std::cell::RefCell;
+use std::path::Path;
 use std::time::Duration;
 
 use kestrel_core::resources::{CancelToken, Deadline};
@@ -42,6 +43,28 @@ impl<'m, L: Copy> GenerativeTier<'m, L> {
         timeout: Duration,
         est_cost_ms: u32,
     ) -> Result<Self, KestrelError> {
+        Self::new_cached(
+            slm,
+            prompt,
+            answers,
+            temperature,
+            timeout,
+            est_cost_ms,
+            None,
+        )
+    }
+
+    /// `new`, with the primed prefix loaded from / saved to `prefix_file` when given
+    /// (`LlamaSession::prime_cached`; the always-on service, ADR-036).
+    pub fn new_cached(
+        slm: &'m LlamaSlm,
+        prompt: ChatPrompt,
+        answers: &[(L, &str)],
+        temperature: f32,
+        timeout: Duration,
+        est_cost_ms: u32,
+        prefix_file: Option<&Path>,
+    ) -> Result<Self, KestrelError> {
         if !(temperature.is_finite() && temperature > 0.0) {
             return Err(KestrelError::Invalid(format!(
                 "temperature must be finite and > 0, got {temperature}"
@@ -56,7 +79,10 @@ impl<'m, L: Copy> GenerativeTier<'m, L> {
         let trie = slm.label_trie(&texts, prompt.end_of_answer())?;
         let prefix = prompt.prefix();
         let mut session = slm.session()?;
-        session.prime(&prefix)?;
+        match prefix_file {
+            Some(file) => session.prime_cached(&prefix, file).map(|_| ())?,
+            None => session.prime(&prefix).map(|_| ())?,
+        }
         Ok(Self {
             slm,
             session: RefCell::new(session),

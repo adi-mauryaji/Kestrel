@@ -1,0 +1,56 @@
+//! The always-on service's Gemma worker (ADR-036): weights mapped, the primed prompt prefix saved
+//! at the first start and loaded at the next, the same answer bytes either way. Needs models/ and
+//! a llama build: `cargo test --release -p kestrel-cli --features llama --test worker -- --ignored`.
+
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+
+/// One worker process: waits for ready, reads its file-backed memory, answers one request.
+fn start_and_ask(root: &Path, cache: &Path) -> (String, u64) {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_kestrel"))
+        .args(["tier4-worker", "experiments/configs/router_intents_v0.json"])
+        .current_dir(root)
+        .env("XDG_CACHE_HOME", cache)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut out = BufReader::new(child.stdout.take().unwrap());
+    let mut line = String::new();
+    out.read_line(&mut line).unwrap();
+    assert_eq!(line.trim(), r#"{"ready":true}"#);
+    let status = std::fs::read_to_string(format!("/proc/{}/status", child.id())).unwrap();
+    let file_kib = kestrel_bench::rss::parse_status_kib(&status, "RssFile:").unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    writeln!(
+        stdin,
+        r#"{{"id":1,"text":"kal shaam 6 baje bill bharna yaad dila dena"}}"#
+    )
+    .unwrap();
+    line.clear();
+    out.read_line(&mut line).unwrap();
+    drop(stdin);
+    assert!(child.wait().unwrap().success());
+    (line, file_kib)
+}
+
+#[test]
+#[ignore = "needs models/ and --features llama"]
+fn the_worker_maps_gemma_and_reuses_its_saved_prefix_with_the_same_answer() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let cache = std::env::temp_dir().join(format!("kestrel_worker_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&cache);
+    let (first, file_kib) = start_and_ask(&root, &cache);
+    assert!(
+        file_kib > 1 << 20,
+        "RssFile {file_kib} KiB: the weights were copied, not mapped"
+    );
+    let saved: Vec<PathBuf> = std::fs::read_dir(cache.join("kestrel"))
+        .map(|d| d.map(|e| e.unwrap().path()).collect())
+        .unwrap_or_default();
+    assert_eq!(saved.len(), 1, "{saved:?}");
+    let (second, _) = start_and_ask(&root, &cache);
+    assert_eq!(first, second);
+    let _ = std::fs::remove_dir_all(&cache);
+}

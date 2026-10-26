@@ -33,7 +33,8 @@ kestrel stop                                  # frees its memory; open, chat or 
 ```
 
 Most requests take a fraction of a second (rules, encoder). The first one that needs the language model
-loads it (about 20 s); it is unloaded again after 10 idle minutes. `kestrel stop` frees all of it until
+loads it: about 2 s, except the first time after an install (about 17 s, while it saves its prepared
+prompt). It is unloaded again after 10 idle minutes. `kestrel stop` frees all of it until
 the next `kestrel open`, `chat` or `say` (about a second to start again) or the next login; reminders with
 a time pop up only while it runs. Run the two scripts again after an update; `--remove` takes either
 away (notes and tasks stay). Examples:
@@ -63,7 +64,8 @@ Without installing anything, `scripts/assistant.sh ~/notes` runs the same assist
 **Limits today.** Nine kinds of request (search, open, summarize, add or delete a task, a preference, what it
 remembers, small talk; anything else gets "I can't do that"). A time without am or pm ("6 baje") means the
 next time the clock shows it; "at 5" alone is not read as a time. Timed reminders pop up only while the
-service runs. The service needs about 300 MB, and about 3.4 GB more while the language model is loaded.
+service runs. The service needs about 300 MB, and about 1.1 GB more while the language model is loaded, plus its
+2.7 GB file mapped into memory, which the system can take back when it runs short.
 
 ## The research
 

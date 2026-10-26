@@ -34,6 +34,8 @@ pub struct Models {
     /// Loaded only when Tier 3 / Tier 4 is wanted, so a one-tier system's RSS is its own.
     encoder: Option<LlamaEncoder>,
     slm: Option<LlamaSlm>,
+    /// Where Tier 4 keeps its primed prefix (`load_for_service` only).
+    prefix_file: Option<std::path::PathBuf>,
 }
 
 type DynError = Box<dyn std::error::Error>;
@@ -52,6 +54,34 @@ impl Models {
 
     /// The models that `tiers` need (bench-items: the union of its configs' tiers).
     pub fn load_for(config_path: &Path, tiers: &[u8]) -> Result<Self, DynError> {
+        Self::load_with(config_path, tiers, false)
+    }
+
+    /// Tier 4 for the always-on service's worker (ADR-036): weights mapped, and the primed prefix
+    /// kept in `cache` (when given) under a name for this config, model file and context size.
+    /// Research runs use `load` / `load_for`: weights copied (D12), prefix computed every time.
+    pub fn load_for_service(config_path: &Path, cache: Option<&Path>) -> Result<Self, DynError> {
+        let mut models = Self::load_with(config_path, &[4], true)?;
+        if let Some(dir) = cache {
+            std::fs::create_dir_all(dir)?;
+            let t4 = &models.cfg.models.tier4;
+            let meta = std::fs::metadata(Path::new("models").join(&t4.model_file))?;
+            let mtime = meta.modified()?.duration_since(std::time::UNIX_EPOCH)?;
+            let stem = config_path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy();
+            models.prefix_file = Some(dir.join(format!(
+                "tier4-{stem}-{}-{}-{}.kv",
+                meta.len(),
+                mtime.as_secs(),
+                t4.n_ctx
+            )));
+        }
+        Ok(models)
+    }
+
+    fn load_with(config_path: &Path, tiers: &[u8], mmap: bool) -> Result<Self, DynError> {
         let (router, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
         let labels = labels::parse_list(&std::fs::read_to_string(
             Path::new("datasets/contracts").join(&cfg.models.tier4.labels),
@@ -67,6 +97,7 @@ impl Models {
                 &Path::new("models").join(&cfg.models.tier4.model_file),
                 LlamaConfig {
                     n_ctx: cfg.models.tier4.n_ctx,
+                    mmap,
                     ..LlamaConfig::default()
                 },
             )
@@ -77,6 +108,7 @@ impl Models {
             labels,
             encoder: encoder.transpose()?,
             slm: slm.transpose()?,
+            prefix_file: None,
         })
     }
 
@@ -147,13 +179,14 @@ impl Models {
                 .map(|s| (normalize(&s.text), s.label.clone()))
                 .collect();
             let prompt = ChatPrompt::new(format, &system).with_examples(shots);
-            let tier = GenerativeTier::new(
+            let tier = GenerativeTier::new_cached(
                 slm,
                 prompt,
                 &space.answers(),
                 cfg.calibration.tier4_temperature,
                 TIER4_TIMEOUT,
                 cost(Tier::Generative),
+                self.prefix_file.as_deref(),
             )?;
             tiers.push(wrap(Box::new(tier)));
         }

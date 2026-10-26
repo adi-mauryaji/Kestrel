@@ -29,6 +29,16 @@ pub fn socket_path(var: &dyn Fn(&str) -> Option<OsString>) -> PathBuf {
     }
 }
 
+/// Where the Gemma worker keeps its primed prompt prefix (ADR-036): $XDG_CACHE_HOME/kestrel, else
+/// ~/.cache/kestrel; `None` without either (the prefix is then computed at every start).
+pub fn cache_dir(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
+    let var = |k: &str| var(k).filter(|v| !v.is_empty());
+    let cache = var("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .or_else(|| var("HOME").map(|h| PathBuf::from(h).join(".cache")))?;
+    Some(cache.join("kestrel"))
+}
+
 /// What answers a request: (text, a y/N question asker) -> the answer's lines.
 pub type Handler<'h> = dyn FnMut(&str, &mut dyn FnMut(&str) -> bool) -> Vec<String> + 'h;
 
@@ -175,7 +185,8 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
     use kestrel_core::Request;
     use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
 
-    let models = crate::route_items::Models::load_for(config, &[4])?;
+    let cache = cache_dir(&|k| std::env::var_os(k));
+    let models = crate::route_items::Models::load_for_service(config, cache.as_deref())?;
     let tiers = models.tiers(&crate::labels::Intents, |t| t, &[4])?;
     let tier = tiers.first().ok_or("the config has no Tier 4")?;
     let slm = models.slm().ok_or("the config has no Tier-4 model")?;
@@ -405,6 +416,26 @@ pub fn serve(
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn the_prefix_cache_lives_in_the_users_cache_directory() {
+        let env = |k: &str| match k {
+            "XDG_CACHE_HOME" => Some(OsString::from("/c")),
+            "HOME" => Some(OsString::from("/home/adi")),
+            _ => None,
+        };
+        assert_eq!(cache_dir(&env), Some(PathBuf::from("/c/kestrel")));
+        let home = |k: &str| match k {
+            "XDG_CACHE_HOME" => Some(OsString::new()),
+            "HOME" => Some(OsString::from("/home/adi")),
+            _ => None,
+        };
+        assert_eq!(
+            cache_dir(&home),
+            Some(PathBuf::from("/home/adi/.cache/kestrel"))
+        );
+        assert_eq!(cache_dir(&|_| None), None);
+    }
 
     #[test]
     fn the_socket_lives_in_the_users_runtime_directory() {

@@ -197,6 +197,38 @@ impl LlamaSession<'_> {
 
     /// Makes positions 0..len of sequence 0 hold `prefix_tokens` and nothing after them: reuses
     /// the cached prefix when it matches, otherwise clears the cache and decodes it.
+    /// `prime`, reusing the KV state saved in `file` when it holds exactly this prefix's tokens;
+    /// otherwise the prefix is computed and its state saved there. Returns the prefix length and
+    /// whether `file` was used. The state is valid only for one model and context size, so the
+    /// file name must identify both (ADR-036).
+    pub fn prime_cached(
+        &mut self,
+        prefix: &str,
+        file: &Path,
+    ) -> Result<(usize, bool), KestrelError> {
+        let tokens = self.slm.tokenize(prefix)?;
+        self.ctx.clear_kv_cache();
+        self.cached.clear();
+        // A missing, damaged or other prefix's file is not an error: the prefix is computed.
+        let n_ctx = self.slm.cfg.n_ctx as usize;
+        if let Ok((saved, _)) = self.ctx.state_seq_load_file(file, 0, n_ctx)
+            && saved == tokens
+        {
+            self.cached = tokens;
+            return Ok((self.cached.len(), true));
+        }
+        self.ctx.clear_kv_cache();
+        let n = self.prime(prefix)?;
+        // Written aside and renamed, so a reader never sees half a file; a failed save only
+        // costs the next start this computation.
+        let tmp = file.with_extension(format!("tmp{}", std::process::id()));
+        if self.ctx.state_seq_save_file(&tmp, 0, &self.cached).is_ok() {
+            let _ = std::fs::rename(&tmp, file);
+        }
+        let _ = std::fs::remove_file(&tmp);
+        Ok((n, false))
+    }
+
     fn load_prefix(&mut self, prefix_tokens: Vec<LlamaToken>) -> Result<(), KestrelError> {
         if self.cached == prefix_tokens {
             // Keep the prefix, drop the previous request (positions after it).
@@ -900,6 +932,78 @@ mod tests {
             .classify(SYS, &ask("lemon"), &trie, &none, &far())
             .unwrap();
         assert_eq!(a, b);
+    }
+
+    /// A fresh directory for one test's files.
+    fn scratch(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("kestrel_{name}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn a_saved_prefix_classifies_byte_for_byte_like_a_computed_one() {
+        let m = slm();
+        let trie = m
+            .label_trie(&["fruit", "vehicle", "colour"], "<|im_end|>")
+            .unwrap();
+        let none = CancelToken::new();
+        let file = scratch("prefix_saved").join("prefix.kv");
+        let mut computed = m.session().unwrap();
+        let (n, used) = computed.prime_cached(SYS, &file).unwrap();
+        assert!(n > 0 && !used);
+        let mut loaded = m.session().unwrap();
+        assert_eq!(loaded.prime_cached(SYS, &file).unwrap(), (n, true));
+        assert_eq!(
+            loaded
+                .classify(SYS, &ask("lemon"), &trie, &none, &far())
+                .unwrap(),
+            computed
+                .classify(SYS, &ask("lemon"), &trie, &none, &far())
+                .unwrap()
+        );
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn a_file_saved_for_another_prefix_is_recomputed_and_replaced() {
+        let m = slm();
+        let file = scratch("prefix_other").join("prefix.kv");
+        m.session()
+            .unwrap()
+            .prime_cached("Another prefix.", &file)
+            .unwrap();
+        let (n, used) = m.session().unwrap().prime_cached(SYS, &file).unwrap();
+        assert!(!used);
+        assert_eq!(
+            m.session().unwrap().prime_cached(SYS, &file).unwrap(),
+            (n, true)
+        );
+    }
+
+    #[test]
+    #[ignore = "needs KESTREL_SLM"]
+    fn a_damaged_file_is_recomputed() {
+        let m = slm();
+        let trie = m
+            .label_trie(&["fruit", "vehicle", "colour"], "<|im_end|>")
+            .unwrap();
+        let none = CancelToken::new();
+        let file = scratch("prefix_damaged").join("prefix.kv");
+        std::fs::write(&file, b"not a llama.cpp state file").unwrap();
+        let mut s = m.session().unwrap();
+        assert!(!s.prime_cached(SYS, &file).unwrap().1);
+        let mut plain = m.session().unwrap();
+        plain.prime(SYS).unwrap();
+        assert_eq!(
+            s.classify(SYS, &ask("lemon"), &trie, &none, &far())
+                .unwrap(),
+            plain
+                .classify(SYS, &ask("lemon"), &trie, &none, &far())
+                .unwrap()
+        );
     }
 
     #[test]
