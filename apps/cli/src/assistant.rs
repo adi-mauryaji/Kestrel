@@ -52,6 +52,9 @@ impl<'a> Assistant<'a> {
 
     /// v3: requests for a skill (chat, email, rewrite, translate) are written before the cascade.
     pub fn with_kinds(mut self, kinds: crate::kinds::Kinds<'a>) -> Self {
+        if let Some(act) = self.act.as_mut() {
+            act.also_writes();
+        }
         self.kinds = Some(kinds);
         self
     }
@@ -263,6 +266,24 @@ mod tests {
         assert_eq!(
             a.handle("maybe shorten this: Hello There", &mut yes()),
             ["rewrite draft of: maybe shorten this: Hello There"]
+        );
+    }
+
+    #[test]
+    fn with_the_skills_on_small_talk_names_them_too() {
+        let (mut plain, _) = assistant("greet_plain", true);
+        let out = plain.handle("hello", &mut yes());
+        assert_eq!(
+            out.last().unwrap(),
+            "Hi! I can find, open and summarize your notes, and keep your tasks."
+        );
+        let (a, _) = assistant("greet_kinds", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        let out = a.handle("hello", &mut yes());
+        assert_eq!(
+            out.last().unwrap(),
+            "Hi! I can find, open and summarize your notes, keep your tasks, draft emails and \
+             messages, rewrite or translate text, and chat."
         );
     }
 

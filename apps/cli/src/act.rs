@@ -48,6 +48,8 @@ pub struct Act {
     /// Writes summaries in its own words (the service's Gemma, ADR-034 feature 5); without it,
     /// a summary is the notes' first lines.
     summarizer: Option<Box<dyn Summarizer>>,
+    /// v3's skills are on (src/kinds.rs): small talk and refusals name them too.
+    writes: bool,
 }
 
 /// The y/N prompt of `ask`, as the tool runner's confirmation.
@@ -73,6 +75,7 @@ impl Act {
             notes,
             utc_offset: crate::clock::utc_offset(),
             summarizer: None,
+            writes: false,
         })
     }
 
@@ -80,6 +83,11 @@ impl Act {
     pub fn with_summarizer(mut self, s: Box<dyn Summarizer>) -> Self {
         self.summarizer = Some(s);
         self
+    }
+
+    /// The service writes emails, rewrites, translations and chat (ADR-037): say so when asked.
+    pub fn also_writes(&mut self) {
+        self.writes = true;
     }
 
     /// Dates relative to a zone `seconds` east of UTC instead of the system's (tests pin it).
@@ -173,7 +181,7 @@ impl Act {
             Proposal::NeedsModel => {
                 vec!["That needs several steps I can't plan yet. Try asking for one thing at a time.".into()]
             }
-            Proposal::NoAction => vec![no_action(&parts)],
+            Proposal::NoAction => vec![no_action(&parts, self.writes)],
         }
     }
 
@@ -399,13 +407,24 @@ fn clarify(slot: &str) -> String {
     }
 }
 
-fn no_action(parts: &[(Intent, String)]) -> String {
-    if parts.iter().any(|(i, _)| *i == Intent::Unsupported) {
-        "I can't do that. I can find, open and summarize your notes, keep your tasks, and remember your \
-         preferences."
-            .into()
-    } else {
-        "Hi! I can find, open and summarize your notes, and keep your tasks.".into()
+fn no_action(parts: &[(Intent, String)], writes: bool) -> String {
+    const WRITES: &str = "draft emails and messages, rewrite or translate text, and chat";
+    match (parts.iter().any(|(i, _)| *i == Intent::Unsupported), writes) {
+        (true, false) => {
+            "I can't do that. I can find, open and summarize your notes, keep your tasks, and \
+             remember your preferences."
+                .into()
+        }
+        (true, true) => format!(
+            "I can't do that. I can find, open and summarize your notes, keep your tasks, remember \
+             your preferences, {WRITES}."
+        ),
+        (false, false) => {
+            "Hi! I can find, open and summarize your notes, and keep your tasks.".into()
+        }
+        (false, true) => {
+            format!("Hi! I can find, open and summarize your notes, keep your tasks, {WRITES}.")
+        }
     }
 }
 
