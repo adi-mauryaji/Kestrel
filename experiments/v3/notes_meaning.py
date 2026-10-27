@@ -13,13 +13,15 @@ per found query are reported from then on, for the test split too.
 
 theta is chosen on dev by a rule fixed before looking: on a grid 0.70..0.95 (step 0.01), the value
 with the highest (share of queries whose note is among the k results) - (share of no-note queries
-that get any note by meaning); ties go to the higher theta (fewer additions). The test split stays
-closed until the human has reviewed NotesQ-v0.
+that get any note by meaning); ties go to the higher theta (fewer additions). The test split (opened
+after the human's review, ADR-042) takes the theta of the committed config, chosen on dev; its own
+grid is reported for information only.
 
     python experiments/v3/notes_meaning.py        # seconds: 18 notes + 22 queries through e5
     python experiments/v3/notes_meaning.py --translate   # + Gemma: a query with any Hindi word is
                                                          # translated to English first (~30 s)
     ... --translate --write-config    # also experiments/configs/notes_meaning_v0.json for the service
+    ... --translate --split test      # once: the test split at the config's theta
 """
 from __future__ import annotations
 
@@ -90,6 +92,15 @@ def choose_theta(table: dict[float, tuple[float, float]]) -> float:
     return max(table, key=lambda t: (table[t][0] - table[t][1], t))
 
 
+def theta_for(split: str, table: dict[float, tuple[float, float]]) -> float:
+    """Chosen on dev; the test split takes the committed config's."""
+    return choose_theta(table) if split == "dev" else json.loads(CONFIG.read_text())["theta"]
+
+
+def log_path(split: str, translate: bool) -> Path:
+    return LOG.with_name(f"meaning_{split}{'_translated' if translate else ''}.json")
+
+
 def _rates(rows, theta):
     found = [r for r in rows if r["notes"]]
     none = [r for r in rows if not r["notes"]]
@@ -110,10 +121,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--translate", action="store_true", help="translate queries with Hindi words to English (Gemma)")
     ap.add_argument("--write-config", action="store_true", help="write the service's config from this run")
+    ap.add_argument("--split", choices=("dev", "test"), default="dev")
     args = ap.parse_args(argv)
+    if args.split == "test" and args.write_config:
+        ap.error("the config is chosen on dev")
     notes = {p.relative_to(DATA / "notes").as_posix(): p.read_text(encoding="utf-8")
              for p in sorted((DATA / "notes").rglob("*.md"))}
-    rows = [json.loads(l) for l in (DATA / "splits" / "dev.jsonl").read_text(encoding="utf-8").splitlines()]
+    rows = [json.loads(l) for l in (DATA / "splits" / f"{args.split}.jsonl").read_text(encoding="utf-8").splitlines()]
     enc = load_encoder(ENCODER)
     passage = dataclasses.replace(enc, prefix="passage: ")
     owner, texts = [], []
@@ -139,10 +153,11 @@ def main(argv=None):
         r["note_rank"] = (sorted(r["scores"], key=lambda n: -r["scores"][n]).index(r["notes"][0]) + 1
                           if r["notes"] else None)
     table = {t: _rates(rows, t) for t in GRID}
-    theta = choose_theta(table)
+    theta = theta_for(args.split, table)
     found, none = [r for r in rows if r["notes"]], [r for r in rows if not r["notes"]]
     out = {
-        "encoder": ENCODER, "translate": args.translate, "k": K, "added": ADDED, "chunks": len(texts), "dev_queries": len(rows),
+        "encoder": ENCODER, "translate": args.translate, "k": K, "added": ADDED, "chunks": len(texts), "split": args.split,
+        "queries_n": len(rows),
         "keyword_only_found": sum(bool(set(r["notes"]) & set(r["keyword"][:K])) for r in found) / len(found),
         "meaning_rank1": sum(r["note_rank"] == 1 for r in found) / len(found),
         "meaning_rank_le_k": sum(r["note_rank"] <= K for r in found) / len(found),
@@ -154,7 +169,7 @@ def main(argv=None):
         "found_note_scores": [round(r["scores"][r["notes"][0]], 4) for r in found],
         "queries": [{k: r[k] for k in ("id", "text", "asked", "notes", "keyword", "best", "note_rank")} for r in rows],
     }
-    log = LOG.with_name("meaning_dev_translated.json") if args.translate else LOG
+    log = log_path(args.split, args.translate)
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({k: v for k, v in out.items() if k not in ("grid", "queries")}, indent=1))

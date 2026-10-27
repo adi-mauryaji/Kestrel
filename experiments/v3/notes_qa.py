@@ -7,17 +7,20 @@ worker's {"answer"} (src/notes_qa.rs: Gemma answers from them only or says NOT I
 grounding check says why an answer is not grounded). Fixed before looking: N = 2, and the gate theta =
 0.83 (ADR-040's): when even the closest note is below it, the answer is "not in notes" without Gemma.
 Gemma answers every question once; the gate is applied offline, so other thetas are reported for
-information only. The test split stays closed until the human has reviewed NotesQA-v0.
+information only. The test split, opened after the human's review (ADR-042), is run once with these
+settings.
 
 What the user sees: an answer, "not in your notes", or nothing shown (an ungrounded answer is withheld).
 A question the notes answer is right when the answer holds every fact (any of its ways), wrong when an
 answer lacks one, abstained otherwise; a question they do not answer is right unless it gets an answer.
 
     cargo build --release -p kestrel-cli --features llama
-    python experiments/v3/notes_qa.py        # ~3-4 min of full CPU (Gemma on 24 questions)
+    python experiments/v3/notes_qa.py        # ~3-4 min of full CPU (Gemma on 26 questions)
+    python experiments/v3/notes_qa.py --split test   # once (25 questions) -> qa_test.json
 """
 from __future__ import annotations
 
+import argparse
 import dataclasses
 import json
 import os
@@ -40,6 +43,10 @@ N = 2
 THETA = 0.83
 GRID = [round(0.78 + 0.01 * i, 2) for i in range(10)]
 LOG = ROOT / "experiments" / "logs" / "v3" / "notes" / "qa_dev.json"
+
+
+def log_path(split: str) -> Path:
+    return LOG if split == "dev" else LOG.with_name(f"qa_{split}.json")
 
 
 def has_facts(text: str, facts: list[list[str]]) -> bool:
@@ -97,9 +104,12 @@ def _rates(rows, theta):
     return out
 
 
-def main():
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--split", choices=("dev", "test"), default="dev")
+    args = ap.parse_args(argv)
     notes = {p.relative_to(NOTES).as_posix(): note_text(p.read_text(encoding="utf-8")) for p in sorted(NOTES.rglob("*.md"))}
-    rows = [json.loads(l) for l in (DATA / "splits" / "dev.jsonl").read_text(encoding="utf-8").splitlines()]
+    rows = [json.loads(l) for l in (DATA / "splits" / f"{args.split}.jsonl").read_text(encoding="utf-8").splitlines()]
     enc = load_encoder(ENCODER)
     passage = dataclasses.replace(enc, prefix="passage: ")
     owner, texts = [], []
@@ -134,7 +144,7 @@ def main():
         r["grade"] = grade(r, r["seen"], r["answer"])
     answerable = [r for r in rows if r["notes"]]
     out = {
-        "encoder": ENCODER, "n_notes_given": N, "theta": THETA, "dev_questions": len(rows),
+        "encoder": ENCODER, "n_notes_given": N, "theta": THETA, "split": args.split, "questions_n": len(rows),
         "retrieved_at_n": sum(r["retrieved"] for r in answerable) / len(answerable),
         "at_theta": _rates(rows, THETA),
         "by_lang_at_theta": {lang: _rates([r for r in rows if r["lang"] == lang], THETA) for lang in ("en", "hi-en")},
@@ -144,12 +154,13 @@ def main():
         "questions": [{k: r[k] for k in ("id", "text", "asked", "notes", "top", "answer", "ungrounded", "seen", "grade", "s")}
                       for r in rows],
     }
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    LOG.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    log = log_path(args.split)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     for r in rows:
         print(f"{r['grade']:9s} {r['seen']:12s} {r['text'][:42]!r} -> {r['answer'][:70]!r}")
     print(json.dumps({k: v for k, v in out.items() if k not in ("grid", "questions")}, ensure_ascii=False))
-    print(f"wrote {LOG.relative_to(ROOT)}")
+    print(f"wrote {log.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

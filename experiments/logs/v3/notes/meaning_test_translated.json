@@ -1,0 +1,436 @@
+{
+ "encoder": "multilingual-e5-small-q8_0",
+ "translate": true,
+ "k": 3,
+ "added": 1,
+ "chunks": 52,
+ "split": "test",
+ "queries_n": 20,
+ "keyword_only_found": 0.0,
+ "meaning_rank1": 0.8888888888888888,
+ "meaning_rank_le_k": 1.0,
+ "theta": 0.83,
+ "found_and_noise_at_theta": [
+  0.7777777777777778,
+  0.0
+ ],
+ "wrong_added_per_found_query": 0.0,
+ "by_lang_at_theta": {
+  "en": [
+   0.7777777777777778,
+   0.0
+  ],
+  "hi-en": [
+   0.7777777777777778,
+   0.0
+  ]
+ },
+ "grid": {
+  "0.7": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.71": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.72": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.73": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.74": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.75": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.76": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.77": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.78": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.79": [
+   0.8888888888888888,
+   1.0
+  ],
+  "0.8": [
+   0.8888888888888888,
+   0.5
+  ],
+  "0.81": [
+   0.8888888888888888,
+   0.0
+  ],
+  "0.82": [
+   0.8888888888888888,
+   0.0
+  ],
+  "0.83": [
+   0.7777777777777778,
+   0.0
+  ],
+  "0.84": [
+   0.7222222222222222,
+   0.0
+  ],
+  "0.85": [
+   0.6111111111111112,
+   0.0
+  ],
+  "0.86": [
+   0.3333333333333333,
+   0.0
+  ],
+  "0.87": [
+   0.2222222222222222,
+   0.0
+  ],
+  "0.88": [
+   0.1111111111111111,
+   0.0
+  ],
+  "0.89": [
+   0.05555555555555555,
+   0.0
+  ],
+  "0.9": [
+   0.0,
+   0.0
+  ],
+  "0.91": [
+   0.0,
+   0.0
+  ],
+  "0.92": [
+   0.0,
+   0.0
+  ],
+  "0.93": [
+   0.0,
+   0.0
+  ],
+  "0.94": [
+   0.0,
+   0.0
+  ],
+  "0.95": [
+   0.0,
+   0.0
+  ]
+ },
+ "none_best_scores": [
+  0.8007,
+  0.7957
+ ],
+ "found_note_scores": [
+  0.8509,
+  0.872,
+  0.7997,
+  0.7997,
+  0.8283,
+  0.8298,
+  0.8656,
+  0.8587,
+  0.8781,
+  0.8535,
+  0.8462,
+  0.8383,
+  0.8446,
+  0.8667,
+  0.8518,
+  0.8548,
+  0.8869,
+  0.8992
+ ],
+ "queries": [
+  {
+   "id": "q-car/en/0",
+   "text": "vehicle maintenance",
+   "asked": "vehicle maintenance",
+   "notes": [
+    "2026-10-03-car-service.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-03-car-service.md",
+    0.8509
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-car/hi-en/0",
+   "text": "gaadi ki servicing",
+   "asked": "Car servicing",
+   "notes": [
+    "2026-10-03-car-service.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-03-car-service.md",
+    0.872
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-diwali/en/0",
+   "text": "festival shopping",
+   "asked": "festival shopping",
+   "notes": [
+    "2026-10-08-diwali-shopping.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-15-goa-trip.md",
+    0.8131
+   ],
+   "note_rank": 2
+  },
+  {
+   "id": "q-diwali/hi-en/0",
+   "text": "tyohaar ki khareedari",
+   "asked": "Festival shopping",
+   "notes": [
+    "2026-10-08-diwali-shopping.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-15-goa-trip.md",
+    0.8131
+   ],
+   "note_rank": 2
+  },
+  {
+   "id": "q-goa/en/0",
+   "text": "beach holiday",
+   "asked": "beach holiday",
+   "notes": [
+    "2026-09-15-goa-trip.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-15-goa-trip.md",
+    0.8283
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-goa/hi-en/0",
+   "text": "samundar wali chhutti",
+   "asked": "sea vacation",
+   "notes": [
+    "2026-09-15-goa-trip.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-15-goa-trip.md",
+    0.8298
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-gym/en/0",
+   "text": "my exercise plan",
+   "asked": "my exercise plan",
+   "notes": [
+    "2026-09-05-gym-routine.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-05-gym-routine.md",
+    0.8656
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-gym/hi-en/0",
+   "text": "meri exercise planning",
+   "asked": "my exercise planning",
+   "notes": [
+    "2026-09-05-gym-routine.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-05-gym-routine.md",
+    0.8587
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-landlord/en/0",
+   "text": "plumbing problem in the flat",
+   "asked": "plumbing problem in the flat",
+   "notes": [
+    "2026-09-22-landlord.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.8781
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-landlord/hi-en/0",
+   "text": "ghar mein paani ka rissav",
+   "asked": "water leakage in the house",
+   "notes": [
+    "2026-09-22-landlord.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-22-landlord.md",
+    0.8535
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-meeting/en/0",
+   "text": "new release date",
+   "asked": "new release date",
+   "notes": [
+    "2026-10-01-team-meeting.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-01-team-meeting.md",
+    0.8462
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-meeting/hi-en/0",
+   "text": "release kab hogi",
+   "asked": "When will it be released?",
+   "notes": [
+    "2026-10-01-team-meeting.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-01-team-meeting.md",
+    0.8383
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-none-guitar/en/0",
+   "text": "learning guitar",
+   "asked": "learning guitar",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-09-12-python-learning.md",
+    0.8007
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-none-guitar/hi-en/0",
+   "text": "guitar seekhna",
+   "asked": "guitar seekhna",
+   "notes": [],
+   "keyword": [],
+   "best": [
+    "2026-10-08-diwali-shopping.md",
+    0.7957
+   ],
+   "note_rank": null
+  },
+  {
+   "id": "q-plants/en/0",
+   "text": "watering the balcony greenery",
+   "asked": "watering the balcony greenery",
+   "notes": [
+    "2026-10-06-plants.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-06-plants.md",
+    0.8446
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-plants/hi-en/0",
+   "text": "paudhon ko paani",
+   "asked": "Water for plants",
+   "notes": [
+    "2026-10-06-plants.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-10-06-plants.md",
+    0.8667
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-python/en/0",
+   "text": "getting better at coding",
+   "asked": "getting better at coding",
+   "notes": [
+    "2026-09-12-python-learning.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-12-python-learning.md",
+    0.8518
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-python/hi-en/0",
+   "text": "coding ki practice",
+   "asked": "coding practice",
+   "notes": [
+    "2026-09-12-python-learning.md"
+   ],
+   "keyword": [],
+   "best": [
+    "2026-09-12-python-learning.md",
+    0.8548
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-wifi/en/0",
+   "text": "changing the internet password",
+   "asked": "changing the internet password",
+   "notes": [
+    "docs/wifi-setup.md"
+   ],
+   "keyword": [],
+   "best": [
+    "docs/wifi-setup.md",
+    0.8869
+   ],
+   "note_rank": 1
+  },
+  {
+   "id": "q-wifi/hi-en/0",
+   "text": "wifi ka password badalna",
+   "asked": "Change the wifi password",
+   "notes": [
+    "docs/wifi-setup.md"
+   ],
+   "keyword": [],
+   "best": [
+    "docs/wifi-setup.md",
+    0.8992
+   ],
+   "note_rank": 1
+  }
+ ]
+}

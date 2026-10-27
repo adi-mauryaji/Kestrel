@@ -46,3 +46,14 @@ def test_the_committed_config_is_the_translated_dev_run():
     log = json.loads(LOG.with_name("meaning_dev_translated.json").read_text())
     assert (cfg["theta"], cfg["k"], cfg["added"], cfg["translate"]) == (log["theta"], log["k"], log["added"], True)
     assert cfg["encoder_file"].endswith(".gguf")
+
+
+def test_the_test_split_takes_the_dev_theta_and_logs_apart():
+    import json
+    from notes_meaning import CONFIG, LOG, log_path, theta_for
+    table = {0.80: (1.0, 0.0), 0.83: (0.5, 0.0)}
+    assert theta_for("dev", table) == 0.80
+    assert theta_for("test", table) == json.loads(CONFIG.read_text())["theta"]
+    assert log_path("dev", True) == LOG.with_name("meaning_dev_translated.json")
+    assert log_path("test", True) == LOG.with_name("meaning_test_translated.json")
+    assert log_path("test", False) == LOG.with_name("meaning_test.json")

@@ -24,3 +24,9 @@ def test_grades_reward_the_right_answer_and_the_honest_no():
     assert grade(unanswerable, "not in notes", "") == "right"
     assert grade(unanswerable, "withheld", "x") == "right"
     assert grade(unanswerable, "answered", "Your passport expires in 2030.") == "wrong"
+
+
+def test_each_split_has_its_own_log():
+    from notes_qa import LOG, log_path
+    assert log_path("dev") == LOG
+    assert log_path("test") == LOG.with_name("qa_test.json")
