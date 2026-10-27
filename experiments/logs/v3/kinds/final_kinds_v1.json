@@ -1,0 +1,162 @@
+{
+ "dataset": "kinds_v1",
+ "encoder": "multilingual-e5-small-q8_0",
+ "classes": [
+  "app",
+  "chat",
+  "email",
+  "notes",
+  "rewrite",
+  "translate"
+ ],
+ "c_grid_val_macro_f1": {
+  "0.1": 0.13793103448275862,
+  "1.0": 0.23204568357406785,
+  "10.0": 0.7917875318890547,
+  "100.0": 0.7881783428903848,
+  "1000.0": 0.7775772765246449
+ },
+ "c": 10.0,
+ "folds": 5,
+ "fit_n": 1035,
+ "oof_errors": 195,
+ "temperature": 0.671641697743345,
+ "temperature_note": "cross-fitted on train + cal (5 folds by family)",
+ "oof": {
+  "n": 1035,
+  "accuracy": 0.8115942028985508,
+  "macro_f1": 0.6969110940249893,
+  "ece": 0.03190346850977317,
+  "nll": 0.48256761984177426
+ },
+ "val_raw": {
+  "n": 136,
+  "accuracy": 0.9264705882352942,
+  "macro_f1": 0.7985815354236406,
+  "ece": 0.1467053291793836,
+  "nll": 0.3318022810587478
+ },
+ "val_calibrated": {
+  "n": 136,
+  "accuracy": 0.9264705882352942,
+  "macro_f1": 0.7985815354236406,
+  "ece": 0.07563515140378922,
+  "nll": 0.23199657814622987
+ },
+ "val_per_class": {
+  "app": {
+   "n": 96,
+   "precision": 0.9494949494949495,
+   "recall": 0.9791666666666666
+  },
+  "chat": {
+   "n": 12,
+   "precision": 1.0,
+   "recall": 0.8333333333333334
+  },
+  "email": {
+   "n": 8,
+   "precision": 0.7272727272727273,
+   "recall": 1.0
+  },
+  "notes": {
+   "n": 4,
+   "precision": 0.3333333333333333,
+   "recall": 0.25
+  },
+  "rewrite": {
+   "n": 8,
+   "precision": 1.0,
+   "recall": 0.75
+  },
+  "translate": {
+   "n": 8,
+   "precision": 1.0,
+   "recall": 0.875
+  }
+ },
+ "val_calibrated_en": {
+  "n": 68,
+  "accuracy": 0.9558823529411765,
+  "macro_f1": 0.8749055177626607,
+  "ece": 0.07756215054427011
+ },
+ "val_calibrated_hi-en": {
+  "n": 68,
+  "accuracy": 0.8970588235294118,
+  "macro_f1": 0.7342660775650467,
+  "ece": 0.0881564109955257
+ },
+ "val_errors": [
+  {
+   "id": "app-02/hi-en/0",
+   "text": "kal professor ko email karna yaad dila dena",
+   "gold": "app",
+   "head": "email",
+   "p": 0.534
+  },
+  {
+   "id": "chat-15/hi-en/0",
+   "text": "presentation se pehle nervous ho jata hoon, koi advice?",
+   "gold": "chat",
+   "head": "app",
+   "p": 0.582
+  },
+  {
+   "id": "chat-v1-02/hi-en/1",
+   "text": "bike ki service kitne time mein karani chahiye?",
+   "gold": "chat",
+   "head": "notes",
+   "p": 0.548
+  },
+  {
+   "id": "intents:oos-facts-01/hi-en/0/0",
+   "text": "japan ka prime minister kaun hai?",
+   "gold": "app",
+   "head": "notes",
+   "p": 0.553
+  },
+  {
+   "id": "notes-03/en/0",
+   "text": "who is handling the dashboard?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.748
+  },
+  {
+   "id": "notes-03/hi-en/0",
+   "text": "dashboard kaun bana raha hai?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.623
+  },
+  {
+   "id": "notes-03/hi-en/1",
+   "text": "landlord ne kaunsa plumber bheja tha?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.654
+  },
+  {
+   "id": "rewrite-18/en/1",
+   "text": "suggest a subject line for this mail: the office will be closed on friday",
+   "gold": "rewrite",
+   "head": "email",
+   "p": 0.458
+  },
+  {
+   "id": "rewrite-18/hi-en/1",
+   "text": "is mail ki subject line bata do: office friday ko band rahega",
+   "gold": "rewrite",
+   "head": "email",
+   "p": 0.518
+  },
+  {
+   "id": "translate-11/en/0",
+   "text": "translate this sentence to english: aaj bahut garmi hai",
+   "gold": "translate",
+   "head": "app",
+   "p": 0.622
+  }
+ ]
+}
