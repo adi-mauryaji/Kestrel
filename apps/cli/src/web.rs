@@ -112,10 +112,18 @@ pub fn read_request(r: &mut dyn BufRead) -> io::Result<HttpRequest> {
 }
 
 /// Ok, or the status to refuse with: 403 for a `Host` that is not this server, 401 for an API
-/// request without the token.
-pub fn allowed(req: &HttpRequest, port: u16, token: &str) -> Result<(), u16> {
+/// request without the token. Shared on the wifi (`lan`), that address is this server too.
+pub fn allowed(
+    req: &HttpRequest,
+    port: u16,
+    token: &str,
+    lan: Option<std::net::Ipv4Addr>,
+) -> Result<(), u16> {
     let host = req.header("host").unwrap_or("");
-    if host != format!("127.0.0.1:{port}") && host != format!("localhost:{port}") {
+    let here = host == format!("127.0.0.1:{port}")
+        || host == format!("localhost:{port}")
+        || lan.is_some_and(|ip| host == format!("{ip}:{port}"));
+    if !here {
         return Err(403);
     }
     let has_token = req
@@ -143,13 +151,31 @@ pub fn url(port: u16, token: &str) -> String {
     format!("http://127.0.0.1:{port}/#t={token}")
 }
 
-/// `kestrel open [--print]`: opens the running Kestrel's page in the browser (or prints its
-/// address).
+/// Where the service leaves the page's wifi address with its token, when it is shared there.
+pub fn lan_url_file(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> std::path::PathBuf {
+    crate::service::socket_path(var).with_extension("lan.url")
+}
+
+/// The page's address on the wifi (plain HTTP: anyone on that network can read what it carries).
+pub fn lan_url(ip: std::net::Ipv4Addr, port: u16, token: &str) -> String {
+    format!("http://{ip}:{port}/#t={token}")
+}
+
+/// `kestrel open [--print] [--lan]`: opens the running Kestrel's page in the browser (or prints its
+/// address); `--lan`, its address on the wifi when the service shares it there (`--web-lan`).
 pub fn open(
     args: &[String],
     var: &dyn Fn(&str) -> Option<std::ffi::OsString>,
     out: &mut dyn Write,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    if args.iter().any(|a| a == "--lan") {
+        let address = std::fs::read_to_string(lan_url_file(var)).map_err(|_| {
+            "the page is not shared on the wifi: KESTREL_WEB_LAN=<this laptop's IP> \
+             scripts/install_service.sh ~/notes"
+        })?;
+        writeln!(out, "{}", address.trim())?;
+        return Ok(());
+    }
     let path = url_file(var);
     let address = std::fs::read_to_string(&path).map_err(|_| {
         format!(
@@ -214,18 +240,31 @@ pub fn tasks_json(tasks: &[TaskRow], today: Date, minute: u32, skills: bool) -> 
     json!({"today": today.to_string(), "minute": minute, "skills": skills, "tasks": rows})
 }
 
-/// The browser side of `kestrel serve`: a listener on 127.0.0.1 polled from the service loop.
+/// The browser side of `kestrel serve`: a listener on 127.0.0.1 polled from the service loop; shared
+/// on the wifi (`lan`), on every address, answering to that one too.
 pub struct Web {
     listener: std::net::TcpListener,
     port: u16,
     token: String,
     tasks: Box<dyn Fn() -> Value>,
+    lan: Option<std::net::Ipv4Addr>,
 }
 
 impl Web {
-    /// Listens on 127.0.0.1:`port` (0: any free port); `tasks` answers `GET /api/tasks`.
-    pub fn bind(port: u16, token: String, tasks: Box<dyn Fn() -> Value>) -> io::Result<Self> {
-        let listener = std::net::TcpListener::bind(("127.0.0.1", port))?;
+    /// Listens on 127.0.0.1:`port` (0: any free port), or on every address when shared on the wifi
+    /// at `lan`; `tasks` answers `GET /api/tasks`.
+    pub fn bind(
+        port: u16,
+        token: String,
+        tasks: Box<dyn Fn() -> Value>,
+        lan: Option<std::net::Ipv4Addr>,
+    ) -> io::Result<Self> {
+        let host = if lan.is_some() {
+            "0.0.0.0"
+        } else {
+            "127.0.0.1"
+        };
+        let listener = std::net::TcpListener::bind((host, port))?;
         listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
         Ok(Self {
@@ -233,6 +272,7 @@ impl Web {
             port,
             token,
             tasks,
+            lan,
         })
     }
 
@@ -278,7 +318,7 @@ impl Web {
                 return Ok(None);
             }
         };
-        match allowed(&req, self.port, &self.token) {
+        match allowed(&req, self.port, &self.token, self.lan) {
             Ok(()) => Ok(Some((req, out))),
             Err(403) => reply(&mut out, "403 Forbidden", TEXT, b"wrong host").map(|()| None),
             Err(_) => {
@@ -465,35 +505,100 @@ mod tests {
             req(&format!("GET {path} HTTP/1.1\r\nHost: {host}\r\n{t}\r\n"))
         };
         assert_eq!(
-            allowed(&with("127.0.0.1:7811", None, "/"), 7811, "s3cret"),
+            allowed(&with("127.0.0.1:7811", None, "/"), 7811, "s3cret", None),
             Ok(())
         );
         assert_eq!(
-            allowed(&with("localhost:7811", None, "/"), 7811, "s3cret"),
+            allowed(&with("localhost:7811", None, "/"), 7811, "s3cret", None),
             Ok(())
         );
         // A name that resolves here but is not this server (DNS rebinding).
         assert_eq!(
-            allowed(&with("evil.example:7811", None, "/"), 7811, "s3cret"),
+            allowed(&with("evil.example:7811", None, "/"), 7811, "s3cret", None),
             Err(403)
         );
         assert_eq!(
-            allowed(&with("127.0.0.1:9999", None, "/"), 7811, "s3cret"),
+            allowed(&with("127.0.0.1:9999", None, "/"), 7811, "s3cret", None),
             Err(403)
         );
         let api = "/api/tasks";
         assert_eq!(
-            allowed(&with("127.0.0.1:7811", None, api), 7811, "s3cret"),
+            allowed(&with("127.0.0.1:7811", None, api), 7811, "s3cret", None),
             Err(401)
         );
         assert_eq!(
-            allowed(&with("127.0.0.1:7811", Some("guess"), api), 7811, "s3cret"),
+            allowed(
+                &with("127.0.0.1:7811", Some("guess"), api),
+                7811,
+                "s3cret",
+                None
+            ),
             Err(401)
         );
         assert_eq!(
-            allowed(&with("127.0.0.1:7811", Some("s3cret"), api), 7811, "s3cret"),
+            allowed(
+                &with("127.0.0.1:7811", Some("s3cret"), api),
+                7811,
+                "s3cret",
+                None
+            ),
             Ok(())
         );
+    }
+
+    #[test]
+    fn the_wifi_address_counts_only_when_the_page_is_shared_there() {
+        let with = |host: &str, token: Option<&str>, path: &str| {
+            let t = token.map_or(String::new(), |t| format!("X-Kestrel-Token: {t}\r\n"));
+            req(&format!("GET {path} HTTP/1.1\r\nHost: {host}\r\n{t}\r\n"))
+        };
+        let lan = Some(std::net::Ipv4Addr::new(192, 168, 251, 140));
+        let page = with("192.168.251.140:7811", None, "/");
+        assert_eq!(allowed(&page, 7811, "s3cret", None), Err(403));
+        assert_eq!(allowed(&page, 7811, "s3cret", lan), Ok(()));
+        assert_eq!(
+            allowed(&with("127.0.0.1:7811", None, "/"), 7811, "s3cret", lan),
+            Ok(())
+        );
+        assert_eq!(
+            allowed(&with("192.168.251.9:7811", None, "/"), 7811, "s3cret", lan),
+            Err(403)
+        );
+        let api = |token| with("192.168.251.140:7811", token, "/api/tasks");
+        assert_eq!(
+            allowed(&api(None), 7811, "s3cret", lan),
+            Err(401),
+            "the key, still"
+        );
+        assert_eq!(allowed(&api(Some("s3cret")), 7811, "s3cret", lan), Ok(()));
+    }
+
+    #[test]
+    fn shared_on_the_wifi_the_page_listens_everywhere_and_open_gives_that_link() {
+        let lan = std::net::Ipv4Addr::new(192, 168, 251, 140);
+        let w = Web::bind(0, "t".into(), Box::new(|| Value::Null), Some(lan)).unwrap();
+        assert!(w.listener.local_addr().unwrap().ip().is_unspecified());
+        let w = Web::bind(0, "t".into(), Box::new(|| Value::Null), None).unwrap();
+        assert!(w.listener.local_addr().unwrap().ip().is_loopback());
+        assert_eq!(
+            lan_url(lan, 7811, "ab12"),
+            "http://192.168.251.140:7811/#t=ab12"
+        );
+        let dir = std::env::temp_dir().join(format!("kestrel_web_lan_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let var = |k: &str| (k == "XDG_RUNTIME_DIR").then(|| dir.clone().into_os_string());
+        assert_eq!(lan_url_file(&var), dir.join("kestrel.lan.url"));
+        std::fs::write(url_file(&var), url(7811, "ab12")).unwrap();
+        let mut out = Vec::new();
+        let e = open(&["--print".into(), "--lan".into()], &var, &mut out).unwrap_err();
+        assert!(e.to_string().contains("not shared"), "{e}");
+        std::fs::write(lan_url_file(&var), lan_url(lan, 7811, "ab12")).unwrap();
+        open(&["--print".into(), "--lan".into()], &var, &mut out).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "http://192.168.251.140:7811/#t=ab12\n"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -660,7 +765,8 @@ mod tests {
         use std::io::{BufRead, BufReader, Read, Write};
         use std::net::TcpStream;
 
-        let mut web = Web::bind(0, "s3cret".into(), Box::new(|| json!({"tasks": []}))).unwrap();
+        let mut web =
+            Web::bind(0, "s3cret".into(), Box::new(|| json!({"tasks": []})), None).unwrap();
         let port = web.port();
         let send = move |path: &str, body: &str| {
             let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();

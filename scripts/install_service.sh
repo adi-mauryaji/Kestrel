@@ -6,6 +6,10 @@
 # `kestrel stop` stops it until the next open, chat or say (which start it again) or the next login.
 #
 #   scripts/install_service.sh ~/notes      install and start (or set KESTREL_NOTES)
+#   KESTREL_WEB_LAN=192.168.1.20 scripts/install_service.sh ~/notes
+#                                           the page also on the wifi at this laptop's address (plain
+#                                           HTTP: anyone on that network can read it; the link's key
+#                                           still guards it). Run again without it to stop sharing.
 #   scripts/install_service.sh --remove     stop and remove the service (notes and tasks are kept)
 #
 # The service runs its own copy of the binary ($DATA/kestrel/bin/kestrel, shared with the
@@ -63,7 +67,7 @@ Description=Kestrel assistant (always on; the SLM loads on demand)
 [Service]
 WorkingDirectory=$PWD
 $ENV_LINE
-ExecStart="$BIN_DIR/kestrel" serve --notes "$NOTES" $CONFIG
+ExecStart="$BIN_DIR/kestrel" serve --notes "$NOTES" ${KESTREL_WEB_LAN:+--web-lan $KESTREL_WEB_LAN} $CONFIG
 Restart=on-failure
 RestartSec=5
 

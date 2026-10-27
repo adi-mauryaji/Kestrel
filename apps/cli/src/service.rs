@@ -443,14 +443,15 @@ fn answer<'m>(
     ))
 }
 
-/// The page on 127.0.0.1:`port`: its token beside the memory file (kept across restarts, so a
-/// bookmark keeps working), its address with the token for `kestrel open`, and its own connection
-/// to the memory file for the task list.
+/// The page on 127.0.0.1:`port` (and on the wifi at `lan` when shared there): its token beside the
+/// memory file (kept across restarts, so a bookmark keeps working), its addresses with the token for
+/// `kestrel open [--lan]`, and its own connection to the memory file for the task list.
 #[cfg(feature = "llama")]
 fn open_web(
     port: u16,
     memory: &std::path::Path,
     skills: bool,
+    lan: Option<std::net::Ipv4Addr>,
 ) -> Result<crate::web::Web, Box<dyn std::error::Error>> {
     let dir = memory.parent().unwrap_or(std::path::Path::new("."));
     let token = crate::web::token(&dir.join("web-token"))?;
@@ -467,13 +468,26 @@ fn open_web(
             skills,
         )
     };
-    let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks))?;
-    let file = crate::web::url_file(&|k| std::env::var_os(k));
-    crate::web::write_private(&file, &crate::web::url(web.port(), &token))?;
+    let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?;
+    let var = |k: &str| std::env::var_os(k);
+    crate::web::write_private(
+        &crate::web::url_file(&var),
+        &crate::web::url(web.port(), &token),
+    )?;
+    let lan_file = crate::web::lan_url_file(&var);
+    match lan {
+        Some(ip) => {
+            crate::web::write_private(&lan_file, &crate::web::lan_url(ip, web.port(), &token))?
+        }
+        // Not shared: no address left from an earlier start.
+        None => {
+            let _ = std::fs::remove_file(&lan_file);
+        }
+    }
     Ok(web)
 }
 
-/// `kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] CONFIG`.
+/// `kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] CONFIG`.
 #[cfg(feature = "llama")]
 pub fn serve(
     config: &std::path::Path,
@@ -481,6 +495,7 @@ pub fn serve(
     memory: &std::path::Path,
     idle: std::time::Duration,
     web_port: Option<u16>,
+    web_lan: Option<std::net::Ipv4Addr>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::os::unix::fs::PermissionsExt;
     use std::os::unix::net::{UnixListener, UnixStream};
@@ -622,12 +637,18 @@ pub fn serve(
     let ring_db = memory.to_path_buf();
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
     // The browser page; without it the service still answers on the socket.
-    let mut web = web_port.and_then(|port| match open_web(port, memory, skills) {
+    let mut web = web_port.and_then(|port| match open_web(port, memory, skills, web_lan) {
         Ok(w) => {
             eprintln!(
                 "the page is at http://127.0.0.1:{}/ (kestrel open)",
                 w.port()
             );
+            if let Some(ip) = web_lan {
+                eprintln!(
+                    "shared on the wifi at http://{ip}:{}/ (plain HTTP; kestrel open --print --lan)",
+                    w.port()
+                );
+            }
             Some(w)
         }
         Err(e) => {
