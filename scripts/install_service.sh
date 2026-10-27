@@ -10,7 +10,10 @@
 #
 # The service runs its own copy of the binary ($DATA/kestrel/bin/kestrel, shared with the
 # reminders), from this repository (models/, configs and prompt contracts are read from here); run
-# the script again after an update.
+# the script again after an update. v3 runs from its own worktree (ADR-042), so that switching this
+# checkout's branch never changes what the service reads: models/*.gguf and the heads under
+# experiments/artifacts/tier3/ are not in git and are put there first. With CARGO_TARGET_DIR set,
+# the binary is built and taken from there.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -46,7 +49,7 @@ NOTES="$(cd "$NOTES" 2>/dev/null && pwd)" || {
 
 cargo build --release -p kestrel-cli --features llama
 mkdir -p "$BIN_DIR" "$UNIT_DIR"
-install -m 0755 target/release/kestrel "$BIN_DIR/kestrel"
+install -m 0755 "${CARGO_TARGET_DIR:-target}/release/kestrel" "$BIN_DIR/kestrel"
 rm -f "$CACHE"/tier4-*.kv
 
 ENV_LINE=""
