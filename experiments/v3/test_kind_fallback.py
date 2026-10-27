@@ -71,3 +71,22 @@ def test_the_config_names_its_labels_and_dev_log():
     cfg = fallback_config(meta, 1.5, 0.9, "s", paths("kinds_v1"))
     assert cfg["labels"] == "kinds_v1.txt" and cfg["dev_log"].endswith("fallback_dev_v1.json")
     assert fallback_config(meta, 1.5, 0.9, "s")["labels"] == "kinds.txt"
+
+
+def test_tau_and_tau_g_are_chosen_by_fewest_wrong_then_asks_then_fewer_gemma_calls():
+    from kind_fallback import choose
+    s = lambda bad, old, asked: {"skill_not_asked_for": bad, "skill_sent_old_way": old, "asked": asked}
+    grid = {(0.7, 0.9): s(1, 1, 3), (0.8, 0.9): s(1, 0, 5), (0.6, 0.8): s(0, 1, 5), (0.9, 0.9): s(0, 1, 9)}
+    assert choose(grid) == (0.6, 0.8)  # 1 wrong, 5 asks; lower tau wins over (0.8, 0.9)
+    grid[(0.6, 0.9)] = s(1, 0, 5)
+    assert choose(grid) == (0.6, 0.9)  # same wrong, asks and tau: the higher tau_g
+
+
+def test_the_test_run_is_refused_once_its_log_exists(tmp_path):
+    import pytest
+    from kind_fallback import refuse_second_test_run
+    log = tmp_path / "fallback_test_v1.json"
+    refuse_second_test_run(log)
+    log.write_text("{}")
+    with pytest.raises(SystemExit, match="once"):
+        refuse_second_test_run(log)

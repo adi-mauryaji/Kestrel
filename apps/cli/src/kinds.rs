@@ -271,6 +271,8 @@ pub struct FallbackConfig {
     pub labels: String,
     pub shots: Vec<Shot>,
     pub temperature: f32,
+    /// The head's τ when it was judged with the fallback (Kinds-v1); else the draft `TAU`.
+    pub tau: Option<f32>,
     pub tau_g: f32,
 }
 
@@ -292,13 +294,16 @@ impl FallbackConfig {
         {
             return Err(bad(format!("example label {:?} is not a kind", s.label)));
         }
+        let tau = cfg.tau.unwrap_or(TAU);
         if !(cfg.temperature.is_finite()
             && cfg.temperature > 0.0
             && cfg.tau_g > 0.0
-            && cfg.tau_g <= 1.0)
+            && cfg.tau_g <= 1.0
+            && tau > 0.0
+            && tau <= 1.0)
         {
             return Err(bad(format!(
-                "temperature {} or tau_g {} out of range",
+                "temperature {}, tau {tau} or tau_g {} out of range",
                 cfg.temperature, cfg.tau_g
             )));
         }
@@ -817,6 +822,7 @@ mod tests {
         );
         let cfg = FallbackConfig::load(std::path::Path::new(path)).unwrap();
         assert!(cfg.tau_g > 0.0 && cfg.tau_g <= 1.0 && cfg.temperature > 0.0);
+        assert_eq!(cfg.tau, None, "Kinds-v0's run kept the draft τ");
         assert!(cfg.shots.len() >= 10 && cfg.system.contains("\napp: "));
         assert!(FallbackConfig::load(std::path::Path::new("no/such.json")).is_err());
         // Kinds-v0's run chose among five kinds: not the head's six, so the service leaves it off.

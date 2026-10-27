@@ -539,7 +539,6 @@ pub fn serve(
     match models.kinds_tier() {
         Ok(head) => {
             let writer = Box::new(SharedRemote(remote.clone()));
-            let mut kinds = crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU);
             // Gemma decides when the head is unsure; without its config the head alone asks.
             let fb = crate::kinds::FallbackConfig::load(std::path::Path::new(
                 crate::kinds::FALLBACK_CONFIG,
@@ -555,13 +554,22 @@ pub fn serve(
                 }
                 Ok(fb)
             });
-            match fb {
-                Ok(fb) => {
-                    let fallback = Box::new(crate::remote::KindFallback(remote.clone()));
-                    kinds = kinds.with_fallback(fallback, fb.tau_g);
+            let kinds = match fb {
+                // τ as the fallback's dev run judged it with the head.
+                Ok(fb) => crate::kinds::Kinds::new(
+                    Box::new(head),
+                    writer,
+                    fb.tau.unwrap_or(crate::kinds::TAU),
+                )
+                .with_fallback(
+                    Box::new(crate::remote::KindFallback(remote.clone())),
+                    fb.tau_g,
+                ),
+                Err(e) => {
+                    eprintln!("the kind fallback is off (unsure requests are asked): {e}");
+                    crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU)
                 }
-                Err(e) => eprintln!("the kind fallback is off (unsure requests are asked): {e}"),
-            }
+            };
             assistant = assistant.with_kinds(kinds);
             skills = true;
         }

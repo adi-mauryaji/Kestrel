@@ -20,6 +20,11 @@ ADR-042) is run with Kinds-v1's final head, its logs and config named _v1.
     python experiments/v3/kind_fallback.py            # ~3-5 min of full CPU: Gemma on 231 items
     python experiments/v3/kind_fallback.py --reuse    # the policies again from the logged outputs
     python experiments/v3/kind_fallback.py --dataset kinds_v1   # Gemma on Kinds-v1's 251 cal + val items
+    python experiments/v3/kind_fallback.py --dataset kinds_v1 --test   # once: Gemma on the 256 test items
+
+Kinds-v1 judges tau again with the final head (ADR-042): every (tau, tau_g) on TAUS x TAU_G, chosen on val by
+a rule fixed before its run (`choose`); both go to the config. --test then runs the config once on the test
+split (the head and prompt must be the dev run's) and refuses a second run.
 """
 from __future__ import annotations
 
@@ -47,6 +52,7 @@ TAU_G = (0.5, 0.6, 0.7, 0.8, 0.9)
 # Draft, chosen on val (fallback_dev.json, 2026-10-26): half the asks of the head alone and no wrong
 # skill more; lower values let Gemma's lean to chat through. Judged again on the final head.
 TAU_G_CHOSEN = 0.9
+TAUS = (0.5, 0.6, 0.7, 0.8, 0.9)  # Kinds-v1: tau judged again with the final head
 CONFIG = ROOT / "experiments" / "configs" / "kinds_fallback_v0.json"
 LOG = ROOT / "experiments" / "logs" / "v3" / "kinds"
 OUTPUTS, SUMMARY = LOG / "fallback_outputs.jsonl", LOG / "fallback_dev.json"
@@ -73,6 +79,22 @@ def decide(head, tau, gemma=None, tau_g=None):
     return ("ask", kind) if kind != "app" else ("take", "app")
 
 
+def wrong(s: dict) -> int:
+    return s["skill_not_asked_for"] + s["skill_sent_old_way"]
+
+
+def choose(grid: dict) -> tuple[float, float]:
+    """(tau, tau_g) on val, by the rule fixed before Kinds-v1's run: fewest wrong decisions (a skill the
+    request did not ask for, or a skill request sent the old way), then fewest asks, then the lower tau
+    (fewer Gemma calls), then the higher tau_g."""
+    return min(grid, key=lambda k: (wrong(grid[k]), grid[k]["asked"], k[0], -k[1]))
+
+
+def refuse_second_test_run(log: Path) -> None:
+    if log.exists():
+        sys.exit(f"{log.name} exists: the test split is run once")
+
+
 def score(decisions, gold):
     taken = [(k, g) for (how, k), g in zip(decisions, gold) if how == "take"]
     asked = [(k, g) for (how, k), g in zip(decisions, gold) if how == "ask"]
@@ -82,14 +104,19 @@ def score(decisions, gold):
             "asked": len(asked), "asked_right_kind": sum(k == g for k, g in asked)}
 
 
-def fallback_config(meta: dict, temperature: float, tau_g: float, system: str, at: dict | None = None) -> dict:
+def fallback_config(meta: dict, temperature: float, tau_g: float, system: str, at: dict | None = None,
+                    tau: float | None = None) -> dict:
     """What the worker needs to run the fallback as the dev run did; `system` is the prompt's text,
-    so the runtime cannot read another prompt than the one measured. `at`: paths(), Kinds-v0's by default."""
+    so the runtime cannot read another prompt than the one measured. `at`: paths(), Kinds-v0's by default.
+    `tau`, when judged with the head (Kinds-v1), is the head's threshold too."""
     at = at or paths("kinds_v0")
-    return {"note": "v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; tau_g is a draft",
+    note = ("v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; "
+            + ("tau and tau_g chosen on val (ADR-042)" if tau is not None else "tau_g is a draft"))
+    return {"note": note,
             "dev_log": str(at["summary"].relative_to(ROOT)), "slm": meta["slm"], "model_file": meta["model_file"],
             "prompt": meta["prompt"], "prompt_sha256": meta["prompt_sha256"], "system": system,
-            "labels": at["labels"].name, "shots": meta["shots"], "temperature": temperature, "tau_g": tau_g,
+            "labels": at["labels"].name, "shots": meta["shots"], "temperature": temperature,
+            **({"tau": tau} if tau is not None else {}), "tau_g": tau_g,
             "head_sha256": meta["head_sha256"]}
 
 
@@ -117,7 +144,8 @@ def run_models(splits, dataset: str = "kinds_v0") -> list[dict]:
     return rows, shots
 
 
-def summarize(rows) -> dict:
+def summarize(rows, taus=None) -> dict:
+    """The dev policies on val; with `taus`, every (tau, tau_g) and the chosen pair too."""
     cal = [r for r in rows if r["split"] == "cal" and "steps" in r["gemma"]]
     val = [r for r in rows if r["split"] == "val"]
     t_g = fit_conf_temperature([r["gemma"]["steps"] for r in cal],
@@ -145,14 +173,75 @@ def summarize(rows) -> dict:
         "val_unsure_items": [{"id": val[i]["id"], "gold": gold[i], "head": list(head_top[i]),
                               "gemma": [gemma[i][0], round(gemma[i][1], 3)]} for i in unsure],
     }
+    if taus:
+        grid = {(ta, tg): score([decide(r["head"], ta, g, tg) for r, g in zip(val, gemma)], gold)
+                for ta in taus for tg in TAU_G}
+        tau, tau_g = choose(grid)
+        out["val_grid"] = {f"{ta}/{tg}": s for (ta, tg), s in grid.items()}
+        out["val_head_by_tau"] = {str(ta): score([decide(r["head"], ta) for r in val], gold) for ta in taus}
+        out["chosen"] = {"tau": tau, "tau_g": tau_g, "rule": choose.__doc__.split("rule fixed before Kinds-v1's run: ")[1]}
     return out
+
+
+def run_test(dataset: str) -> None:
+    """The committed config once on the test split: the final head, Gemma on every test item."""
+    from metrics import accuracy, ece, macro_f1
+    at = paths(dataset)
+    log = at["summary"].with_name(at["summary"].name.replace("fallback_dev", "fallback_test"))
+    refuse_second_test_run(log)
+    cfg = json.loads(at["config"].read_text())
+    if _sha(at["head"] / "head.bin") != cfg["head_sha256"] or _sha(at["prompt"]) != cfg["prompt_sha256"]:
+        raise ValueError("the head or the prompt changed since the dev run")
+    labels = [l for l in at["labels"].read_text().split("\n") if l and not l.startswith("#")]
+    w, b, t, meta = load_head(at["head"])
+    test = [json.loads(l) for l in (ROOT / "datasets" / f"kestrel_{dataset}" / "splits" / "test.jsonl").open()]
+    p = softmax(logits(embed(load_encoder(ENCODER), [r["text"] for r in test], chunk=2048), w, b), t)
+    outs = classify(model_path(SLM), test, cfg["shots"], task=dataset)
+    gold = [r["label"] for r in test]
+    head = [{c: float(x) for c, x in zip(labels, pr)} for pr in p]
+    gemma = [(o["label"], step_confidence(o["steps"], cfg["temperature"])) if "steps" in o else ("app", 0.0)
+             for o in outs]
+    top = [max(h.items(), key=lambda kv: kv[1]) for h in head]
+    decisions = [decide(h, cfg["tau"], g, cfg["tau_g"]) for h, g in zip(head, gemma)]
+
+    def by(m):
+        idx = [i for i in range(len(test)) if m(i)]
+        return {"head_alone": score([decide(head[i], cfg["tau"]) for i in idx], [gold[i] for i in idx]),
+                "head_gemma": score([decisions[i] for i in idx], [gold[i] for i in idx])}
+    out = {"dataset": dataset, "config": str(at["config"].relative_to(ROOT)), "tau": cfg["tau"], "tau_g": cfg["tau_g"],
+           "n": len(test), "head": {"accuracy": accuracy(gold, [k for k, _ in top]),
+                                    "macro_f1": macro_f1(gold, [k for k, _ in top]),
+                                    "ece": ece([q for _, q in top], [k == y for (k, _), y in zip(top, gold)], n_bins=15),
+                                    "per_class": {c: {"n": gold.count(c),
+                                                      "precision": (sum(k == c == y for (k, _), y in zip(top, gold))
+                                                                    / max(1, sum(k == c for k, _ in top))),
+                                                      "recall": (sum(k == c == y for (k, _), y in zip(top, gold))
+                                                                 / max(1, gold.count(c)))} for c in labels}},
+           "gemma_accuracy": float(np.mean([g[0] == y for g, y in zip(gemma, gold)])),
+           "all": by(lambda i: True),
+           "by_lang": {lang: by(lambda i, lang=lang: test[i]["lang"] == lang) for lang in ("en", "hi-en")},
+           "by_gold": {c: by(lambda i, c=c: gold[i] == c) for c in labels},
+           "wrong": [{"id": r["id"], "text": r["text"], "gold": y, "decision": list(d), "head": list(h),
+                      "gemma": [g[0], round(g[1], 3)]}
+                     for r, y, d, h, g in zip(test, gold, decisions, top, gemma)
+                     if d[0] == "take" and d[1] != y]}
+    log.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+    print(json.dumps({k: v for k, v in out.items() if k not in ("wrong", "by_gold")}, indent=1))
+    for e in out["wrong"]:
+        print(f"  {e['gold']:9s} -> {e['decision'][1]:9s} head {e['head'][0]} {e['head'][1]:.2f}  {e['text']}")
+    print(f"wrote {log.relative_to(ROOT)}")
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--reuse", action="store_true", help="read the logged outputs instead of running the models")
     ap.add_argument("--dataset", choices=("kinds_v0", "kinds_v1"), default="kinds_v0")
+    ap.add_argument("--test", action="store_true", help="once: the committed config on the test split (Kinds-v1)")
     args = ap.parse_args(argv)
+    if args.test:
+        if args.dataset != "kinds_v1":
+            ap.error("only Kinds-v1's test split is run (ADR-042)")
+        return run_test(args.dataset)
     at = paths(args.dataset)
     LOG.mkdir(parents=True, exist_ok=True)
     if args.reuse:
@@ -167,12 +256,14 @@ def main(argv=None):
                 "shots_per_kind_and_language": SHOTS_PER, "shots": shots,
                 "note": "dev timing on the laptop as found; not a measurement"}
     meta.setdefault("model_file", model_path(SLM).name)
-    out = {"meta": meta} | summarize(rows)
+    taus = TAUS if args.dataset != "kinds_v0" else None
+    out = {"meta": meta} | summarize(rows, taus)
     at["summary"].write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
     prompt = at["prompt"]
     if _sha(prompt) != meta["prompt_sha256"]:
         raise ValueError(f"{prompt.name} changed since the dev run: run it again (without --reuse)")
-    cfg = fallback_config(meta, out["temperature_gemma"], TAU_G_CHOSEN, prompt.read_text(encoding="utf-8"), at)
+    tau, tau_g = (out["chosen"]["tau"], out["chosen"]["tau_g"]) if taus else (None, TAU_G_CHOSEN)
+    cfg = fallback_config(meta, out["temperature_gemma"], tau_g, prompt.read_text(encoding="utf-8"), at, tau)
     at["config"].write_text(json.dumps(cfg, indent=1, ensure_ascii=False) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k not in ("meta", "val_unsure_items")}, indent=1))
     print(f"wrote {at['summary'].relative_to(ROOT)} and {at['config'].relative_to(ROOT)}")
