@@ -8,7 +8,7 @@ Three drafts on one page: Kestrel-NotesQ-v0 (searches in other words than the no
 (questions the notes answer, or do not) and the Kestrel-Kinds-v1 draft (the `notes` kind and its boundaries).
 One unit per family; a card shows the fixture note it is about. As kinds_review.py: the Dataset Review
 page's template with its own title, browser storage and file name, and ingest_review.ingest against these
-units only.
+units only. NotesQ-v0 and NotesQA-v0 are frozen (ADR-042): their units stay in the log, off the page.
 """
 from __future__ import annotations
 
@@ -30,6 +30,7 @@ from review_data import unit  # noqa: E402
 PAGE = ROOT / "experiments" / "human" / "notes_review.html"
 LOG = ROOT / "experiments" / "logs" / "v3" / "notes" / "review.json"
 TITLES = {"notesq": "Kestrel-NotesQ-v0", "notesqa": "Kestrel-NotesQA-v0", "kindsv1": "Kestrel-Kinds-v1 draft (notes)"}
+ON_PAGE = ("kindsv1",)  # the others are frozen
 SECTIONS = [
     ("notesq", "found", "Searches that should find a note",
      "A search in other words than the note uses. Is it something you would type, and is the note shown the one "
@@ -52,8 +53,10 @@ RENAMES = [("<title>Kestrel Dataset Review</title>", "<title>Kestrel Notes Revie
            ("<h1>Dataset Review</h1>", "<h1>Notes Review</h1>", 1),
            ('"kestrel-review:"', '"kestrel-notes-review:"', 2),
            ("kestrel-review.json", "kestrel-notes-review.json", 2),
-           ("Claude wrote these three datasets and two word lists;",
-            "Claude wrote these three drafts for v3's notes features;", 1),
+           ("Claude wrote these three datasets and two word lists; no person has checked them yet.",
+            "Claude wrote the drafts left for v3's notes features; you marked the first 20 cards; 14 new "
+            "ones need a look: 10 who / which / where / when questions about your life (notes-15 to notes-24) and "
+            "4 general ones that should not count as notes (app-v1-05, app-v1-06, chat-v1-03, chat-v1-04).", 1),
            ("<li>Do the plans and expected results match what the request asks?</li>",
             "<li>Is the note, or are the facts, the right answer to what is asked?</li>", 1),
            ("<li>Are the word lists missing anything you would say?</li>",
@@ -99,10 +102,10 @@ def units() -> list[dict]:
 
 def build(page: Path = PAGE) -> dict:
     us = units()
-    data = {"version": 1, "titles": TITLES, "fixtures": {},
+    data = {"version": 1, "titles": {ds: TITLES[ds] for ds in ON_PAGE}, "fixtures": {},
             "sections": [{"ds": ds, "section": k, "title": t, "help": h,
                           "units": [u for u in us if u["ds"] == ds and u["section"] == k]}
-                         for ds, k, t, h in SECTIONS]}
+                         for ds, k, t, h in SECTIONS if ds in ON_PAGE]}
     html = TEMPLATE.read_text(encoding="utf-8")
     for old, new, n in RENAMES:
         assert html.count(old) == n, (old, html.count(old))

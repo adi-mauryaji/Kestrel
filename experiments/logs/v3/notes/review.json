@@ -410,12 +410,12 @@
    "ready": true
   },
   "kindsv1": {
-   "units": 20,
+   "units": 34,
    "ok": 20,
    "fix": 0,
    "stale": 0,
-   "missing": 0,
-   "ready": true
+   "missing": 14,
+   "ready": false
   }
  },
  "fixes": []

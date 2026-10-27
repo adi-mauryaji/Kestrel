@@ -43,9 +43,9 @@ def test_families_never_straddle_and_every_split_has_every_kind_with_notes():
             assert home.setdefault(r["group"], name) == name, r["group"]
 
 
-def test_the_build_is_byte_for_byte_deterministic_and_says_reviewed(tmp_path):
+def test_the_build_is_byte_for_byte_deterministic_and_says_whether_reviewed(tmp_path):
     import json
-    from kinds_v1 import build
+    from kinds_v1 import build, reviewed
     a, b = tmp_path / "a", tmp_path / "b"
     build(a)
     build(b)
@@ -53,4 +53,22 @@ def test_the_build_is_byte_for_byte_deterministic_and_says_reviewed(tmp_path):
     assert names == ["cal.jsonl", "manifest.json", "test.jsonl", "train.jsonl", "val.jsonl"]
     assert all((a / n).read_bytes() == (b / n).read_bytes() for n in names)
     m = json.loads((a / "manifest.json").read_text())
-    assert m["status"] == "reviewed" and m["conflicts_dropped"] == []
+    assert m["status"] == ("reviewed" if reviewed() else "draft") and m["conflicts_dropped"] == []
+
+
+def test_a_family_may_be_pinned_to_train_and_nowhere_else():
+    assert validate([fam(split="train")]) == []
+    assert validate([fam(split="val")]) == ["notes-x: split 'val' (only train may be pinned)"]
+
+
+def test_pinned_families_go_to_train_and_leave_every_other_split_as_it_was():
+    from kinds_v1 import rows, split
+    families = load()
+    pinned = {f["id"] for f in families if f.get("split")}
+    assert sum(f["kind"] == "notes" for f in families if f["id"] in pinned) >= 10
+    with_pins = split(rows(families)[0])
+    without = split(rows([f for f in families if f["id"] not in pinned])[0])
+    for name in with_pins:
+        assert [r for r in with_pins[name] if r["group"] not in pinned] == without[name], name
+    assert {r["group"] for r in with_pins["train"]} >= pinned
+    assert not any(r["group"] in pinned for name in ("cal", "val", "test") for r in with_pins[name])

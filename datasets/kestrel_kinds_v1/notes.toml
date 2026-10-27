@@ -1,6 +1,11 @@
 # Kestrel-Kinds-v1 draft (ADR-041): the `notes` kind, a question the user's own notes answer, and its
-# boundaries. Drafted by Claude on 2026-10-27; not yet reviewed by the human. Kinds-v1 = Kinds-v0 (once frozen)
-# + these families, built then; until that, this file is reviewed on its own (experiments/v3/notes_review.py).
+# boundaries. Kinds-v1 = Kinds-v0 (frozen) + these families (experiments/data/kinds_v1.py). notes-01..14 and the
+# app / chat families: drafted by Claude on 2026-10-27, reviewed by the human the same day, all OK
+# (experiments/v3/notes_review.py). notes-15..24 (ADR-042): drafted by Claude on 2026-10-27 after the first dev
+# head sent who / which questions about the user's people to app; pinned to train; not yet reviewed. With them
+# alone, Hinglish world facts ("japan ka prime minister kaun hai?") leaned to notes on val: train had no
+# current-fact who / when / which request, so app-v1-05..06 and chat-v1-03..04 (same day, also pinned, not yet
+# reviewed) are the general versions of those questions.
 #
 # notes: who / when / how much / which, about the user's life, with or without the word "notes"; never a
 # named file (read_document), "what do you remember" (retrieve_memory) or "the last N notes" (summarize), all
@@ -107,6 +112,87 @@ en = ["what is the address of the new office?", "which floor is the dentist on?"
 hi-en = ["naye office ka address kya hai?", "dentist kaunse floor pe hai?"]
 
 [[family]]
+id = "notes-15"
+kind = "notes"
+domain = "people"
+split = "train"  # ADR-042
+en = ["who is taking the client call on monday?", "who did i give the testing work to?"]
+hi-en = ["monday ki client call kaun lega?", "testing ka kaam maine kisko diya tha?"]
+
+[[family]]
+id = "notes-16"
+kind = "notes"
+domain = "people"
+split = "train"  # ADR-042
+en = ["which electrician did the society recommend?", "whose number did i save for the ac repair?"]
+hi-en = ["society ne kaunsa electrician bataya tha?", "ac repair ke liye maine kiska number save kiya tha?"]
+
+[[family]]
+id = "notes-17"
+kind = "notes"
+domain = "family"
+split = "train"  # ADR-042
+en = ["who is picking up dadi from the station?", "which cousins are coming for the wedding?"]
+hi-en = ["dadi ko station se kaun lene jayega?", "shaadi mein kaun kaun se cousins aa rahe hain?"]
+
+[[family]]
+id = "notes-18"
+kind = "notes"
+domain = "places"
+split = "train"  # ADR-042
+note = "where a thing is, not where the user wrote about it (search_notes)"
+en = ["where did i keep the spare house keys?", "where is the parking at the wedding venue?"]
+hi-en = ["ghar ki extra chaabi maine kahan rakhi hai?", "shaadi ke venue pe parking kahan hai?"]
+
+[[family]]
+id = "notes-19"
+kind = "notes"
+domain = "schedule"
+split = "train"  # ADR-042
+en = ["when did i last pay the society maintenance?", "when is the parent teacher meeting?"]
+hi-en = ["society maintenance maine last kab bhara tha?", "parent teacher meeting kab hai?"]
+
+[[family]]
+id = "notes-20"
+kind = "notes"
+domain = "people"
+split = "train"  # ADR-042
+en = ["who is my contact at the bank for the loan?", "what is the name of the ca who files my taxes?"]
+hi-en = ["loan ke liye bank mein mera contact kaun hai?", "mera tax file karne wale ca ka naam kya hai?"]
+
+[[family]]
+id = "notes-21"
+kind = "notes"
+domain = "choices"
+split = "train"  # ADR-042
+en = ["which laptop did i shortlist?", "which phone plan did we choose for papa?"]
+hi-en = ["maine kaunsa laptop shortlist kiya tha?", "papa ke liye kaunsa phone plan liya tha?"]
+
+[[family]]
+id = "notes-22"
+kind = "notes"
+domain = "study"
+split = "train"  # ADR-042
+en = ["who is in my project group?", "who is presenting the second part of our seminar?"]
+hi-en = ["mere project group mein kaun kaun hai?", "humare seminar ka doosra part kaun present karega?"]
+
+[[family]]
+id = "notes-23"
+kind = "notes"
+domain = "travel"
+split = "train"  # ADR-042
+en = ["where are we meeting before the trek?", "which bus did we book to rishikesh?"]
+hi-en = ["trek se pehle hum kahan mil rahe hain?", "rishikesh ke liye kaunsi bus book ki thi?"]
+
+[[family]]
+id = "notes-24"
+kind = "notes"
+domain = "money"
+split = "train"  # ADR-042
+en = ["who still owes me money for the trip?", "how much did neha pay for the cab?"]
+hi-en = ["trip ke paise abhi tak kisne nahi diye?", "neha ne cab ke kitne paise diye the?"]
+
+[[family]]
 id = "app-v1-01"
 kind = "app"
 note = "search_notes: find notes, not an answer from them"
@@ -135,6 +221,22 @@ en = ["open trip-plan.md", "what is written in packing-list.md?"]
 hi-en = ["trip-plan.md kholo", "packing-list.md mein kya likha hai?"]
 
 [[family]]
+id = "app-v1-05"
+kind = "app"
+split = "train"  # ADR-042
+note = "current facts about the world (unsupported), not the user's people"
+en = ["who is the chief minister of maharashtra right now?", "who won yesterday's india match?"]
+hi-en = ["maharashtra ka cm abhi kaun hai?", "kal india ka match kisne jeeta?"]
+
+[[family]]
+id = "app-v1-06"
+kind = "app"
+split = "train"  # ADR-042
+note = "live dates and prices (unsupported), not the user's plans"
+en = ["when is the next india match?", "how much is petrol in delhi today?"]
+hi-en = ["india ka agla match kab hai?", "delhi mein aaj petrol kitne ka hai?"]
+
+[[family]]
 id = "chat-v1-01"
 kind = "chat"
 domain = "concepts"
@@ -148,3 +250,21 @@ kind = "chat"
 domain = "advice"
 en = ["what is a good gift for a father?", "how often should a bike be serviced?"]
 hi-en = ["papa ke liye accha gift kya ho sakta hai?", "bike ki service kitne time mein karani chahiye?"]
+
+[[family]]
+id = "chat-v1-03"
+kind = "chat"
+domain = "advice"
+split = "train"  # ADR-042
+note = "how much / how often in general, not what the user noted"
+en = ["how much water should i drink in a day?", "how often should i change my toothbrush?"]
+hi-en = ["din mein kitna paani peena chahiye?", "toothbrush kitne din mein badalna chahiye?"]
+
+[[family]]
+id = "chat-v1-04"
+kind = "chat"
+domain = "ideas"
+split = "train"  # ADR-042
+note = "which / where as a suggestion, not the user's own choice"
+en = ["which is better for a beginner, python or java?", "where should i go for a weekend trip near pune?"]
+hi-en = ["beginner ke liye python better hai ya java?", "pune ke paas weekend trip ke liye kahan jaun?"]

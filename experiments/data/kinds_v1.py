@@ -6,7 +6,9 @@
 
 Kinds-v1 = Kestrel-Kinds-v0 (frozen, tag kinds-v0-frozen) + the families of notes.toml (the `notes` kind
 and its app / chat boundaries). Every Kinds-v0 row keeps the split it was frozen with; the new families are
-split whole into train / cal / val / test (prep.group_split4, seed 0), stratified by kind. notes.toml must
+split whole into train / cal / val / test (prep.group_split4, seed 0), stratified by kind, except families
+pinned to train (`split = "train"`, ADR-042: added after the first dev head, so that cal / val / test stay
+as they were). notes.toml must
 not repeat a Kinds-v0 family id, or a text already in Kinds-v0 or in Kestrel-Intents-v0's train / cal / val
 (whose items are Kinds' `app`). Labels: datasets/contracts/kinds_v1.txt. Output is sorted: a build is the
 same bytes every time. The manifest says "reviewed" when Kinds-v0 is and the human's notes review marked
@@ -62,6 +64,8 @@ def validate(families: list[dict]) -> list[str]:
             problems.append(f"{fid}: kind {f.get('kind')!r} is not one of {', '.join(KINDS)}")
         if not all(f.get(lang) for lang in LANGS):
             problems.append(f"{fid}: needs at least one en and one hi-en request")
+        if f.get("split", "train") != "train":
+            problems.append(f"{fid}: split {f['split']!r} (only train may be pinned)")
         problems += [f"{fid}: {t!r} is already in Kinds-v0 or Intents-v0"
                      for lang in LANGS for t in f.get(lang, []) if norm_text(t) in known]
     return problems
@@ -71,17 +75,20 @@ def rows(families: list[dict]) -> tuple[list[dict], list]:
     """(rows, conflicts): Kinds-v0's rows, then these families' phrasings, deduplicated."""
     v0, _ = kinds_v0.rows(load_v0())
     new = [{"id": f"{f['id']}/{lang}/{i}", "text": text, "label": f["kind"], "lang": lang, "family": f["id"],
-            "group": f["id"], "stratum": f"v1-{f['kind']}", "source": "kinds_v1"}
+            "group": f["id"], "stratum": f"v1-{f['kind']}", "source": "kinds_v1",
+            **({"pinned": f["split"]} if "split" in f else {})}
            for f in families for lang in LANGS for i, text in enumerate(f[lang])]
     return dedupe(v0 + new)
 
 
 def split(rs: list[dict]) -> dict[str, list[dict]]:
-    """Kinds-v0's rows as frozen; the new families whole, by kind."""
+    """Kinds-v0's rows as frozen; the new families whole, by kind; pinned families in their split."""
     parts = kinds_v0.split([r for r in rs if r["source"] != "kinds_v1"])
     new = [r for r in rs if r["source"] == "kinds_v1"]
-    idx = group_split4(new, "group", "stratum", seed=SEED)
-    return {name: sorted(parts[name] + [new[i] for i in idx[name]], key=lambda r: r["id"]) for name in NAMES}
+    free = [r for r in new if "pinned" not in r]
+    idx = group_split4(free, "group", "stratum", seed=SEED)
+    return {name: sorted(parts[name] + [free[i] for i in idx[name]] + [r for r in new if r.get("pinned") == name],
+                         key=lambda r: r["id"]) for name in NAMES}
 
 
 def reviewed() -> bool:
