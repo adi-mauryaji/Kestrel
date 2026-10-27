@@ -247,9 +247,9 @@ fn top(probs: &[(Kind, f32)]) -> Option<(Kind, f32)> {
     probs.iter().copied().max_by(|a, b| a.1.total_cmp(&b.1))
 }
 
-/// Where the service finds the fallback's settings (written by experiments/v3/kind_fallback.py).
-/// Kinds-v0's run until Kinds-v1's (ADR-042); the service uses it only when it fits the head.
-pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v0.json";
+/// Where the service finds the fallback's settings (written by experiments/v3/kind_fallback.py):
+/// Kinds-v1's run with the final head (ADR-042); the service uses it only when it fits the head.
+pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v1.json";
 
 /// Did the fallback choose among exactly the head's kinds? A run without `notes` would send every
 /// unsure notes question the old way.
@@ -843,6 +843,17 @@ mod tests {
         );
         assert!(!fits_the_head(&kinds));
         assert!(fits_the_head(&KINDS));
+    }
+
+    #[test]
+    fn the_service_s_fallback_is_kinds_v1_s_run_with_its_judged_tau() {
+        let root = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+        let cfg = FallbackConfig::load(&root.join(FALLBACK_CONFIG)).unwrap();
+        assert!(fits_the_head(
+            &cfg.kinds(&root.join("datasets/contracts")).unwrap()
+        ));
+        assert!(cfg.tau.is_some_and(|t| t > 0.0 && t <= 1.0));
+        assert!(cfg.system.contains("\nnotes: "));
     }
 
     /// Answers from the notes: (text, ungrounded); every question it was asked is kept.

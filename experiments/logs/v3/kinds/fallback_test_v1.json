@@ -1,0 +1,656 @@
+{
+ "dataset": "kinds_v1",
+ "config": "experiments/configs/kinds_fallback_v1.json",
+ "tau": 0.7,
+ "tau_g": 0.9,
+ "n": 256,
+ "head": {
+  "accuracy": 0.8671875,
+  "macro_f1": 0.7240358597113655,
+  "ece": 0.024626141371963877,
+  "per_class": {
+   "app": {
+    "n": 180,
+    "precision": 0.8483412322274881,
+    "recall": 0.9944444444444445
+   },
+   "chat": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.375
+   },
+   "email": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.875
+   },
+   "notes": {
+    "n": 12,
+    "precision": 0.7142857142857143,
+    "recall": 0.4166666666666667
+   },
+   "rewrite": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.4375
+   },
+   "translate": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.6875
+   }
+  }
+ },
+ "gemma_accuracy": 0.8203125,
+ "all": {
+  "head_alone": {
+   "n": 256,
+   "taken": 238,
+   "right": 206,
+   "skill_not_asked_for": 0,
+   "skill_sent_old_way": 32,
+   "asked": 18,
+   "asked_right_kind": 16
+  },
+  "head_gemma": {
+   "n": 256,
+   "taken": 245,
+   "right": 220,
+   "skill_not_asked_for": 0,
+   "skill_sent_old_way": 25,
+   "asked": 11,
+   "asked_right_kind": 10
+  }
+ },
+ "by_lang": {
+  "en": {
+   "head_alone": {
+    "n": 128,
+    "taken": 122,
+    "right": 107,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 15,
+    "asked": 6,
+    "asked_right_kind": 6
+   },
+   "head_gemma": {
+    "n": 128,
+    "taken": 125,
+    "right": 113,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 12,
+    "asked": 3,
+    "asked_right_kind": 3
+   }
+  },
+  "hi-en": {
+   "head_alone": {
+    "n": 128,
+    "taken": 116,
+    "right": 99,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 17,
+    "asked": 12,
+    "asked_right_kind": 10
+   },
+   "head_gemma": {
+    "n": 128,
+    "taken": 120,
+    "right": 107,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 13,
+    "asked": 8,
+    "asked_right_kind": 7
+   }
+  }
+ },
+ "by_gold": {
+  "app": {
+   "head_alone": {
+    "n": 180,
+    "taken": 179,
+    "right": 179,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 0,
+    "asked": 1,
+    "asked_right_kind": 0
+   },
+   "head_gemma": {
+    "n": 180,
+    "taken": 180,
+    "right": 180,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 0,
+    "asked": 0,
+    "asked_right_kind": 0
+   }
+  },
+  "chat": {
+   "head_alone": {
+    "n": 16,
+    "taken": 12,
+    "right": 2,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 10,
+    "asked": 4,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 15,
+    "right": 11,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 4,
+    "asked": 1,
+    "asked_right_kind": 1
+   }
+  },
+  "email": {
+   "head_alone": {
+    "n": 16,
+    "taken": 14,
+    "right": 12,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 2,
+    "asked_right_kind": 2
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 15,
+    "right": 13,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 1,
+    "asked_right_kind": 1
+   }
+  },
+  "notes": {
+   "head_alone": {
+    "n": 12,
+    "taken": 8,
+    "right": 1,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 7,
+    "asked": 4,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 12,
+    "taken": 8,
+    "right": 1,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 7,
+    "asked": 4,
+    "asked_right_kind": 4
+   }
+  },
+  "rewrite": {
+   "head_alone": {
+    "n": 16,
+    "taken": 12,
+    "right": 3,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 9,
+    "asked": 4,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 13,
+    "right": 4,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 9,
+    "asked": 3,
+    "asked_right_kind": 3
+   }
+  },
+  "translate": {
+   "head_alone": {
+    "n": 16,
+    "taken": 13,
+    "right": 9,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 4,
+    "asked": 3,
+    "asked_right_kind": 2
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 14,
+    "right": 11,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 3,
+    "asked": 2,
+    "asked_right_kind": 1
+   }
+  }
+ },
+ "wrong": [
+  {
+   "id": "chat-05/en/0",
+   "text": "write a short poem about the rain",
+   "gold": "chat",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8749757907796811
+   ],
+   "gemma": [
+    "chat",
+    0.975
+   ]
+  },
+  {
+   "id": "chat-05/en/1",
+   "text": "can you write four lines about monsoon evenings",
+   "gold": "chat",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8567860680953197
+   ],
+   "gemma": [
+    "chat",
+    0.968
+   ]
+  },
+  {
+   "id": "chat-05/hi-en/1",
+   "text": "monsoon ki shaam pe chaar lines likh do",
+   "gold": "chat",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8202678535271746
+   ],
+   "gemma": [
+    "chat",
+    0.926
+   ]
+  },
+  {
+   "id": "chat-19/hi-en/0",
+   "text": "ram aur storage mein kya fark hai?",
+   "gold": "chat",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8365382106590178
+   ],
+   "gemma": [
+    "chat",
+    0.848
+   ]
+  },
+  {
+   "id": "email-02/hi-en/1",
+   "text": "payment pending hai, uska reminder mail bana do",
+   "gold": "email",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.9219441843540699
+   ],
+   "gemma": [
+    "email",
+    0.902
+   ]
+  },
+  {
+   "id": "email-07/hi-en/0",
+   "text": "landlord ko paani leak hone ki complaint likho",
+   "gold": "email",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.6101900742222887
+   ],
+   "gemma": [
+    "email",
+    0.822
+   ]
+  },
+  {
+   "id": "notes-07/en/0",
+   "text": "which chapters are in the physics exam?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7601087704774677
+   ],
+   "gemma": [
+    "chat",
+    0.503
+   ]
+  },
+  {
+   "id": "notes-07/en/1",
+   "text": "when is my maths assignment due?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7771761239346375
+   ],
+   "gemma": [
+    "notes",
+    0.867
+   ]
+  },
+  {
+   "id": "notes-07/hi-en/0",
+   "text": "physics exam mein kaunse chapters aayenge?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.4925291504521564
+   ],
+   "gemma": [
+    "chat",
+    0.728
+   ]
+  },
+  {
+   "id": "notes-07/hi-en/1",
+   "text": "maths assignment kab tak submit karna hai?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.6919430431824894
+   ],
+   "gemma": [
+    "notes",
+    0.858
+   ]
+  },
+  {
+   "id": "notes-12/en/1",
+   "text": "what is my car's insurance policy number?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7901785533223277
+   ],
+   "gemma": [
+    "app",
+    0.889
+   ]
+  },
+  {
+   "id": "notes-14/en/1",
+   "text": "which floor is the dentist on?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.5147142618868819
+   ],
+   "gemma": [
+    "app",
+    0.653
+   ]
+  },
+  {
+   "id": "notes-14/hi-en/0",
+   "text": "naye office ka address kya hai?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7802817942349032
+   ],
+   "gemma": [
+    "app",
+    0.81
+   ]
+  },
+  {
+   "id": "rewrite-06/en/0",
+   "text": "turn this into bullet points: buy milk, call the plumber, pay rent and book tickets",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8251897688890795
+   ],
+   "gemma": [
+    "chat",
+    0.35
+   ]
+  },
+  {
+   "id": "rewrite-06/en/1",
+   "text": "make a bulleted list from this: eggs bread butter and tea",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.9531938907176577
+   ],
+   "gemma": [
+    "rewrite",
+    0.39
+   ]
+  },
+  {
+   "id": "rewrite-06/hi-en/0",
+   "text": "isko points mein likh do: doodh lena, plumber ko bulana, rent bharna aur tickets book karna",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.9161035747119126
+   ],
+   "gemma": [
+    "chat",
+    0.476
+   ]
+  },
+  {
+   "id": "rewrite-06/hi-en/1",
+   "text": "ise list bana do: ande, bread, butter aur chai patti",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.5361789863469146
+   ],
+   "gemma": [
+    "chat",
+    0.455
+   ]
+  },
+  {
+   "id": "rewrite-08/en/0",
+   "text": "expand this into a full paragraph: project delayed, new date next month",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7143633009426889
+   ],
+   "gemma": [
+    "chat",
+    0.667
+   ]
+  },
+  {
+   "id": "rewrite-08/hi-en/0",
+   "text": "isko poora paragraph bana do: project late hai, nayi date agle mahine ki hogi",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.5585213401625918
+   ],
+   "gemma": [
+    "rewrite",
+    0.447
+   ]
+  },
+  {
+   "id": "rewrite-12/en/0",
+   "text": "rewrite this as a tweet: we launched our new app today and it's free",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8420682734032069
+   ],
+   "gemma": [
+    "rewrite",
+    0.616
+   ]
+  },
+  {
+   "id": "rewrite-12/en/1",
+   "text": "make a catchy caption out of this: our cafe now serves cold coffee",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.4948627657529651
+   ],
+   "gemma": [
+    "chat",
+    0.513
+   ]
+  },
+  {
+   "id": "rewrite-12/hi-en/1",
+   "text": "isse catchy caption banao: hamare cafe mein ab cold coffee milti hai",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.3443361197239486
+   ],
+   "gemma": [
+    "chat",
+    0.688
+   ]
+  },
+  {
+   "id": "translate-10/en/0",
+   "text": "write see you tomorrow in hindi",
+   "gold": "translate",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.5906609867288882
+   ],
+   "gemma": [
+    "translate",
+    0.794
+   ]
+  },
+  {
+   "id": "translate-20/hi-en/0",
+   "text": "welcome ko hindi aur marathi dono mein batao",
+   "gold": "translate",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7292024325865023
+   ],
+   "gemma": [
+    "translate",
+    0.706
+   ]
+  },
+  {
+   "id": "translate-20/hi-en/1",
+   "text": "thank you tamil aur telugu dono mein kaise bolte hain",
+   "gold": "translate",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.5007680696839272
+   ],
+   "gemma": [
+    "translate",
+    0.69
+   ]
+  }
+ ]
+}
