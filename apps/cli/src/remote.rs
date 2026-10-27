@@ -133,45 +133,6 @@ impl RemoteTier {
     }
 }
 
-/// Gemma's answer from the notes (src/notes_qa.rs), and why it is not grounded when it is not.
-#[derive(Debug, PartialEq)]
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "used once Kinds-v1's notes kind is wired (ADR-041)"
-    )
-)]
-pub struct NotesAnswer {
-    pub text: String,
-    pub ungrounded: Option<String>,
-}
-
-impl RemoteTier {
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "used once Kinds-v1's notes kind is wired (ADR-041)"
-        )
-    )]
-    pub fn answer_from_notes(
-        &self,
-        question: &str,
-        notes: &[(&str, &str)],
-    ) -> Result<NotesAnswer, KestrelError> {
-        let notes: Vec<Value> = (notes.iter())
-            .map(|(name, text)| json!({"name": name, "text": text}))
-            .collect();
-        let msg = json!({"id": 0, "answer": {"question": question, "notes": notes}});
-        let v = self.exchange(&msg, &mut |_| {})?;
-        Ok(NotesAnswer {
-            text: v["text"].as_str().ok_or_else(unavailable)?.to_string(),
-            ungrounded: v["ungrounded"].as_str().map(String::from),
-        })
-    }
-}
-
 impl crate::summary::Summarizer for RemoteTier {
     fn summarize(&self, texts: &[&str]) -> Result<String, KestrelError> {
         let v = self.exchange(&json!({"id": 0, "summarize": texts}), &mut |_| {})?;
@@ -192,6 +153,23 @@ impl crate::kinds::Writer for RemoteTier {
         let msg = json!({"id": 0, "write": {"kind": kind.label(), "text": request}});
         let v = self.exchange(&msg, on_part)?;
         v["text"].as_str().map(String::from).ok_or_else(unavailable)
+    }
+
+    /// Gemma's answer from the notes, and why it is not grounded when it is not (the worker checks).
+    fn answer(
+        &self,
+        question: &str,
+        notes: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        let notes: Vec<Value> = (notes.iter())
+            .map(|(name, text)| json!({"name": name, "text": text}))
+            .collect();
+        let msg = json!({"id": 0, "answer": {"question": question, "notes": notes}});
+        let v = self.exchange(&msg, &mut |_| {})?;
+        Ok(crate::notes_qa::NotesAnswer {
+            text: v["text"].as_str().ok_or_else(unavailable)?.to_string(),
+            ungrounded: v["ungrounded"].as_str().map(String::from),
+        })
     }
 }
 
@@ -284,6 +262,14 @@ impl crate::kinds::Writer for SharedRemote {
         on_part: &mut dyn FnMut(&str),
     ) -> Result<String, KestrelError> {
         self.0.write(kind, request, on_part)
+    }
+
+    fn answer(
+        &self,
+        question: &str,
+        notes: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        self.0.answer(question, notes)
     }
 }
 
@@ -390,6 +376,7 @@ mod tests {
 
     #[test]
     fn the_same_worker_answers_from_notes_and_says_when_it_is_not_grounded() {
+        use crate::kinds::Writer;
         let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
             *'"question":"mera rent kitna hai?"'*) echo '{"text": "Rent 12000 hai.", "ungrounded": null}';;
             *'"question":"rent?"'*) echo '{"text": "Rent 15000.", "ungrounded": "15000 is not in the notes"}';;
@@ -401,9 +388,9 @@ mod tests {
             Duration::from_secs(600),
         );
         let notes = [("budget.md", "Rent 12000.")];
-        let a = t.answer_from_notes("mera rent kitna hai?", &notes).unwrap();
+        let a = t.answer("mera rent kitna hai?", &notes).unwrap();
         assert_eq!((a.text.as_str(), a.ungrounded), ("Rent 12000 hai.", None));
-        let a = t.answer_from_notes("rent?", &notes).unwrap();
+        let a = t.answer("rent?", &notes).unwrap();
         assert_eq!(a.ungrounded.as_deref(), Some("15000 is not in the notes"));
     }
 

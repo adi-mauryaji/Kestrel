@@ -1,5 +1,5 @@
 //! v3's decision before the cascade (ADR-037, ADR-038): which skill a request asks for. The kind
-//! head (Tier 3's encoder with the Kestrel-Kinds-v0 head, an `EncoderTier<_, Kind>`) gives one
+//! head (Tier 3's encoder with the Kestrel-Kinds-v1 head, an `EncoderTier<_, Kind>`) gives one
 //! probability per kind: `app` keeps the Stage 2 path unchanged, a skill at or above τ is written
 //! by Gemma (the worker, src/remote.rs), and below τ the user is asked first. The head sees the
 //! normalized request it was trained on; the writer gets the request as typed, because a rewrite or
@@ -8,7 +8,11 @@
 //!
 //! When the head's top kind is below τ, Gemma may decide instead (the fallback, ADR-037): its kind
 //! at or above τ_g is taken, otherwise the head's answer stands (a skill is asked about). Gemma's
-//! prompt, examples, temperature and τ_g are the dev run's (experiments/v3/kind_fallback.py).
+//! prompt, examples, temperature and τ_g are the dev run's (experiments/v3/kind_fallback.py); a
+//! fallback measured on other kinds than the head's is not used.
+//!
+//! A `notes` question (Kinds-v1, ADR-041) is not written but answered from the notes closest in
+//! meaning (src/notes_qa.rs); without notes by meaning it takes the Stage 2 path.
 
 use std::path::Path;
 
@@ -20,15 +24,17 @@ pub enum Kind {
     App,
     Chat,
     Email,
+    Notes,
     Rewrite,
     Translate,
 }
 
-/// In the head's class order (datasets/contracts/kinds.txt).
-pub const KINDS: [Kind; 5] = [
+/// In the head's class order (datasets/contracts/kinds_v1.txt).
+pub const KINDS: [Kind; 6] = [
     Kind::App,
     Kind::Chat,
     Kind::Email,
+    Kind::Notes,
     Kind::Rewrite,
     Kind::Translate,
 ];
@@ -49,6 +55,7 @@ impl Kind {
             Kind::App => "app",
             Kind::Chat => "chat",
             Kind::Email => "email",
+            Kind::Notes => "notes",
             Kind::Rewrite => "rewrite",
             Kind::Translate => "translate",
         }
@@ -60,6 +67,7 @@ impl Kind {
             Kind::App => "Do this the usual way?",
             Kind::Chat => "Answer this as a chat reply?",
             Kind::Email => "Write this as an email or message draft?",
+            Kind::Notes => "Answer this from your notes?",
             Kind::Rewrite => "Rewrite the text in your request?",
             Kind::Translate => "Translate the text in your request?",
         }
@@ -90,6 +98,7 @@ impl Kind {
                  hain\") stays Hinglish in Latin letters, and English text stays English. Do not \
                  switch to English or to Devanagari."
             }
+            Kind::Notes => crate::notes_qa::SYSTEM,
             Kind::Translate => {
                 "You translate the text given in the request into the language it asks for. \
                  Answer with the translation only. Hindi means Devanagari script (like \"कल \
@@ -103,6 +112,7 @@ impl Kind {
     pub fn max_tokens(self) -> usize {
         match self {
             Kind::Email => 320,
+            Kind::Notes => crate::notes_qa::MAX_TOKENS,
             Kind::Translate => 192,
             _ => 256,
         }
@@ -238,7 +248,18 @@ fn top(probs: &[(Kind, f32)]) -> Option<(Kind, f32)> {
 }
 
 /// Where the service finds the fallback's settings (written by experiments/v3/kind_fallback.py).
+/// Kinds-v0's run until Kinds-v1's (ADR-042); the service uses it only when it fits the head.
 pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v0.json";
+
+/// Did the fallback choose among exactly the head's kinds? A run without `notes` would send every
+/// unsure notes question the old way.
+pub fn fits_the_head(fallback: &[Kind]) -> bool {
+    let mut f = fallback.to_vec();
+    f.sort_by_key(|k| k.label());
+    let mut h = KINDS.to_vec();
+    h.sort_by_key(|k| k.label());
+    f == h
+}
 
 /// The fallback as the dev run measured it: Gemma's instructions and examples, the temperature
 /// fitted on cal, and τ_g.
@@ -246,6 +267,8 @@ pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v0.json";
 pub struct FallbackConfig {
     pub model_file: String,
     pub system: String,
+    /// The label list Gemma chose from (under datasets/contracts/).
+    pub labels: String,
     pub shots: Vec<Shot>,
     pub temperature: f32,
     pub tau_g: f32,
@@ -281,6 +304,20 @@ impl FallbackConfig {
         }
         Ok(cfg)
     }
+
+    /// The kinds Gemma chose from in the dev run, in its order.
+    pub fn kinds(&self, contracts: &Path) -> Result<Vec<Kind>, KestrelError> {
+        let path = contracts.join(&self.labels);
+        let text = std::fs::read_to_string(&path)
+            .map_err(|e| KestrelError::Invalid(format!("{}: {e}", path.display())))?;
+        (text.lines())
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            .map(|l| {
+                Kind::from_label(l)
+                    .ok_or_else(|| KestrelError::Invalid(format!("{l:?} is not a kind")))
+            })
+            .collect()
+    }
 }
 
 /// Writes what a skill request asks for: the whole text, after handing it to `on_part` piece by
@@ -292,6 +329,17 @@ pub trait Writer {
         request: &str,
         on_part: &mut dyn FnMut(&str),
     ) -> Result<String, KestrelError>;
+
+    /// Answers `question` from `notes` (name, text) only (src/notes_qa.rs).
+    fn answer(
+        &self,
+        _question: &str,
+        _notes: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        Err(KestrelError::Invalid(
+            "this writer does not answer from notes".into(),
+        ))
+    }
 }
 
 pub struct Kinds<'a> {
@@ -322,13 +370,16 @@ impl<'a> Kinds<'a> {
     }
 
     /// The answer when `req` asks for a skill; `None` sends it the Stage 2 way. With `stream`, the
-    /// written text goes there as it comes, and the lines hold only what follows it.
+    /// written text goes there as it comes, and the lines hold only what follows it. A notes
+    /// question is answered from the notes `meaning` finds closest (not streamed: it is checked
+    /// first).
     pub fn handle(
         &self,
         req: &Request,
         typed: &str,
         confirm: &mut dyn FnMut(&str) -> bool,
         mut stream: Option<&mut dyn FnMut(&str)>,
+        meaning: Option<&mut dyn crate::meaning::Meaning>,
     ) -> Option<Vec<String>> {
         // A head that fails leaves the request to the Stage 2 path.
         let probs = self.head.classify(req).ok()?;
@@ -344,6 +395,14 @@ impl<'a> Kinds<'a> {
             Choice::Ask(k) if confirm(k.question()) => k,
             Choice::Ask(_) => return None,
         };
+        if kind == Kind::Notes {
+            let notes = meaning?.closest(typed.trim(), crate::notes_qa::N);
+            return Some(crate::notes_qa::answer(
+                typed.trim(),
+                &notes,
+                self.writer.as_ref(),
+            ));
+        }
         let mut shown = String::new();
         let written = self.writer.write(kind, typed.trim(), &mut |p| {
             if let Some(show) = stream.as_mut() {
@@ -375,6 +434,7 @@ impl<'a> Kinds<'a> {
 mod tests {
     use super::*;
     use kestrel_core::Tier;
+    use kestrel_tools::tools::Note;
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -382,7 +442,7 @@ mod tests {
     fn the_kinds_are_the_contracts_labels_in_its_order() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../datasets/contracts/kinds.txt"
+            "/../../datasets/contracts/kinds_v1.txt"
         );
         let labels: Vec<String> = std::fs::read_to_string(path)
             .unwrap()
@@ -390,7 +450,10 @@ mod tests {
             .filter(|l| !l.is_empty() && !l.starts_with('#'))
             .map(String::from)
             .collect();
-        assert_eq!(labels, ["app", "chat", "email", "rewrite", "translate"]);
+        assert_eq!(
+            labels,
+            ["app", "chat", "email", "notes", "rewrite", "translate"]
+        );
         for (label, kind) in labels.iter().zip(KINDS) {
             assert_eq!(Kind::from_label(label), Some(kind));
             assert_eq!(kind.label(), label);
@@ -473,7 +536,13 @@ mod tests {
             Ok("Could you send me the file?\nThanks."),
         );
         let req = Request::new(1, TYPED);
-        let out = k.handle(&req, TYPED, &mut |_| panic!("no question when sure"), None);
+        let out = k.handle(
+            &req,
+            TYPED,
+            &mut |_| panic!("no question when sure"),
+            None,
+            None,
+        );
         assert_eq!(
             out,
             Some(vec!["Could you send me the file?".into(), "Thanks.".into()])
@@ -497,6 +566,7 @@ mod tests {
             &Request::new(1, "explain recursion"),
             "explain recursion",
             &mut |_| true,
+            None,
             None,
         );
         assert_eq!(
@@ -522,6 +592,7 @@ mod tests {
                     questions.push(q.to_string());
                     false
                 },
+                None,
                 None
             ),
             None
@@ -529,7 +600,7 @@ mod tests {
         assert_eq!(questions, ["Write this as an email or message draft?"]);
         assert!(asked.borrow().is_empty());
         assert_eq!(
-            k.handle(&req, "leave mail", &mut |_| true, None),
+            k.handle(&req, "leave mail", &mut |_| true, None, None),
             Some(vec!["Subject: Leave".into()])
         );
     }
@@ -542,13 +613,14 @@ mod tests {
                 &Request::new(1, "remind me"),
                 "remind me",
                 &mut |_| true,
+                None,
                 None
             ),
             None
         );
         let (broken, _) = kinds(Err(()), Ok("never"));
         assert_eq!(
-            broken.handle(&Request::new(1, "x"), "x", &mut |_| true, None),
+            broken.handle(&Request::new(1, "x"), "x", &mut |_| true, None, None),
             None
         );
         assert!(asked.borrow().is_empty());
@@ -558,6 +630,7 @@ mod tests {
                 &Request::new(1, "translate hi"),
                 "translate hi",
                 &mut |_| true,
+                None,
                 None,
             )
             .unwrap();
@@ -605,6 +678,7 @@ mod tests {
             "explain recursion",
             &mut |_| true,
             Some(&mut |p: &str| parts.push(p.into())),
+            None,
         );
         assert_eq!((parts.len(), parts.concat()), (2, ANSWER.to_string()));
         assert_eq!(out, Some(vec![CAVEAT.into()]));
@@ -619,6 +693,7 @@ mod tests {
             "leave mail",
             &mut |_| true,
             Some(&mut |p: &str| parts.push(p.into())),
+            None,
         );
         assert_eq!(parts, ["Subject: Leave\n\nDear Asha,"]);
         assert_eq!(out, Some(vec![]));
@@ -629,6 +704,7 @@ mod tests {
             "explain recursion",
             &mut |_| true,
             Some(&mut |p: &str| parts.push(p.into())),
+            None,
         );
         assert_eq!(parts.len(), 1);
         let out = out.unwrap();
@@ -692,7 +768,7 @@ mod tests {
         let no_question = &mut |q: &str| -> bool { panic!("asked {q}") };
         let (k, _) = with(vec![(Kind::Email, 0.9)], Ok(vec![(Kind::Chat, 0.99)]));
         assert_eq!(
-            k.handle(&req, "x", no_question, None),
+            k.handle(&req, "x", no_question, None, None),
             Some(vec!["written".into()])
         );
         assert_eq!(calls.get(), 0, "a sure head needs no fallback");
@@ -701,7 +777,7 @@ mod tests {
             Ok(vec![(Kind::Rewrite, 0.95)]),
         );
         assert_eq!(
-            k.handle(&req, "x", no_question, None),
+            k.handle(&req, "x", no_question, None, None),
             Some(vec!["written".into()])
         );
         assert_eq!((calls.get(), asked.borrow()[0].0), (1, Kind::Rewrite));
@@ -710,7 +786,7 @@ mod tests {
             Ok(vec![(Kind::App, 0.97)]),
         );
         assert_eq!(
-            k.handle(&req, "x", no_question, None),
+            k.handle(&req, "x", no_question, None, None),
             None,
             "the fallback's app: the old path"
         );
@@ -723,6 +799,7 @@ mod tests {
                 questions += 1;
                 false
             },
+            None,
             None,
         );
         assert_eq!(
@@ -742,6 +819,133 @@ mod tests {
         assert!(cfg.tau_g > 0.0 && cfg.tau_g <= 1.0 && cfg.temperature > 0.0);
         assert!(cfg.shots.len() >= 10 && cfg.system.contains("\napp: "));
         assert!(FallbackConfig::load(std::path::Path::new("no/such.json")).is_err());
+        // Kinds-v0's run chose among five kinds: not the head's six, so the service leaves it off.
+        let contracts = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../datasets/contracts"
+        ));
+        let kinds = cfg.kinds(contracts).unwrap();
+        assert_eq!(
+            kinds,
+            [
+                Kind::App,
+                Kind::Chat,
+                Kind::Email,
+                Kind::Rewrite,
+                Kind::Translate
+            ]
+        );
+        assert!(!fits_the_head(&kinds));
+        assert!(fits_the_head(&KINDS));
+    }
+
+    /// Answers from the notes: (text, ungrounded); every question it was asked is kept.
+    struct FromNotes(Asked, &'static str, Option<&'static str>);
+
+    impl Writer for FromNotes {
+        fn write(&self, _: Kind, _: &str, _: &mut dyn FnMut(&str)) -> Result<String, KestrelError> {
+            unreachable!("a notes question is answered, not written")
+        }
+        fn answer(
+            &self,
+            question: &str,
+            notes: &[(&str, &str)],
+        ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+            let names: Vec<&str> = notes.iter().map(|(n, _)| *n).collect();
+            (self.0.borrow_mut()).push((Kind::Notes, format!("{question} | {}", names.join(" "))));
+            Ok(crate::notes_qa::NotesAnswer {
+                text: self.1.into(),
+                ungrounded: self.2.map(String::from),
+            })
+        }
+    }
+
+    /// The notes closest in meaning: always `self.0`, recording each (query, n).
+    struct Closest(Vec<Note>, Rc<RefCell<Vec<(String, usize)>>>);
+
+    impl crate::meaning::Meaning for Closest {
+        fn find(&mut self, _: &str) -> Vec<Note> {
+            Vec::new()
+        }
+        fn k(&self) -> usize {
+            3
+        }
+        fn closest(&mut self, query: &str, n: usize) -> Vec<Note> {
+            self.1.borrow_mut().push((query.into(), n));
+            self.0.clone()
+        }
+    }
+
+    fn rent() -> Vec<Note> {
+        vec![
+            Note {
+                name: "budget.md".into(),
+                text: "Monthly budget\n\nRent 12000.".into(),
+            },
+            Note {
+                name: "landlord.md".into(),
+                text: "Landlord\n\nThe tap leaks.".into(),
+            },
+        ]
+    }
+
+    #[test]
+    fn a_notes_question_is_answered_from_the_closest_notes_as_typed() {
+        let asked = Rc::new(RefCell::new(Vec::new()));
+        let k = Kinds::new(
+            Box::new(Fixed(Ok(vec![(Kind::Notes, 0.9), (Kind::App, 0.1)]))),
+            Box::new(FromNotes(asked.clone(), "Rent 12000 hai.", None)),
+            TAU,
+        );
+        let queries = Rc::new(RefCell::new(Vec::new()));
+        let mut m = Closest(rent(), queries.clone());
+        let req = Request::new(1, "mera rent kitna hai?");
+        let out = k.handle(
+            &req,
+            " Mera rent kitna hai? ",
+            &mut |_| true,
+            None,
+            Some(&mut m),
+        );
+        assert_eq!(
+            out,
+            Some(vec!["Rent 12000 hai.".into(), "(from budget.md)".into()])
+        );
+        assert_eq!(
+            *queries.borrow(),
+            [("Mera rent kitna hai?".to_string(), crate::notes_qa::N)]
+        );
+        assert_eq!(
+            asked.borrow()[0].1,
+            "Mera rent kitna hai? | budget.md landlord.md"
+        );
+    }
+
+    #[test]
+    fn no_close_note_says_so_without_gemma_and_no_index_takes_the_old_path() {
+        let asked = Rc::new(RefCell::new(Vec::new()));
+        let k = Kinds::new(
+            Box::new(Fixed(Ok(vec![(Kind::Notes, 0.9)]))),
+            Box::new(FromNotes(asked.clone(), "never", None)),
+            TAU,
+        );
+        let req = Request::new(1, "passport kab expire hoga?");
+        let mut none = Closest(Vec::new(), Rc::new(RefCell::new(Vec::new())));
+        assert_eq!(
+            k.handle(
+                &req,
+                "passport kab expire hoga?",
+                &mut |_| true,
+                None,
+                Some(&mut none)
+            ),
+            Some(vec![crate::notes_qa::NOT_IN_YOUR_NOTES.into()])
+        );
+        assert!(asked.borrow().is_empty(), "Gemma is not asked");
+        assert_eq!(
+            k.handle(&req, "passport kab expire hoga?", &mut |_| true, None, None),
+            None
+        );
     }
 
     #[test]

@@ -541,9 +541,21 @@ pub fn serve(
             let writer = Box::new(SharedRemote(remote.clone()));
             let mut kinds = crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU);
             // Gemma decides when the head is unsure; without its config the head alone asks.
-            match crate::kinds::FallbackConfig::load(std::path::Path::new(
+            let fb = crate::kinds::FallbackConfig::load(std::path::Path::new(
                 crate::kinds::FALLBACK_CONFIG,
-            )) {
+            ))
+            .and_then(|fb| {
+                let kinds = fb.kinds(std::path::Path::new("datasets/contracts"))?;
+                if !crate::kinds::fits_the_head(&kinds) {
+                    return Err(kestrel_core::KestrelError::Invalid(format!(
+                        "{} was measured on {}, not on the head's kinds",
+                        crate::kinds::FALLBACK_CONFIG,
+                        fb.labels
+                    )));
+                }
+                Ok(fb)
+            });
+            match fb {
                 Ok(fb) => {
                     let fallback = Box::new(crate::remote::KindFallback(remote.clone()));
                     kinds = kinds.with_fallback(fallback, fb.tau_g);
@@ -553,7 +565,7 @@ pub fn serve(
             assistant = assistant.with_kinds(kinds);
             skills = true;
         }
-        Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate) are off: {e}"),
+        Err(e) => eprintln!("v3 skills (chat, email, rewrite, translate, notes) are off: {e}"),
     }
     // v3 (ADR-039): notes found by meaning; a Hinglish query is first put into English by Gemma.
     let vectors = cache_dir(&|k| std::env::var_os(k)).map(|d| d.join("notes-meaning.json"));

@@ -45,6 +45,9 @@ pub trait Meaning {
     fn find(&mut self, query: &str) -> Vec<Note>;
     /// At most this many results in all when notes by meaning are added (the dev run's k).
     fn k(&self) -> usize;
+    /// The `n` closest notes, best first, when the closest is at or above θ; none otherwise (the
+    /// notes Q&A's gate, experiments/v3/notes_qa.py: the next ones may be below θ).
+    fn closest(&mut self, query: &str, n: usize) -> Vec<Note>;
 }
 
 /// The note's title (its first line that is not "tags:") with each paragraph after it.
@@ -225,6 +228,16 @@ impl Meaning for MeaningIndex<'_> {
     fn k(&self) -> usize {
         self.k
     }
+
+    fn closest(&mut self, query: &str, n: usize) -> Vec<Note> {
+        let theta = self.theta;
+        match self.scored(query) {
+            Ok(scored) if scored.first().is_some_and(|(s, _)| *s >= theta) => {
+                scored.into_iter().take(n).map(|(_, n)| n).collect()
+            }
+            _ => Vec::new(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -321,6 +334,26 @@ mod tests {
         assert_eq!(found[0].name, "2026-09-02-budget.md");
         assert!(found[0].text.contains("Rent 12000."), "{:?}", found[0].text);
         assert!(ix.find("guitar lessons").is_empty(), "nothing close enough");
+    }
+
+    #[test]
+    fn the_closest_notes_come_together_when_the_first_reaches_theta() {
+        let dir = folder("closest");
+        let calls = Rc::new(Cell::new(0));
+        let mut ix = index(&dir, &calls);
+        let names = |ns: Vec<Note>| ns.into_iter().map(|n| n.name).collect::<Vec<_>>();
+        // The second note is far below θ, and still comes with the first.
+        let two = names(ix.closest("how much rent", 2));
+        assert_eq!(two.len(), 2);
+        assert_eq!(two[0], "2026-09-02-budget.md");
+        assert_eq!(
+            names(ix.closest("how much rent", 1)),
+            ["2026-09-02-budget.md"]
+        );
+        assert!(
+            ix.closest("guitar lessons", 2).is_empty(),
+            "the closest is below θ"
+        );
     }
 
     #[test]

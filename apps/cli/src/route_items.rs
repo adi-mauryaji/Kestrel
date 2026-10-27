@@ -112,7 +112,7 @@ impl Models {
         })
     }
 
-    /// v3's kind head (ADR-037) on the Tier-3 encoder: experiments/artifacts/tier3/kinds_v0-<encoder>,
+    /// v3's kind head (ADR-037, ADR-041) on the Tier-3 encoder: experiments/artifacts/tier3/kinds_v1-<encoder>,
     /// refused unless it was trained on the same encoder file as the config's Tier-3 head.
     pub fn kinds_tier(
         &self,
@@ -127,7 +127,7 @@ impl Models {
             .file_stem()
             .unwrap_or_default()
             .to_string_lossy();
-        let dir = heads.join(format!("kinds_v0-{stem}"));
+        let dir = heads.join(format!("kinds_v1-{stem}"));
         let trained_on = |d: &Path| -> Result<String, DynError> {
             let meta: Value = serde_json::from_str(&std::fs::read_to_string(d.join("head.json"))?)?;
             Ok(meta["encoder_sha256"]
@@ -190,7 +190,7 @@ impl Models {
     /// (crate::kinds::FALLBACK_CONFIG); refused for another model file. Its primed prefix is kept
     /// beside Tier 4's when the service caches one.
     pub fn kinds_fallback(&self) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
-        use crate::kinds::{FALLBACK_CONFIG, FallbackConfig, KINDS};
+        use crate::kinds::{FALLBACK_CONFIG, FallbackConfig};
         let slm = self
             .slm
             .as_ref()
@@ -214,7 +214,9 @@ impl Models {
             .map(|s| (normalize(&s.text), s.label.clone()))
             .collect();
         let prompt = ChatPrompt::new(format, &fb.system).with_examples(shots);
-        let answers: Vec<_> = KINDS.iter().map(|&k| (k, k.label())).collect();
+        // The kinds the dev run let Gemma choose from.
+        let kinds = fb.kinds(Path::new("datasets/contracts"))?;
+        let answers: Vec<_> = kinds.iter().map(|&k| (k, k.label())).collect();
         let prefix = self.prefix_file.as_ref().map(|f| {
             f.with_file_name(format!(
                 "kinds-{}",

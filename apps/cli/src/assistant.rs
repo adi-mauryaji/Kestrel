@@ -122,8 +122,9 @@ impl<'a> Assistant<'a> {
             return out;
         }
         // v3 (ADR-037): a request for a skill is written now, from the text as typed.
+        let meaning = (self.meaning.as_deref_mut()).map(|m| m as &mut dyn crate::meaning::Meaning);
         if let Some(kinds) = self.kinds.as_ref()
-            && let Some(lines) = kinds.handle(&req, text, confirm, part)
+            && let Some(lines) = kinds.handle(&req, text, confirm, part, meaning)
         {
             out.extend(lines);
             return out;
@@ -250,7 +251,8 @@ mod tests {
         |_| true
     }
 
-    /// The kind head by first word: "draft" is a sure email, "maybe" an unsure rewrite.
+    /// The kind head by first word: "draft" is a sure email, "maybe" an unsure rewrite, "who" a
+    /// sure notes question.
     struct KindByFirstWord;
 
     impl TierModel<Kind> for KindByFirstWord {
@@ -264,6 +266,7 @@ mod tests {
             Ok(match req.text.split(' ').next() {
                 Some("draft") => vec![(Kind::Email, 0.9), (Kind::App, 0.1)],
                 Some("maybe") => vec![(Kind::Rewrite, 0.5), (Kind::App, 0.4)],
+                Some("who") => vec![(Kind::Notes, 0.9), (Kind::App, 0.1)],
                 _ => vec![(Kind::App, 0.95)],
             })
         }
@@ -280,6 +283,17 @@ mod tests {
             _: &mut dyn FnMut(&str),
         ) -> Result<String, KestrelError> {
             Ok(format!("{} draft of: {request}", kind.label()))
+        }
+
+        fn answer(
+            &self,
+            _: &str,
+            notes: &[(&str, &str)],
+        ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+            Ok(crate::notes_qa::NotesAnswer {
+                text: format!("Asked about {} notes.", notes.len()),
+                ungrounded: None,
+            })
         }
     }
 
@@ -359,6 +373,24 @@ mod tests {
         fn k(&self) -> usize {
             3
         }
+        fn closest(&mut self, q: &str, n: usize) -> Vec<kestrel_tools::tools::Note> {
+            assert_eq!((q, n), ("who runs the standup?", crate::notes_qa::N));
+            self.find(q)
+        }
+    }
+
+    #[test]
+    fn a_notes_question_is_answered_from_the_closest_notes_and_needs_them() {
+        let (a, _) = assistant("notes_qa", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        // Without notes by meaning the question takes the old path.
+        let out = a.handle("who runs the standup?", &mut yes());
+        assert!(!out.iter().any(|l| l.starts_with("Asked about")), "{out:?}");
+        let mut a = a.with_meaning(Box::new(Standup));
+        assert_eq!(
+            a.handle("who runs the standup?", &mut yes()),
+            ["Asked about 1 notes.", "(from 2026-10-24-standup.md)"]
+        );
     }
 
     #[test]

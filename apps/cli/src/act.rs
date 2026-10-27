@@ -786,6 +786,9 @@ mod tests {
         fn k(&self) -> usize {
             3
         }
+        fn closest(&mut self, _: &str, _: usize) -> Vec<kestrel_tools::tools::Note> {
+            unreachable!("a notes search never asks for the closest notes")
+        }
     }
 
     #[test]
