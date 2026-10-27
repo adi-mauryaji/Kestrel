@@ -51,3 +51,11 @@ def test_ingest_takes_its_own_marks_and_refuses_the_kinds_review(tmp_path):
     assert out["status"][u["ds"]]["ok"] == 1
     with pytest.raises(ValueError, match="unknown unit"):
         ingest_files([_set(tmp_path / "k.json", "kinds:chat:chat-01", "x")], log=tmp_path / "log2.json")
+
+
+def test_the_frozen_notes_datasets_are_ok_on_the_cards_as_they_are_now():
+    from notes_review import LOG
+    from ingest_review import status
+    s = status(json.loads(LOG.read_text())["decisions"], units())
+    for ds in ("notesq", "notesqa"):
+        assert s[ds]["ok"] == s[ds]["units"], (ds, s[ds])

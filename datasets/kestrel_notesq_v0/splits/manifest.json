@@ -1,9 +1,9 @@
 {
  "dataset": "kestrel-notesq-v0",
- "status": "draft",
+ "status": "reviewed",
  "seed": 0,
  "sources": {
-  "queries.toml": "55fe36d30a1f68200fc84fbef1c6aadc52b453549bf97b5b167b89a4e2008185",
+  "queries.toml": "7ec14bccb91ac15bd6799787ccd040d562df9d38663ad9a11beb6ccc44857aad",
   "notes/": "df167152d7945f9cd83079b7b46d03e3f0aa0faf346440b238f5f3134a5af5a5"
  },
  "fingerprint": "567a3fbce924cbdc997b0446c28b9154ef120b8e57e167a4949a5668a24ee80f",

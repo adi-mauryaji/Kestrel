@@ -1,5 +1,7 @@
-# Kestrel-NotesQ-v0 (DRAFT, ADR-039): what a notes search asks for, in other words than the note uses.
-# Drafted by Claude on 2026-10-26; not yet reviewed by the human.
+# Kestrel-NotesQ-v0 (frozen, ADR-039): what a notes search asks for, in other words than the note uses.
+# Drafted by Claude on 2026-10-26; reviewed by the human on 2026-10-27, every family OK, q-gym in the human's
+# own words (experiments/v3/notes_review.py, log experiments/logs/v3/notes/review.json; ADR-042).
+default_reviewed = true  # the human, 2026-10-27: 21/21 OK
 #
 # Each family: the notes (paths under notes/) a search for its query should find, or none; one English
 # and one Romanized Hinglish query, written as the search tool receives them (the topic after "search my

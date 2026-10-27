@@ -31,6 +31,11 @@ def load(path: Path = DATA / "questions.toml") -> list[dict]:
     return tomllib.loads(Path(path).read_text(encoding="utf-8"))["family"]
 
 
+def reviewed(path: Path = DATA / "questions.toml") -> bool:
+    """The human reviewed every family (`default_reviewed = true`, set when the review log is all OK)."""
+    return tomllib.loads(Path(path).read_text(encoding="utf-8")).get("default_reviewed", False)
+
+
 def validate(families: list[dict]) -> list[str]:
     problems, seen = [], set()
     on_disk = {p.relative_to(NOTES).as_posix() for p in NOTES.rglob("*.md")}
@@ -89,7 +94,7 @@ def build(out: Path = DATA / "splits") -> dict:
         (out / f"{name}.jsonl").write_text(text, encoding="utf-8")
     labelled = [{"text": r["text"], "label": "|".join(r["notes"]) or "none"} for r in parts["dev"] + parts["test"]]
     manifest = {
-        "dataset": "kestrel-notesqa-v0", "status": "draft", "seed": SEED,
+        "dataset": "kestrel-notesqa-v0", "status": "reviewed" if reviewed() else "draft", "seed": SEED,
         "sources": {"questions.toml": _sha([DATA / "questions.toml"], DATA),
                     "kestrel_notesq_v0/notes/": _sha(NOTES.rglob("*.md"), NOTES)},
         "fingerprint": dataset_fingerprint(labelled),

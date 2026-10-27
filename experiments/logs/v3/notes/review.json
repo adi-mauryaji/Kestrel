@@ -158,10 +158,10 @@
    "at": "2026-10-27T06:47:12.215Z"
   },
   "notesq:found:q-gym": {
-   "hash": "3c54525470c20d10",
+   "hash": "f728fbe9029f460d",
    "decision": "ok",
-   "note": "generally people do not say \"meri kasrat ki planning\" instead they say \"meri exercise planning\"",
-   "at": "2026-10-27T06:21:07.653Z"
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
   },
   "notesq:found:q-interview": {
    "hash": "8a0ed0fbf4993df2",
@@ -254,16 +254,16 @@
    "at": "2026-10-27T06:39:06.683Z"
   },
   "notesqa:answered:qa-battery": {
-   "hash": "39a76af393664e4b",
+   "hash": "5a94993ff742828e",
    "decision": "ok",
-   "note": "\ndo ghante mein laptop ki battery kitni ghat ti hai?",
-   "at": "2026-10-27T06:14:01.368Z"
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
   },
   "notesqa:answered:qa-deposit": {
-   "hash": "269743cad8a30c7b",
+   "hash": "b3c2be7edc4f8ece",
    "decision": "ok",
-   "note": "\nrecurring deposit mein kitna dalna hai mujhe?",
-   "at": "2026-10-27T06:07:36.086Z"
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
   },
   "notesqa:answered:qa-doctor": {
    "hash": "d797d97b81d220b5",
@@ -290,10 +290,10 @@
    "at": "2026-10-27T06:17:25.683Z"
   },
   "notesqa:answered:qa-gym-days": {
-   "hash": "c33766e7356c0180",
+   "hash": "db5c1ba0b3fa77de",
    "decision": "ok",
-   "note": "\nsquats kis kis din karne hain?",
-   "at": "2026-10-27T06:08:02.913Z"
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
   },
   "notesqa:answered:qa-insurance": {
    "hash": "d690e439171c263a",

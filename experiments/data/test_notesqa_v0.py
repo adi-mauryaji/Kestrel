@@ -42,4 +42,14 @@ def test_the_build_is_byte_for_byte_deterministic(tmp_path):
     assert names == ["dev.jsonl", "manifest.json", "test.jsonl"]
     assert all((a / n).read_bytes() == (b / n).read_bytes() for n in names)
     m = json.loads((a / "manifest.json").read_text())
-    assert m["status"] == "draft" and m["splits"]["dev"]["questions"] + m["splits"]["test"]["questions"] == 51
+    assert m["status"] == "reviewed" and m["splits"]["dev"]["questions"] + m["splits"]["test"]["questions"] == 51
+
+
+def test_the_frozen_build_says_reviewed_because_every_card_is_ok():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    manifest = json.loads((root / "datasets/kestrel_notesqa_v0/splits/manifest.json").read_text())
+    review = json.loads((root / "experiments/logs/v3/notes/review.json").read_text())
+    s = review["status"]["notesqa"]
+    assert manifest["status"] == "reviewed"
+    assert s["ready"] and s["ok"] == s["units"] and s["stale"] == 0

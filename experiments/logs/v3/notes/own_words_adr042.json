@@ -1,0 +1,35 @@
+{
+ "kind": "kestrel-review-set",
+ "version": 1,
+ "note": "ADR-042 (1), the human 2026-10-27: these four cards carry the human's own words from the notes review (f93ec32) and count as reviewed; recorded by Claude on the cards as they are now.",
+ "reviews": [
+  {
+   "unit": "notesq:found:q-gym",
+   "hash": "f728fbe9029f460d",
+   "decision": "ok",
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
+  },
+  {
+   "unit": "notesqa:answered:qa-battery",
+   "hash": "5a94993ff742828e",
+   "decision": "ok",
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
+  },
+  {
+   "unit": "notesqa:answered:qa-deposit",
+   "hash": "b3c2be7edc4f8ece",
+   "decision": "ok",
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
+  },
+  {
+   "unit": "notesqa:answered:qa-gym-days",
+   "hash": "db5c1ba0b3fa77de",
+   "decision": "ok",
+   "note": "the human's own words (f93ec32); counts as reviewed (ADR-042)",
+   "at": "2026-10-27T07:05:00Z"
+  }
+ ]
+}
