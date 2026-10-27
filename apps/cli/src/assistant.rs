@@ -7,6 +7,7 @@
 //! written before the cascade (src/kinds.rs). The answer comes back as lines; the caller prints
 //! them or sends them. `handle_streaming` also hands a written skill's text over as it comes.
 //! With a meaning index (v3, ADR-039), a notes search the keywords miss also finds notes by meaning.
+//! "add this to notes" (v3, src/notes_save.rs) comes first, on the text as typed.
 
 use std::time::Instant;
 
@@ -101,6 +102,12 @@ impl<'a> Assistant<'a> {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
         let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
+        // v3: "add this to notes" reads the text as typed, before anything takes it for a request.
+        if let Some(act) = self.act.as_ref()
+            && let Some(asked) = crate::notes_save::parse(text)
+        {
+            return act.save_note(asked, now, confirm);
+        }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
             Before::Correction(lines) => return lines,
@@ -402,6 +409,39 @@ mod tests {
         assert_eq!(
             out[out.len() - 2..],
             ["found 1 note:", "- 2026-10-24-standup.md (by meaning)"]
+        );
+    }
+
+    #[test]
+    fn add_this_to_notes_saves_the_text_as_typed_after_a_yes() {
+        let (mut a, d) = assistant("save", true);
+        let long = "The sources cover SVMs and k-Means, and also Adam and AdamW. add this to notes";
+        let mut asked = Vec::new();
+        let out = a.handle(long, &mut |q| {
+            asked.push(q.to_string());
+            false
+        });
+        assert_eq!(out, ["Not saved."]);
+        assert!(
+            asked[0].starts_with("Save this as a new note, "),
+            "{asked:?}"
+        );
+        let out = a.handle(long, &mut yes());
+        let name = out[0].strip_prefix("Saved to your notes: ").expect("saved");
+        assert!(
+            name.ends_with("-the-sources-cover-svms-and-kmeans-and-also.md"),
+            "{name}"
+        );
+        let saved = std::fs::read_to_string(d.join("notes").join(name)).unwrap();
+        assert_eq!(
+            saved,
+            "The sources cover SVMs and k-Means, and also Adam and AdamW.\n"
+        );
+        assert_eq!(
+            a.handle("add this to my notes", &mut yes()),
+            [
+                "What should I save? Put the text before or after it, for example: add to notes: call the bank on monday"
+            ]
         );
     }
 

@@ -29,6 +29,8 @@ pub struct RemoteTier {
     idle: Duration,
     worker: RefCell<Option<Worker>>,
     last: Cell<Option<Instant>>,
+    /// The last text written stopped at its length limit.
+    cut: Cell<bool>,
 }
 
 struct Worker {
@@ -53,6 +55,7 @@ impl RemoteTier {
             idle,
             worker: RefCell::new(None),
             last: Cell::new(None),
+            cut: Cell::new(false),
         }
     }
 
@@ -151,8 +154,14 @@ impl crate::kinds::Writer for RemoteTier {
         on_part: &mut dyn FnMut(&str),
     ) -> Result<String, KestrelError> {
         let msg = json!({"id": 0, "write": {"kind": kind.label(), "text": request}});
+        self.cut.set(false);
         let v = self.exchange(&msg, on_part)?;
+        self.cut.set(v["cut"].as_bool().unwrap_or(false));
         v["text"].as_str().map(String::from).ok_or_else(unavailable)
+    }
+
+    fn cut(&self) -> bool {
+        self.cut.get()
     }
 
     /// Gemma's answer from the notes, and why it is not grounded when it is not (the worker checks).
@@ -264,6 +273,10 @@ impl crate::kinds::Writer for SharedRemote {
         self.0.write(kind, request, on_part)
     }
 
+    fn cut(&self) -> bool {
+        self.0.cut()
+    }
+
     fn answer(
         &self,
         question: &str,
@@ -348,6 +361,25 @@ mod tests {
             t.write(Kind::Chat, "hi", &mut |_| {}),
             Err(KestrelError::Invalid(_))
         ));
+    }
+
+    #[test]
+    fn the_worker_says_when_a_text_stopped_at_its_length_limit() {
+        use crate::kinds::{Kind, Writer};
+        let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
+            *'"text":"long"'*) echo '{"text": "a long ans", "cut": true}';;
+            *) echo '{"text": "short"}';; esac; done"#;
+        let t = RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        );
+        assert!(!t.cut(), "nothing written yet");
+        t.write(Kind::Chat, "long", &mut |_| {}).unwrap();
+        assert!(t.cut());
+        t.write(Kind::Chat, "short", &mut |_| {}).unwrap();
+        assert!(!t.cut());
     }
 
     #[test]

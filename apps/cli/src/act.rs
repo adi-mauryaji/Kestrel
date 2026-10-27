@@ -115,6 +115,36 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// "add this to notes" (src/notes_save.rs): the text as a new note in the notes folder, after a yes.
+    pub fn save_note(
+        &self,
+        asked: crate::notes_save::Asked,
+        now: i64,
+        confirm: &mut dyn FnMut(&str) -> bool,
+    ) -> Vec<String> {
+        use crate::notes_save::{Asked, file_name, write};
+        let text = match asked {
+            Asked::Empty => {
+                return vec![
+                    "What should I save? Put the text before or after it, for example: add to notes: \
+                     call the bank on monday"
+                        .into(),
+                ];
+            }
+            Asked::Save(t) => t,
+        };
+        let date = self.today(now).to_string();
+        let name = file_name(&date, &text, &|n| self.notes.join(n).exists());
+        let words = text.split_whitespace().count();
+        if !confirm(&format!("Save this as a new note, {name} ({words} words)?")) {
+            return vec!["Not saved.".into()];
+        }
+        match write(&self.notes, &name, &text) {
+            Ok(()) => vec![format!("Saved to your notes: {name}")],
+            Err(e) => vec![format!("I couldn't save it: {e}")],
+        }
+    }
+
     /// Every note and document name under the notes folder (relative, '/'-separated, sorted).
     pub fn documents(&self) -> Vec<String> {
         let mut out = Vec::new();

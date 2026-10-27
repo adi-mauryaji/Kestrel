@@ -256,7 +256,7 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 let _ = writeln!(out, "{}", json!({"part": p})).and_then(|()| out.flush());
             };
             match kind.map(|k| write_skill(slm, &mut writer, format, k, text, &mut part)) {
-                Some(Ok(t)) => json!({"text": t}),
+                Some(Ok((t, cut))) => json!({"text": t, "cut": cut}),
                 Some(Err(e)) => json!({"error": e.to_string()}),
                 None => json!({"error": "unknown kind"}),
             }
@@ -337,6 +337,7 @@ fn write_summary<'m>(
         crate::summary::MAX_TOKENS,
         &mut |_| {},
     )
+    .map(|(text, _)| text)
 }
 
 /// A v3 skill's text (src/kinds.rs) for the request as typed, in `writer`'s context.
@@ -348,7 +349,7 @@ fn write_skill<'m>(
     kind: crate::kinds::Kind,
     request: &str,
     on_part: &mut dyn FnMut(&str),
-) -> Result<String, kestrel_core::KestrelError> {
+) -> Result<(String, bool), kestrel_core::KestrelError> {
     // The request must not open or close chat turns (as for Tier 4, tier.rs).
     if slm.has_special_tokens(request)? {
         return Err(kestrel_core::KestrelError::Invalid(
@@ -394,11 +395,12 @@ fn write_notes_answer<'m>(
         crate::notes_qa::MAX_TOKENS,
         &mut |_| {},
     )
+    .map(|(text, _)| text)
 }
 
 /// Gemma's greedy answer (at most `max_tokens`) to `user` under `prompt`, in `writer`'s context
 /// (made at the first use), trimmed of space and the stop string; its pieces go to `on_part` as
-/// they are written (src/stream.rs), and they join to the answer.
+/// they are written (src/stream.rs), and they join to the answer. The flag: it stopped at `max_tokens`.
 #[cfg(feature = "llama")]
 fn answer<'m>(
     slm: &'m kestrel_inference::llama::LlamaSlm,
@@ -407,7 +409,7 @@ fn answer<'m>(
     user: &str,
     max_tokens: usize,
     on_part: &mut dyn FnMut(&str),
-) -> Result<String, kestrel_core::KestrelError> {
+) -> Result<(String, bool), kestrel_core::KestrelError> {
     use kestrel_core::resources::{CancelToken, Deadline};
     use kestrel_inference::generate::{GenParams, Generator};
 
@@ -427,7 +429,7 @@ fn answer<'m>(
             out.push_str(&s);
         }
     };
-    session.generate(
+    let st = session.generate(
         &(prompt.prefix() + &prompt.suffix(user)),
         &p,
         &CancelToken::new(),
@@ -435,7 +437,10 @@ fn answer<'m>(
         &mut |t| show(trimmed.push(t)),
     )?;
     show(trimmed.finish());
-    Ok(out)
+    Ok((
+        out,
+        st.stopped_by == kestrel_inference::generate::StopReason::MaxTokens,
+    ))
 }
 
 /// The page on 127.0.0.1:`port`: its token beside the memory file (kept across restarts, so a

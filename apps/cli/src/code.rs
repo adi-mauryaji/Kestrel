@@ -1,6 +1,6 @@
 //! v3: a request for code (Kinds-v2's `code`, ADR-044, ADR-046). Gemma writes it with CODE_SYSTEM (the
 //! prompt Kestrel-CodeTasks-v0 measured: experiments/v3/code_eval.py), the sandbox checks it (src/sandbox.rs):
-//! code that reads input is only compiled, other code is imported (it compiles and its top level runs). A
+//! the code is imported (it compiles and its top level runs), and only compiled when it waits for input. A
 //! syntax error, a crash or a time limit goes back to Gemma with the code, at most `RETRIES` times; the
 //! model's own asserts are never asked for. The user sees the code as it is written, then what the check
 //! found, and a caveat.
@@ -52,21 +52,31 @@ pub enum Checked {
     Unavailable(String),
 }
 
+/// Imported without an error (its top level ran; a `__main__` block does not run on import).
+pub const RAN: &str = "(I checked it in a safe sandbox: no errors.)";
+
+/// It waits for input at its top level, so it was only compiled.
+pub const WAITS: &str = "(I checked it in a safe sandbox: no errors in how it is written. I didn't run \
+                         it, because it waits for you to type input.)";
+
+/// The code is imported in the sandbox (it compiles and its top level runs); when that stops at an
+/// EOFError (it reads input at its top level), or times out while reading input, it is only compiled.
+/// The human's prime function (2026-10-27) read input only under `if __name__ == "__main__":` and was
+/// still only compiled by the earlier rule (any `input(` in the code).
 pub fn check(code: &str) -> Checked {
-    let (main, what) = if reads_input(code) {
-        (
-            "import py_compile\npy_compile.compile('solution.py', doraise=True)\n",
-            "(Checked in a sandbox: it compiles. Not run, as it reads input.)",
-        )
-    } else {
-        (
-            "import solution\n",
-            "(Checked in a sandbox: it compiles and its top level runs.)",
-        )
-    };
-    match crate::sandbox::run_python(main, &[("solution.py", code)], "", CHECK_TIMEOUT) {
+    let run =
+        |main: &str| crate::sandbox::run_python(main, &[("solution.py", code)], "", CHECK_TIMEOUT);
+    let compile = "import py_compile\npy_compile.compile('solution.py', doraise=True)\n";
+    match run("import solution\n") {
         Err(e) => Checked::Unavailable(e.0),
-        Ok(r) if r.ok => Checked::Passed(what),
+        Ok(r) if r.ok => Checked::Passed(RAN),
+        Ok(r) if r.stderr.contains("EOFError") || (r.timed_out && reads_input(code)) => {
+            match run(compile) {
+                Err(e) => Checked::Unavailable(e.0),
+                Ok(c) if c.ok => Checked::Passed(WAITS),
+                Ok(c) => Checked::Failed(c.stderr.trim().to_string()),
+            }
+        }
         Ok(r) if r.timed_out => Checked::Failed("timed out".into()),
         Ok(r) => Checked::Failed(r.stderr.trim().to_string()),
     }
@@ -84,6 +94,16 @@ pub fn feedback(request: &str, code: &str, error: &str) -> String {
          Reply in the same form as before.",
         code.trim_end()
     )
+}
+
+/// What the check found, the length note when the last text stopped at its limit, the caveat.
+fn closing(found: String, cut: bool) -> Vec<String> {
+    let mut out = vec![found];
+    if cut {
+        out.push(crate::kinds::CUT.into());
+    }
+    out.push(CAVEAT.into());
+    out
 }
 
 /// The answer to a code request: written (streamed when `stream` is given), checked, retried.
@@ -126,17 +146,17 @@ pub fn write(
         let code = code_block(&text);
         match check(code) {
             Checked::Passed(what) => {
-                lines.extend([what.to_string(), CAVEAT.to_string()]);
+                lines.extend(closing(what.to_string(), writer.cut()));
                 return lines;
             }
             Checked::Unavailable(why) => {
-                lines.extend([format!("(Not checked: {why}.)"), CAVEAT.to_string()]);
+                lines.extend(closing(format!("(Not checked: {why}.)"), writer.cut()));
                 return lines;
             }
             Checked::Failed(err) if attempt < RETRIES => {
                 let last = err.lines().last().unwrap_or("an error");
                 say(
-                    &format!("\n\n(It failed the sandbox check: {last}. Trying again.)\n\n"),
+                    &format!("\n\n(It had an error in the sandbox check: {last}. Fixing it.)\n\n"),
                     &mut stream,
                     &mut lines,
                 );
@@ -144,10 +164,10 @@ pub fn write(
             }
             Checked::Failed(err) => {
                 let last = err.lines().last().unwrap_or("an error");
-                lines.extend([
-                    format!("(It still fails the sandbox check: {last}.)"),
-                    CAVEAT.to_string(),
-                ]);
+                lines.extend(closing(
+                    format!("(It still has an error in the sandbox check: {last}.)"),
+                    writer.cut(),
+                ));
                 return lines;
             }
         }
@@ -245,36 +265,38 @@ mod tests {
         assert!(
             parts
                 .iter()
-                .any(|p| p.contains("It failed the sandbox check")),
+                .any(|p| p.contains("It had an error in the sandbox check")),
             "{parts:?}"
         );
-        assert_eq!(
-            lines,
-            [
-                "(Checked in a sandbox: it compiles and its top level runs.)",
-                CAVEAT
-            ]
-        );
+        assert_eq!(lines, [RAN, CAVEAT]);
     }
 
     #[test]
     #[ignore = "needs bubblewrap (Fedora: installed)"]
-    fn a_script_is_only_compiled_and_two_failures_end_the_loop() {
+    fn input_only_under_the_main_guard_still_runs_the_check() {
+        // The human's prime function, 2026-10-27: it was only compiled, "Not run, as it reads input".
+        let prime = "```python\ndef is_prime(n):\n    return n > 1 and all(n % i for i in range(2, n))\n\n\
+                     if __name__ == \"__main__\":\n    print(is_prime(int(input())))\n```";
+        let w = Replies(RefCell::new(vec![prime]), RefCell::new(Vec::new()));
+        let lines = write(&w, "prime", None);
+        assert_eq!(lines[lines.len() - 2..], [RAN, CAVEAT]);
+    }
+
+    #[test]
+    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    fn code_that_waits_for_input_is_only_compiled_and_two_failures_end_the_loop() {
         let w = Replies(
             RefCell::new(vec!["```python\nprint(int(input()) * 2)\n```"]),
             RefCell::new(Vec::new()),
         );
         let lines = write(&w, "double a number", None);
-        assert_eq!(
-            lines[lines.len() - 2],
-            "(Checked in a sandbox: it compiles. Not run, as it reads input.)"
-        );
+        assert_eq!(lines[lines.len() - 2], WAITS);
         let broken = "```python\nx = (\n```";
         let w = Replies(RefCell::new(vec![broken; 3]), RefCell::new(Vec::new()));
         let lines = write(&w, "x", None);
         assert_eq!(w.1.borrow().len(), 1 + RETRIES);
         assert!(
-            lines[lines.len() - 2].starts_with("(It still fails the sandbox check:"),
+            lines[lines.len() - 2].starts_with("(It still has an error in the sandbox check:"),
             "{lines:?}"
         );
     }

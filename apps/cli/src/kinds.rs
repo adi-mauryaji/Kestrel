@@ -47,6 +47,10 @@ pub const TAU: f32 = 0.7;
 /// Under every chat answer (ADR-038).
 pub const CAVEAT: &str = "(Written offline by a small model: it may be wrong.)";
 
+/// After a text that stopped at its length limit (the human's N-Queens program, 2026-10-27).
+pub const CUT: &str =
+    "(Cut off at the length limit: ask for a shorter answer, or one part at a time.)";
+
 impl Kind {
     pub fn from_label(label: &str) -> Option<Kind> {
         KINDS.into_iter().find(|k| k.label() == label)
@@ -115,12 +119,12 @@ impl Kind {
 
     /// The longest answer, in tokens.
     pub fn max_tokens(self) -> usize {
+        // Chat and email had 256 / 320 until a program was cut off in chat (2026-10-27).
         match self {
-            Kind::Email => 320,
+            Kind::Chat | Kind::App | Kind::Email => 512,
             Kind::Notes => crate::notes_qa::MAX_TOKENS,
             Kind::Code => crate::code::MAX_TOKENS,
-            Kind::Translate => 192,
-            _ => 256,
+            Kind::Rewrite | Kind::Translate => 384,
         }
     }
 }
@@ -341,6 +345,11 @@ pub trait Writer {
         on_part: &mut dyn FnMut(&str),
     ) -> Result<String, KestrelError>;
 
+    /// Did the last text written stop at its length limit?
+    fn cut(&self) -> bool {
+        false
+    }
+
     /// Answers `question` from `notes` (name, text) only (src/notes_qa.rs).
     fn answer(
         &self,
@@ -440,6 +449,9 @@ impl<'a> Kinds<'a> {
             (Ok(text), None) => text.lines().map(String::from).collect(),
             (Err(e), _) => vec![format!("I couldn't write that: {e}")],
         };
+        if finished && self.writer.cut() {
+            lines.push(CUT.into());
+        }
         // Model-written text on screen, even cut off, carries the caveat (ADR-038).
         if kind == Kind::Chat && (finished || !shown.is_empty()) {
             lines.push(CAVEAT.into());
@@ -580,6 +592,45 @@ mod tests {
                 "Make this polite: Send me the file NOW!".into()
             )]
         );
+    }
+
+    /// Writes `self.0`, cut at its length limit.
+    struct CutShort(&'static str);
+
+    impl Writer for CutShort {
+        fn write(&self, _: Kind, _: &str, _: &mut dyn FnMut(&str)) -> Result<String, KestrelError> {
+            Ok(self.0.into())
+        }
+        fn cut(&self) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn an_answer_cut_at_its_length_limit_says_so_before_the_caveat() {
+        // The human's N-Queens program (2026-10-27) stopped at "backtrack(row +" without a word.
+        let k = Kinds::new(
+            Box::new(Fixed(Ok(vec![(Kind::Chat, 0.95)]))),
+            Box::new(CutShort("def solve():\n    backtrack(row +")),
+            TAU,
+        );
+        let out = k.handle(
+            &Request::new(1, "n queens"),
+            "n queens",
+            &mut |_| true,
+            None,
+            None,
+        );
+        assert_eq!(
+            out,
+            Some(vec![
+                "def solve():".into(),
+                "    backtrack(row +".into(),
+                CUT.into(),
+                CAVEAT.into()
+            ])
+        );
+        assert!(Kind::Chat.max_tokens() >= 512 && Kind::Email.max_tokens() >= 512);
     }
 
     #[test]

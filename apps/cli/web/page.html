@@ -202,6 +202,15 @@ h2 {
 }
 .reply p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .reply .wait { color: var(--wing); }
+/* A written answer's code (```fences```), shown as code with a copy button. */
+.codebox { position: relative; margin: 0.45rem 0; }
+.codebox pre {
+  margin: 0; padding: 0.65rem 0.8rem; overflow-x: auto;
+  background: var(--sky); border: 1px solid var(--line); border-radius: 6px;
+  font: 0.86rem/1.45 ui-monospace, "Noto Sans Mono", "DejaVu Sans Mono", monospace; color: var(--deep);
+  white-space: pre; tab-size: 4;
+}
+.codebox .copy { position: absolute; top: 0.35rem; right: 0.35rem; font-size: 0.8rem; padding: 0.15rem 0.55rem; }
 .reply .trouble { color: var(--rufous); }
 .question {
   display: flex;
@@ -592,6 +601,34 @@ function ask(reply, q) {
   });
 }
 
+// A written answer's ```fenced``` code as a box with a Copy button, once the text is complete (an
+// unclosed fence, as in an answer cut at its length limit, is code to the end).
+function codeBoxes(p) {
+  const text = p.textContent;
+  if (!text.includes("```")) return;
+  const out = document.createDocumentFragment();
+  text.split("```").forEach((part, i) => {
+    if (i % 2 === 0) {
+      if (part.trim()) out.append(el("p", "", part.trim()));
+      return;
+    }
+    const nl = part.indexOf("\n");
+    const code = (nl >= 0 && /^[\w+-]*$/.test(part.slice(0, nl).trim()) ? part.slice(nl + 1) : part).replace(/\n+$/, "");
+    const box = el("div", "codebox");
+    const pre = el("pre");
+    pre.append(el("code", "", code));
+    const copy = el("button", "copy", "Copy");
+    copy.type = "button";
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(code); copy.textContent = "Copied"; }
+      catch (e) { copy.textContent = "Select it to copy"; }
+    });
+    box.append(pre, copy);
+    out.append(box);
+  });
+  p.replaceWith(out);
+}
+
 async function send(text) {
   if (busy || !text.trim()) return;
   busy = true;
@@ -628,11 +665,13 @@ async function send(text) {
           written.textContent += msg.part;
           continue;
         }
+        if (written) codeBoxes(written);
         written = null;
         if (msg.line !== undefined) reply.append(el("p", "", msg.line));
         if (msg.ask !== undefined) { wait.hidden = true; ask(reply, msg.ask); }
       }
     }
+    if (written) codeBoxes(written);
   } catch (e) {
     reply.append(el("p", "trouble", e.message === "key"
       ? "This page has no key. Open it with: kestrel open"
