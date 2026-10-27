@@ -1,0 +1,31 @@
+{
+ "dataset": "kestrel-codetasks-v0",
+ "status": "draft",
+ "seed": 0,
+ "sources": {
+  "tasks.toml": "cb56d5e5fb437da7d3984e925edc348a91183629a2e6616f7e0eb119950c1136"
+ },
+ "fingerprint": "38b353933922f44f6b47c15c444f56f968adac3b10caac4ef5424f5437983de2",
+ "splits": {
+  "dev": {
+   "families": 12,
+   "requests": 24,
+   "by_type": {
+    "function": 6,
+    "script": 6,
+    "fix": 6,
+    "explain": 6
+   }
+  },
+  "test": {
+   "families": 12,
+   "requests": 24,
+   "by_type": {
+    "function": 6,
+    "script": 6,
+    "fix": 6,
+    "explain": 6
+   }
+  }
+ }
+}

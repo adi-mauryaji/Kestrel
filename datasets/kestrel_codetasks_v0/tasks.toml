@@ -1,0 +1,409 @@
+# Kestrel-CodeTasks-v0 (DRAFT, ADR-036): small Python requests for v3's code loop, in English and Romanized
+# Hinglish. Drafted by Claude on 2026-10-27; not yet reviewed by the human.
+#
+# type: function (the request names the function; `tests` are hidden asserts that call it) | script (reads
+# stdin, prints; `cases` compare stdout, ignoring case and spacing at the ends) | fix (the request shows broken
+# `code` as {code}; hidden `tests`) | explain (the request shows `code`; a right answer holds every fact in
+# `facts`, any of its ways). `solution` is a reference answer: it must pass, and a fix task's `code` must fail
+# (experiments/v3/test_code_eval.py). Only the standard library.
+
+# ---- function ----
+
+[[family]]
+id = "fn-palindrome"
+type = "function"
+entry = "is_palindrome"
+en = ["write a python function is_palindrome(s) that returns True if s reads the same backwards, ignoring case and spaces"]
+hi-en = ["python mein is_palindrome(s) function likho jo True de agar s ulta padhne par bhi same ho, capital letters aur spaces ignore karke"]
+solution = '''
+def is_palindrome(s):
+    t = s.replace(" ", "").lower()
+    return t == t[::-1]
+'''
+tests = '''
+assert is_palindrome("Madam") is True
+assert is_palindrome("nurses run") is True
+assert is_palindrome("hello") is False
+assert is_palindrome("") is True
+'''
+
+[[family]]
+id = "fn-vowels"
+type = "function"
+entry = "count_vowels"
+en = ["write a function count_vowels(text) that returns how many vowels (a, e, i, o, u, upper or lower case) the text has"]
+hi-en = ["count_vowels(text) naam ka function banao jo bataye text mein kitne vowels hain (a, e, i, o, u, capital bhi gino)"]
+solution = '''
+def count_vowels(text):
+    return sum(c in "aeiou" for c in text.lower())
+'''
+tests = '''
+assert count_vowels("Hello World") == 3
+assert count_vowels("AEIOU") == 5
+assert count_vowels("rhythm") == 0
+assert count_vowels("") == 0
+'''
+
+[[family]]
+id = "fn-second-largest"
+type = "function"
+entry = "second_largest"
+en = ["write second_largest(nums): return the second largest distinct number in the list, or None if there is no such number"]
+hi-en = ["second_largest(nums) function likho jo list ka doosra sabse bada alag number de, aur agar aisa number na ho to None"]
+solution = '''
+def second_largest(nums):
+    distinct = sorted(set(nums), reverse=True)
+    return distinct[1] if len(distinct) > 1 else None
+'''
+tests = '''
+assert second_largest([4, 1, 9, 7]) == 7
+assert second_largest([5, 5, 3]) == 3
+assert second_largest([2, 2]) is None
+assert second_largest([]) is None
+assert second_largest([-1, -5, -3]) == -3
+'''
+
+[[family]]
+id = "fn-word-counts"
+type = "function"
+entry = "word_counts"
+en = ["write a python function word_counts(text) that returns a dict from each word (lowercased, without . , ! or ?) to how many times it appears"]
+hi-en = ["word_counts(text) function banao jo dict de: har word (lowercase, . , ! ? hata ke) kitni baar aaya"]
+solution = '''
+def word_counts(text):
+    counts = {}
+    for w in text.lower().split():
+        w = w.strip(".,!?")
+        if w:
+            counts[w] = counts.get(w, 0) + 1
+    return counts
+'''
+tests = '''
+assert word_counts("The cat and the hat.") == {"the": 2, "cat": 1, "and": 1, "hat": 1}
+assert word_counts("Hi! hi?") == {"hi": 2}
+assert word_counts("") == {}
+'''
+
+[[family]]
+id = "fn-fizzbuzz"
+type = "function"
+entry = "fizzbuzz"
+en = ["write fizzbuzz(n) that returns a list of strings for 1 to n: Fizz for multiples of 3, Buzz for multiples of 5, FizzBuzz for both, otherwise the number"]
+hi-en = ["fizzbuzz(n) function likho jo 1 se n tak strings ki list de: 3 ke multiple pe Fizz, 5 ke pe Buzz, dono ke pe FizzBuzz, warna number hi"]
+solution = '''
+def fizzbuzz(n):
+    out = []
+    for i in range(1, n + 1):
+        out.append("FizzBuzz" if i % 15 == 0 else "Fizz" if i % 3 == 0 else "Buzz" if i % 5 == 0 else str(i))
+    return out
+'''
+tests = '''
+assert fizzbuzz(5) == ["1", "2", "Fizz", "4", "Buzz"]
+assert fizzbuzz(15)[-1] == "FizzBuzz"
+assert fizzbuzz(0) == []
+'''
+
+[[family]]
+id = "fn-grade"
+type = "function"
+entry = "grade"
+en = ["write a function grade(marks) that returns A for 90 or more, B for 75 to 89, C for 50 to 74, and F below 50"]
+hi-en = ["grade(marks) function banao: 90 ya usse zyada pe A, 75 se 89 pe B, 50 se 74 pe C, aur 50 se kam pe F"]
+solution = '''
+def grade(marks):
+    if marks >= 90:
+        return "A"
+    if marks >= 75:
+        return "B"
+    if marks >= 50:
+        return "C"
+    return "F"
+'''
+tests = '''
+assert grade(95) == "A"
+assert grade(90) == "A"
+assert grade(75) == "B"
+assert grade(74) == "C"
+assert grade(50) == "C"
+assert grade(10) == "F"
+'''
+
+# ---- script ----
+
+[[family]]
+id = "sc-sum-lines"
+type = "script"
+en = ["write a python script that reads whole numbers, one per line, until the input ends, and prints their sum"]
+hi-en = ["ek python script likho jo har line mein ek whole number padhe, input khatam hone tak, aur sabka sum print kare"]
+solution = '''
+import sys
+print(sum(int(line) for line in sys.stdin if line.strip()))
+'''
+cases = [{stdin = "3\n4\n10\n", stdout = "17"}, {stdin = "5\n", stdout = "5"}, {stdin = "-2\n2\n", stdout = "0"}]
+
+[[family]]
+id = "sc-reverse-words"
+type = "script"
+en = ["write a script that reads one line and prints its words in reverse order, separated by single spaces"]
+hi-en = ["script likho jo ek line padhe aur uske words ulte order mein print kare, beech mein ek space"]
+solution = '''
+print(" ".join(input().split()[::-1]))
+'''
+cases = [{stdin = "hello big world\n", stdout = "world big hello"}, {stdin = "one\n", stdout = "one"}]
+
+[[family]]
+id = "sc-count-lines"
+type = "script"
+en = ["write a python script that reads text from input and prints how many lines are not blank"]
+hi-en = ["python script banao jo input se text padhe aur print kare kitni lines khaali nahi hain"]
+solution = '''
+import sys
+print(sum(1 for line in sys.stdin if line.strip()))
+'''
+cases = [{stdin = "a\n\nb\n   \nc\n", stdout = "3"}, {stdin = "", stdout = "0"}]
+
+[[family]]
+id = "sc-max-min"
+type = "script"
+en = ["write a script that reads whole numbers separated by spaces on one line and prints the largest and the smallest, separated by a space"]
+hi-en = ["script likho jo ek line mein spaces se alag whole numbers padhe aur sabse bada aur sabse chhota number print kare, beech mein space"]
+solution = '''
+nums = [int(x) for x in input().split()]
+print(max(nums), min(nums))
+'''
+cases = [{stdin = "3 9 -2 5\n", stdout = "9 -2"}, {stdin = "7\n", stdout = "7 7"}]
+
+[[family]]
+id = "sc-celsius"
+type = "script"
+en = ["write a python script that reads a temperature in Celsius and prints it in Fahrenheit, rounded to one decimal place"]
+hi-en = ["python script likho jo Celsius mein temperature padhe aur use Fahrenheit mein print kare, ek decimal tak round karke"]
+solution = '''
+c = float(input())
+print(f"{c * 9 / 5 + 32:.1f}")
+'''
+cases = [{stdin = "37\n", stdout = "98.6"}, {stdin = "0\n", stdout = "32.0"}, {stdin = "-40\n", stdout = "-40.0"}]
+
+[[family]]
+id = "sc-even-odd"
+type = "script"
+en = ["write a script that reads a whole number and prints even or odd"]
+hi-en = ["ek script banao jo ek whole number padhe aur even ya odd print kare"]
+solution = '''
+print("even" if int(input()) % 2 == 0 else "odd")
+'''
+cases = [{stdin = "4\n", stdout = "even"}, {stdin = "7\n", stdout = "odd"}, {stdin = "0\n", stdout = "even"}]
+
+# ---- fix ----
+
+[[family]]
+id = "fix-average"
+type = "fix"
+entry = "average"
+code = '''
+def average(xs):
+    return sum(xs) / len(xs) + 1
+'''
+en = ["fix this function, it should return the average of the list:\n{code}"]
+hi-en = ["is function ko theek karo, isko list ka average dena chahiye:\n{code}"]
+solution = '''
+def average(xs):
+    return sum(xs) / len(xs)
+'''
+tests = '''
+assert average([2, 4]) == 3
+assert average([5]) == 5
+'''
+
+[[family]]
+id = "fix-factorial"
+type = "fix"
+entry = "factorial"
+code = '''
+def factorial(n):
+    result = 0
+    for i in range(1, n + 1):
+        result *= i
+    return result
+'''
+en = ["my factorial function always gives 0, please fix it:\n{code}"]
+hi-en = ["mera factorial function hamesha 0 deta hai, isko fix kar do:\n{code}"]
+solution = '''
+def factorial(n):
+    result = 1
+    for i in range(1, n + 1):
+        result *= i
+    return result
+'''
+tests = '''
+assert factorial(5) == 120
+assert factorial(1) == 1
+assert factorial(0) == 1
+'''
+
+[[family]]
+id = "fix-find-max"
+type = "fix"
+entry = "find_max"
+code = '''
+def find_max(nums):
+    m = 0
+    for x in nums:
+        if x > m:
+            m = x
+    return m
+'''
+en = ["find_max gives the wrong answer when all the numbers are negative, fix it:\n{code}"]
+hi-en = ["jab saare numbers negative hote hain tab find_max galat answer deta hai, ise theek karo:\n{code}"]
+solution = '''
+def find_max(nums):
+    m = nums[0]
+    for x in nums:
+        if x > m:
+            m = x
+    return m
+'''
+tests = '''
+assert find_max([-3, -1, -7]) == -1
+assert find_max([1, 5, 2]) == 5
+'''
+
+[[family]]
+id = "fix-count-words"
+type = "fix"
+entry = "count_words"
+code = '''
+def count_words(text):
+    return len(text.split(" "))
+'''
+en = ["count_words is wrong when there are extra spaces or no text at all, fix it:\n{code}"]
+hi-en = ["extra spaces ho ya text khaali ho to count_words galat count deta hai, ise sahi karo:\n{code}"]
+solution = '''
+def count_words(text):
+    return len(text.split())
+'''
+tests = '''
+assert count_words("hello   world") == 2
+assert count_words(" a b ") == 2
+assert count_words("") == 0
+'''
+
+[[family]]
+id = "fix-reverse-list"
+type = "fix"
+entry = "reverse_list"
+code = '''
+def reverse_list(xs):
+    out = []
+    for i in range(len(xs)):
+        out.append(xs[len(xs) - i])
+    return out
+'''
+en = ["this gives an IndexError, fix it so it returns the list reversed:\n{code}"]
+hi-en = ["isme IndexError aata hai, ise aise theek karo ki ulti list return ho:\n{code}"]
+solution = '''
+def reverse_list(xs):
+    out = []
+    for i in range(len(xs)):
+        out.append(xs[len(xs) - 1 - i])
+    return out
+'''
+tests = '''
+assert reverse_list([1, 2, 3]) == [3, 2, 1]
+assert reverse_list([]) == []
+'''
+
+[[family]]
+id = "fix-is-even"
+type = "fix"
+entry = "is_even"
+code = '''
+def is_even(n):
+    if n % 2 == 1:
+        return True
+    else:
+        return False
+'''
+en = ["is_even returns the opposite of what it should, fix it:\n{code}"]
+hi-en = ["is_even ulta answer deta hai, ise fix karo:\n{code}"]
+solution = '''
+def is_even(n):
+    return n % 2 == 0
+'''
+tests = '''
+assert is_even(4) is True
+assert is_even(7) is False
+assert is_even(0) is True
+'''
+
+# ---- explain ----
+
+[[family]]
+id = "ex-list-comp"
+type = "explain"
+code = '''
+squares = [x * x for x in range(10) if x % 2 == 0]
+'''
+en = ["explain what this code does:\n{code}"]
+hi-en = ["ye code kya karta hai samjhao:\n{code}"]
+facts = [["square"], ["even"]]
+
+[[family]]
+id = "ex-word-dict"
+type = "explain"
+code = '''
+counts = {}
+for w in words:
+    counts[w] = counts.get(w, 0) + 1
+'''
+en = ["what does this loop do?\n{code}"]
+hi-en = ["ye loop kya kar raha hai?\n{code}"]
+facts = [["count", "gin"], ["word"], ["dict", "dictionary"]]
+
+[[family]]
+id = "ex-try-except"
+type = "explain"
+code = '''
+try:
+    n = int(input())
+except ValueError:
+    print("not a number")
+'''
+en = ["can you explain this code to me?\n{code}"]
+hi-en = ["mujhe ye code samjha do:\n{code}"]
+facts = [["int", "integer", "number"], ["valueerror", "error", "exception"]]
+
+[[family]]
+id = "ex-read-file"
+type = "explain"
+code = '''
+with open("notes.txt") as f:
+    lines = f.readlines()
+print(len(lines))
+'''
+en = ["explain this python code:\n{code}"]
+hi-en = ["is python code ka matlab batao:\n{code}"]
+facts = [["file"], ["line"], ["count", "number", "len", "kitni"]]
+
+[[family]]
+id = "ex-sort-key"
+type = "explain"
+code = '''
+people.sort(key=lambda p: p["age"])
+'''
+en = ["what does this line do?\n{code}"]
+hi-en = ["ye line kya karti hai?\n{code}"]
+facts = [["sort"], ["age"]]
+
+[[family]]
+id = "ex-countdown"
+type = "explain"
+code = '''
+n = 10
+while n > 0:
+    print(n)
+    n -= 2
+'''
+en = ["explain what this prints and why:\n{code}"]
+hi-en = ["ye kya print karega aur kyun, samjhao:\n{code}"]
+facts = [["10"], ["2"]]
