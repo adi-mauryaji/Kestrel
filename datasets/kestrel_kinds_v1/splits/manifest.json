@@ -1,0 +1,88 @@
+{
+ "dataset": "kestrel-kinds-v1",
+ "status": "reviewed",
+ "seed": 0,
+ "labels": [
+  "app",
+  "chat",
+  "email",
+  "notes",
+  "rewrite",
+  "translate"
+ ],
+ "sources": {
+  "kestrel_kinds_v0/kinds.toml": "e96d7a92d70a7e3218955c53134edec35b0059731cda49a5c7b5eedac1fe0514",
+  "notes.toml": "72ebdcb0e96ef254db9729f4003d4ef11de877e2272dd178eed4cd1c5a876b2f",
+  "contracts/kinds_v1.txt": "d898dbd825a262e0e3098d6bfce46cb1d8e0b10c435d673edb98009bdcadff1a",
+  "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
+  "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",
+  "kestrel_intents_v0/splits/val.jsonl": "9672f4cc5b3dc7397739fa2004a960b33411974f1ec63859daf41f9c237ed4bc"
+ },
+ "conflicts_dropped": [],
+ "splits": {
+  "train": {
+   "items": 864,
+   "fingerprint": "342b9aaa9eff6c42de5ff59468085ffb7a487e982a54cbfb845592c90f1eef00",
+   "by_label": {
+    "app": 576,
+    "chat": 84,
+    "email": 74,
+    "notes": 32,
+    "rewrite": 50,
+    "translate": 48
+   },
+   "by_lang": {
+    "en": 430,
+    "hi-en": 434
+   }
+  },
+  "cal": {
+   "items": 115,
+   "fingerprint": "e89c9ad93c9cc6f23fc1adff73bc9a5181fc3d70e252f944e2ce13351644beb9",
+   "by_label": {
+    "app": 72,
+    "chat": 8,
+    "email": 9,
+    "notes": 8,
+    "rewrite": 10,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 56,
+    "hi-en": 59
+   }
+  },
+  "val": {
+   "items": 136,
+   "fingerprint": "9bc22ac219bd7261963996166e2a038fb402ea9ebd2150396b07e39418311b13",
+   "by_label": {
+    "app": 96,
+    "chat": 12,
+    "email": 8,
+    "notes": 4,
+    "rewrite": 8,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 68,
+    "hi-en": 68
+   }
+  },
+  "test": {
+   "items": 256,
+   "fingerprint": "e9878a59841a45b7df21e7933a17c9aed010e97b2fb7c35ec6baef12493dc8d6",
+   "by_label": {
+    "app": 180,
+    "chat": 16,
+    "email": 16,
+    "notes": 12,
+    "rewrite": 16,
+    "translate": 16
+   },
+   "by_lang": {
+    "en": 128,
+    "hi-en": 128
+   }
+  }
+ }
+}

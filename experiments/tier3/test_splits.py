@@ -44,3 +44,10 @@ def test_parity_texts_are_50_english_then_50_hinglish_train_items_by_id():
     en = [r["id"] for r in rows[:50]]
     assert en == sorted(en)
     assert parity_texts() == rows  # deterministic
+
+
+def test_kinds_v1_loads_its_dev_splits_with_the_notes_kind():
+    from splits import load_splits
+    s = load_splits("kinds_v1")
+    assert set(s) == {"train", "cal", "val"}
+    assert "notes" in {r["label"] for r in s["train"]}
