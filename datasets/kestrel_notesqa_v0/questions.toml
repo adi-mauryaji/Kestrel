@@ -18,14 +18,14 @@ id = "qa-deposit"
 notes = ["2026-09-02-budget-plan.md"]
 facts = [["5000", "5,000"]]
 en = ["how much do i put in the recurring deposit?"]
-hi-en = ["recurring deposit mein kitna dalna hai?"]
+hi-en = ["recurring deposit mein kitna dalna hai?", "recurring deposit mein kitna dalna hai mujhe?"]
 
 [[family]]
 id = "qa-gym-days"
 notes = ["2026-09-05-gym-routine.md"]
 facts = [["monday"], ["wednesday"], ["friday"]]
 en = ["on which days do i do squats?"]
-hi-en = ["squats kis din karne hain?"]
+hi-en = ["squats kis din karne hain?", "squats kis kis din karne hain?"]
 
 [[family]]
 id = "qa-mom-cake"
@@ -46,7 +46,7 @@ id = "qa-battery"
 notes = ["2026-09-10-laptop-issues.md"]
 facts = [["40"]]
 en = ["how low does my laptop battery go in two hours?"]
-hi-en = ["do ghante mein laptop ki battery kitni reh jaati hai?"]
+hi-en = ["do ghante mein laptop ki battery kitni reh jaati hai?", "do ghante mein laptop ki battery kitni ghat ti hai?"]
 
 [[family]]
 id = "qa-goa-flight"

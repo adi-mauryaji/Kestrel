@@ -2,6 +2,7 @@
 {"facts": [["ravi"]], "family": "qa-api", "id": "qa-api/hi-en/0", "lang": "hi-en", "notes": ["2026-10-01-team-meeting.md"], "text": "api changes kaun dekh raha hai?"}
 {"facts": [["5000", "5,000"]], "family": "qa-deposit", "id": "qa-deposit/en/0", "lang": "en", "notes": ["2026-09-02-budget-plan.md"], "text": "how much do i put in the recurring deposit?"}
 {"facts": [["5000", "5,000"]], "family": "qa-deposit", "id": "qa-deposit/hi-en/0", "lang": "hi-en", "notes": ["2026-09-02-budget-plan.md"], "text": "recurring deposit mein kitna dalna hai?"}
+{"facts": [["5000", "5,000"]], "family": "qa-deposit", "id": "qa-deposit/hi-en/1", "lang": "hi-en", "notes": ["2026-09-02-budget-plan.md"], "text": "recurring deposit mein kitna dalna hai mujhe?"}
 {"facts": [["mehta"]], "family": "qa-doctor", "id": "qa-doctor/en/0", "lang": "en", "notes": ["2026-09-18-doctor-visit.md"], "text": "which doctor did i see for the fever?"}
 {"facts": [["mehta"]], "family": "qa-doctor", "id": "qa-doctor/hi-en/0", "lang": "hi-en", "notes": ["2026-09-18-doctor-visit.md"], "text": "bukhaar ke liye maine kis doctor ko dikhaya tha?"}
 {"facts": [["three", "3", "teen"]], "family": "qa-dose", "id": "qa-dose/en/0", "lang": "en", "notes": ["2026-09-18-doctor-visit.md"], "text": "how many times a day do i take paracetamol?"}

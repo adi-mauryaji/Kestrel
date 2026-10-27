@@ -42,4 +42,4 @@ def test_the_build_is_byte_for_byte_deterministic(tmp_path):
     assert names == ["dev.jsonl", "manifest.json", "test.jsonl"]
     assert all((a / n).read_bytes() == (b / n).read_bytes() for n in names)
     m = json.loads((a / "manifest.json").read_text())
-    assert m["status"] == "draft" and m["splits"]["dev"]["questions"] + m["splits"]["test"]["questions"] == 48
+    assert m["status"] == "draft" and m["splits"]["dev"]["questions"] + m["splits"]["test"]["questions"] == 51

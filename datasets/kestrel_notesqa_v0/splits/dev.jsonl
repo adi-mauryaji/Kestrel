@@ -1,7 +1,9 @@
 {"facts": [["40"]], "family": "qa-battery", "id": "qa-battery/en/0", "lang": "en", "notes": ["2026-09-10-laptop-issues.md"], "text": "how low does my laptop battery go in two hours?"}
 {"facts": [["40"]], "family": "qa-battery", "id": "qa-battery/hi-en/0", "lang": "hi-en", "notes": ["2026-09-10-laptop-issues.md"], "text": "do ghante mein laptop ki battery kitni reh jaati hai?"}
+{"facts": [["40"]], "family": "qa-battery", "id": "qa-battery/hi-en/1", "lang": "hi-en", "notes": ["2026-09-10-laptop-issues.md"], "text": "do ghante mein laptop ki battery kitni ghat ti hai?"}
 {"facts": [["monday"], ["wednesday"], ["friday"]], "family": "qa-gym-days", "id": "qa-gym-days/en/0", "lang": "en", "notes": ["2026-09-05-gym-routine.md"], "text": "on which days do i do squats?"}
 {"facts": [["monday"], ["wednesday"], ["friday"]], "family": "qa-gym-days", "id": "qa-gym-days/hi-en/0", "lang": "hi-en", "notes": ["2026-09-05-gym-routine.md"], "text": "squats kis din karne hain?"}
+{"facts": [["monday"], ["wednesday"], ["friday"]], "family": "qa-gym-days", "id": "qa-gym-days/hi-en/1", "lang": "hi-en", "notes": ["2026-09-05-gym-routine.md"], "text": "squats kis kis din karne hain?"}
 {"facts": [["25"]], "family": "qa-insurance", "id": "qa-insurance/en/0", "lang": "en", "notes": ["2026-10-03-car-service.md"], "text": "by when do i renew the car insurance?"}
 {"facts": [["25"]], "family": "qa-insurance", "id": "qa-insurance/hi-en/0", "lang": "hi-en", "notes": ["2026-10-03-car-service.md"], "text": "car insurance kab tak renew karna hai?"}
 {"facts": [["aadhaar", "aadhar"], ["pan"]], "family": "qa-kyc", "id": "qa-kyc/en/0", "lang": "en", "notes": ["2026-10-11-bank-kyc.md"], "text": "which documents does the bank need for kyc?"}
