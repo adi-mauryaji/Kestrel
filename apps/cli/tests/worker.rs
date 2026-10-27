@@ -97,7 +97,7 @@ fn the_worker_writes_a_skill_draft_the_same_way_every_time() {
 /// What the dev run logged for a val item: Gemma's kind and its confidence at the fitted T.
 fn logged_kind(root: &Path, id: &str, t: f64) -> (String, String, f64) {
     let rows =
-        std::fs::read_to_string(root.join("experiments/logs/v3/kinds/fallback_outputs_v1.jsonl"))
+        std::fs::read_to_string(root.join("experiments/logs/v3/kinds/fallback_outputs_v2.jsonl"))
             .unwrap();
     let row: serde_json::Value = rows
         .lines()
@@ -105,7 +105,7 @@ fn logged_kind(root: &Path, id: &str, t: f64) -> (String, String, f64) {
         .find(|r| r["id"] == id)
         .unwrap();
     let val =
-        std::fs::read_to_string(root.join("datasets/kestrel_kinds_v1/splits/val.jsonl")).unwrap();
+        std::fs::read_to_string(root.join("datasets/kestrel_kinds_v2/splits/val.jsonl")).unwrap();
     let text = val
         .lines()
         .map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap())
@@ -135,16 +135,16 @@ fn the_worker_chooses_kinds_as_the_dev_run_did() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let cache = std::env::temp_dir().join(format!("kestrel_kind_{}", std::process::id()));
     let cfg: serde_json::Value = serde_json::from_str(
-        &std::fs::read_to_string(root.join("experiments/configs/kinds_fallback_v1.json")).unwrap(),
+        &std::fs::read_to_string(root.join("experiments/configs/kinds_fallback_v2.json")).unwrap(),
     )
     .unwrap();
     let t = cfg["temperature"].as_f64().unwrap();
-    // Three the Kinds-v1 head was unsure of (fallback_dev_v1.json): Gemma chat 0.93, app 0.95, and
-    // chat 0.84 for a current fact (below tau_g: the head's answer stands).
+    // Three the Kinds-v2 head was unsure of (fallback_dev_v2.json): Gemma code 0.96 for a game the
+    // head called chat, app 0.97 for a current fact, and app 0.55 for a notes question (below tau_g).
     for id in [
-        "chat-15/hi-en/0",
+        "code-07/en/0",
         "intents:oos-facts-02/hi-en/0/0",
-        "intents:oos-facts-01/hi-en/0/0",
+        "notes-03/hi-en/0",
     ] {
         let (text, label, p) = logged_kind(&root, id, t);
         let msg = serde_json::json!({"id": 0, "kind": text}).to_string();

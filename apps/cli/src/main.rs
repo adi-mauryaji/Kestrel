@@ -41,6 +41,8 @@ mod bench_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod clock;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod code;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod commands;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
@@ -69,6 +71,8 @@ mod remind;
 mod remote;
 #[cfg(feature = "llama")]
 mod route_items;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod sandbox;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod service;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]

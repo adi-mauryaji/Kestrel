@@ -502,7 +502,7 @@ fn clarify(slot: &str) -> String {
 
 fn no_action(parts: &[(Intent, String)], writes: bool) -> String {
     const NOTES: &str = "find, open and summarize your notes and answer questions from them";
-    const WRITES: &str = "draft emails and messages, rewrite or translate text, and chat";
+    const WRITES: &str = "draft emails and messages, rewrite or translate text, write and fix small Python code, and chat";
     match (parts.iter().any(|(i, _)| *i == Intent::Unsupported), writes) {
         (true, false) => {
             "I can't do that. I can find, open and summarize your notes, keep your tasks, and \

@@ -112,7 +112,7 @@ impl Models {
         })
     }
 
-    /// v3's kind head (ADR-037, ADR-041) on the Tier-3 encoder: experiments/artifacts/tier3/kinds_v1-<encoder>,
+    /// v3's kind head (ADR-037, ADR-041) on the Tier-3 encoder: experiments/artifacts/tier3/kinds_v2-<encoder>,
     /// refused unless it was trained on the same encoder file as the config's Tier-3 head.
     pub fn kinds_tier(
         &self,
@@ -127,7 +127,7 @@ impl Models {
             .file_stem()
             .unwrap_or_default()
             .to_string_lossy();
-        let dir = heads.join(format!("kinds_v1-{stem}"));
+        let dir = heads.join(format!("kinds_v2-{stem}"));
         let trained_on = |d: &Path| -> Result<String, DynError> {
             let meta: Value = serde_json::from_str(&std::fs::read_to_string(d.join("head.json"))?)?;
             Ok(meta["encoder_sha256"]

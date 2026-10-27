@@ -41,10 +41,8 @@ MODELS = {"gemma-4-e2b": "gemma-4-E2B-it-Q4_0.gguf", "qwen3-1.7b": "Qwen3-1.7B-Q
           "qwen3-4b": "Qwen3-4B-Q4_K_M.gguf"}
 RETRIES = 2
 MAX_TOKENS = {"code": 640, "explain": 220}
-CODE_SYSTEM = (
-    "You write small Python 3 programs for the user, using only the standard library. Reply with the code "
-    "in one ```python block and no other text. A script reads its input without printing prompts and "
-    "prints only what is asked.")
+# One text for this harness and the app (apps/cli/src/code.rs): datasets/contracts/code_system.txt.
+CODE_SYSTEM = (ROOT / "datasets" / "contracts" / "code_system.txt").read_text(encoding="utf-8").rstrip("\n")
 EXPLAIN_SYSTEM = (
     "You explain Python code to the user: what it does and what it gives, in two to four short sentences. "
     "Answer in the language of the request: English for English, Hinglish (Hindi in Latin letters) for "

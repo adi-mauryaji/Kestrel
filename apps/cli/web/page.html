@@ -533,7 +533,7 @@ let skillsShown = false;
 function showSkills() {
   if (skillsShown) return;
   skillsShown = true;
-  $("welcome").textContent = "Ask in English or Hinglish. It keeps your tasks, reminds you at the time you say, finds, opens and summarizes your notes and answers questions from them, and drafts emails, rewrites, translates and chats.";
+  $("welcome").textContent = "Ask in English or Hinglish. It keeps your tasks, reminds you at the time you say, finds, opens and summarizes your notes and answers questions from them, and drafts emails, rewrites, translates, writes small Python code and chats.";
   const b = el("button", "", "manager ko friday ki chutti ke liye mail likh do");
   b.type = "button";
   b.addEventListener("click", () => send(b.textContent));

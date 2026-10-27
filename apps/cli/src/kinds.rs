@@ -23,16 +23,18 @@ use serde::Deserialize;
 pub enum Kind {
     App,
     Chat,
+    Code,
     Email,
     Notes,
     Rewrite,
     Translate,
 }
 
-/// In the head's class order (datasets/contracts/kinds_v1.txt).
-pub const KINDS: [Kind; 6] = [
+/// In the head's class order (datasets/contracts/kinds_v2.txt).
+pub const KINDS: [Kind; 7] = [
     Kind::App,
     Kind::Chat,
+    Kind::Code,
     Kind::Email,
     Kind::Notes,
     Kind::Rewrite,
@@ -54,6 +56,7 @@ impl Kind {
         match self {
             Kind::App => "app",
             Kind::Chat => "chat",
+            Kind::Code => "code",
             Kind::Email => "email",
             Kind::Notes => "notes",
             Kind::Rewrite => "rewrite",
@@ -66,6 +69,7 @@ impl Kind {
         match self {
             Kind::App => "Do this the usual way?",
             Kind::Chat => "Answer this as a chat reply?",
+            Kind::Code => "Write this as Python code?",
             Kind::Email => "Write this as an email or message draft?",
             Kind::Notes => "Answer this from your notes?",
             Kind::Rewrite => "Rewrite the text in your request?",
@@ -99,6 +103,7 @@ impl Kind {
                  switch to English or to Devanagari."
             }
             Kind::Notes => crate::notes_qa::SYSTEM,
+            Kind::Code => crate::code::SYSTEM,
             Kind::Translate => {
                 "You translate the text given in the request into the language it asks for. \
                  Answer with the translation only. Hindi means Devanagari script (like \"कल \
@@ -113,6 +118,7 @@ impl Kind {
         match self {
             Kind::Email => 320,
             Kind::Notes => crate::notes_qa::MAX_TOKENS,
+            Kind::Code => crate::code::MAX_TOKENS,
             Kind::Translate => 192,
             _ => 256,
         }
@@ -248,8 +254,8 @@ fn top(probs: &[(Kind, f32)]) -> Option<(Kind, f32)> {
 }
 
 /// Where the service finds the fallback's settings (written by experiments/v3/kind_fallback.py):
-/// Kinds-v1's run with the final head (ADR-042); the service uses it only when it fits the head.
-pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v1.json";
+/// Kinds-v2's run with its final head (ADR-046); the service uses it only when it fits the head.
+pub const FALLBACK_CONFIG: &str = "experiments/configs/kinds_fallback_v2.json";
 
 /// Did the fallback choose among exactly the head's kinds? A run without `notes` would send every
 /// unsure notes question the old way.
@@ -400,6 +406,13 @@ impl<'a> Kinds<'a> {
             Choice::Ask(k) if confirm(k.question()) => k,
             Choice::Ask(_) => return None,
         };
+        if kind == Kind::Code {
+            return Some(crate::code::write(
+                self.writer.as_ref(),
+                typed.trim(),
+                stream,
+            ));
+        }
         if kind == Kind::Notes {
             let notes = meaning?.closest(typed.trim(), crate::notes_qa::N);
             return Some(crate::notes_qa::answer(
@@ -447,7 +460,7 @@ mod tests {
     fn the_kinds_are_the_contracts_labels_in_its_order() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../datasets/contracts/kinds_v1.txt"
+            "/../../datasets/contracts/kinds_v2.txt"
         );
         let labels: Vec<String> = std::fs::read_to_string(path)
             .unwrap()
@@ -457,13 +470,21 @@ mod tests {
             .collect();
         assert_eq!(
             labels,
-            ["app", "chat", "email", "notes", "rewrite", "translate"]
+            [
+                "app",
+                "chat",
+                "code",
+                "email",
+                "notes",
+                "rewrite",
+                "translate"
+            ]
         );
         for (label, kind) in labels.iter().zip(KINDS) {
             assert_eq!(Kind::from_label(label), Some(kind));
             assert_eq!(kind.label(), label);
         }
-        assert_eq!(Kind::from_label("code"), None);
+        assert_eq!(Kind::from_label("sql"), None);
     }
 
     #[test]

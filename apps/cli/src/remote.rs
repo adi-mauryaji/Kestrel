@@ -354,7 +354,7 @@ mod tests {
     fn the_same_worker_chooses_kinds_for_the_fallback() {
         use crate::kinds::Kind;
         let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
-            *'"kind":"explain recursion"'*) echo '{"probs": [["chat", 0.93], ["code", 0.01]]}';;
+            *'"kind":"explain recursion"'*) echo '{"probs": [["chat", 0.93], ["sql", 0.01]]}';;
             *) echo '{"error": "no kind fallback"}';; esac; done"#;
         let t = std::rc::Rc::new(RemoteTier::new(
             "sh".into(),

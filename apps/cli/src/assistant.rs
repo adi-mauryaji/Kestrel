@@ -356,7 +356,8 @@ mod tests {
         assert_eq!(
             out.last().unwrap(),
             "Hi! I can find, open and summarize your notes and answer questions from them, keep \
-             your tasks, draft emails and messages, rewrite or translate text, and chat."
+             your tasks, draft emails and messages, rewrite or translate text, write and fix small \
+             Python code, and chat."
         );
     }
 

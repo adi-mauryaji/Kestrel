@@ -89,3 +89,11 @@ def test_each_split_logs_apart_and_the_test_runs_once(tmp_path):
     log.write_text("{}")
     with pytest.raises(SystemExit, match="once"):
         refuse_second_test_run(log)
+
+
+def test_the_code_prompt_is_the_one_the_dev_and_test_runs_used():
+    # eaaca33 ran with this text, then inline here; now one contract file for the harness and the app.
+    from code_eval import CODE_SYSTEM
+    assert CODE_SYSTEM == ("You write small Python 3 programs for the user, using only the standard library. Reply "
+                           "with the code in one ```python block and no other text. A script reads its input "
+                           "without printing prompts and prints only what is asked.")
