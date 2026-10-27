@@ -90,6 +90,11 @@ def choose(grid: dict) -> tuple[float, float]:
     return min(grid, key=lambda k: (wrong(grid[k]), grid[k]["asked"], k[0], -k[1]))
 
 
+def fresh(row: dict) -> bool:
+    """A Kinds-v2 family written after Kinds-v1's test was seen; the others' test rows were seen (968764b)."""
+    return row.get("source") == "kinds_v2"
+
+
 def refuse_second_test_run(log: Path) -> None:
     if log.exists():
         sys.exit(f"{log.name} exists: the test split is run once")
@@ -220,6 +225,8 @@ def run_test(dataset: str) -> None:
            "gemma_accuracy": float(np.mean([g[0] == y for g, y in zip(gemma, gold)])),
            "all": by(lambda i: True),
            "by_lang": {lang: by(lambda i, lang=lang: test[i]["lang"] == lang) for lang in ("en", "hi-en")},
+           **({"fresh": by(lambda i: fresh(test[i])), "seen": by(lambda i: not fresh(test[i]))}
+              if dataset == "kinds_v2" else {}),
            "by_gold": {c: by(lambda i, c=c: gold[i] == c) for c in labels},
            "wrong": [{"id": r["id"], "text": r["text"], "gold": y, "decision": list(d), "head": list(h),
                       "gemma": [g[0], round(g[1], 3)]}
@@ -235,12 +242,12 @@ def run_test(dataset: str) -> None:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--reuse", action="store_true", help="read the logged outputs instead of running the models")
-    ap.add_argument("--dataset", choices=("kinds_v0", "kinds_v1"), default="kinds_v0")
+    ap.add_argument("--dataset", choices=("kinds_v0", "kinds_v1", "kinds_v2"), default="kinds_v0")
     ap.add_argument("--test", action="store_true", help="once: the committed config on the test split (Kinds-v1)")
     args = ap.parse_args(argv)
     if args.test:
-        if args.dataset != "kinds_v1":
-            ap.error("only Kinds-v1's test split is run (ADR-042)")
+        if args.dataset == "kinds_v0":
+            ap.error("Kinds-v0's test split is not run (ADR-042)")
         return run_test(args.dataset)
     at = paths(args.dataset)
     LOG.mkdir(parents=True, exist_ok=True)

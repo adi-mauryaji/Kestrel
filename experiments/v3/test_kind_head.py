@@ -36,3 +36,9 @@ def test_out_of_fold_logits_come_from_heads_that_never_saw_the_fold():
         m = np.array(f) == k
         w, b = train_head(x[~m], y[~m], 3, 1.0)
         assert np.allclose(z[m], logits(x[m], w, b))
+
+
+def test_each_kinds_version_has_its_own_log():
+    from kind_head import log_for
+    assert log_for("kinds_v1").name == "final_kinds_v1.json"
+    assert log_for("kinds_v2").name == "final_kinds_v2.json"

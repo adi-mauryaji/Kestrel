@@ -1,0 +1,245 @@
+{
+ "dataset": "kinds_v2",
+ "encoder": "multilingual-e5-small-q8_0",
+ "classes": [
+  "app",
+  "chat",
+  "code",
+  "email",
+  "notes",
+  "rewrite",
+  "translate"
+ ],
+ "c_grid_val_macro_f1": {
+  "0.1": 0.11059907834101382,
+  "1.0": 0.20130106687483737,
+  "10.0": 0.6912752983139345,
+  "100.0": 0.8168227069928328,
+  "1000.0": 0.7921906781238472
+ },
+ "c": 100.0,
+ "folds": 5,
+ "fit_n": 1123,
+ "oof_errors": 185,
+ "temperature": 0.9307384875140928,
+ "temperature_note": "cross-fitted on train + cal (5 folds by family)",
+ "oof": {
+  "n": 1123,
+  "accuracy": 0.8352626892252895,
+  "macro_f1": 0.753371945907238,
+  "ece": 0.023512161111891597,
+  "nll": 0.44112218537412373
+ },
+ "val_raw": {
+  "n": 152,
+  "accuracy": 0.8618421052631579,
+  "macro_f1": 0.7612119857907292,
+  "ece": 0.05873727779790562,
+  "nll": 0.29574760470335476
+ },
+ "val_calibrated": {
+  "n": 152,
+  "accuracy": 0.8618421052631579,
+  "macro_f1": 0.7612119857907292,
+  "ece": 0.05468821985999882,
+  "nll": 0.2875484766789979
+ },
+ "val_per_class": {
+  "app": {
+   "n": 96,
+   "precision": 0.9278350515463918,
+   "recall": 0.9375
+  },
+  "chat": {
+   "n": 16,
+   "precision": 0.7222222222222222,
+   "recall": 0.8125
+  },
+  "code": {
+   "n": 8,
+   "precision": 1.0,
+   "recall": 0.625
+  },
+  "email": {
+   "n": 8,
+   "precision": 0.5833333333333334,
+   "recall": 0.875
+  },
+  "notes": {
+   "n": 8,
+   "precision": 0.5,
+   "recall": 0.375
+  },
+  "rewrite": {
+   "n": 8,
+   "precision": 0.8571428571428571,
+   "recall": 0.75
+  },
+  "translate": {
+   "n": 8,
+   "precision": 1.0,
+   "recall": 0.875
+  }
+ },
+ "val_calibrated_en": {
+  "n": 76,
+  "accuracy": 0.881578947368421,
+  "macro_f1": 0.7553300107921956,
+  "ece": 0.08958217818585498
+ },
+ "val_calibrated_hi-en": {
+  "n": 76,
+  "accuracy": 0.8421052631578947,
+  "macro_f1": 0.7611312610150442,
+  "ece": 0.08644657195145224
+ },
+ "val_errors": [
+  {
+   "id": "app-01/hi-en/0",
+   "text": "ye email abhi asha ko bhej do",
+   "gold": "app",
+   "head": "email",
+   "p": 0.497
+  },
+  {
+   "id": "app-02/hi-en/0",
+   "text": "kal professor ko email karna yaad dila dena",
+   "gold": "app",
+   "head": "email",
+   "p": 0.61
+  },
+  {
+   "id": "chat-15/hi-en/0",
+   "text": "presentation se pehle nervous ho jata hoon, koi advice?",
+   "gold": "chat",
+   "head": "app",
+   "p": 0.45
+  },
+  {
+   "id": "chat-v1-02/en/1",
+   "text": "how often should a bike be serviced?",
+   "gold": "chat",
+   "head": "notes",
+   "p": 0.519
+  },
+  {
+   "id": "chat-v1-02/hi-en/1",
+   "text": "bike ki service kitne time mein karani chahiye?",
+   "gold": "chat",
+   "head": "notes",
+   "p": 0.809
+  },
+  {
+   "id": "code-07/en/0",
+   "text": "write a python program for a number guessing game",
+   "gold": "code",
+   "head": "chat",
+   "p": 0.558
+  },
+  {
+   "id": "code-07/en/1",
+   "text": "create a simple calculator in python",
+   "gold": "code",
+   "head": "chat",
+   "p": 0.511
+  },
+  {
+   "id": "code-07/hi-en/0",
+   "text": "number guessing game ka python program likho",
+   "gold": "code",
+   "head": "chat",
+   "p": 0.446
+  },
+  {
+   "id": "email-11/hi-en/0",
+   "text": "bukhaar ki wajah se school ke liye leave application likh do",
+   "gold": "email",
+   "head": "rewrite",
+   "p": 0.442
+  },
+  {
+   "id": "intents:oos-facts-01/hi-en/0/0",
+   "text": "japan ka prime minister kaun hai?",
+   "gold": "app",
+   "head": "notes",
+   "p": 0.623
+  },
+  {
+   "id": "intents:oos-facts-02/hi-en/0/0",
+   "text": "jaipur ki population kitni hai?",
+   "gold": "app",
+   "head": "chat",
+   "p": 0.641
+  },
+  {
+   "id": "intents:oos-facts-02/hi-en/0/1",
+   "text": "pune ki population kitni hai?",
+   "gold": "app",
+   "head": "chat",
+   "p": 0.418
+  },
+  {
+   "id": "intents:summarize-10/en/0/0",
+   "text": "condense my budget meeting notes into a few lines",
+   "gold": "app",
+   "head": "email",
+   "p": 0.789
+  },
+  {
+   "id": "notes-03/en/0",
+   "text": "who is handling the dashboard?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.779
+  },
+  {
+   "id": "notes-03/en/1",
+   "text": "which plumber did the landlord send?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.863
+  },
+  {
+   "id": "notes-03/hi-en/1",
+   "text": "landlord ne kaunsa plumber bheja tha?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.794
+  },
+  {
+   "id": "notes-v2-05/en/0",
+   "text": "what is my shoe size?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.6
+  },
+  {
+   "id": "notes-v2-05/hi-en/0",
+   "text": "mera shoe size kya hai?",
+   "gold": "notes",
+   "head": "app",
+   "p": 0.689
+  },
+  {
+   "id": "rewrite-18/en/1",
+   "text": "suggest a subject line for this mail: the office will be closed on friday",
+   "gold": "rewrite",
+   "head": "email",
+   "p": 0.353
+  },
+  {
+   "id": "rewrite-18/hi-en/1",
+   "text": "is mail ki subject line bata do: office friday ko band rahega",
+   "gold": "rewrite",
+   "head": "email",
+   "p": 0.564
+  },
+  {
+   "id": "translate-11/en/0",
+   "text": "translate this sentence to english: aaj bahut garmi hai",
+   "gold": "translate",
+   "head": "app",
+   "p": 0.536
+  }
+ ]
+}

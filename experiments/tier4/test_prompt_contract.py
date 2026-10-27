@@ -17,6 +17,7 @@ CASES = {
     "intents": ("tier4_intent_prompt.txt", "intents.txt", "kestrel_intents_v0"),
     "kinds": ("tier4_kind_prompt.txt", "kinds.txt", "kestrel_kinds_v0"),
     "kinds_v1": ("tier4_kind_prompt_v1.txt", "kinds_v1.txt", "kestrel_kinds_v1"),  # ADR-042
+    "kinds_v2": ("tier4_kind_prompt_v2.txt", "kinds_v2.txt", "kestrel_kinds_v2"),  # ADR-046
 }
 
 

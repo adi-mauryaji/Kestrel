@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""experiments/v3/kind_head.py -- the final kind head on Kestrel-Kinds-v1 (ADR-042), dev splits only.
+"""experiments/v3/kind_head.py -- the final kind head on Kestrel-Kinds-v1 (ADR-042) or -v2 (ADR-046), dev only.
 
 Fixed before it was run (2026-10-27), with Kinds-v1 frozen and its test split still closed:
 - C: as experiments/tier3/train.py chooses it: heads on train over C_GRID, macro-F1 on val, ties to the
@@ -12,13 +12,15 @@ Fixed before it was run (2026-10-27), with Kinds-v1 frozen and its test split st
 - Val stays out of both: accuracy, macro-F1, ECE, NLL, per class and per language, before and after T.
   τ and τ_g are judged on val with Gemma's outputs (kind_fallback.py --dataset kinds_v1).
 
-Exported to experiments/artifacts/tier3/kinds_v1-<encoder>/ (the head the service loads) with cases.json
-for the Rust parity check; log experiments/logs/v3/kinds/final_kinds_v1.json.
+Exported to experiments/artifacts/tier3/<dataset>-<encoder>/ (the head the service loads) with cases.json
+for the Rust parity check; log experiments/logs/v3/kinds/final_<dataset>.json. Kinds-v2 follows the same
+procedure, fixed for Kinds-v1 before either was run.
 
-    python experiments/v3/kind_head.py      # ~30 s: e5 over Kinds-v1's dev splits, 5 + 6 small fits
+    python experiments/v3/kind_head.py [--dataset kinds_v2]   # ~30 s: e5 over the dev splits, 5 + 6 small fits
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from collections import defaultdict
@@ -37,11 +39,15 @@ from splits import load_splits  # noqa: E402
 from train import ARTIFACTS, C_GRID, _scores, choose_c, classes_for, label_index, per_class  # noqa: E402
 from metrics import macro_f1  # noqa: E402
 
-DATASET = "kinds_v1"
+DATASETS = ("kinds_v1", "kinds_v2")
 ENCODER = "multilingual-e5-small-q8_0"
 K = 5
 SEED = 0
-LOG = ROOT / "experiments" / "logs" / "v3" / "kinds" / "final_kinds_v1.json"
+LOGS = ROOT / "experiments" / "logs" / "v3" / "kinds"
+
+
+def log_for(dataset: str) -> Path:
+    return LOGS / f"final_{dataset}.json"
 
 
 def folds(rows: list[dict], k: int = K, seed: int = SEED) -> list[int]:
@@ -67,7 +73,11 @@ def cross_fit_logits(x, y, fold: list[int], n_classes: int, c: float) -> np.ndar
     return z
 
 
-def main():
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--dataset", choices=DATASETS, default="kinds_v1")
+    DATASET = ap.parse_args(argv).dataset
+    LOG = log_for(DATASET)
     enc = load_encoder(ENCODER)
     splits = load_splits(DATASET)
     classes = classes_for(DATASET, splits)

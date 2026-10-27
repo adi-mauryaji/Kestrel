@@ -90,3 +90,12 @@ def test_the_test_run_is_refused_once_its_log_exists(tmp_path):
     log.write_text("{}")
     with pytest.raises(SystemExit, match="once"):
         refuse_second_test_run(log)
+
+
+def test_kinds_v2_has_its_own_prompt_logs_and_config_and_a_fresh_test_part():
+    from kind_fallback import fresh, paths
+    v2 = paths("kinds_v2")
+    assert v2["prompt"].name == "tier4_kind_prompt_v2.txt" and v2["labels"].name == "kinds_v2.txt"
+    assert v2["config"].name == "kinds_fallback_v2.json" and v2["summary"].name == "fallback_dev_v2.json"
+    rows = [{"source": "kinds_v2"}, {"source": "kinds_v1"}, {"source": "intents_v0"}]
+    assert [fresh(r) for r in rows] == [True, False, False]
