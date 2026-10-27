@@ -1,0 +1,521 @@
+{
+ "model": "qwen3-4b",
+ "model_file": "Qwen3-4B-Q4_K_M.gguf",
+ "split": "dev",
+ "retries": 2,
+ "wall_s": 698.3,
+ "summary": {
+  "all": {
+   "n": 24,
+   "pass1": 23,
+   "pass_loop": 23,
+   "attempts": 32,
+   "seconds": 695.7
+  },
+  "explain": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 125.0
+  },
+  "fix": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 106.2
+  },
+  "function": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 10,
+   "seconds": 247.5
+  },
+  "script": {
+   "n": 6,
+   "pass1": 5,
+   "pass_loop": 5,
+   "attempts": 10,
+   "seconds": 217.1
+  },
+  "en": {
+   "n": 12,
+   "pass1": 12,
+   "pass_loop": 12,
+   "attempts": 18,
+   "seconds": 394.5
+  },
+  "hi-en": {
+   "n": 12,
+   "pass1": 11,
+   "pass_loop": 11,
+   "attempts": 14,
+   "seconds": 301.2
+  },
+  "explain_hi_en_in_hinglish": "0/3"
+ },
+ "results": [
+  {
+   "id": "ex-countdown/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "This code prints the numbers 10, 8, 6, 4, 2. It starts with `n = 10` and uses a `while` loop that runs as long as `n > 0`. Inside the loop, it prints the current value of `n` and then subtracts 2 from it, so it counts down by 2 each time.",
+     "ms": 13394.758498,
+     "tokens": 81
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "ex-countdown/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "यह कोड 10 से 0 तक के सभी विषम संख्याओं को प्रिंट करेगा। इसका कारण यह है कि एक बार जब n = 10 होता है, तो यह 10 को प्रिंट करता है और फिर n में 2 कम करता है, ताकि अगला मान 8 हो जाता है, जो विषम होता है।",
+     "ms": 25889.548528,
+     "tokens": 174
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "ex-sort-key/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "This line sorts the `people` list in ascending order based on the \"age\" key of each dictionary. It uses a lambda function to extract the \"age\" value for sorting.  \n\nयह लाइन `people` सूची को \"age\" के केंद्र पर आसानी से बढ़ते क्रम में व्यवस्थित करती है। इसमें एक ल�ेम्ब्डा फ़ंक्शन का उपयोग करके प्रत्येक डिक्शनरी के \"age\" मान का उपयोग किया जाता है।",
+     "ms": 27276.841533,
+     "tokens": 191
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "ex-sort-key/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "यह लाइन एक सूची में व्यक्ति के आयु के आधार पर सूची को व्यवस्थित करती है।  \nThis line sorts a list of people based on their age.",
+     "ms": 12831.740549999999,
+     "tokens": 79
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "ex-word-dict/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "This loop counts how many times each word appears in the list of `words`. It uses a dictionary to store the counts of each word.  \n\nयह ल�oop एक शब्द सूची में प्रत्येक शब्द के बारह बार आने की संख्या गिनता है। एक वाक्यांश के लिए एक वाक्यांश वाला डिक्शनरी इसके बारह बार आने की संख्या को रखता है।",
+     "ms": 25923.759073,
+     "tokens": 177
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "ex-word-dict/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "यह loop शब्दों के आवृत्ति गिनती करता है। यह प्रत्ह शब्द के लिए एक गिनती करता है और उसे एक शब्द सूची में रखता है।\n\nThis loop counts the frequency of words. It keeps track of how many times each word appears and stores it in a dictionary.",
+     "ms": 19650.440894,
+     "tokens": 128
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": false
+  },
+  {
+   "id": "fix-factorial/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef factorial(n):\n    result = 1\n    for i in range(1, n + 1):\n        result *= i\n    return result\n```\n\n```tests\nassert factorial(0) == 1\nassert factorial(1) == 1\nassert factorial(5) == 120\nassert factorial(3) == 6\n```",
+     "ms": 14955.867647,
+     "tokens": 79,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-factorial/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef factorial(n):\n    result = 1\n    for i in range(1, n + 1):\n        result *= i\n    return result\n```\n\n```tests\nassert factorial(0) == 1\nassert factorial(1) == 1\nassert factorial(2) == 2\nassert factorial(3) == 6\n```",
+     "ms": 15121.425238,
+     "tokens": 77,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-find-max/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef find_max(nums):\n    m = nums[0]\n    for x in nums:\n        if x > m:\n            m = x\n    return m\n```\n\n```tests\nassert find_max([-5, -3, -2]) == -2\nassert find_max([-10, -20, -30]) == -10\nassert find_max([-1, -2, -3]) == -1\nassert find_max([-5, -5, -5]) == -5\n```",
+     "ms": 19242.451429999997,
+     "tokens": 110,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-find-max/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef find_max(nums):\n    m = float('-inf')\n    for x in nums:\n        if x > m:\n            m = x\n    return m\n```\n\n```tests\nassert find_max([1, 2, 3]) == 3\nassert find_max([-5, -10, -3]) == -3\nassert find_max([0, 0, 0]) == 0\nassert find_max([]) == float('-inf')\n```",
+     "ms": 18410.822118,
+     "tokens": 101,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-reverse-list/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef reverse_list(xs):\n    out = []\n    for i in range(len(xs)):\n        out.append(xs[len(xs) - i - 1])\n    return out\n```\n\n```tests\nassert reverse_list([1, 2, 3, 4]) == [4, 3, 2, 1]\nassert reverse_list(['a', 'b', 'c']) == ['c', 'b', 'a']\nassert reverse_list([1]) == [1]\nassert reverse_list([]) == []\n```",
+     "ms": 19089.665539999998,
+     "tokens": 110,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-reverse-list/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef reverse_list(xs):\n    out = []\n    for i in range(len(xs)):\n        out.append(xs[len(xs) - i - 1])\n    return out\n```\n\n```tests\nassert reverse_list([1, 2, 3, 4]) == [4, 3, 2, 1]\nassert reverse_list([]) == []\nassert reverse_list([1]) == [1]\nassert reverse_list([1, 2, 3]) == [3, 2, 1]\n```",
+     "ms": 19357.702329,
+     "tokens": 110,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-grade/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef grade(marks):\n    if marks >= 90:\n        return 'A'\n    elif marks >= 75:\n        return 'B'\n    elif marks >= 50:\n        return 'C'\n    else:\n        return 'F'\n```\n\n```tests\nassert grade(95) == 'A'\nassert grade(85) == 'B'\nassert grade(65) == 'C'\nassert grade(45) == 'F'\n```",
+     "ms": 17798.247053,
+     "tokens": 101,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-grade/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef grade(marks):\n    if marks >= 90:\n        return 'A'\n    elif marks >= 75:\n        return 'B'\n    elif marks >= 50:\n        return 'C'\n    else:\n        return 'F'\n```\n\n```tests\nassert grade(95) == 'A'\nassert grade(85) == 'B'\nassert grade(65) == 'C'\nassert grade(45) == 'F'\n```",
+     "ms": 18028.157795,
+     "tokens": 101,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-second-largest/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))\n    unique_nums.sort(reverse=True)\n    if len(unique_nums) < 2:\n        return None\n    return unique_nums[1]\n```\n\n```tests\nassert second_largest([1, 2, 3, 4, 5]) == 4\nassert second_largest([5, 5, 5, 5]) == None\nassert second_largest([9, 2, 4, 7, 5]) == 5\nassert second_largest([3, 3, 3]) == None\n```",
+     "ms": 21139.039131,
+     "tokens": 132,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 4, in <module>\n    assert second_largest([9, 2, 4, 7, 5]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    },
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))\n    unique_nums.sort(reverse=True)\n    if len(unique_nums) < 2:\n        return None\n    return unique_nums[1]\n```\n\n```tests\nassert second_largest([9, 2, 4, 7, 5]) == 5\nassert second_largest([1, 1, 1, 1]) == None\nassert second_largest([5, 3, 8, 8, 2]) == 5\nassert second_largest([10]) == None\n```",
+     "ms": 25674.823524,
+     "tokens": 127,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    assert second_largest([9, 2, 4, 7, 5]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    },
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))\n    unique_nums.sort(reverse=True)\n    if len(unique_nums) < 2:\n        return None\n    return unique_nums[1]\n```\n\n```tests\nassert second_largest([9, 2, 4, 7, 5]) == 5\nassert second_largest([1, 1, 1, 1]) == None\nassert second_largest([5, 3, 8, 8, 2]) == 5\nassert second_largest([10]) == None\n```",
+     "ms": 25632.851496,
+     "tokens": 127,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    assert second_largest([9, 2, 4, 7, 5]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-second-largest/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))  # Remove duplicates\n    unique_nums.sort(reverse=True)  # Sort in descending order\n    if len(unique_nums) >= 2:\n        return unique_nums[1]\n    else:\n        return None\n```\n\n```tests\nassert second_largest([1, 2, 3, 4, 5]) == 4\nassert second_largest([5, 5, 5, 5]) == None\nassert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\nassert second_largest([10]) == None\n```",
+     "ms": 23664.06835,
+     "tokens": 148,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 4, in <module>\n    assert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    },
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))  # Remove duplicates\n    unique_nums.sort(reverse=True)  # Sort in descending order\n    if len(unique_nums) >= 2:\n        return unique_nums[1]\n    else:\n        return None\n```\n\n```tests\nassert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\nassert second_largest([1, 1, 1, 1]) == None\nassert second_largest([10, 20, 30, 40, 50]) == 40\nassert second_largest([5]) == None\n```",
+     "ms": 30224.013845999998,
+     "tokens": 153,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    assert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    },
+    {
+     "text": "```python\ndef second_largest(nums):\n    unique_nums = list(set(nums))  # Remove duplicates\n    unique_nums.sort(reverse=True)  # Sort in descending order\n    if len(unique_nums) >= 2:\n        return unique_nums[1]\n    else:\n        return None\n```\n\n```tests\nassert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\nassert second_largest([10, 10, 10]) == None\nassert second_largest([5, 5, 4, 4, 3]) == 3\nassert second_largest([1, 2]) == 1\n```",
+     "ms": 29886.695041,
+     "tokens": 151,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    assert second_largest([9, 2, 7, 2, 3, 5, 1]) == 5\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError"
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-word-counts/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nimport re\nfrom collections import defaultdict\n\ndef word_counts(text):\n    # Use a regular expression to find all words, ignoring punctuation and case\n    words = re.findall(r'\\b\\w+\\b', text.lower())\n    counts = defaultdict(int)\n    for word in words:\n        counts[word] += 1\n    return dict(counts)\n```\n\n```tests\nassert word_counts(\"Hello! Hello?\") == {\"hello\": 2}\nassert word_counts(\"The cat, the CAT.\") == {\"the\": 2, \"cat\": 2}\nassert word_counts(\"Hello world! Hello world?\") == {\"hello\": 2, \"world\": 2}\nassert word_counts(\"Test, test. Test!\") == {\"test\": 3}\n```",
+     "ms": 25381.961588,
+     "tokens": 160,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-word-counts/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef word_counts(text):\n    import re\n    # Remove punctuation and convert to lowercase\n    cleaned_text = re.sub(r'[^\\w\\s]', '', text).lower()\n    # Split into words\n    words = cleaned_text.split()\n    # Count occurrences\n    counts = {}\n    for word in words:\n        if word in counts:\n            counts[word] += 1\n        else:\n            counts[word] = 1\n    return counts\n```\n\n```tests\nassert word_counts(\"Hello! Hello?\") == {'hello': 2}\nassert word_counts(\"Python. Python!\") == {'python': 2}\nassert word_counts(\"Hello world. Hello world!\") == {'hello': 2, 'world': 2}\nassert word_counts(\"This is a test. This is a test!\") == {'this': 2, 'is': 2, 'a': 2, 'test': 2}\n```",
+     "ms": 30028.10508,
+     "tokens": 194,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-celsius/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef celsius_to_fahrenheit(celsius):\n    return round((celsius * 9/5) + 32, 1)\n\n# Read input from user\ncelsius = float(input())\nfahrenheit = celsius_to_fahrenheit(celsius)\nprint(f\"{fahrenheit:.1f}\")\n```\n\n```tests\nassert celsius_to_fahrenheit(0) == 32.0\nassert celsius_to_fahrenheit(100) == 212.0\nassert celsius_to_fahrenheit(25) == 77.0\nassert celsius_to_fahrenheit(-40) == -40.0\n```",
+     "ms": 22051.137851,
+     "tokens": 139,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 5, in <module>\n    celsius = float(input())\nValueError: could not convert string to float: 'assert celsius_to_fahrenheit(0) == 32.0'"
+    },
+    {
+     "text": "```python\ndef celsius_to_fahrenheit(celsius):\n    return round((celsius * 9/5) + 32, 1)\n\n# Read input from user\ncelsius = float(input())\nfahrenheit = celsius_to_fahrenheit(celsius)\nprint(f\"{fahrenheit:.1f}\")\n```\n\n```tests\nassert celsius_to_fahrenheit(0) == 32.0\nassert celsius_to_fahrenheit(100) == 212.0\nassert celsius_to_fahrenheit(25) == 77.0\nassert celsius_to_fahrenheit(-40) == -40.0\n```",
+     "ms": 27720.219320999997,
+     "tokens": 139,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 5, in <module>\n    celsius = float(input())\nValueError: could not convert string to float: 'assert celsius_to_fahrenheit(0) == 32.0'"
+    },
+    {
+     "text": "```python\ndef celsius_to_fahrenheit(celsius):\n    return round((celsius * 9/5) + 32, 1)\n\n# Read input from user\ncelsius = float(input())\nfahrenheit = celsius_to_fahrenheit(celsius)\nprint(f\"{fahrenheit:.1f}\")\n```\n\n```tests\nassert celsius_to_fahrenheit(0) == 32.0\nassert celsius_to_fahrenheit(100) == 212.0\nassert celsius_to_fahrenheit(25) == 77.0\nassert celsius_to_fahrenheit(-40) == -40.0\n```",
+     "ms": 27687.748207999997,
+     "tokens": 139,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 5, in <module>\n    celsius = float(input())\nValueError: could not convert string to float: 'assert celsius_to_fahrenheit(0) == 32.0'"
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-celsius/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef celsius_to_fahrenheit(celsius):\n    return round((celsius * 9/5) + 32, 1)\n\ndef main():\n    celsius = float(input())\n    print(celsius_to_fahrenheit(celsius))\n\nif __name__ == \"__main__\":\n    main()\n```\n\n```input\n25.5\n```\n\n```tests\nassert celsius_to_fahrenheit(0) == 32.0\nassert celsius_to_fahrenheit(100) == 212.0\nassert celsius_to_fahrenheit(25.5) == 77.9\nassert celsius_to_fahrenheit(-40) == -40.0\n```",
+     "ms": 23540.926031000003,
+     "tokens": 150,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-even-odd/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\n# Read a whole number from input and determine if it is even or odd\nnum = int(input())\nif num % 2 == 0:\n    print(\"even\")\nelse:\n    print(\"odd\")\n```\n\n```tests\nassert num % 2 == 0 => \"even\"\nassert num % 2 != 0 => \"odd\"\nassert num % 2 == 0 => \"even\"\nassert num % 2 != 0 => \"odd\"\n```",
+     "ms": 16447.440058,
+     "tokens": 99,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    num = int(input())\nValueError: invalid literal for int() with base 10: 'assert num % 2 == 0 => \"even\"'"
+    },
+    {
+     "text": "```python\n# Read a whole number from input and determine if it is even or odd\nnum = int(input())\nif num % 2 == 0:\n    print(\"even\")\nelse:\n    print(\"odd\")\n```\n\n```tests\nassert int(input()) % 2 == 0 => \"even\"\nassert int(input()) % 2 == 1 => \"odd\"\nassert int(input()) % 2 == 0 => \"even\"\nassert int(input()) % 2 == 1 => \"odd\"\n```",
+     "ms": 23415.903705,
+     "tokens": 107,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    num = int(input())\nValueError: invalid literal for int() with base 10: 'assert int(input()) % 2 == 0 => \"even\"'"
+    },
+    {
+     "text": "```python\n# Read a whole number from input and determine if it is even or odd\nnum = int(input())\nif num % 2 == 0:\n    print(\"even\")\nelse:\n    print(\"odd\")\n```\n\n```tests\nassert int(input()) % 2 == 0 => \"even\"\nassert int(input()) % 2 == 1 => \"odd\"\nassert int(input()) % 2 == 0 => \"even\"\nassert int(input()) % 2 == 1 => \"odd\"\n```",
+     "ms": 22835.448954,
+     "tokens": 107,
+     "has_check": true,
+     "self_ok": false,
+     "error": "Traceback (most recent call last):\n  File \"/work/main.py\", line 2, in <module>\n    num = int(input())\nValueError: invalid literal for int() with base 10: 'assert int(input()) % 2 == 0 => \"even\"'"
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-even-odd/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef check_even_odd(number):\n    if number % 2 == 0:\n        return \"even\"\n    else:\n        return \"odd\"\n\n# Test the function\nassert check_even_odd(4) == \"even\"\nassert check_even_odd(5) == \"odd\"\nassert check_even_odd(0) == \"even\"\nassert check_even_odd(-3) == \"odd\"\n```",
+     "ms": 14516.458732000001,
+     "tokens": 82,
+     "has_check": false,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": false,
+   "pass_loop": false
+  },
+  {
+   "id": "sc-sum-lines/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nimport sys\n\ndef main():\n    total = 0\n    for line in sys.stdin:\n        try:\n            number = int(line.strip())\n            total += number\n        except ValueError:\n            pass\n    print(total)\n\nif __name__ == \"__main__\":\n    main()\n```\n\n```tests\nassert main() == 10  # input: 1\\n2\\n3\\n4\nassert main() == 0   # input: 0\nassert main() == -5  # input: -1\\n-4\n```",
+     "ms": 18806.558152,
+     "tokens": 114,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-sum-lines/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\nimport sys\n\ndef main():\n    total = 0\n    for line in sys.stdin:\n        try:\n            number = int(line.strip())\n            total += number\n        except ValueError:\n            pass\n    print(total)\n\nif __name__ == \"__main__\":\n    main()\n```\n\n```tests\nassert main() == 0  # No input provided\nassert main() == 1  # Input: 1\nassert main() == 3  # Input: 1\\n2\nassert main() == 6  # Input: 1\\n2\\n3\n```",
+     "ms": 20051.725546,
+     "tokens": 122,
+     "has_check": true,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  }
+ ]
+}
