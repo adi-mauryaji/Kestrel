@@ -1,0 +1,792 @@
+{
+ "meta": {
+  "slm": "gemma-4-e2b-it-q4_0",
+  "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+  "encoder": "multilingual-e5-small-q8_0",
+  "head_sha256": "6619a07c0d8b50dfb8f920beed49114ab75ebc47a00e3071363ec040d1a0c277",
+  "prompt": "tier4_kind_prompt_v2.txt",
+  "prompt_sha256": "0b47ff8ebaa7a4bc220fed8d7660f1bfe3bff4ff7a465e9fcc14394b2e069f47",
+  "shots_per_kind_and_language": 2,
+  "shots": [
+   {
+    "text": "remind me to translate the contract on monday",
+    "label": "app"
+   },
+   {
+    "text": "how can i focus better while studying?",
+    "label": "chat"
+   },
+   {
+    "text": "write a python script that reads a csv file and prints the total of the second column",
+    "label": "code"
+   },
+   {
+    "text": "write an email to my manager asking for leave on friday",
+    "label": "email"
+   },
+   {
+    "text": "when is my flight to delhi?",
+    "label": "notes"
+   },
+   {
+    "text": "make this more formal: hey, can't make it tomorrow, sorry",
+    "label": "rewrite"
+   },
+   {
+    "text": "translate this to hindi: good morning, how are you",
+    "label": "translate"
+   },
+   {
+    "text": "somvar ko contract translate karna yaad dila dena",
+    "label": "app"
+   },
+   {
+    "text": "padhai mein focus kaise karun?",
+    "label": "chat"
+   },
+   {
+    "text": "ek script likho jo csv file padhe aur doosre column ka total print kare",
+    "label": "code"
+   },
+   {
+    "text": "manager ko friday ki chutti ke liye email likh do",
+    "label": "email"
+   },
+   {
+    "text": "meri delhi wali flight kab hai?",
+    "label": "notes"
+   },
+   {
+    "text": "isko formal bana do: kal nahi aa paunga, sorry",
+    "label": "rewrite"
+   },
+   {
+    "text": "isko hindi mein translate karo: good morning, how are you",
+    "label": "translate"
+   },
+   {
+    "text": "open leave-letter.md",
+    "label": "app"
+   },
+   {
+    "text": "give me some ideas for my sister's birthday party",
+    "label": "chat"
+   },
+   {
+    "text": "write a binary search in python",
+    "label": "code"
+   },
+   {
+    "text": "write a thank you note to my teacher",
+    "label": "email"
+   },
+   {
+    "text": "how much did i lend ravi?",
+    "label": "notes"
+   },
+   {
+    "text": "fix the grammar: me and him goes to school daily",
+    "label": "rewrite"
+   },
+   {
+    "text": "translate to english: mujhe kal der ho jayegi",
+    "label": "translate"
+   },
+   {
+    "text": "leave-letter.md kholo",
+    "label": "app"
+   },
+   {
+    "text": "behen ki birthday party ke liye kuch ideas do",
+    "label": "chat"
+   },
+   {
+    "text": "python mein binary search likh do",
+    "label": "code"
+   },
+   {
+    "text": "teacher ke liye thank you note likh do",
+    "label": "email"
+   },
+   {
+    "text": "maine ravi ko kitne paise udhaar diye the?",
+    "label": "notes"
+   },
+   {
+    "text": "grammar theek karo: me and him goes to school daily",
+    "label": "rewrite"
+   },
+   {
+    "text": "english mein translate karo: mujhe kal der ho jayegi",
+    "label": "translate"
+   }
+  ],
+  "note": "dev timing on the laptop as found; not a measurement"
+ },
+ "temperature_gemma": 1.7411031244415949,
+ "temperature_note": "fitted on cal (BCE)",
+ "cal_n": 123,
+ "cal_gemma_accuracy": 0.8211382113821138,
+ "val_gemma_accuracy": 0.881578947368421,
+ "val_head_accuracy": 0.8618421052631579,
+ "val_head_unsure": {
+  "n": 26,
+  "head_right": 10,
+  "gemma_right": 21
+ },
+ "gemma_ms": {
+  "mean": 530.8382237490908,
+  "p50": 523.457693,
+  "p95": 717.043902
+ },
+ "tau": 0.7,
+ "val_head": {
+  "n": 152,
+  "taken": 133,
+  "right": 124,
+  "skill_not_asked_for": 2,
+  "skill_sent_old_way": 7,
+  "asked": 19,
+  "asked_right_kind": 7
+ },
+ "val_head_gemma": {
+  "0.5": {
+   "n": 152,
+   "taken": 151,
+   "right": 141,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.6": {
+   "n": 152,
+   "taken": 149,
+   "right": 141,
+   "skill_not_asked_for": 4,
+   "skill_sent_old_way": 4,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.7": {
+   "n": 152,
+   "taken": 149,
+   "right": 142,
+   "skill_not_asked_for": 3,
+   "skill_sent_old_way": 4,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.8": {
+   "n": 152,
+   "taken": 147,
+   "right": 141,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 4,
+   "asked": 5,
+   "asked_right_kind": 1
+  },
+  "0.9": {
+   "n": 152,
+   "taken": 144,
+   "right": 137,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 5,
+   "asked": 8,
+   "asked_right_kind": 3
+  }
+ },
+ "val_unsure_items": [
+  {
+   "id": "app-01/hi-en/0",
+   "gold": "app",
+   "head": [
+    "email",
+    0.4968299695313706
+   ],
+   "gemma": [
+    "app",
+    0.903
+   ]
+  },
+  {
+   "id": "app-02/hi-en/0",
+   "gold": "app",
+   "head": [
+    "email",
+    0.6103106632415368
+   ],
+   "gemma": [
+    "app",
+    0.733
+   ]
+  },
+  {
+   "id": "chat-15/hi-en/0",
+   "gold": "chat",
+   "head": [
+    "app",
+    0.4504698422300212
+   ],
+   "gemma": [
+    "chat",
+    0.95
+   ]
+  },
+  {
+   "id": "chat-v1-02/en/1",
+   "gold": "chat",
+   "head": [
+    "notes",
+    0.5190209083228603
+   ],
+   "gemma": [
+    "chat",
+    0.86
+   ]
+  },
+  {
+   "id": "chat-v1-02/hi-en/0",
+   "gold": "chat",
+   "head": [
+    "chat",
+    0.5353119324732505
+   ],
+   "gemma": [
+    "chat",
+    0.898
+   ]
+  },
+  {
+   "id": "chat-v2-06/hi-en/0",
+   "gold": "chat",
+   "head": [
+    "chat",
+    0.6166278584611554
+   ],
+   "gemma": [
+    "chat",
+    0.965
+   ]
+  },
+  {
+   "id": "code-07/en/0",
+   "gold": "code",
+   "head": [
+    "chat",
+    0.5576236737222668
+   ],
+   "gemma": [
+    "code",
+    0.962
+   ]
+  },
+  {
+   "id": "code-07/en/1",
+   "gold": "code",
+   "head": [
+    "chat",
+    0.5108436376102605
+   ],
+   "gemma": [
+    "code",
+    0.96
+   ]
+  },
+  {
+   "id": "code-07/hi-en/0",
+   "gold": "code",
+   "head": [
+    "chat",
+    0.44566385164379235
+   ],
+   "gemma": [
+    "code",
+    0.966
+   ]
+  },
+  {
+   "id": "code-07/hi-en/1",
+   "gold": "code",
+   "head": [
+    "code",
+    0.6037561402423194
+   ],
+   "gemma": [
+    "code",
+    0.926
+   ]
+  },
+  {
+   "id": "code-09/en/1",
+   "gold": "code",
+   "head": [
+    "code",
+    0.6934396292735443
+   ],
+   "gemma": [
+    "code",
+    0.938
+   ]
+  },
+  {
+   "id": "code-09/hi-en/1",
+   "gold": "code",
+   "head": [
+    "code",
+    0.5129374709914618
+   ],
+   "gemma": [
+    "code",
+    0.94
+   ]
+  },
+  {
+   "id": "email-11/hi-en/0",
+   "gold": "email",
+   "head": [
+    "rewrite",
+    0.44180966191502763
+   ],
+   "gemma": [
+    "email",
+    0.92
+   ]
+  },
+  {
+   "id": "intents:create-15/en/0/0",
+   "gold": "app",
+   "head": [
+    "app",
+    0.618857549260635
+   ],
+   "gemma": [
+    "app",
+    0.951
+   ]
+  },
+  {
+   "id": "intents:oos-facts-01/hi-en/0/0",
+   "gold": "app",
+   "head": [
+    "notes",
+    0.6225118701407145
+   ],
+   "gemma": [
+    "chat",
+    0.781
+   ]
+  },
+  {
+   "id": "intents:oos-facts-02/hi-en/0/0",
+   "gold": "app",
+   "head": [
+    "chat",
+    0.6412196766448055
+   ],
+   "gemma": [
+    "app",
+    0.97
+   ]
+  },
+  {
+   "id": "intents:oos-facts-02/hi-en/0/1",
+   "gold": "app",
+   "head": [
+    "chat",
+    0.4183197548378961
+   ],
+   "gemma": [
+    "app",
+    0.957
+   ]
+  },
+  {
+   "id": "intents:oos-facts-02/hi-en/0/2",
+   "gold": "app",
+   "head": [
+    "app",
+    0.49224571115590504
+   ],
+   "gemma": [
+    "app",
+    0.979
+   ]
+  },
+  {
+   "id": "intents:summarize-10/en/0/1",
+   "gold": "app",
+   "head": [
+    "app",
+    0.4257763009765134
+   ],
+   "gemma": [
+    "rewrite",
+    0.694
+   ]
+  },
+  {
+   "id": "notes-03/hi-en/0",
+   "gold": "notes",
+   "head": [
+    "notes",
+    0.5883753945340721
+   ],
+   "gemma": [
+    "app",
+    0.545
+   ]
+  },
+  {
+   "id": "notes-v2-05/en/0",
+   "gold": "notes",
+   "head": [
+    "app",
+    0.59998474738937
+   ],
+   "gemma": [
+    "app",
+    0.7
+   ]
+  },
+  {
+   "id": "notes-v2-05/en/1",
+   "gold": "notes",
+   "head": [
+    "notes",
+    0.6469894687493233
+   ],
+   "gemma": [
+    "notes",
+    0.801
+   ]
+  },
+  {
+   "id": "notes-v2-05/hi-en/0",
+   "gold": "notes",
+   "head": [
+    "app",
+    0.6890614964542408
+   ],
+   "gemma": [
+    "notes",
+    0.8
+   ]
+  },
+  {
+   "id": "rewrite-18/en/1",
+   "gold": "rewrite",
+   "head": [
+    "email",
+    0.35307535818428987
+   ],
+   "gemma": [
+    "email",
+    0.531
+   ]
+  },
+  {
+   "id": "rewrite-18/hi-en/1",
+   "gold": "rewrite",
+   "head": [
+    "email",
+    0.5640332351570791
+   ],
+   "gemma": [
+    "rewrite",
+    0.459
+   ]
+  },
+  {
+   "id": "translate-11/en/0",
+   "gold": "translate",
+   "head": [
+    "app",
+    0.5359421653855077
+   ],
+   "gemma": [
+    "translate",
+    0.92
+   ]
+  }
+ ],
+ "val_grid": {
+  "0.5/0.5": {
+   "n": 152,
+   "taken": 152,
+   "right": 135,
+   "skill_not_asked_for": 11,
+   "skill_sent_old_way": 6,
+   "asked": 0,
+   "asked_right_kind": 0
+  },
+  "0.5/0.6": {
+   "n": 152,
+   "taken": 151,
+   "right": 135,
+   "skill_not_asked_for": 10,
+   "skill_sent_old_way": 6,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.5/0.7": {
+   "n": 152,
+   "taken": 151,
+   "right": 136,
+   "skill_not_asked_for": 9,
+   "skill_sent_old_way": 6,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.5/0.8": {
+   "n": 152,
+   "taken": 151,
+   "right": 136,
+   "skill_not_asked_for": 9,
+   "skill_sent_old_way": 6,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.5/0.9": {
+   "n": 152,
+   "taken": 151,
+   "right": 136,
+   "skill_not_asked_for": 9,
+   "skill_sent_old_way": 6,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.6/0.5": {
+   "n": 152,
+   "taken": 151,
+   "right": 138,
+   "skill_not_asked_for": 7,
+   "skill_sent_old_way": 6,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.6/0.6": {
+   "n": 152,
+   "taken": 149,
+   "right": 138,
+   "skill_not_asked_for": 6,
+   "skill_sent_old_way": 5,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.6/0.7": {
+   "n": 152,
+   "taken": 149,
+   "right": 139,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.6/0.8": {
+   "n": 152,
+   "taken": 149,
+   "right": 139,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.6/0.9": {
+   "n": 152,
+   "taken": 147,
+   "right": 137,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 5,
+   "asked_right_kind": 2
+  },
+  "0.7/0.5": {
+   "n": 152,
+   "taken": 151,
+   "right": 141,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.7/0.6": {
+   "n": 152,
+   "taken": 149,
+   "right": 141,
+   "skill_not_asked_for": 4,
+   "skill_sent_old_way": 4,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.7/0.7": {
+   "n": 152,
+   "taken": 149,
+   "right": 142,
+   "skill_not_asked_for": 3,
+   "skill_sent_old_way": 4,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.7/0.8": {
+   "n": 152,
+   "taken": 147,
+   "right": 141,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 4,
+   "asked": 5,
+   "asked_right_kind": 1
+  },
+  "0.7/0.9": {
+   "n": 152,
+   "taken": 144,
+   "right": 137,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 5,
+   "asked": 8,
+   "asked_right_kind": 3
+  },
+  "0.8/0.5": {
+   "n": 152,
+   "taken": 151,
+   "right": 141,
+   "skill_not_asked_for": 6,
+   "skill_sent_old_way": 4,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.8/0.6": {
+   "n": 152,
+   "taken": 149,
+   "right": 141,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 3,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.8/0.7": {
+   "n": 152,
+   "taken": 148,
+   "right": 142,
+   "skill_not_asked_for": 3,
+   "skill_sent_old_way": 3,
+   "asked": 4,
+   "asked_right_kind": 1
+  },
+  "0.8/0.8": {
+   "n": 152,
+   "taken": 146,
+   "right": 140,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 4,
+   "asked": 6,
+   "asked_right_kind": 1
+  },
+  "0.8/0.9": {
+   "n": 152,
+   "taken": 141,
+   "right": 135,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 5,
+   "asked": 11,
+   "asked_right_kind": 5
+  },
+  "0.9/0.5": {
+   "n": 152,
+   "taken": 151,
+   "right": 139,
+   "skill_not_asked_for": 9,
+   "skill_sent_old_way": 3,
+   "asked": 1,
+   "asked_right_kind": 0
+  },
+  "0.9/0.6": {
+   "n": 152,
+   "taken": 149,
+   "right": 139,
+   "skill_not_asked_for": 7,
+   "skill_sent_old_way": 3,
+   "asked": 3,
+   "asked_right_kind": 1
+  },
+  "0.9/0.7": {
+   "n": 152,
+   "taken": 147,
+   "right": 140,
+   "skill_not_asked_for": 4,
+   "skill_sent_old_way": 3,
+   "asked": 5,
+   "asked_right_kind": 1
+  },
+  "0.9/0.8": {
+   "n": 152,
+   "taken": 143,
+   "right": 136,
+   "skill_not_asked_for": 3,
+   "skill_sent_old_way": 4,
+   "asked": 9,
+   "asked_right_kind": 3
+  },
+  "0.9/0.9": {
+   "n": 152,
+   "taken": 138,
+   "right": 132,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 5,
+   "asked": 14,
+   "asked_right_kind": 7
+  }
+ },
+ "val_head_by_tau": {
+  "0.5": {
+   "n": 152,
+   "taken": 147,
+   "right": 131,
+   "skill_not_asked_for": 9,
+   "skill_sent_old_way": 7,
+   "asked": 5,
+   "asked_right_kind": 0
+  },
+  "0.6": {
+   "n": 152,
+   "taken": 140,
+   "right": 128,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 7,
+   "asked": 12,
+   "asked_right_kind": 3
+  },
+  "0.7": {
+   "n": 152,
+   "taken": 133,
+   "right": 124,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 7,
+   "asked": 19,
+   "asked_right_kind": 7
+  },
+  "0.8": {
+   "n": 152,
+   "taken": 126,
+   "right": 118,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 7,
+   "asked": 26,
+   "asked_right_kind": 13
+  },
+  "0.9": {
+   "n": 152,
+   "taken": 116,
+   "right": 109,
+   "skill_not_asked_for": 0,
+   "skill_sent_old_way": 7,
+   "asked": 36,
+   "asked_right_kind": 22
+  }
+ },
+ "chosen": {
+  "tau": 0.8,
+  "tau_g": 0.7,
+  "rule": "fewest wrong decisions (a skill the\nrequest did not ask for, or a skill request sent the old way), then fewest asks, then the lower tau\n(fewer Gemma calls), then the higher tau_g."
+ }
+}

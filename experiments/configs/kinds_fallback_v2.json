@@ -1,0 +1,128 @@
+{
+ "note": "v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; tau and tau_g chosen on val (ADR-042)",
+ "dev_log": "experiments/logs/v3/kinds/fallback_dev_v2.json",
+ "slm": "gemma-4-e2b-it-q4_0",
+ "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+ "prompt": "tier4_kind_prompt_v2.txt",
+ "prompt_sha256": "0b47ff8ebaa7a4bc220fed8d7660f1bfe3bff4ff7a465e9fcc14394b2e069f47",
+ "system": "You are the request router of Kestrel, an offline assistant on the user's laptop. Decide what kind of answer the user's request needs and answer with exactly one label from this list:\n\napp: Kestrel's own tools and its limits: finding, opening or summarizing the user's notes and documents; tasks, reminders, stored preferences and what Kestrel remembers; small talk; and anything that needs the internet, a phone, live data or a calculation\nchat: a written answer from general knowledge: advice, ideas, plans, stories, poems, comparisons, recipes, and explanations of how things work or what something means, including what a piece of code or an error means\ncode: Python code to write, fix, shorten, or test: a function, a script, a class, a regular expression, or code given in the request that should be changed\nemail: a draft for the user to send to someone: an email, letter, application, message, note or reply\nnotes: a question about the user's own life that their notes answer: who, when, where, which, how much, or what was planned or decided\nrewrite: text given in the request, changed in its own language: tone, length, grammar, style, form, a summary or a title of that text\ntranslate: text, a word or a phrase put into another language or script\n\nRules, in order; the first that fits decides:\n1. Finding, opening or summarizing the user's notes or documents (also a file named in the request, or the last few notes); adding, listing, changing or deleting tasks and reminders (also a reminder or task to write, mail or translate something later); keeping a preference, or asking what Kestrel remembers: app.\n2. Doing something now that needs the internet, a phone or a device (sending, forwarding or mailing a message, calling, booking, checking an inbox); news, weather, prices, other current facts, or a calculation: app.\n3. Small talk (greetings, thanks, jokes, boredom, how are you) and questions about Kestrel itself: app.\n4. A question about the user's own people, plans, dates, places, money or things, which the user's notes would answer, with or without the word notes: notes.\n5. Code to write, or code given in the request to fix, shorten, test or otherwise change: code. Explaining what code or an error means, without changing code, is chat.\n6. A draft addressed to someone else: email, also when it is written from the user's notes.\n7. Given text, or one of the user's notes, put into another language or script: translate. Changed in its own language: rewrite.\n8. Any other request for a written answer: chat.\n\nRequests may be in English or Hinglish (Hindi written in Latin script); label both the same way. Answer with the label only.\n",
+ "labels": "kinds_v2.txt",
+ "shots": [
+  {
+   "text": "remind me to translate the contract on monday",
+   "label": "app"
+  },
+  {
+   "text": "how can i focus better while studying?",
+   "label": "chat"
+  },
+  {
+   "text": "write a python script that reads a csv file and prints the total of the second column",
+   "label": "code"
+  },
+  {
+   "text": "write an email to my manager asking for leave on friday",
+   "label": "email"
+  },
+  {
+   "text": "when is my flight to delhi?",
+   "label": "notes"
+  },
+  {
+   "text": "make this more formal: hey, can't make it tomorrow, sorry",
+   "label": "rewrite"
+  },
+  {
+   "text": "translate this to hindi: good morning, how are you",
+   "label": "translate"
+  },
+  {
+   "text": "somvar ko contract translate karna yaad dila dena",
+   "label": "app"
+  },
+  {
+   "text": "padhai mein focus kaise karun?",
+   "label": "chat"
+  },
+  {
+   "text": "ek script likho jo csv file padhe aur doosre column ka total print kare",
+   "label": "code"
+  },
+  {
+   "text": "manager ko friday ki chutti ke liye email likh do",
+   "label": "email"
+  },
+  {
+   "text": "meri delhi wali flight kab hai?",
+   "label": "notes"
+  },
+  {
+   "text": "isko formal bana do: kal nahi aa paunga, sorry",
+   "label": "rewrite"
+  },
+  {
+   "text": "isko hindi mein translate karo: good morning, how are you",
+   "label": "translate"
+  },
+  {
+   "text": "open leave-letter.md",
+   "label": "app"
+  },
+  {
+   "text": "give me some ideas for my sister's birthday party",
+   "label": "chat"
+  },
+  {
+   "text": "write a binary search in python",
+   "label": "code"
+  },
+  {
+   "text": "write a thank you note to my teacher",
+   "label": "email"
+  },
+  {
+   "text": "how much did i lend ravi?",
+   "label": "notes"
+  },
+  {
+   "text": "fix the grammar: me and him goes to school daily",
+   "label": "rewrite"
+  },
+  {
+   "text": "translate to english: mujhe kal der ho jayegi",
+   "label": "translate"
+  },
+  {
+   "text": "leave-letter.md kholo",
+   "label": "app"
+  },
+  {
+   "text": "behen ki birthday party ke liye kuch ideas do",
+   "label": "chat"
+  },
+  {
+   "text": "python mein binary search likh do",
+   "label": "code"
+  },
+  {
+   "text": "teacher ke liye thank you note likh do",
+   "label": "email"
+  },
+  {
+   "text": "maine ravi ko kitne paise udhaar diye the?",
+   "label": "notes"
+  },
+  {
+   "text": "grammar theek karo: me and him goes to school daily",
+   "label": "rewrite"
+  },
+  {
+   "text": "english mein translate karo: mujhe kal der ho jayegi",
+   "label": "translate"
+  }
+ ],
+ "temperature": 1.7411031244415949,
+ "tau": 0.8,
+ "tau_g": 0.7,
+ "head_sha256": "6619a07c0d8b50dfb8f920beed49114ab75ebc47a00e3071363ec040d1a0c277"
+}

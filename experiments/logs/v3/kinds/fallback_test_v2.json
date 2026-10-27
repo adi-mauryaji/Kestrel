@@ -1,0 +1,483 @@
+{
+ "dataset": "kinds_v2",
+ "config": "experiments/configs/kinds_fallback_v2.json",
+ "tau": 0.8,
+ "tau_g": 0.7,
+ "n": 280,
+ "head": {
+  "accuracy": 0.9,
+  "macro_f1": 0.8185199199296943,
+  "ece": 0.07195738078893138,
+  "per_class": {
+   "app": {
+    "n": 184,
+    "precision": 0.900497512437811,
+    "recall": 0.9836956521739131
+   },
+   "chat": {
+    "n": 20,
+    "precision": 0.8333333333333334,
+    "recall": 0.5
+   },
+   "code": {
+    "n": 8,
+    "precision": 0.7142857142857143,
+    "recall": 0.625
+   },
+   "email": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.875
+   },
+   "notes": {
+    "n": 16,
+    "precision": 0.8125,
+    "recall": 0.8125
+   },
+   "rewrite": {
+    "n": 20,
+    "precision": 0.9444444444444444,
+    "recall": 0.85
+   },
+   "translate": {
+    "n": 16,
+    "precision": 1.0,
+    "recall": 0.75
+   }
+  }
+ },
+ "gemma_accuracy": 0.8642857142857143,
+ "all": {
+  "head_alone": {
+   "n": 280,
+   "taken": 243,
+   "right": 221,
+   "skill_not_asked_for": 2,
+   "skill_sent_old_way": 20,
+   "asked": 37,
+   "asked_right_kind": 31
+  },
+  "head_gemma": {
+   "n": 280,
+   "taken": 267,
+   "right": 256,
+   "skill_not_asked_for": 6,
+   "skill_sent_old_way": 5,
+   "asked": 13,
+   "asked_right_kind": 11
+  }
+ },
+ "by_lang": {
+  "en": {
+   "head_alone": {
+    "n": 140,
+    "taken": 124,
+    "right": 114,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 10,
+    "asked": 16,
+    "asked_right_kind": 15
+   },
+   "head_gemma": {
+    "n": 140,
+    "taken": 135,
+    "right": 130,
+    "skill_not_asked_for": 2,
+    "skill_sent_old_way": 3,
+    "asked": 5,
+    "asked_right_kind": 5
+   }
+  },
+  "hi-en": {
+   "head_alone": {
+    "n": 140,
+    "taken": 119,
+    "right": 107,
+    "skill_not_asked_for": 2,
+    "skill_sent_old_way": 10,
+    "asked": 21,
+    "asked_right_kind": 16
+   },
+   "head_gemma": {
+    "n": 140,
+    "taken": 132,
+    "right": 126,
+    "skill_not_asked_for": 4,
+    "skill_sent_old_way": 2,
+    "asked": 8,
+    "asked_right_kind": 6
+   }
+  }
+ },
+ "fresh": {
+  "head_alone": {
+   "n": 24,
+   "taken": 13,
+   "right": 9,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 3,
+   "asked": 11,
+   "asked_right_kind": 9
+  },
+  "head_gemma": {
+   "n": 24,
+   "taken": 24,
+   "right": 23,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 0,
+   "asked": 0,
+   "asked_right_kind": 0
+  }
+ },
+ "seen": {
+  "head_alone": {
+   "n": 256,
+   "taken": 230,
+   "right": 212,
+   "skill_not_asked_for": 1,
+   "skill_sent_old_way": 17,
+   "asked": 26,
+   "asked_right_kind": 22
+  },
+  "head_gemma": {
+   "n": 256,
+   "taken": 243,
+   "right": 233,
+   "skill_not_asked_for": 5,
+   "skill_sent_old_way": 5,
+   "asked": 13,
+   "asked_right_kind": 11
+  }
+ },
+ "by_gold": {
+  "app": {
+   "head_alone": {
+    "n": 184,
+    "taken": 182,
+    "right": 181,
+    "skill_not_asked_for": 1,
+    "skill_sent_old_way": 0,
+    "asked": 2,
+    "asked_right_kind": 0
+   },
+   "head_gemma": {
+    "n": 184,
+    "taken": 183,
+    "right": 178,
+    "skill_not_asked_for": 5,
+    "skill_sent_old_way": 0,
+    "asked": 1,
+    "asked_right_kind": 0
+   }
+  },
+  "chat": {
+   "head_alone": {
+    "n": 20,
+    "taken": 14,
+    "right": 6,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 8,
+    "asked": 6,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 20,
+    "taken": 20,
+    "right": 20,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 0,
+    "asked": 0,
+    "asked_right_kind": 0
+   }
+  },
+  "code": {
+   "head_alone": {
+    "n": 8,
+    "taken": 4,
+    "right": 1,
+    "skill_not_asked_for": 1,
+    "skill_sent_old_way": 2,
+    "asked": 4,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 8,
+    "taken": 8,
+    "right": 7,
+    "skill_not_asked_for": 1,
+    "skill_sent_old_way": 0,
+    "asked": 0,
+    "asked_right_kind": 0
+   }
+  },
+  "email": {
+   "head_alone": {
+    "n": 16,
+    "taken": 14,
+    "right": 12,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 2,
+    "asked_right_kind": 2
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 16,
+    "right": 15,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 1,
+    "asked": 0,
+    "asked_right_kind": 0
+   }
+  },
+  "notes": {
+   "head_alone": {
+    "n": 16,
+    "taken": 10,
+    "right": 7,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 3,
+    "asked": 6,
+    "asked_right_kind": 6
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 14,
+    "right": 12,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 2,
+    "asked_right_kind": 2
+   }
+  },
+  "rewrite": {
+   "head_alone": {
+    "n": 20,
+    "taken": 8,
+    "right": 6,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 12,
+    "asked_right_kind": 11
+   },
+   "head_gemma": {
+    "n": 20,
+    "taken": 10,
+    "right": 8,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 2,
+    "asked": 10,
+    "asked_right_kind": 9
+   }
+  },
+  "translate": {
+   "head_alone": {
+    "n": 16,
+    "taken": 11,
+    "right": 8,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 3,
+    "asked": 5,
+    "asked_right_kind": 4
+   },
+   "head_gemma": {
+    "n": 16,
+    "taken": 16,
+    "right": 16,
+    "skill_not_asked_for": 0,
+    "skill_sent_old_way": 0,
+    "asked": 0,
+    "asked_right_kind": 0
+   }
+  }
+ },
+ "wrong": [
+  {
+   "id": "app-14/hi-en/0",
+   "text": "london mein abhi kitne baje hain?",
+   "gold": "app",
+   "decision": [
+    "take",
+    "notes"
+   ],
+   "head": [
+    "notes",
+    0.9105848587190614
+   ],
+   "gemma": [
+    "app",
+    0.987
+   ]
+  },
+  {
+   "id": "code-10/hi-en/1",
+   "text": "ye loop kabhi khatam nahi hota, isko fix karo: while i < 10: print(i)",
+   "gold": "code",
+   "decision": [
+    "take",
+    "rewrite"
+   ],
+   "head": [
+    "rewrite",
+    0.8741600833045411
+   ],
+   "gemma": [
+    "code",
+    0.757
+   ]
+  },
+  {
+   "id": "email-02/hi-en/1",
+   "text": "payment pending hai, uska reminder mail bana do",
+   "gold": "email",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8681144328698945
+   ],
+   "gemma": [
+    "email",
+    0.947
+   ]
+  },
+  {
+   "id": "intents:chat-07/en/0/0",
+   "text": "tell me a joke",
+   "gold": "app",
+   "decision": [
+    "take",
+    "chat"
+   ],
+   "head": [
+    "app",
+    0.7343754374678906
+   ],
+   "gemma": [
+    "chat",
+    0.849
+   ]
+  },
+  {
+   "id": "intents:chat-07/hi-en/0/0",
+   "text": "ek joke sunao",
+   "gold": "app",
+   "decision": [
+    "take",
+    "chat"
+   ],
+   "head": [
+    "app",
+    0.43026155838781105
+   ],
+   "gemma": [
+    "chat",
+    0.761
+   ]
+  },
+  {
+   "id": "intents:chat-07/hi-en/1/0",
+   "text": "kuch funny bolo",
+   "gold": "app",
+   "decision": [
+    "take",
+    "chat"
+   ],
+   "head": [
+    "app",
+    0.5159057507607002
+   ],
+   "gemma": [
+    "chat",
+    0.763
+   ]
+  },
+  {
+   "id": "intents:oos-web-01/en/0/0",
+   "text": "google exam preparation",
+   "gold": "app",
+   "decision": [
+    "take",
+    "chat"
+   ],
+   "head": [
+    "app",
+    0.7741944319700955
+   ],
+   "gemma": [
+    "chat",
+    0.8
+   ]
+  },
+  {
+   "id": "notes-14/en/1",
+   "text": "which floor is the dentist on?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.6038349692199246
+   ],
+   "gemma": [
+    "app",
+    0.719
+   ]
+  },
+  {
+   "id": "notes-14/hi-en/0",
+   "text": "naye office ka address kya hai?",
+   "gold": "notes",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.6073727094509036
+   ],
+   "gemma": [
+    "app",
+    0.857
+   ]
+  },
+  {
+   "id": "rewrite-06/en/1",
+   "text": "make a bulleted list from this: eggs bread butter and tea",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.8740276792595809
+   ],
+   "gemma": [
+    "rewrite",
+    0.481
+   ]
+  },
+  {
+   "id": "rewrite-12/en/0",
+   "text": "rewrite this as a tweet: we launched our new app today and it's free",
+   "gold": "rewrite",
+   "decision": [
+    "take",
+    "app"
+   ],
+   "head": [
+    "app",
+    0.7739812629848263
+   ],
+   "gemma": [
+    "rewrite",
+    0.694
+   ]
+  }
+ ]
+}
