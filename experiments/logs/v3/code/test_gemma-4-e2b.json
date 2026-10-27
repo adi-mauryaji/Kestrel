@@ -1,0 +1,440 @@
+{
+ "model": "gemma-4-e2b",
+ "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+ "split": "test",
+ "retries": 2,
+ "loop": "ADR-044",
+ "wall_s": 215.9,
+ "summary": {
+  "all": {
+   "n": 24,
+   "pass1": 21,
+   "pass_loop": 21,
+   "attempts": 24,
+   "seconds": 214.1
+  },
+  "explain": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 48.4
+  },
+  "fix": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 28.9
+  },
+  "function": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 73.3
+  },
+  "script": {
+   "n": 6,
+   "pass1": 3,
+   "pass_loop": 3,
+   "attempts": 6,
+   "seconds": 63.6
+  },
+  "en": {
+   "n": 12,
+   "pass1": 11,
+   "pass_loop": 11,
+   "attempts": 12,
+   "seconds": 97.9
+  },
+  "hi-en": {
+   "n": 12,
+   "pass1": 10,
+   "pass_loop": 10,
+   "attempts": 12,
+   "seconds": 116.2
+  },
+  "explain_hi_en_in_hinglish": "3/3"
+ },
+ "results": [
+  {
+   "id": "ex-list-comp/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh code 0 se 9 tak ke numbers mein se sirf even numbers (sam numbers) ko leta hai aur unka square nikal kar ek list banata hai. Is list mein 0, 2, 4, 6, aur 8 ke squares honge. Yeh list `squares` variable mein store ho jayegi.",
+     "ms": 7608.133395000001,
+     "tokens": 70
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-list-comp/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh code 0 se 9 tak ke numbers mein se sirf even numbers (sam numbers) ko leta hai aur unka square nikal kar ek list mein store karta hai. Iska output 0, 4, 16, 36, 64, 100, 144, 196, 256, aur 324 hoga. Yeh list even numbers ke squares ko represent karti hai.",
+     "ms": 10003.41755,
+     "tokens": 96
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-read-file/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh code \"notes.txt\" file ko open karta hai aur uski saari lines ko ek list mein store karta hai. Phir, yeh list mein kitni lines hain, woh count karke print kar deta hai. Iska output file mein maujood total lines ki sankhya hoga.",
+     "ms": 6943.304943,
+     "tokens": 61
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-read-file/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh Python code \"notes.txt\" file ko open karta hai aur uski saari lines ko ek list mein store karta hai. Phir, yeh list ki lambai (total number of lines) print karta hai. Iska matlab hai ki yeh file mein kitni lines hain, yeh batata hai.",
+     "ms": 7135.885404,
+     "tokens": 63
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-try-except/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh code user se input leta hai aur use integer mein convert karne ki koshish karta hai. Agar user koi number daalta hai, toh woh number `n` mein store ho jaata hai. Agar user koi aisa input deta hai jo number nahi hai (jaise text), toh `ValueError` aayega aur code \"not a number\" print kar dega.",
+     "ms": 8238.283104,
+     "tokens": 76
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-try-except/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh code user se input leta hai aur use integer mein convert karne ki koshish karta hai. Agar user koi number (integer) enter karta hai, toh woh number `n` mein store ho jaata hai. Agar user koi aisa input deta hai jo number nahi hai (jaise text), toh `ValueError` aayega aur code \"not a number\" print kar dega.",
+     "ms": 8515.956811,
+     "tokens": 79
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "fix-average/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef average(xs):\n    if not xs:\n        return 0\n    return sum(xs) / len(xs)\n```",
+     "ms": 4693.495294,
+     "tokens": 33,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-average/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef average(xs):\n    if not xs:\n        return 0\n    return sum(xs) / len(xs)\n```",
+     "ms": 4659.252943,
+     "tokens": 33,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-count-words/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_words(text):\n    if not text.strip():\n        return 0\n    words = text.split()\n    return len(words)\n```",
+     "ms": 5248.08053,
+     "tokens": 40,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-count-words/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_words(text):\n    words = text.split()\n    return len(words)\n```",
+     "ms": 4237.896783,
+     "tokens": 27,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-is-even/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef is_even(n):\n    if n % 2 == 0:\n        return True\n    else:\n        return False\n```",
+     "ms": 5020.824860000001,
+     "tokens": 35,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-is-even/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef is_even(n):\n    if n % 2 == 0:\n        return True\n    else:\n        return False\n```",
+     "ms": 4990.528876,
+     "tokens": 35,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-fizzbuzz/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef fizzbuzz(n):\n    result = []\n    for i in range(1, n + 1):\n        if i % 3 == 0 and i % 5 == 0:\n            result.append(\"FizzBuzz\")\n        elif i % 3 == 0:\n            result.append(\"Fizz\")\n        elif i % 5 == 0:\n            result.append(\"Buzz\")\n        else:\n            result.append(str(i))\n    return result\n\nif __name__ == \"__main__\":\n    import sys\n    try:\n        n = int(sys.stdin.read().strip())\n        print(fizzbuzz(n))\n    except ValueError:\n        # Handle case where input is not a valid integer, though problem implies valid input\n        pass\n```",
+     "ms": 17453.3902,
+     "tokens": 181,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-fizzbuzz/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef fizzbuzz(n):\n    result = []\n    for i in range(1, n + 1):\n        if i % 3 == 0 and i % 5 == 0:\n            result.append(\"FizzBuzz\")\n        elif i % 3 == 0:\n            result.append(\"Fizz\")\n        elif i % 5 == 0:\n            result.append(\"Buzz\")\n        else:\n            result.append(str(i))\n    return result\n\nif __name__ == \"__main__\":\n    import sys\n    try:\n        # Read input from standard input\n        input_data = sys.stdin.read().strip()\n        if input_data:\n            n = int(input_data)\n            output = fizzbuzz(n)\n            for item in output:\n                print(item)\n    except ValueError:\n        # Handle case where input is not an integer\n        pass\n```",
+     "ms": 20093.149349,
+     "tokens": 211,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-palindrome/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef is_palindrome(s):\n    s = \"\".join(filter(str.isalnum, s)).lower()\n    return s == s[::-1]\n```",
+     "ms": 4913.273964,
+     "tokens": 39,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-palindrome/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef is_palindrome(s):\n    # Convert to lowercase and remove spaces\n    processed_s = \"\".join(char.lower() for char in s if char.isalnum())\n    \n    # Check if the processed string is a palindrome\n    return processed_s == processed_s[::-1]\n\nif __name__ == '__main__':\n    # Example usage (the script reads input from stdin)\n    import sys\n    \n    # Read input from standard input\n    try:\n        input_string = sys.stdin.read().strip()\n        print(is_palindrome(input_string))\n    except Exception:\n        # Handle case where input might be empty or error occurs\n        pass\n```",
+     "ms": 15159.754253,
+     "tokens": 157,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-vowels/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_vowels(text):\n    vowels = \"aeiouAEIOU\"\n    count = 0\n    for char in text:\n        if char in vowels:\n            count += 1\n    return count\n```",
+     "ms": 6527.727809,
+     "tokens": 55,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-vowels/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_vowels(text):\n    vowels = \"aeiouAEIOU\"\n    count = 0\n    for char in text:\n        if char in vowels:\n            count += 1\n    return count\n\nif __name__ == '__main__':\n    # Example usage:\n    # print(count_vowels(\"Hello World\"))\n    pass\n```",
+     "ms": 9129.472539,
+     "tokens": 86,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-count-lines/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_non_blank_lines():\n    \"\"\"\n    Reads text from standard input and prints the number of non-blank lines.\n    \"\"\"\n    non_blank_lines_count = 0\n    while True:\n        line = input()\n        if line == \"\":\n            # If the line is empty, we don't count it\n            continue\n        else:\n            non_blank_lines_count += 1\n            print(non_blank_lines_count)\n\nif __name__ == \"__main__\":\n    count_non_blank_lines()\n```",
+     "ms": 12716.120836,
+     "tokens": 131,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": false,
+   "pass_loop": false
+  },
+  {
+   "id": "sc-count-lines/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef count_non_empty_lines():\n    \"\"\"\n    Reads text from standard input and prints the count of non-empty lines.\n    \"\"\"\n    non_empty_line_count = 0\n    for line in iter(input, ''):\n        if line.strip():\n            non_empty_line_count += 1\n    print(non_empty_line_count)\n\nif __name__ == \"__main__\":\n    count_non_empty_lines()\n```",
+     "ms": 10870.249156,
+     "tokens": 110,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": false,
+   "pass_loop": false
+  },
+  {
+   "id": "sc-max-min/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nif __name__ == \"__main__\":\n    try:\n        line = input()\n        if not line.strip():\n            # Handle empty input line if necessary, though problem implies numbers exist\n            pass\n        \n        numbers = [int(x) for x in line.split()]\n        \n        if not numbers:\n            # Handle case where input is just whitespace\n            pass\n        else:\n            largest = max(numbers)\n            smallest = min(numbers)\n            print(f\"{largest} {smallest}\")\n            \n    except ValueError:\n        # Handle case where input contains non-integer tokens\n        pass\n```",
+     "ms": 13956.66418,
+     "tokens": 141,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-max-min/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\nimport sys\n\ndef find_min_max():\n    # Read the entire line from standard input\n    line = sys.stdin.readline()\n\n    if not line.strip():\n        return\n\n    # Split the line by spaces and convert to integers\n    try:\n        numbers = [int(x) for x in line.split()]\n    except ValueError:\n        # Handle cases where input might not be purely integers\n        return\n\n    if not numbers:\n        return\n\n    # Find the maximum and minimum numbers\n    max_num = max(numbers)\n    min_num = min(numbers)\n\n    # Print the result in the required format: max_num space min_num\n    print(f\"{max_num} {min_num}\")\n\nif __name__ == \"__main__\":\n    find_min_max()\n```",
+     "ms": 17727.739573000003,
+     "tokens": 186,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-reverse-words/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nline = input()\nwords = line.split()\nreversed_words = words[::-1]\nprint(\" \".join(reversed_words))\n```",
+     "ms": 4556.713174,
+     "tokens": 35,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-reverse-words/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\nline = input()\nreversed_line = line[::-1]\nprint(reversed_line)\n```",
+     "ms": 3726.147997,
+     "tokens": 25,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": false,
+   "pass_loop": false
+  }
+ ]
+}

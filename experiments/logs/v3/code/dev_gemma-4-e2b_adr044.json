@@ -1,0 +1,440 @@
+{
+ "model": "gemma-4-e2b",
+ "model_file": "gemma-4-E2B-it-Q4_0.gguf",
+ "split": "dev",
+ "retries": 2,
+ "loop": "ADR-044",
+ "wall_s": 219.7,
+ "summary": {
+  "all": {
+   "n": 24,
+   "pass1": 23,
+   "pass_loop": 23,
+   "attempts": 24,
+   "seconds": 217.6
+  },
+  "explain": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 48.6
+  },
+  "fix": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 35.9
+  },
+  "function": {
+   "n": 6,
+   "pass1": 6,
+   "pass_loop": 6,
+   "attempts": 6,
+   "seconds": 95.1
+  },
+  "script": {
+   "n": 6,
+   "pass1": 5,
+   "pass_loop": 5,
+   "attempts": 6,
+   "seconds": 38.0
+  },
+  "en": {
+   "n": 12,
+   "pass1": 12,
+   "pass_loop": 12,
+   "attempts": 12,
+   "seconds": 91.8
+  },
+  "hi-en": {
+   "n": 12,
+   "pass1": 11,
+   "pass_loop": 11,
+   "attempts": 12,
+   "seconds": 125.8
+  },
+  "explain_hi_en_in_hinglish": "3/3"
+ },
+ "results": [
+  {
+   "id": "ex-countdown/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh code 10 se shuru hota hai aur jab tak n zero se bada hai, yeh n ko print karta hai aur phir n mein se 2 ghata deta hai. Iska output hoga 10, 8, 6, 4, 2. Yeh loop tab tak chalta hai jab n positive rehta hai.",
+     "ms": 7395.80136,
+     "tokens": 71
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-countdown/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh code 10 se shuru hota hai aur jab tak n zero se bada hai, yeh n ko print karta hai aur phir n mein se 2 ghata deta hai. Iska output 10, 8, 6, 4, 2 aayega kyunki har baar n mein se 2 ghata diya ja raha hai.",
+     "ms": 8040.313112,
+     "tokens": 74
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-sort-key/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh line `people` list ko unke \"age\" ke hisaab se sort karti hai. Iska matlab hai ki sabse kam umar wale se shuru karke sabse zyada umar wale tak list ko arrange kar diya jayega. Yeh sorting `key=lambda p: p[\"age\"]` ke zariye ki jaati hai, jo har person (p) ke \"age\" value ko dekhti hai.",
+     "ms": 9080.098892,
+     "tokens": 91
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-sort-key/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh line `people` list ko unke \"age\" ke hisaab se sort karti hai. Iska matlab hai ki sabse kam umar wale se shuru karke sabse zyada umar wale tak list ko arrange kar diya jayega. Yeh sorting `key=lambda p: p[\"age\"]` ke zariye ki jaati hai, jo har person (p) ke dictionary mein \"age\" value ko dekhti hai.",
+     "ms": 9274.303799,
+     "tokens": 93
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-word-dict/en/0",
+   "type": "explain",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "Yeh loop har word ko count karta hai aur us count ko `counts` dictionary mein store karta hai. Yeh dictionary har word ke liye ek entry banati hai, jismein word ki frequency (kitni baar woh aaya hai) hoti hai. Iska output ek dictionary hai jismein words aur unki counts hain.",
+     "ms": 7292.199175000001,
+     "tokens": 66
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "ex-word-dict/hi-en/0",
+   "type": "explain",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "Yeh code ek dictionary banata hai jo words ki frequency (kitni baar woh word aaya hai) count karta hai. Yeh har word ko check karta hai aur agar woh dictionary mein nahi hai toh uski count 0 se shuru karke badha deta hai. Iska output ek dictionary hoga jisme words ki counts hongi.",
+     "ms": 7518.1558939999995,
+     "tokens": 68
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true,
+   "hinglish": true
+  },
+  {
+   "id": "fix-factorial/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef factorial(n):\n    result = 1\n    for i in range(1, n + 1):\n        result *= i\n    return result\n```",
+     "ms": 5294.390383999999,
+     "tokens": 39,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-factorial/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef factorial(n):\n    result = 1\n    for i in range(1, n + 1):\n        result *= i\n    return result\n```",
+     "ms": 5346.915148,
+     "tokens": 39,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-find-max/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef find_max(nums):\n    if not nums:\n        return None  # Or raise an error, depending on desired behavior for empty list\n    m = nums[0]\n    for x in nums:\n        if x > m:\n            m = x\n    return m\n```",
+     "ms": 7749.430587,
+     "tokens": 67,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-find-max/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef find_max(nums):\n    if not nums:\n        return None  # Handle empty list case\n    m = nums[0]\n    for x in nums:\n        if x > m:\n            m = x\n    return m\n```",
+     "ms": 7186.911991,
+     "tokens": 59,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-reverse-list/en/0",
+   "type": "fix",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef reverse_list(xs):\n    return xs[::-1]\n```",
+     "ms": 3823.148463,
+     "tokens": 19,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fix-reverse-list/hi-en/0",
+   "type": "fix",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef reverse_list(xs):\n    out = []\n    for i in range(len(xs)):\n        out.append(xs[len(xs) - 1 - i])\n    return out\n```",
+     "ms": 6480.191149,
+     "tokens": 50,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-grade/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef grade(marks):\n    if marks >= 90:\n        return 'A'\n    elif marks >= 75:\n        return 'B'\n    elif marks >= 50:\n        return 'C'\n    else:\n        return 'F'\n```",
+     "ms": 8026.698539,
+     "tokens": 65,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-grade/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef grade(marks):\n    if marks >= 90:\n        return 'A'\n    elif marks >= 75:\n        return 'B'\n    elif marks >= 50:\n        return 'C'\n    else:\n        return 'F'\n\nif __name__ == '__main__':\n    import sys\n    try:\n        # Read input from standard input\n        input_data = sys.stdin.read().strip()\n        if input_data:\n            marks = int(input_data)\n            print(grade(marks))\n    except ValueError:\n        # Handle case where input is not an integer\n        pass\n```",
+     "ms": 14817.938038,
+     "tokens": 148,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-second-largest/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ndef second_largest(nums):\n    if not nums or len(set(nums)) < 2:\n        return None\n\n    unique_nums = sorted(list(set(nums)), reverse=True)\n    if len(unique_nums) < 2:\n        return None\n\n    return unique_nums[1]\n```",
+     "ms": 8014.433351999999,
+     "tokens": 76,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-second-largest/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ndef second_largest(nums):\n    if not nums:\n        return None\n\n    # Get unique numbers and sort them in descending order\n    unique_nums = sorted(list(set(nums)), reverse=True)\n\n    # Check if there are at least two distinct numbers\n    if len(unique_nums) < 2:\n        return None\n    else:\n        # The second largest distinct number is at index 1\n        return unique_nums[1]\n\nif __name__ == '__main__':\n    # Example usage (the script reads input from stdin, but for testing purposes, \n    # we'll define a sample list here. In a real execution environment, \n    # this part would read from input.)\n    import sys\n    \n    # Read input from stdin (assuming the input is a single line of space-separated numbers)\n    try:\n        input_line = sys.stdin.read().strip()\n        if not input_line:\n            # Handle empty input case if necessary, though the function handles empty list\n            pass\n        else:\n            nums = list(map(int, input_line.split()))\n            result = second_largest(nums)\n            if result is not None:\n                print(result)\n    except Exception:\n        # If input is not valid integers, we just exit silently as per typical competitive programming style\n        pass\n```",
+     "ms": 28078.996964,
+     "tokens": 308,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-word-counts/en/0",
+   "type": "function",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nimport re\n\ndef word_counts(text):\n    \"\"\"\n    Returns a dictionary of word counts from the input text.\n    Words are lowercased and punctuation is removed.\n    \"\"\"\n    # Remove punctuation and convert to lowercase\n    text = text.lower()\n    # Replace any character that is not a letter or a space with a space,\n    # then split by whitespace and filter out empty strings.\n    cleaned_text = re.sub(r'[^\\w\\s]', ' ', text)\n    words = cleaned_text.split()\n\n    counts = {}\n    for word in words:\n        if word:  # Ensure the word is not an empty string\n            counts[word] = counts.get(word, 0) + 1\n    return counts\n```",
+     "ms": 16717.073636999998,
+     "tokens": 175,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "fn-word-counts/hi-en/0",
+   "type": "function",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\nimport re\n\ndef word_counts(text):\n    \"\"\"\n    Counts the frequency of each word in the given text.\n    Words are converted to lowercase and punctuation is removed.\n    \"\"\"\n    # Convert to lowercase\n    text = text.lower()\n    \n    # Remove punctuation and split into words\n    # This regex keeps only letters and spaces, effectively removing punctuation\n    words = re.findall(r'\\b\\w+\\b', text)\n    \n    # Count word frequencies\n    counts = {}\n    for word in words:\n        counts[word] = counts.get(word, 0) + 1\n        \n    return counts\n\nif __name__ == '__main__':\n    # Example usage:\n    # text_input = \"Hello world! This is a test. Test test, hello world.\"\n    # result = word_counts(text_input)\n    # print(result)\n    pass\n```",
+     "ms": 19424.26961,
+     "tokens": 208,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-celsius/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ncelsius = float(input())\nfahrenheit = (celsius * 9/5) + 32\nprint(round(fahrenheit, 1))\n```",
+     "ms": 4900.724581,
+     "tokens": 40,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-celsius/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ncelsius = float(input())\nfahrenheit = (celsius * 9/5) + 32\nprint(round(fahrenheit, 1))\n```",
+     "ms": 4917.376536,
+     "tokens": 40,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-even-odd/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\nnum = int(input())\nif num % 2 == 0:\n    print(\"even\")\nelse:\n    print(\"odd\")\n```",
+     "ms": 4446.5103819999995,
+     "tokens": 36,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-even-odd/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\nn = int(input())\nif n % 2 == 0:\n    print(\"even\")\nelse:\n    print(\"odd\")\n```",
+     "ms": 4502.425413,
+     "tokens": 36,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-sum-lines/en/0",
+   "type": "script",
+   "lang": "en",
+   "attempts": [
+    {
+     "text": "```python\ntotal_sum = 0\nwhile True:\n    try:\n        line = input()\n        if not line:\n            break\n        number = int(line)\n        total_sum += number\n    except EOFError:\n        break\n    except ValueError:\n        # Optionally handle non-integer input, here we just skip it\n        continue\n\nprint(total_sum)\n```",
+     "ms": 9026.899566,
+     "tokens": 88,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": true,
+   "pass_loop": true
+  },
+  {
+   "id": "sc-sum-lines/hi-en/0",
+   "type": "script",
+   "lang": "hi-en",
+   "attempts": [
+    {
+     "text": "```python\ntotal_sum = 0\nwhile True:\n    try:\n        line = input()\n        if not line:\n            break\n        number = int(line)\n        total_sum += number\n    except ValueError:\n        # If the input is not a valid integer, we skip it or handle the error.\n        # For this problem, we assume valid whole numbers as per the request.\n        pass\n\nprint(total_sum)\n```",
+     "ms": 10235.465974,
+     "tokens": 101,
+     "self_ok": true,
+     "error": ""
+    }
+   ],
+   "pass1": false,
+   "pass_loop": false
+  }
+ ]
+}
