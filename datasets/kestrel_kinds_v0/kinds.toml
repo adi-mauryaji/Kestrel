@@ -1,5 +1,7 @@
-# Kestrel-Kinds-v0 (DRAFT, ADR-037): which skill a request asks for, in English and Romanized Hinglish.
-# Drafted by Claude on 2026-10-26; not yet reviewed by the human.
+# Kestrel-Kinds-v0 (frozen, ADR-037): which skill a request asks for, in English and Romanized Hinglish.
+# Drafted by Claude on 2026-10-26; reviewed by the human on 2026-10-26 and 2026-10-27, every family OK
+# (experiments/v3/kinds_review.py, log experiments/logs/v3/kinds/review.json).
+default_reviewed = true  # the human, 2026-10-27: 113/113 OK
 #
 # kind: chat | email | rewrite | translate | app. `app` here holds only boundary requests that look like
 # the new skills but belong to the existing path (sending is not drafting; a reminder to write is a task);

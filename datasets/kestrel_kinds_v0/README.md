@@ -1,8 +1,9 @@
-# Kestrel-Kinds-v0 (DRAFT)
+# Kestrel-Kinds-v0 (frozen)
 
 Which skill a request asks for, for v3's decision layer (ADR-037): `app` (the existing assistant: tasks, notes,
 memory, small talk, refusals), `chat`, `email` (a draft to someone; sending stays `app`), `rewrite`, `translate`.
-Labels: `datasets/contracts/kinds.txt`. Drafted by Claude on 2026-10-26, **not yet reviewed by the human**.
+Labels: `datasets/contracts/kinds.txt`. Drafted by Claude on 2026-10-26; **reviewed by the human** on 2026-10-26
+and 2026-10-27, all 113 families OK (`experiments/logs/v3/kinds/review.json`), and frozen (tag `kinds-v0-frozen`).
 
 | Part | Where |
 |---|---|

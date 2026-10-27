@@ -38,6 +38,11 @@ def load(path: Path = DATA / "kinds.toml") -> list[dict]:
     return tomllib.loads(Path(path).read_text(encoding="utf-8"))["family"]
 
 
+def reviewed(path: Path = DATA / "kinds.toml") -> bool:
+    """The human reviewed every family (`default_reviewed = true`, set when the review log is all OK)."""
+    return tomllib.loads(Path(path).read_text(encoding="utf-8")).get("default_reviewed", False)
+
+
 def validate(families: list[dict]) -> list[str]:
     problems, seen = [], set()
     for f in families:
@@ -99,7 +104,7 @@ def build(out: Path = DATA / "splits") -> dict:
         (out / f"{name}.jsonl").write_text(text, encoding="utf-8")
     manifest = {
         "dataset": "kestrel-kinds-v0",
-        "status": "draft",
+        "status": "reviewed" if reviewed() else "draft",
         "seed": SEED,
         "labels": LABELS,
         "sources": {"kinds.toml": _sha(DATA / "kinds.toml"), "contracts/kinds.txt": _sha(CONTRACT),
