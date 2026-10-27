@@ -18,12 +18,13 @@ DEV_SPLITS = ("train", "cal", "val")
 INTENTS_V0 = ROOT / "datasets" / "kestrel_intents_v0" / "splits"
 KINDS_V0 = ROOT / "datasets" / "kestrel_kinds_v0" / "splits"  # v3's kind head (ADR-037)
 KINDS_V1 = ROOT / "datasets" / "kestrel_kinds_v1" / "splits"  # + the notes kind (ADR-041)
+KINDS_V2 = ROOT / "datasets" / "kestrel_kinds_v2" / "splits"  # + the code kind (ADR-044)
 
 
 def load_splits(dataset: str) -> dict[str, list[dict]]:
     """{train, cal, val: rows}; every row has at least `text` and `label`."""
-    if dataset in ("intents_v0", "kinds_v0", "kinds_v1"):
-        d = {"intents_v0": INTENTS_V0, "kinds_v0": KINDS_V0, "kinds_v1": KINDS_V1}[dataset]
+    if dataset in ("intents_v0", "kinds_v0", "kinds_v1", "kinds_v2"):
+        d = {"intents_v0": INTENTS_V0, "kinds_v0": KINDS_V0, "kinds_v1": KINDS_V1, "kinds_v2": KINDS_V2}[dataset]
         return {s: [json.loads(l) for l in (d / f"{s}.jsonl").open(encoding="utf-8")] for s in DEV_SPLITS}
     if dataset == "clinc150":
         full = kestrel_splits(load_official())

@@ -1,0 +1,247 @@
+# Kestrel-Kinds-v2 draft (ADR-044): the `code` kind and its boundaries, plus notes / rewrite / chat families of
+# the types Kinds-v1's test missed. Kinds-v2 = Kinds-v1 (frozen) + these families (experiments/data/kinds_v2.py).
+# Drafted by Claude on 2026-10-27; not yet reviewed by the human.
+#
+# code: write or fix Python (a function, a script, a class, a regex, tests; fixing given code or an error with its
+# code), Qwen3-4B writes it. chat: explaining code or an error, programming concepts and advice, poems and stories
+# (Gemma). app: a task or reminder about code, a named notes file, installing or checking something on a device.
+
+# ---- code: write ----
+
+[[family]]
+id = "code-01"
+kind = "code"
+domain = "function"
+en = ["write a python function that checks if a number is prime", "write a function to reverse a string"]
+hi-en = ["prime number check karne ka python function likho", "string ulta karne wala function bana do"]
+
+[[family]]
+id = "code-02"
+kind = "code"
+domain = "script"
+en = ["write a python script that reads a csv file and prints the total of the second column", "write a program that counts the words in a text file"]
+hi-en = ["ek script likho jo csv file padhe aur doosre column ka total print kare", "text file ke words ginne ka program likho"]
+
+[[family]]
+id = "code-03"
+kind = "code"
+domain = "algorithm"
+en = ["write a binary search in python", "sort a list of dictionaries by age in python"]
+hi-en = ["python mein binary search likh do", "dictionaries ki list ko age ke hisaab se sort karne ka code do"]
+
+[[family]]
+id = "code-04"
+kind = "code"
+domain = "files"
+en = ["write a script to rename all .txt files in a folder to .md", "python code to find duplicate lines in a file"]
+hi-en = ["folder ki saari .txt files ko .md mein rename karne ki script likho", "file mein duplicate lines dhoondhne ka python code"]
+
+[[family]]
+id = "code-05"
+kind = "code"
+domain = "class"
+en = ["write a python class for a bank account with deposit and withdraw", "make a simple stack class in python"]
+hi-en = ["bank account ke liye python class banao jisme deposit aur withdraw ho", "python mein ek simple stack class bana do"]
+
+[[family]]
+id = "code-06"
+kind = "code"
+domain = "strings"
+en = ["write a regex to check if an email address is valid", "python function to extract all numbers from a string"]
+hi-en = ["email valid hai ya nahi check karne ka regex likho", "string se saare numbers nikalne ka python function"]
+
+[[family]]
+id = "code-07"
+kind = "code"
+domain = "program"
+en = ["write a python program for a number guessing game", "create a simple calculator in python"]
+hi-en = ["number guessing game ka python program likho", "python mein simple calculator banao"]
+
+[[family]]
+id = "code-08"
+kind = "code"
+domain = "dates"
+en = ["python code to print today's date in dd-mm-yyyy format", "write a function that returns how many days are left until a given date"]
+hi-en = ["aaj ki date dd-mm-yyyy format mein print karne ka python code", "ek function likho jo bataye di gayi date tak kitne din bache hain"]
+
+[[family]]
+id = "code-09"
+kind = "code"
+domain = "tests"
+note = "changes code, so code, not rewrite"
+en = ["write unit tests for this function: def square(x): return x * x", "add type hints to this function: def greet(name): return 'hi ' + name"]
+hi-en = ["is function ke liye unit tests likho: def square(x): return x * x", "is function mein type hints add karo: def greet(name): return 'hi ' + name"]
+
+# ---- code: fix or improve ----
+
+[[family]]
+id = "code-10"
+kind = "code"
+domain = "fix"
+en = ["fix this function: def add(a, b): return a - b", "this loop never ends, fix it: while i < 10: print(i)"]
+hi-en = ["is function ko sahi karo: def add(a, b): return a - b", "ye loop kabhi khatam nahi hota, isko fix karo: while i < 10: print(i)"]
+
+[[family]]
+id = "code-11"
+kind = "code"
+domain = "fix-error"
+note = "an error with the code that gives it: fix it (code); an error asked about in general is chat-v2-02"
+en = ["i'm getting KeyError: 'name' here, fix it: print(user['name'])", "why does this crash and how do i fix it: int('12a')"]
+hi-en = ["yahan KeyError: 'name' aa raha hai, theek karo: print(user['name'])", "ye crash kyun hota hai, fix karo: int('12a')"]
+
+[[family]]
+id = "code-12"
+kind = "code"
+domain = "improve"
+note = "rewriting code is code, rewriting text is rewrite"
+en = ["make this code shorter: result = [] then for x in nums: if x > 0: result.append(x)", "rewrite this loop as a list comprehension: for x in range(10): squares.append(x * x)"]
+hi-en = ["is code ko chhota karo: result = [] phir for x in nums: if x > 0: result.append(x)", "is loop ko list comprehension mein badlo: for x in range(10): squares.append(x * x)"]
+
+# ---- chat: explaining code, concepts, advice ----
+
+[[family]]
+id = "chat-v2-01"
+kind = "chat"
+domain = "explain-code"
+note = "explaining given code is chat (Gemma), changing it is code"
+en = ["explain what this code does: print([x for x in range(5)])", "what does this line mean: x = y if y else 0"]
+hi-en = ["ye code kya karta hai samjhao: print([x for x in range(5)])", "is line ka matlab kya hai: x = y if y else 0"]
+
+[[family]]
+id = "chat-v2-02"
+kind = "chat"
+domain = "explain-error"
+en = ["why do i get IndentationError in python?", "what does 'NoneType object is not subscriptable' mean?"]
+hi-en = ["python mein IndentationError kyun aata hai?", "'NoneType object is not subscriptable' ka matlab kya hai?"]
+
+[[family]]
+id = "chat-v2-03"
+kind = "chat"
+domain = "concepts"
+en = ["what is the difference between a list and a tuple in python?", "how does a for loop work in python?"]
+hi-en = ["python mein list aur tuple mein kya fark hai?", "python mein for loop kaise kaam karta hai?"]
+
+[[family]]
+id = "chat-v2-04"
+kind = "chat"
+domain = "advice"
+en = ["how should i start learning python?", "which is better for web development, django or flask?"]
+hi-en = ["python seekhna kaise shuru karun?", "web development ke liye django better hai ya flask?"]
+
+[[family]]
+id = "chat-v2-05"
+kind = "chat"
+domain = "poems"
+en = ["write a short poem about my hometown", "write four lines about winter mornings"]
+hi-en = ["mere shehar pe ek chhoti si kavita likho", "sardi ki subah pe chaar lines likho"]
+
+[[family]]
+id = "chat-v2-06"
+kind = "chat"
+domain = "stories"
+en = ["write a funny poem about mondays", "write a short story about a lost cat"]
+hi-en = ["monday pe ek mazedaar kavita likho", "ek khoyi hui billi ki chhoti si kahani likho"]
+
+# ---- app: boundaries ----
+
+[[family]]
+id = "app-v2-01"
+kind = "app"
+note = "a task about code, not code"
+en = ["remind me to fix the login bug tomorrow", "add a task to finish the python assignment by friday"]
+hi-en = ["kal login bug fix karna yaad dila dena", "friday tak python assignment khatam karne ka task add karo"]
+
+[[family]]
+id = "app-v2-02"
+kind = "app"
+note = "finding or opening the user's notes"
+en = ["search my notes for the regex i saved", "open my python-cheatsheet.md"]
+hi-en = ["maine jo regex save kiya tha wo notes mein dhoondo", "python-cheatsheet.md kholo"]
+
+[[family]]
+id = "app-v2-03"
+kind = "app"
+note = "needs the device or the internet (unsupported)"
+en = ["install numpy on my laptop", "check if my website is up right now"]
+hi-en = ["mere laptop pe numpy install kar do", "abhi check karo meri website chal rahi hai ya nahi"]
+
+# ---- rewrite: the forms Kinds-v1's test missed ----
+
+[[family]]
+id = "rewrite-v2-01"
+kind = "rewrite"
+domain = "lists"
+en = ["make this into a bulleted list: call the bank, renew the passport and book the train", "list these as points: rice, dal, oil and sugar"]
+hi-en = ["isko bullet points mein likho: bank ko call karna, passport renew karna aur train book karna", "inko points mein likh do: chawal, dal, tel aur cheeni"]
+
+[[family]]
+id = "rewrite-v2-02"
+kind = "rewrite"
+domain = "captions"
+en = ["turn this into an instagram caption: we finally visited the taj mahal", "make a short catchy line from this: our shop is open on sundays now"]
+hi-en = ["isse instagram caption bana do: hum aakhir taj mahal dekh aaye", "isse ek catchy line banao: hamari dukaan ab sunday ko bhi khuli hai"]
+
+[[family]]
+id = "rewrite-v2-03"
+kind = "rewrite"
+domain = "expand"
+en = ["expand this into a paragraph: meeting moved, budget approved, launch in june", "write this out in full sentences: exam tomorrow, room 204, bring id"]
+hi-en = ["isko ek paragraph mein badha do: meeting shift hui, budget approve hua, launch june mein", "isko poore sentences mein likho: kal exam, room 204, id laana"]
+
+[[family]]
+id = "rewrite-v2-04"
+kind = "rewrite"
+domain = "short"
+en = ["rewrite this as a tweet: our college fest starts this friday with music and food", "make this fit in one line: the library will stay closed on monday because of repairs"]
+hi-en = ["isko tweet jaisa likho: hamara college fest is friday se shuru, music aur khana", "isko ek line mein karo: repair ki wajah se library monday ko band rahegi"]
+
+[[family]]
+id = "rewrite-v2-05"
+kind = "rewrite"
+domain = "summary"
+en = ["summarize this in one line: the train was late by two hours so we missed the wedding lunch but reached for the evening", "give me a title for this: tips to save money on groceries every month"]
+hi-en = ["ise ek line mein summarize karo: train do ghante late thi isliye shaadi ka lunch chhoot gaya par shaam tak pahunch gaye", "iska title batao: har mahine grocery pe paise bachane ke tips"]
+
+# ---- notes: the questions Kinds-v1's test missed ----
+
+[[family]]
+id = "notes-v2-01"
+kind = "notes"
+domain = "study"
+en = ["which topics are in my history exam?", "when is my chemistry practical?"]
+hi-en = ["mere history exam mein kaunse topics hain?", "chemistry practical kab hai?"]
+
+[[family]]
+id = "notes-v2-02"
+kind = "notes"
+domain = "documents"
+en = ["what is my passport number?", "what is my pan card number?"]
+hi-en = ["mera passport number kya hai?", "mera pan card number kya hai?"]
+
+[[family]]
+id = "notes-v2-03"
+kind = "notes"
+domain = "addresses"
+en = ["what is my cousin's address in pune?", "where is the new gym i joined?"]
+hi-en = ["pune wale cousin ka address kya hai?", "maine jo naya gym join kiya wo kahan hai?"]
+
+[[family]]
+id = "notes-v2-04"
+kind = "notes"
+domain = "appointments"
+en = ["when is my eye checkup?", "what time is my haircut appointment?"]
+hi-en = ["meri eye checkup kab hai?", "haircut ka appointment kitne baje hai?"]
+
+[[family]]
+id = "notes-v2-05"
+kind = "notes"
+domain = "sizes"
+en = ["what is my shoe size?", "what size frame did i order for the photo?"]
+hi-en = ["mera shoe size kya hai?", "photo ke liye kaunse size ka frame order kiya tha?"]
+
+[[family]]
+id = "notes-v2-06"
+kind = "notes"
+domain = "plans"
+en = ["which movies did i want to watch this month?", "what did i decide about the new phone?"]
+hi-en = ["is mahine maine kaunsi movies dekhni thi?", "naye phone ke baare mein maine kya decide kiya tha?"]

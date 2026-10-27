@@ -51,3 +51,10 @@ def test_kinds_v1_loads_its_dev_splits_with_the_notes_kind():
     s = load_splits("kinds_v1")
     assert set(s) == {"train", "cal", "val"}
     assert "notes" in {r["label"] for r in s["train"]}
+
+
+def test_kinds_v2_loads_its_dev_splits_with_the_code_kind():
+    from splits import load_splits
+    s = load_splits("kinds_v2")
+    assert set(s) == {"train", "cal", "val"}
+    assert "code" in {r["label"] for r in s["train"]}

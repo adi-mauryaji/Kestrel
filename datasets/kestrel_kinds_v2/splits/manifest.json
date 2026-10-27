@@ -1,0 +1,94 @@
+{
+ "dataset": "kestrel-kinds-v2",
+ "status": "draft",
+ "seed": 0,
+ "labels": [
+  "app",
+  "chat",
+  "code",
+  "email",
+  "notes",
+  "rewrite",
+  "translate"
+ ],
+ "sources": {
+  "kestrel_kinds_v1/splits/manifest.json": "b16065cf5445d75a413abf1f6c524df6c11e315978f6930b1f1dcdce2a7cf40b",
+  "families.toml": "ef111063807a5783002be932d49719942e11ced23b9d97f0ef867aee6e0a518c",
+  "contracts/kinds_v2.txt": "09ab98a06356c4bdd88cb28e1d3d1a8609e259839cb17586fa59aa3a68146088"
+ },
+ "conflicts_dropped": [],
+ "splits": {
+  "train": {
+   "items": 1000,
+   "fresh_items": 80,
+   "fingerprint": "2325911832f3213ae1cc78f0a8fb77f2e6ea29f3cebb74fb23ee64348b897f03",
+   "by_label": {
+    "app": 592,
+    "chat": 108,
+    "code": 28,
+    "email": 74,
+    "notes": 88,
+    "rewrite": 62,
+    "translate": 48
+   },
+   "by_lang": {
+    "en": 498,
+    "hi-en": 502
+   }
+  },
+  "cal": {
+   "items": 123,
+   "fresh_items": 8,
+   "fingerprint": "dba0f0dab848762351e4a2b4179cdd647acd1a2b318c570317eae9b4aaba2aed",
+   "by_label": {
+    "app": 72,
+    "chat": 8,
+    "code": 4,
+    "email": 9,
+    "notes": 8,
+    "rewrite": 14,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 60,
+    "hi-en": 63
+   }
+  },
+  "val": {
+   "items": 152,
+   "fresh_items": 16,
+   "fingerprint": "07878191fae09d56a571c6899860bc84b56fb2662bc8f4755d14b819f37bb2fa",
+   "by_label": {
+    "app": 96,
+    "chat": 16,
+    "code": 8,
+    "email": 8,
+    "notes": 8,
+    "rewrite": 8,
+    "translate": 8
+   },
+   "by_lang": {
+    "en": 76,
+    "hi-en": 76
+   }
+  },
+  "test": {
+   "items": 280,
+   "fresh_items": 24,
+   "fingerprint": "29e1cd46083c0ddf5547702992f4a3f94288334dc798aafeee5bca98ddcdc974",
+   "by_label": {
+    "app": 184,
+    "chat": 20,
+    "code": 8,
+    "email": 16,
+    "notes": 16,
+    "rewrite": 20,
+    "translate": 16
+   },
+   "by_lang": {
+    "en": 140,
+    "hi-en": 140
+   }
+  }
+ }
+}

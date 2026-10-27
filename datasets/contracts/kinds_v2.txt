@@ -1,0 +1,9 @@
+# The kinds of request v3 recognizes, in the kind head's class order (ADR-044: Kinds-v2 adds code).
+# Kinds-v1 uses kinds_v1.txt, Kinds-v0 kinds.txt (both frozen).
+app
+chat
+code
+email
+notes
+rewrite
+translate
