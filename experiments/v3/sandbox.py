@@ -54,4 +54,6 @@ def run_python(code: str, stdin: str = "", timeout_s: float = 15, files: dict[st
             out = e.stdout.decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
             err = e.stderr.decode() if isinstance(e.stderr, bytes) else (e.stderr or "")
             return Run(False, None, out, err, True)
-    return Run(p.returncode == 0, p.returncode, p.stdout, p.stderr, False)
+    # The CPU limit ends a run with SIGKILL or SIGXCPU: a time limit too.
+    cpu_out = p.returncode in (128 + 9, 128 + 24)
+    return Run(p.returncode == 0, p.returncode, p.stdout, p.stderr, cpu_out)

@@ -41,21 +41,26 @@ def test_blocks_take_the_code_and_the_self_check_apart():
     assert blocks("```python\nx = 1\n```\n```input\n5\n```")[1] == "5\n"
 
 
-def test_the_self_check_runs_the_models_own_asserts_or_sample_input():
+def test_the_check_is_the_sandbox_s_own_errors_never_the_model_s_asserts():
+    # ADR-044: the model's own asserts were often wrong on dev (767b138).
     from code_eval import self_check
     fn = {"type": "function"}
-    assert self_check(fn, "def f():\n    return 1\n", "assert f() == 1\n") == (True, "")
-    ok, err = self_check(fn, "def f():\n    return 2\n", "assert f() == 1\n")
-    assert not ok and "AssertionError" in err
-    ok, err = self_check(fn, "def f(:\n", "")
-    assert not ok and "SyntaxError" in err, "no asserts still imports the code"
-    sc = {"type": "script"}
-    assert self_check(sc, "print(int(input()) * 2)", "4\n") == (True, "")
-    # No sample input: the script is only compiled (run on empty input, a reader fails, and the
-    # feedback taught the model to stop reading input: the smoke run, 2026-10-27).
-    assert self_check(sc, "print(int(input()) * 2)", "") == (True, "")
-    ok, err = self_check(sc, "print(int(input() * 2)", "")
+    assert self_check(fn, "def f():\n    return 2\n") == (True, "")
+    ok, err = self_check(fn, "def f(:\n")
     assert not ok and "SyntaxError" in err
+    ok, err = self_check(fn, "x = int(input())\n")
+    assert not ok and "EOFError" in err, "a function's code runs on import"
+    ok, err = self_check(fn, "while True:\n    pass\n")
+    assert not ok and err == "timed out"
+    sc = {"type": "script"}
+    assert self_check(sc, "print(int(input()) * 2)") == (True, ""), "a script is only compiled"
+    ok, err = self_check(sc, "print(int(input() * 2)")
+    assert not ok and "SyntaxError" in err
+
+
+def test_the_prompt_no_longer_asks_for_asserts():
+    from code_eval import CODE_SYSTEM
+    assert "assert" not in CODE_SYSTEM and "```python" in CODE_SYSTEM
 
 
 def test_feedback_shows_the_code_and_the_end_of_the_error():

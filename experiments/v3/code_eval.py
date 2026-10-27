@@ -6,13 +6,13 @@ asserts run against it; a `script` answer is run on each case's stdin and its ou
 case and spacing at the ends; an `explain` answer holds every fact (any of its ways). Code runs only in
 experiments/v3/sandbox.py.
 
-The loop, fixed before any model was run (2026-10-27): a code request gets CODE_SYSTEM; the model answers
-with a ```python block and its own check (```tests asserts for a function, an ```input sample for a
-script). The sandbox runs that check (`self_check`: the asserts against solution.py, which also imports
-the code, or the script on its sample input); when it fails, the error goes back (`feedback`), at most
-RETRIES times. Only the model's own checks drive the loop, as in the app; the hidden checks judge the
-first answer (pass@1) and the last (after the loop). An explain request gets EXPLAIN_SYSTEM, one answer.
-The harness knows each request's type; telling explain from write in the app is Kinds-v2's job.
+The loop (ADR-044, after the dev comparison 767b138): a code request gets CODE_SYSTEM and answers with a
+```python block. The sandbox's own errors decide a retry (`self_check`: a function's code is imported, a
+script compiled; a syntax error, a crash on import or a timeout goes back with `feedback`), at most
+RETRIES times; the model's own asserts are neither asked for nor run (on dev they were often wrong). The
+hidden checks judge the first answer (pass@1) and the last (after the loop). An explain request gets
+EXPLAIN_SYSTEM, one answer. The harness knows each request's type; in the app, Kinds-v2 tells `code`
+(write, fix) from `chat` (explaining code included).
 
     cargo build --release -p kestrel-inference --features llama --example chat_lines
     python experiments/v3/code_eval.py --model qwen3-4b [--limit N]   # -> experiments/logs/v3/code/
@@ -41,9 +41,8 @@ RETRIES = 2
 MAX_TOKENS = {"code": 640, "explain": 220}
 CODE_SYSTEM = (
     "You write small Python 3 programs for the user, using only the standard library. Reply with the code "
-    "in one ```python block. After it, add one check: for a function, a ```tests block with three or four "
-    "assert lines that call it; for a script that reads input, an ```input block with one sample input. A "
-    "script reads its input without printing prompts and prints only what is asked. No other text.")
+    "in one ```python block and no other text. A script reads its input without printing prompts and "
+    "prints only what is asked.")
 EXPLAIN_SYSTEM = (
     "You explain Python code to the user: what it does and what it gives, in two to four short sentences. "
     "Answer in the language of the request: English for English, Hinglish (Hindi in Latin letters) for "
@@ -82,16 +81,14 @@ def facts_hold(row: dict, text: str) -> bool:
     return all(any(way.lower() in t for way in fact) for fact in row["facts"])
 
 
-def self_check(row: dict, code: str, check: str) -> tuple[bool, str]:
-    """The model's own check in the sandbox: (passed, the error's text). A script without a sample input
-    is only compiled."""
-    if row["type"] == "script" and not check.strip():
+def self_check(row: dict, code: str) -> tuple[bool, str]:
+    """The sandbox's own check (ADR-044): (passed, the error's text). A function's code is imported (it
+    compiles and its top level runs); a script is only compiled (it would wait for input)."""
+    if row["type"] == "script":
         r = run_python("import py_compile\npy_compile.compile('solution.py', doraise=True)",
                        files={"solution.py": code})
-    elif row["type"] == "script":
-        r = run_python(code, stdin=check)
     else:
-        r = run_python("from solution import *\n" + check, files={"solution.py": code})
+        r = run_python("import solution\n", files={"solution.py": code})
     if r.ok:
         return True, ""
     return False, ("timed out" if r.timed_out else r.stderr.strip() or f"exit code {r.returncode}")
@@ -99,7 +96,7 @@ def self_check(row: dict, code: str, check: str) -> tuple[bool, str]:
 
 def feedback(request: str, code: str, error: str) -> str:
     """The next attempt's message: the request, the code, and the end of the error."""
-    return (f"{request}\n\nYour code:\n```python\n{code.rstrip()}\n```\n\nRunning your check gave this "
+    return (f"{request}\n\nYour code:\n```python\n{code.rstrip()}\n```\n\nRunning it gave this "
             f"error:\n{error[-1500:]}\n\nFix the code. Reply in the same form as before.")
 
 
@@ -133,10 +130,10 @@ def run_row(chat: Chat, row: dict) -> dict:
     user, first = row["text"], None
     for k in range(RETRIES + 1):
         a = chat.ask(CODE_SYSTEM, user, MAX_TOKENS["code"])
-        code, check = blocks(a.get("text", ""))
-        ok, err = self_check(row, code, check)
+        code, _ = blocks(a.get("text", ""))
+        ok, err = self_check(row, code)
         out["attempts"].append({"text": a.get("text", ""), "ms": a.get("total_ms"), "tokens": a.get("tokens"),
-                                "has_check": bool(check.strip()), "self_ok": ok, "error": err[-400:]})
+                                "self_ok": ok, "error": err[-400:]})
         first = code if first is None else first
         if ok:
             break
@@ -175,13 +172,13 @@ def main(argv=None):
                   flush=True)
     finally:
         chat.close()
-    out = {"model": a.model, "model_file": MODELS[a.model], "split": "dev", "retries": RETRIES,
+    out = {"model": a.model, "model_file": MODELS[a.model], "split": "dev", "retries": RETRIES, "loop": "ADR-044",
            "wall_s": round(time.time() - t0, 1), "summary": summary(results), "results": results}
     print(json.dumps(out["summary"], indent=1))
     if not a.limit:
         LOG.mkdir(parents=True, exist_ok=True)
-        (LOG / f"dev_{a.model}.json").write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
-        print(f"wrote {(LOG / f'dev_{a.model}.json').relative_to(ROOT)}")
+        (LOG / f"dev_{a.model}_adr044.json").write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {(LOG / f'dev_{a.model}_adr044.json').relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
