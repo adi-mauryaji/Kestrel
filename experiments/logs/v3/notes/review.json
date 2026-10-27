@@ -1,0 +1,422 @@
+{
+ "version": 1,
+ "decisions": {
+  "kindsv1:app:app-v1-01": {
+   "hash": "ab10c246fbdf4102",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:28.996Z"
+  },
+  "kindsv1:app:app-v1-02": {
+   "hash": "670c4742a25ba4a1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:31.130Z"
+  },
+  "kindsv1:app:app-v1-03": {
+   "hash": "635367db3eaafe44",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:34.364Z"
+  },
+  "kindsv1:app:app-v1-04": {
+   "hash": "2dd0490e3787f460",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:36.716Z"
+  },
+  "kindsv1:chat:chat-v1-01": {
+   "hash": "ab22c9763b15932d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:38.883Z"
+  },
+  "kindsv1:chat:chat-v1-02": {
+   "hash": "f01395891573ef56",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:41.629Z"
+  },
+  "kindsv1:notes:notes-01": {
+   "hash": "b97cb13450a36285",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:26.542Z"
+  },
+  "kindsv1:notes:notes-02": {
+   "hash": "63287618371e46da",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:38.011Z"
+  },
+  "kindsv1:notes:notes-03": {
+   "hash": "d47dbe013948aecd",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:41.654Z"
+  },
+  "kindsv1:notes:notes-04": {
+   "hash": "57a56a9f8b8c8ca4",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:44.150Z"
+  },
+  "kindsv1:notes:notes-05": {
+   "hash": "8e3d1f9bd060d937",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:50.369Z"
+  },
+  "kindsv1:notes:notes-06": {
+   "hash": "09bd08050cc6d89a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:43:53.038Z"
+  },
+  "kindsv1:notes:notes-07": {
+   "hash": "3bdecc915745e986",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:00.672Z"
+  },
+  "kindsv1:notes:notes-08": {
+   "hash": "d6d58916b994590d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:02.865Z"
+  },
+  "kindsv1:notes:notes-09": {
+   "hash": "2e16997cde25ca77",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:05.415Z"
+  },
+  "kindsv1:notes:notes-10": {
+   "hash": "22fd5a2511b1638d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:08.517Z"
+  },
+  "kindsv1:notes:notes-11": {
+   "hash": "b840694ae8ce760b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:20.420Z"
+  },
+  "kindsv1:notes:notes-12": {
+   "hash": "7a58393620906b5d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:22.449Z"
+  },
+  "kindsv1:notes:notes-13": {
+   "hash": "ac4ecbc5a9f65394",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:24.958Z"
+  },
+  "kindsv1:notes:notes-14": {
+   "hash": "39ca0e3ee3beea15",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:44:27.006Z"
+  },
+  "notesq:found:q-book": {
+   "hash": "f4244885b54940cc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:42.004Z"
+  },
+  "notesq:found:q-budget": {
+   "hash": "80a73452e032d9bf",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:19:59.641Z"
+  },
+  "notesq:found:q-car": {
+   "hash": "44ca417e3230bb90",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:46.622Z"
+  },
+  "notesq:found:q-diwali": {
+   "hash": "9a9f468f44fe7517",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:49.784Z"
+  },
+  "notesq:found:q-doctor": {
+   "hash": "02ab9e0fc5585016",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:15.503Z"
+  },
+  "notesq:found:q-goa": {
+   "hash": "bb3d0464f9505758",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:12.215Z"
+  },
+  "notesq:found:q-gym": {
+   "hash": "3c54525470c20d10",
+   "decision": "ok",
+   "note": "generally people do not say \"meri kasrat ki planning\" instead they say \"meri exercise planning\"",
+   "at": "2026-10-27T06:21:07.653Z"
+  },
+  "notesq:found:q-interview": {
+   "hash": "8a0ed0fbf4993df2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:17.749Z"
+  },
+  "notesq:found:q-kyc": {
+   "hash": "a3aef435a4b15b91",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:52.142Z"
+  },
+  "notesq:found:q-landlord": {
+   "hash": "f266cce21732cf60",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:19.936Z"
+  },
+  "notesq:found:q-laptop": {
+   "hash": "d151dac1bdc9838d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:07.267Z"
+  },
+  "notesq:found:q-meeting": {
+   "hash": "d1d5d3ac843150d3",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:44.725Z"
+  },
+  "notesq:found:q-mom": {
+   "hash": "ee84787bafd6817c",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:04.224Z"
+  },
+  "notesq:found:q-plants": {
+   "hash": "0887d57d6829f422",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:48.618Z"
+  },
+  "notesq:found:q-python": {
+   "hash": "889929838d613b14",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:09.863Z"
+  },
+  "notesq:found:q-recipes": {
+   "hash": "803932e08eef97b6",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:40.041Z"
+  },
+  "notesq:found:q-sleep": {
+   "hash": "fdbcd4fb06e74868",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:54.473Z"
+  },
+  "notesq:found:q-wifi": {
+   "hash": "ad635d4c3b3b0d98",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:47:56.496Z"
+  },
+  "notesq:none:q-none-cat": {
+   "hash": "982bbe64c0b2eff0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:48:02.251Z"
+  },
+  "notesq:none:q-none-guitar": {
+   "hash": "5307842cf6864f74",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:48:14.323Z"
+  },
+  "notesq:none:q-none-stocks": {
+   "hash": "19554addd957dd99",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:48:16.491Z"
+  },
+  "notesqa:answered:qa-api": {
+   "hash": "9a6dba04970c3b1b",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:39:06.683Z"
+  },
+  "notesqa:answered:qa-battery": {
+   "hash": "39a76af393664e4b",
+   "decision": "ok",
+   "note": "\ndo ghante mein laptop ki battery kitni ghat ti hai?",
+   "at": "2026-10-27T06:14:01.368Z"
+  },
+  "notesqa:answered:qa-deposit": {
+   "hash": "269743cad8a30c7b",
+   "decision": "ok",
+   "note": "\nrecurring deposit mein kitna dalna hai mujhe?",
+   "at": "2026-10-27T06:07:36.086Z"
+  },
+  "notesqa:answered:qa-doctor": {
+   "hash": "d797d97b81d220b5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:33:45.219Z"
+  },
+  "notesqa:answered:qa-dose": {
+   "hash": "14ee123040d6d4e7",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:35:04.688Z"
+  },
+  "notesqa:answered:qa-goa-flight": {
+   "hash": "7d1d55976cc7c7c1",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:14:32.668Z"
+  },
+  "notesqa:answered:qa-goa-stay": {
+   "hash": "cdd64114a7371e04",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:17:25.683Z"
+  },
+  "notesqa:answered:qa-gym-days": {
+   "hash": "c33766e7356c0180",
+   "decision": "ok",
+   "note": "\nsquats kis kis din karne hain?",
+   "at": "2026-10-27T06:08:02.913Z"
+  },
+  "notesqa:answered:qa-insurance": {
+   "hash": "d690e439171c263a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:39:33.577Z"
+  },
+  "notesqa:answered:qa-kyc": {
+   "hash": "b7591659fd787a75",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:39:38.210Z"
+  },
+  "notesqa:answered:qa-landlord": {
+   "hash": "3fcb000e9b46d546",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:35:22.660Z"
+  },
+  "notesqa:answered:qa-mock": {
+   "hash": "986fe849dc39b538",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:35:15.984Z"
+  },
+  "notesqa:answered:qa-mom-cake": {
+   "hash": "58d9865f66a2dcac",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:08:42.091Z"
+  },
+  "notesqa:answered:qa-mom-date": {
+   "hash": "8df96d7458fb0ff9",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:08:48.819Z"
+  },
+  "notesqa:answered:qa-release": {
+   "hash": "bb512ef689db6f19",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:35:49.801Z"
+  },
+  "notesqa:answered:qa-rent": {
+   "hash": "ed7858820e83276d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:05:14.724Z"
+  },
+  "notesqa:answered:qa-router": {
+   "hash": "dda54406fe5a8d3a",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:39:52.043Z"
+  },
+  "notesqa:answered:qa-tyre": {
+   "hash": "a60ab207671dc9df",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T06:39:20.510Z"
+  },
+  "notesqa:unanswered:qa-none-cake-price": {
+   "hash": "70a5b8b12a372a66",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:43:08.206Z"
+  },
+  "notesqa:unanswered:qa-none-dentist": {
+   "hash": "223d22fc0f23860c",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:42:34.118Z"
+  },
+  "notesqa:unanswered:qa-none-hotel": {
+   "hash": "49a254f094afca12",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:42:40.450Z"
+  },
+  "notesqa:unanswered:qa-none-passport": {
+   "hash": "ce0afc74c64e014a",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:42:15.929Z"
+  },
+  "notesqa:unanswered:qa-none-phone": {
+   "hash": "415475f1f8d45649",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:42:44.772Z"
+  },
+  "notesqa:unanswered:qa-none-salary": {
+   "hash": "23608cd48f7f4d5c",
+   "decision": "ok",
+   "note": "we can say that \"The notes do not say this: so the reply is not available for this information\"",
+   "at": "2026-10-27T06:42:27.227Z"
+  }
+ },
+ "status": {
+  "notesq": {
+   "units": 21,
+   "ok": 21,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  },
+  "notesqa": {
+   "units": 24,
+   "ok": 24,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  },
+  "kindsv1": {
+   "units": 20,
+   "ok": 20,
+   "fix": 0,
+   "stale": 0,
+   "missing": 0,
+   "ready": true
+  }
+ },
+ "fixes": []
+}
