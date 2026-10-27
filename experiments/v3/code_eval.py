@@ -16,7 +16,8 @@ EXPLAIN_SYSTEM, one answer. The harness knows each request's type; in the app, K
 (write, fix) from `chat` (explaining code included).
 
     cargo build --release -p kestrel-inference --features llama --example chat_lines
-    python experiments/v3/code_eval.py --model qwen3-4b [--limit N]   # -> experiments/logs/v3/code/
+    python experiments/v3/code_eval.py --model gemma-4-e2b [--limit N]   # dev -> experiments/logs/v3/code/
+    python experiments/v3/code_eval.py --model gemma-4-e2b --split test  # once (ADR-046)
 """
 from __future__ import annotations
 
@@ -170,12 +171,27 @@ def summary(results: list[dict]) -> dict:
     return out
 
 
+def log_path(model: str, split: str) -> Path:
+    return LOG / (f"dev_{model}_adr044.json" if split == "dev" else f"{split}_{model}.json")
+
+
+def refuse_second_test_run(log: Path) -> None:
+    if log.exists():
+        sys.exit(f"{log.name} exists: the test split is run once")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", choices=sorted(MODELS), required=True)
     ap.add_argument("--limit", type=int, help="the first N dev requests only (a smoke run, not logged)")
+    ap.add_argument("--split", choices=("dev", "test"), default="dev")
     a = ap.parse_args(argv)
-    rows = [json.loads(l) for l in (DATA / "dev.jsonl").read_text(encoding="utf-8").splitlines()]
+    log = log_path(a.model, a.split)
+    if a.split == "test":
+        if a.limit:
+            ap.error("the test split runs whole")
+        refuse_second_test_run(log)
+    rows = [json.loads(l) for l in (DATA / f"{a.split}.jsonl").read_text(encoding="utf-8").splitlines()]
     rows = rows[: a.limit] if a.limit else rows
     chat, t0, results = Chat(a.model), time.time(), []
     try:
@@ -186,13 +202,13 @@ def main(argv=None):
                   flush=True)
     finally:
         chat.close()
-    out = {"model": a.model, "model_file": MODELS[a.model], "split": "dev", "retries": RETRIES, "loop": "ADR-044",
+    out = {"model": a.model, "model_file": MODELS[a.model], "split": a.split, "retries": RETRIES, "loop": "ADR-044",
            "wall_s": round(time.time() - t0, 1), "summary": summary(results), "results": results}
     print(json.dumps(out["summary"], indent=1))
     if not a.limit:
         LOG.mkdir(parents=True, exist_ok=True)
-        (LOG / f"dev_{a.model}_adr044.json").write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
-        print(f"wrote {(LOG / f'dev_{a.model}_adr044.json').relative_to(ROOT)}")
+        log.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {log.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

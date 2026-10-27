@@ -77,3 +77,15 @@ def test_feedback_shows_the_code_and_the_end_of_the_error():
     assert msg.startswith("write f\n\nYour code:\n```python\ndef f():\n    pass\n```\n")
     assert msg.rstrip().endswith("Fix the code. Reply in the same form as before.")
     assert "NameError: y" in msg and "x" * 1600 not in msg
+
+
+def test_each_split_logs_apart_and_the_test_runs_once(tmp_path):
+    import pytest
+    from code_eval import log_path, refuse_second_test_run
+    assert log_path("gemma-4-e2b", "dev").name == "dev_gemma-4-e2b_adr044.json"
+    assert log_path("gemma-4-e2b", "test").name == "test_gemma-4-e2b.json"
+    log = tmp_path / "test_x.json"
+    refuse_second_test_run(log)
+    log.write_text("{}")
+    with pytest.raises(SystemExit, match="once"):
+        refuse_second_test_run(log)
