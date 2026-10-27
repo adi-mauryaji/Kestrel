@@ -1,0 +1,619 @@
+{
+ "summary": {
+  "cases": 36,
+  "passed": 34,
+  "failed": [
+   "memory: recall of preferences in general",
+   "notes Q&A: English"
+  ],
+  "seconds": 196.2
+ },
+ "results": [
+  {
+   "written": "",
+   "lines": [
+    "Hi! I can find, open and summarize your notes and answer questions from them, keep your tasks, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat."
+   ],
+   "asked": [],
+   "s": 0.1,
+   "text": "Hi! I can find, open and summarize your notes and answer questions from them, keep your tasks, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat.",
+   "passed_checks": [
+    true
+   ],
+   "feature": "small talk",
+   "request": "hello",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "created task #1: call asha (due 2026-10-28 17:00)"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "created task #1: call asha (due 2026-10-28 17:00)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "tasks: create with a time",
+   "request": "remind me to call asha tomorrow at 5 pm",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "created task #2: bill bharna (due 2026-10-28 18:00)"
+   ],
+   "asked": [],
+   "s": 4.8,
+   "text": "created task #2: bill bharna (due 2026-10-28 18:00)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "tasks: Hinglish with a time",
+   "request": "kal shaam 6 baje bill bharna yaad dila dena",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "created task #3: gym jana (due 2026-10-28 09:00)"
+   ],
+   "asked": [],
+   "s": 1.7,
+   "text": "created task #3: gym jana (due 2026-10-28 09:00)",
+   "passed_checks": [
+    true
+   ],
+   "feature": "tasks: chat spellings",
+   "request": "kl subah 9 baje gym jana yaad dilana",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "upcoming:",
+    "  #3 gym jana (2026-10-28 09:00)",
+    "  #1 call asha (2026-10-28 17:00)",
+    "  #2 bill bharna (2026-10-28 18:00)"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "upcoming:\n  #3 gym jana (2026-10-28 09:00)\n  #1 call asha (2026-10-28 17:00)\n  #2 bill bharna (2026-10-28 18:00)",
+   "passed_checks": [
+    true
+   ],
+   "feature": "tasks: list (Hinglish)",
+   "request": "mere tasks btao",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "done: #1 call asha"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "done: #1 call asha",
+   "passed_checks": [
+    true
+   ],
+   "feature": "tasks: done",
+   "request": "task 1 done",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "task #2 is now: pay the electricity bill"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "task #2 is now: pay the electricity bill",
+   "passed_checks": [
+    true
+   ],
+   "feature": "tasks: rename",
+   "request": "rename task 2 to pay the electricity bill",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "task #2 now due 2026-10-30"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "task #2 now due 2026-10-30",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "tasks: reschedule",
+   "request": "move task 2 to friday",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "deleted task #3"
+   ],
+   "asked": [
+    "delete task 3?"
+   ],
+   "s": 0.3,
+   "text": "deleted task #3",
+   "passed_checks": [
+    true
+   ],
+   "feature": "tasks: delete asks first",
+   "request": "delete task 3",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "upcoming:",
+    "  #2 pay the electricity bill (2026-10-30 18:00)"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "upcoming:\n  #2 pay the electricity bill (2026-10-30 18:00)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "tasks: list after",
+   "request": "show my tasks",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "found 2 notes:",
+    "- 2026-09-15-goa-trip.md",
+    "- 2026-09-02-budget-plan.md"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "found 2 notes:\n- 2026-09-15-goa-trip.md\n- 2026-09-02-budget-plan.md",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes: keyword search",
+   "request": "search my notes for budget",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "found 1 note:",
+    "- 2026-09-02-budget-plan.md (by meaning)"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "found 1 note:\n- 2026-09-02-budget-plan.md (by meaning)",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes: by meaning",
+   "request": "search my notes for saving money every month",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "found 1 note:",
+    "- 2026-09-08-mom-birthday.md (by meaning)"
+   ],
+   "asked": [],
+   "s": 2.6,
+   "text": "found 1 note:\n- 2026-09-08-mom-birthday.md (by meaning)",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes: by meaning, Hinglish",
+   "request": "search my notes for maa ke liye tohfa",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "summary: The person is only falling asleep after 2 am this month. They avoid their phone after 11 pm and drink chamomile tea, maintaining the same wake-up time daily, and take a short evening walk."
+   ],
+   "asked": [],
+   "s": 7.9,
+   "text": "summary: The person is only falling asleep after 2 am this month. They avoid their phone after 11 pm and drink chamomile tea, maintaining the same wake-up time daily, and take a short evening walk.",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes: summary",
+   "request": "summarize my latest note",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "── docs/wifi-setup.md ──",
+    "Home router",
+    "",
+    "Admin page at 192.168.1.1, user admin.",
+    "",
+    "To change the network password: Wireless, Security, WPA2 key, Save, then reconnect every device.",
+    "",
+    "Use channel 6 if the signal keeps dropping."
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "── docs/wifi-setup.md ──\nHome router\n\nAdmin page at 192.168.1.1, user admin.\n\nTo change the network password: Wireless, Security, WPA2 key, Save, then reconnect every device.\n\nUse channel 6 if the signal keeps dropping.",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes: open a document",
+   "request": "open wifi-setup.md",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "saved preference: answer_length = short"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "saved preference: answer_length = short",
+   "passed_checks": [
+    true
+   ],
+   "feature": "memory: a preference",
+   "request": "I prefer short answers",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "from memory: [pref|user_explicit|2026-10-27] answer_length: short"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "from memory: [pref|user_explicit|2026-10-27] answer_length: short",
+   "passed_checks": [
+    true
+   ],
+   "feature": "memory: recall by the stored words",
+   "request": "what do you remember about answer length?",
+   "answer": null,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "I don't remember anything about that."
+   ],
+   "asked": [],
+   "s": 1.1,
+   "text": "I don't remember anything about that.",
+   "passed_checks": [
+    false
+   ],
+   "feature": "memory: recall of preferences in general",
+   "request": "which preferences have i set?",
+   "answer": null,
+   "ok": false
+  },
+  {
+   "written": "A `for` loop in Python is used to iterate over a sequence (like a list, tuple, string, or range). It executes a block of code once for each item in the sequence.\n\nHere's a brief breakdown:\n\n*   **Syntax:** `for item in sequence:`\n*   **Function:** It cycles through every element in the iterable.\n*   **Example (List):**\n    ```python\n    my_list = [1, 2, 3]\n    for number in my_list:\n        print(number)\n    ```\n    This will print 1, then 2, then 3.\n*   **Using `range()`:** You often use `range()` to loop a specific number of times:\n    ```python\n    for i in range(5):\n        print(i)\n    ```\n    This prints numbers from 0 up to (but not including) 5.",
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ],
+   "asked": [],
+   "s": 23.2,
+   "text": "A `for` loop in Python is used to iterate over a sequence (like a list, tuple, string, or range). It executes a block of code once for each item in the sequence.\n\nHere's a brief breakdown:\n\n*   **Syntax:** `for item in sequence:`\n*   **Function:** It cycles through every element in the iterable.\n*   **Example (List):**\n    ```python\n    my_list = [1, 2, 3]\n    for number in my_list:\n        print(number)\n    ```\n    This will print 1, then 2, then 3.\n*   **Using `range()`:** You often use `range()` to loop a specific number of times:\n    ```python\n    for i in range(5):\n        print(i)\n    ```\n    This prints numbers from 0 up to (but not including) 5.\n(Written offline by a small model: it may be wrong.)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "chat: explanation",
+   "request": "how does a for loop work in python?",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "Here are four lines for a cold morning:\n\n* Sardi ki subah, thandi hawa ka ehsaas.\n* Khidki se bahar dekho, dhundhli si duniya.\n* Garam chai ka cup, sukoon ka ehsaas.\n* Yeh sardi ki subah, sukoon aur suhani hai.",
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ],
+   "asked": [],
+   "s": 10.3,
+   "text": "Here are four lines for a cold morning:\n\n* Sardi ki subah, thandi hawa ka ehsaas.\n* Khidki se bahar dekho, dhundhli si duniya.\n* Garam chai ka cup, sukoon ka ehsaas.\n* Yeh sardi ki subah, sukoon aur suhani hai.\n(Written offline by a small model: it may be wrong.)",
+   "passed_checks": [
+    true
+   ],
+   "feature": "chat: Hinglish poem",
+   "request": "sardi ki subah pe chaar lines likho",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "Subject: Friday ki chutti ke liye request\n\nDear [Manager ka naam],\n\nMain aapko batana chahta hoon ki main is Friday ko chutti lena chahta hoon.\n\nKripya isse approve kar dein.\n\nThank you,\n\n[Aapka naam]",
+   "lines": [],
+   "asked": [],
+   "s": 8.5,
+   "text": "Subject: Friday ki chutti ke liye request\n\nDear [Manager ka naam],\n\nMain aapko batana chahta hoon ki main is Friday ko chutti lena chahta hoon.\n\nKripya isse approve kar dein.\n\nThank you,\n\n[Aapka naam]",
+   "passed_checks": [
+    true
+   ],
+   "feature": "email: Hinglish",
+   "request": "manager ko friday ki chutti ke liye mail likh do",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "Subject: Kitchen tap leaking\n\nDear [Landlord's Name],\n\nHope you are doing well.\n\nI am writing to inform you that the kitchen tap in my place is leaking. Could you please arrange for someone to look at it and fix it at your earliest convenience?\n\nThank you for your time and help.\n\nBest regards,\n\n[Your Name]",
+   "lines": [],
+   "asked": [],
+   "s": 10.8,
+   "text": "Subject: Kitchen tap leaking\n\nDear [Landlord's Name],\n\nHope you are doing well.\n\nI am writing to inform you that the kitchen tap in my place is leaking. Could you please arrange for someone to look at it and fix it at your earliest convenience?\n\nThank you for your time and help.\n\nBest regards,\n\n[Your Name]",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "email: English",
+   "request": "write an email to my landlord saying the kitchen tap is leaking",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "Could you please send me the file now?",
+   "lines": [],
+   "asked": [],
+   "s": 3.6,
+   "text": "Could you please send me the file now?",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "rewrite: keeps English",
+   "request": "make this polite: send me the file now",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "सुप्रभात, कल मिलते हैं",
+   "lines": [],
+   "asked": [],
+   "s": 2.8,
+   "text": "सुप्रभात, कल मिलते हैं",
+   "passed_checks": [
+    true
+   ],
+   "feature": "translate: into Hindi",
+   "request": "translate to hindi: good morning, see you tomorrow",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "It is very hot today",
+   "lines": [],
+   "asked": [],
+   "s": 3.2,
+   "text": "It is very hot today",
+   "passed_checks": [
+    true
+   ],
+   "feature": "translate: into English",
+   "request": "translate to english: aaj bahut garmi hai",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "I can't do that. I can find, open and summarize your notes and answer questions from them, keep your tasks, remember your preferences, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat."
+   ],
+   "asked": [],
+   "s": 1.4,
+   "text": "I can't do that. I can find, open and summarize your notes and answer questions from them, keep your tasks, remember your preferences, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat.",
+   "passed_checks": [
+    false,
+    false
+   ],
+   "feature": "notes Q&A: English",
+   "request": "how much is my rent?",
+   "answer": true,
+   "ok": false
+  },
+  {
+   "written": "",
+   "lines": [
+    "Maa ka birthday 20 September hai.",
+    "(from 2026-09-08-mom-birthday.md)"
+   ],
+   "asked": [],
+   "s": 9.4,
+   "text": "Maa ka birthday 20 September hai.\n(from 2026-09-08-mom-birthday.md)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "notes Q&A: Hinglish",
+   "request": "maa ka birthday kab hai?",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "The notes do not say this: so the reply is not available for this information"
+   ],
+   "asked": [],
+   "s": 3.0,
+   "text": "The notes do not say this: so the reply is not available for this information",
+   "passed_checks": [
+    true
+   ],
+   "feature": "notes Q&A: not in the notes",
+   "request": "goa wale hotel ka naam kya hai?",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "```python\ndef is_prime(n):\n    if n <= 1:\n        return False\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0:\n            return False\n    return True\n\nif __name__ == \"__main__\":\n    try:\n        num = int(input())\n        if is_prime(num):\n            print(\"Prime\")\n        else:\n            print(\"Not Prime\")\n    except ValueError:\n        pass\n```",
+   "lines": [
+    "(I checked it in a safe sandbox: no errors.)",
+    "(Written offline by a small model: try it before you rely on it.)"
+   ],
+   "asked": [],
+   "s": 14.0,
+   "text": "```python\ndef is_prime(n):\n    if n <= 1:\n        return False\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0:\n            return False\n    return True\n\nif __name__ == \"__main__\":\n    try:\n        num = int(input())\n        if is_prime(num):\n            print(\"Prime\")\n        else:\n            print(\"Not Prime\")\n    except ValueError:\n        pass\n```\n(I checked it in a safe sandbox: no errors.)\n(Written offline by a small model: try it before you rely on it.)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "code: write a function",
+   "request": "prime number check karne ka python function likho",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "```python\ndef add(a, b):\n    return a + b\n```",
+   "lines": [
+    "(I checked it in a safe sandbox: no errors.)",
+    "(Written offline by a small model: try it before you rely on it.)"
+   ],
+   "asked": [],
+   "s": 4.3,
+   "text": "```python\ndef add(a, b):\n    return a + b\n```\n(I checked it in a safe sandbox: no errors.)\n(Written offline by a small model: try it before you rely on it.)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "code: fix",
+   "request": "fix this function: def add(a, b): return a - b",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "Yeh code ek list print karta hai. Yeh `range(3)` se 0, 1, aur 2 generate karta hai, aur phir har number ko 2 se multiply karta hai.\n\n*   `range(3)`: Yeh 0, 1, 2 generate karta hai.\n*   `x * 2 for x in range(3)`: Yeh list comprehension hai jo har `x` ke liye `x * 2` calculate karta hai. Isse 0*2=0, 1*2=2, aur 2*2=4 aata hai.\n*   `print(...)`: Yeh us final list ko output karta hai.\n\nOutput hoga: `[0, 2, 4]`",
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ],
+   "asked": [],
+   "s": 19.8,
+   "text": "Yeh code ek list print karta hai. Yeh `range(3)` se 0, 1, aur 2 generate karta hai, aur phir har number ko 2 se multiply karta hai.\n\n*   `range(3)`: Yeh 0, 1, 2 generate karta hai.\n*   `x * 2 for x in range(3)`: Yeh list comprehension hai jo har `x` ke liye `x * 2` calculate karta hai. Isse 0*2=0, 1*2=2, aur 2*2=4 aata hai.\n*   `print(...)`: Yeh us final list ko output karta hai.\n\nOutput hoga: `[0, 2, 4]`\n(Written offline by a small model: it may be wrong.)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "code: explain is chat",
+   "request": "ye code kya karta hai samjhao: print([x * 2 for x in range(3)])",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "Not saved."
+   ],
+   "asked": [
+    "Save this as a new note, 2026-10-27-buy-rice-dal-and-oil-on-saturday-from.md (10 words)?"
+   ],
+   "s": 0.3,
+   "text": "Not saved.",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "save to notes: no",
+   "request": "Buy rice, dal and oil on Saturday from the market. add this to notes",
+   "answer": false,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "Saved to your notes: 2026-10-27-buy-rice-dal-and-oil-on-saturday-from.md"
+   ],
+   "asked": [
+    "Save this as a new note, 2026-10-27-buy-rice-dal-and-oil-on-saturday-from.md (10 words)?"
+   ],
+   "s": 0.3,
+   "text": "Saved to your notes: 2026-10-27-buy-rice-dal-and-oil-on-saturday-from.md",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "save to notes: yes",
+   "request": "Buy rice, dal and oil on Saturday from the market. add this to notes",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "What should I save? Put the text before or after it, for example: add to notes: call the bank on monday"
+   ],
+   "asked": [],
+   "s": 0.3,
+   "text": "What should I save? Put the text before or after it, for example: add to notes: call the bank on monday",
+   "passed_checks": [
+    true
+   ],
+   "feature": "save to notes: nothing given",
+   "request": "add this to my notes",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "",
+   "lines": [
+    "I can't do that. I can find, open and summarize your notes and answer questions from them, keep your tasks, remember your preferences, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat."
+   ],
+   "asked": [],
+   "s": 0.9,
+   "text": "I can't do that. I can find, open and summarize your notes and answer questions from them, keep your tasks, remember your preferences, draft emails and messages, rewrite or translate text, write and fix small Python code, and chat.",
+   "passed_checks": [
+    true
+   ],
+   "feature": "refusal: live data",
+   "request": "what's the weather in delhi today?",
+   "answer": true,
+   "ok": true
+  },
+  {
+   "written": "That's a massive request! Writing a *very long and detailed* essay on the full history of India is a monumental task that would require hundreds of pages. As an assistant, I can provide you with a comprehensive *outline* and detailed summaries for each major section, which you can then use to write your essay.\n\nHere is a detailed structure covering the major epochs of Indian history:\n\n***\n\n### Essay Outline: The Full History of India\n\n#### I. Ancient India (c. 3300 BCE – 550 CE)\n\nThis period covers the foundation of civilization, the rise of major empires, and the flourishing of philosophical and religious thought.\n\n*   **A. The Indus Valley Civilization (c. 3300–1300 BCE):**\n    *   Urban planning (Harappa, Mohenjo-Daro).\n    *   Trade, agriculture, and societal structure.\n    *   Mystery of their decline.\n*   **B. Vedic Period (c. 1500–500 BCE):**\n    *   Arrival of Indo-Aryan peoples.\n    *   Development of the Vedas (Rigveda) and early Sanskrit literature.\n    *   Shift from pastoral to settled life.\n*   **C. Age of Empires (c. 600 BCE – 600 CE):**\n    *   Rise of Mahajanapadas (16 major kingdoms).\n    *   Mauryan Empire (Chandragupta Maurya, Ashoka): Unification, administration, and the spread of Buddhism.\n    *   Post-Mauryan period and regional kingdoms.\n*   **D. Classical Age (c. 322 BCE – 550 CE):**\n    *   **Mauryan/Gupta Zenith:** Golden age of art, science, and mathematics.\n    *   **Religious Developments:** Rise of Jainism and Buddhism.\n    *   **Regional Powers:** Rise of powerful dynasties like the Satavahanas, Pallavas, and Chalukyas.\n    *   **Intellectual Flourishing:** Development of Sanskrit grammar, philosophy (Upanishads), and early Indian science.\n\n#### II. Medieval India (c. 550 CE – 1750 CE)\n\nThis era is characterized by the establishment of powerful regional kingdoms, the influence of Islamic dynasties, and significant cultural synthesis.\n\n*",
+   "lines": [
+    "(Cut off at the length limit: ask for a shorter answer, or one part at a time.)",
+    "(Written offline by a small model: it may be wrong.)"
+   ],
+   "asked": [],
+   "s": 58.3,
+   "text": "That's a massive request! Writing a *very long and detailed* essay on the full history of India is a monumental task that would require hundreds of pages. As an assistant, I can provide you with a comprehensive *outline* and detailed summaries for each major section, which you can then use to write your essay.\n\nHere is a detailed structure covering the major epochs of Indian history:\n\n***\n\n### Essay Outline: The Full History of India\n\n#### I. Ancient India (c. 3300 BCE – 550 CE)\n\nThis period covers the foundation of civilization, the rise of major empires, and the flourishing of philosophical and religious thought.\n\n*   **A. The Indus Valley Civilization (c. 3300–1300 BCE):**\n    *   Urban planning (Harappa, Mohenjo-Daro).\n    *   Trade, agriculture, and societal structure.\n    *   Mystery of their decline.\n*   **B. Vedic Period (c. 1500–500 BCE):**\n    *   Arrival of Indo-Aryan peoples.\n    *   Development of the Vedas (Rigveda) and early Sanskrit literature.\n    *   Shift from pastoral to settled life.\n*   **C. Age of Empires (c. 600 BCE – 600 CE):**\n    *   Rise of Mahajanapadas (16 major kingdoms).\n    *   Mauryan Empire (Chandragupta Maurya, Ashoka): Unification, administration, and the spread of Buddhism.\n    *   Post-Mauryan period and regional kingdoms.\n*   **D. Classical Age (c. 322 BCE – 550 CE):**\n    *   **Mauryan/Gupta Zenith:** Golden age of art, science, and mathematics.\n    *   **Religious Developments:** Rise of Jainism and Buddhism.\n    *   **Regional Powers:** Rise of powerful dynasties like the Satavahanas, Pallavas, and Chalukyas.\n    *   **Intellectual Flourishing:** Development of Sanskrit grammar, philosophy (Upanishads), and early Indian science.\n\n#### II. Medieval India (c. 550 CE – 1750 CE)\n\nThis era is characterized by the establishment of powerful regional kingdoms, the influence of Islamic dynasties, and significant cultural synthesis.\n\n*\n(Cut off at the length limit: ask for a shorter answer, or one part at a time.)\n(Written offline by a small model: it may be wrong.)",
+   "passed_checks": [
+    true,
+    true
+   ],
+   "feature": "cut-off note",
+   "request": "write a very long and detailed essay on the full history of india, from ancient times to today, with many sections",
+   "answer": true,
+   "ok": true
+  }
+ ]
+}

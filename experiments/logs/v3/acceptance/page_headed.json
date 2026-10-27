@@ -1,0 +1,127 @@
+{
+ "url": "http://127.0.0.1:7899",
+ "steps": [
+  {
+   "name": "page loads with the day strip, its Try buttons and the skills",
+   "ok": true,
+   "detail": {
+    "tasks": 1,
+    "day": true,
+    "tries": [
+     "mere tasks btao",
+     "remind me to call Asha at 5 pm",
+     "summarize my latest note",
+     "manager ko friday ki chutti ke liye mail likh do"
+    ],
+    "welcome": "Ask in English or Hinglish. It keeps your tasks, reminds you at the time you say, finds, opens and summarizes your notes and answers questions from them, and drafts emails, rewrites, translates, writes small Python code and chats."
+   }
+  },
+  {
+   "name": "a Try button sends its request and the reply lists the tasks",
+   "ok": true,
+   "detail": {
+    "request": "mere tasks btao",
+    "asked": null,
+    "items": [
+     [
+      "p",
+      "upcoming:"
+     ],
+     [
+      "p",
+      "  #2 pay the electricity bill (2026-10-30 18:00)"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "a task made on the page",
+   "ok": true,
+   "detail": {
+    "request": "remind me to water the plants tomorrow at 7 am",
+    "asked": null,
+    "items": [
+     [
+      "p",
+      "created task #5: water the plants (due 2026-10-28 07:00)"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "the task list shows it",
+   "ok": true,
+   "detail": {
+    "panel": true
+   }
+  },
+  {
+   "name": "the page's own question, answered Yes, deletes it",
+   "ok": true,
+   "detail": {
+    "request": "delete task 5",
+    "asked": "delete task 5?",
+    "items": [
+     [
+      "question",
+      "delete task 5?You said yes"
+     ],
+     [
+      "p",
+      "deleted task #5"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "a code request shows a code box and the sandbox check",
+   "ok": true,
+   "detail": {
+    "request": "write a python function that returns the factorial of a number",
+    "asked": null,
+    "items": [
+     [
+      "codebox",
+      "def factorial(n):\n    if n < 0:\n        return \"Factorial is not defined for negative numbers\"\n    elif n == 0:\n        return 1\n    else:\n        result = 1\n        for i in range(1, n + 1):\n            result *= i\n        return resultCopy"
+     ],
+     [
+      "p",
+      "(I checked it in a safe sandbox: no errors.)"
+     ],
+     [
+      "p",
+      "(Written offline by a small model: try it before you rely on it.)"
+     ]
+    ]
+   }
+  },
+  {
+   "name": "Copy puts the code on the clipboard",
+   "ok": true,
+   "detail": {
+    "label": "Copied",
+    "copied": "def factorial(n):\n    if n < 0:\n        return \"Factorial is not defined for neg"
+   }
+  },
+  {
+   "name": "a chat answer is written and carries the caveat",
+   "ok": true,
+   "detail": {
+    "request": "how can i focus better while studying?",
+    "asked": null,
+    "items": [
+     [
+      "p",
+      "Here are a few tips to help you focus better while studying:\n\n*   **Create a dedicated study space:** Find a quiet, well-lit area free from distractions.\n*   **Use the Pomodoro Technique:** Study for focused bursts (e.g., 25 minutes) followed by short breaks (e.g., 5 minutes).\n*   **Minimize distractions:** Turn off your phone notifications and close unnecessary tabs on your computer.\n*   **Plan your study sessions:** Know exactly what you need to accomplish before you start.\n*   **Prioritize sleep and breaks:** A well-rested brain focuses much better than an exhausted one."
+     ],
+     [
+      "p",
+      "(Written offline by a small model: it may be wrong.)"
+     ]
+    ]
+   }
+  }
+ ],
+ "passed": 8,
+ "total": 8
+}
