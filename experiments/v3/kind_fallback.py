@@ -1,7 +1,7 @@
-"""experiments/v3/kind_fallback.py -- Gemma as the kind decision's fallback (ADR-037), on Kinds-v0 dev.
+"""experiments/v3/kind_fallback.py -- Gemma as the kind decision's fallback (ADR-037), on Kinds dev.
 
 One Gemma run over cal + val (the test split stays closed) through the Tier-4 runtime path
-(classify_items: datasets/contracts/tier4_kind_prompt.txt, k shots per (kind, language) from train,
+(classify_items: the dataset's kind prompt contract, k shots per (kind, language) from train,
 label-constrained decoding), logged per item next to the kind head's probabilities on the same items.
 Gemma's temperature is fitted on cal (BCE of confidence vs correctness, as for Tier 4); then, on val:
 
@@ -12,11 +12,14 @@ Gemma's temperature is fitted on cal (BCE of confidence vs correctness, as for T
 A taken decision is right or wrong: a skill the request did not ask for is written, or a skill request
 goes the old way (and is usually refused). An ask is counted, and whether it names the right kind.
 
-The runtime's settings (prompt + its SHA-256, shots, Gemma's T, tau_g) go to
-experiments/configs/kinds_fallback_v0.json, which the service's worker reads (src/kinds.rs).
+The runtime's settings (prompt + its SHA-256, labels, shots, Gemma's T, tau_g) go to
+experiments/configs/kinds_fallback_<v>.json, which the service's worker reads (src/kinds.rs).
+Kinds-v0 (tier4_kind_prompt.txt) is the first run; Kinds-v1 (tier4_kind_prompt_v1.txt, with `notes`,
+ADR-042) is run with Kinds-v1's final head, its logs and config named _v1.
 
     python experiments/v3/kind_fallback.py            # ~3-5 min of full CPU: Gemma on 231 items
     python experiments/v3/kind_fallback.py --reuse    # the policies again from the logged outputs
+    python experiments/v3/kind_fallback.py --dataset kinds_v1   # Gemma on Kinds-v1's 251 cal + val items
 """
 from __future__ import annotations
 
@@ -38,7 +41,6 @@ from splits import load_splits  # noqa: E402
 
 SLM = "gemma-4-e2b-it-q4_0"
 ENCODER = "multilingual-e5-small-q8_0"
-HEAD = ROOT / "experiments" / "artifacts" / "tier3" / f"kinds_v0-{ENCODER}"
 SHOTS_PER = 2  # as for Intents-v0 (ADR-015)
 TAU = 0.7  # kinds.rs TAU (draft)
 TAU_G = (0.5, 0.6, 0.7, 0.8, 0.9)
@@ -48,6 +50,16 @@ TAU_G_CHOSEN = 0.9
 CONFIG = ROOT / "experiments" / "configs" / "kinds_fallback_v0.json"
 LOG = ROOT / "experiments" / "logs" / "v3" / "kinds"
 OUTPUTS, SUMMARY = LOG / "fallback_outputs.jsonl", LOG / "fallback_dev.json"
+
+
+def paths(dataset: str) -> dict:
+    """The head, prompt, labels, logs and config of one Kinds version (Kinds-v0's names as first run)."""
+    prompt, labels, _ = TASKS[dataset]
+    v = "" if dataset == "kinds_v0" else "_" + dataset.removeprefix("kinds_")
+    return {"head": ROOT / "experiments" / "artifacts" / "tier3" / f"{dataset}-{ENCODER}",
+            "prompt": prompt, "labels": labels,
+            "outputs": LOG / f"fallback_outputs{v}.jsonl", "summary": LOG / f"fallback_dev{v}.json",
+            "config": CONFIG.with_name(f"kinds_fallback_{'v0' if not v else v[1:]}.json")}
 
 
 def decide(head, tau, gemma=None, tau_g=None):
@@ -70,13 +82,14 @@ def score(decisions, gold):
             "asked": len(asked), "asked_right_kind": sum(k == g for k, g in asked)}
 
 
-def fallback_config(meta: dict, temperature: float, tau_g: float, system: str) -> dict:
+def fallback_config(meta: dict, temperature: float, tau_g: float, system: str, at: dict | None = None) -> dict:
     """What the worker needs to run the fallback as the dev run did; `system` is the prompt's text,
-    so the runtime cannot read another prompt than the one measured."""
+    so the runtime cannot read another prompt than the one measured. `at`: paths(), Kinds-v0's by default."""
+    at = at or paths("kinds_v0")
     return {"note": "v3 kind fallback (ADR-037), from experiments/v3/kind_fallback.py; tau_g is a draft",
-            "dev_log": str(SUMMARY.relative_to(ROOT)), "slm": meta["slm"], "model_file": meta["model_file"],
+            "dev_log": str(at["summary"].relative_to(ROOT)), "slm": meta["slm"], "model_file": meta["model_file"],
             "prompt": meta["prompt"], "prompt_sha256": meta["prompt_sha256"], "system": system,
-            "labels": "kinds.txt", "shots": meta["shots"], "temperature": temperature, "tau_g": tau_g,
+            "labels": at["labels"].name, "shots": meta["shots"], "temperature": temperature, "tau_g": tau_g,
             "head_sha256": meta["head_sha256"]}
 
 
@@ -84,10 +97,11 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run_models(splits) -> list[dict]:
+def run_models(splits, dataset: str = "kinds_v0") -> list[dict]:
     """Per item of cal then val: id, split, lang, gold, the head's probabilities, Gemma's output."""
-    labels = [l for l in TASKS["kinds_v0"][1].read_text().split("\n") if l and not l.startswith("#")]
-    w, b, t, meta = load_head(HEAD)
+    at = paths(dataset)
+    labels = [l for l in at["labels"].read_text().split("\n") if l and not l.startswith("#")]
+    w, b, t, meta = load_head(at["head"])
     if meta["classes"] != labels:
         raise ValueError(f"head classes {meta['classes']} are not {labels}")
     enc = load_encoder(ENCODER)
@@ -96,7 +110,7 @@ def run_models(splits) -> list[dict]:
     for name in ("cal", "val"):
         items = splits[name]
         p = softmax(logits(embed(enc, [r["text"] for r in items], chunk=2048), w, b), t)
-        out = classify(model_path(SLM), items, shots, task="kinds_v0")
+        out = classify(model_path(SLM), items, shots, task=dataset)
         for r, pr, o in zip(items, p, out):
             rows.append({"id": r["id"], "split": name, "lang": r["lang"], "gold": r["label"],
                          "head": {c: float(x) for c, x in zip(labels, pr)}, "gemma": o})
@@ -137,28 +151,31 @@ def summarize(rows) -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--reuse", action="store_true", help="read the logged outputs instead of running the models")
+    ap.add_argument("--dataset", choices=("kinds_v0", "kinds_v1"), default="kinds_v0")
     args = ap.parse_args(argv)
+    at = paths(args.dataset)
     LOG.mkdir(parents=True, exist_ok=True)
     if args.reuse:
-        rows = [json.loads(l) for l in OUTPUTS.read_text().splitlines()]
-        meta = json.loads(SUMMARY.read_text())["meta"]
+        rows = [json.loads(l) for l in at["outputs"].read_text().splitlines()]
+        meta = json.loads(at["summary"].read_text())["meta"]
     else:
-        rows, shots = run_models(load_splits("kinds_v0"))
-        OUTPUTS.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
-        meta = {"slm": SLM, "model_file": model_path(SLM).name, "encoder": ENCODER, "head_sha256": _sha(HEAD / "head.bin"),
-                "prompt": TASKS["kinds_v0"][0].name, "prompt_sha256": _sha(TASKS["kinds_v0"][0]),
+        rows, shots = run_models(load_splits(args.dataset), args.dataset)
+        at["outputs"].write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+        meta = {"slm": SLM, "model_file": model_path(SLM).name, "encoder": ENCODER,
+                "head_sha256": _sha(at["head"] / "head.bin"),
+                "prompt": at["prompt"].name, "prompt_sha256": _sha(at["prompt"]),
                 "shots_per_kind_and_language": SHOTS_PER, "shots": shots,
                 "note": "dev timing on the laptop as found; not a measurement"}
     meta.setdefault("model_file", model_path(SLM).name)
     out = {"meta": meta} | summarize(rows)
-    SUMMARY.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
-    prompt = TASKS["kinds_v0"][0]
+    at["summary"].write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+    prompt = at["prompt"]
     if _sha(prompt) != meta["prompt_sha256"]:
         raise ValueError(f"{prompt.name} changed since the dev run: run it again (without --reuse)")
-    cfg = fallback_config(meta, out["temperature_gemma"], TAU_G_CHOSEN, prompt.read_text(encoding="utf-8"))
-    CONFIG.write_text(json.dumps(cfg, indent=1, ensure_ascii=False) + "\n")
+    cfg = fallback_config(meta, out["temperature_gemma"], TAU_G_CHOSEN, prompt.read_text(encoding="utf-8"), at)
+    at["config"].write_text(json.dumps(cfg, indent=1, ensure_ascii=False) + "\n")
     print(json.dumps({k: v for k, v in out.items() if k not in ("meta", "val_unsure_items")}, indent=1))
-    print(f"wrote {SUMMARY.relative_to(ROOT)} and {CONFIG.relative_to(ROOT)}")
+    print(f"wrote {at['summary'].relative_to(ROOT)} and {at['config'].relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

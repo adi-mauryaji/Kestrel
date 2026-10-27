@@ -51,3 +51,23 @@ def test_the_committed_config_matches_the_dev_log_and_the_prompt():
     assert cfg["system"] == prompt.read_text(encoding="utf-8"), "the runtime uses the dev run's prompt"
     assert cfg["temperature"] == log["temperature_gemma"] and cfg["shots"] == log["meta"]["shots"]
     assert str(cfg["tau_g"]) in log["val_head_gemma"]
+
+
+def test_each_dataset_has_its_own_head_prompt_logs_and_config():
+    from kind_fallback import CONFIG, OUTPUTS, ROOT, SUMMARY, paths
+    v0, v1 = paths("kinds_v0"), paths("kinds_v1")
+    assert (v0["config"], v0["outputs"], v0["summary"]) == (CONFIG, OUTPUTS, SUMMARY)
+    assert v0["labels"].name == "kinds.txt" and v1["labels"].name == "kinds_v1.txt"
+    assert v1["prompt"].name == "tier4_kind_prompt_v1.txt"
+    assert v1["config"] == ROOT / "experiments" / "configs" / "kinds_fallback_v1.json"
+    assert v1["summary"].name == "fallback_dev_v1.json" and v1["outputs"].name == "fallback_outputs_v1.jsonl"
+    assert v1["head"].name.startswith("kinds_v1-")
+
+
+def test_the_config_names_its_labels_and_dev_log():
+    from kind_fallback import fallback_config, paths
+    meta = {"slm": "gemma", "model_file": "gemma.gguf", "prompt": "p.txt", "prompt_sha256": "p",
+            "shots": [], "head_sha256": "h"}
+    cfg = fallback_config(meta, 1.5, 0.9, "s", paths("kinds_v1"))
+    assert cfg["labels"] == "kinds_v1.txt" and cfg["dev_log"].endswith("fallback_dev_v1.json")
+    assert fallback_config(meta, 1.5, 0.9, "s")["labels"] == "kinds.txt"
