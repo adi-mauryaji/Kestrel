@@ -1,11 +1,10 @@
-# Kestrel-Kinds-v1 draft (ADR-041): the `notes` kind, a question the user's own notes answer, and its
-# boundaries. Kinds-v1 = Kinds-v0 (frozen) + these families (experiments/data/kinds_v1.py). notes-01..14 and the
-# app / chat families: drafted by Claude on 2026-10-27, reviewed by the human the same day, all OK
-# (experiments/v3/notes_review.py). notes-15..24 (ADR-042): drafted by Claude on 2026-10-27 after the first dev
-# head sent who / which questions about the user's people to app; pinned to train; not yet reviewed. With them
-# alone, Hinglish world facts ("japan ka prime minister kaun hai?") leaned to notes on val: train had no
-# current-fact who / when / which request, so app-v1-05..06 and chat-v1-03..04 (same day, also pinned, not yet
-# reviewed) are the general versions of those questions.
+# Kestrel-Kinds-v1 (frozen, ADR-041, ADR-042): the `notes` kind, a question the user's own notes answer, and
+# its boundaries. Kinds-v1 = Kinds-v0 (frozen) + these families (experiments/data/kinds_v1.py). Drafted by Claude
+# on 2026-10-27; reviewed by the human the same day, all 34 OK (experiments/v3/notes_review.py, log
+# experiments/logs/v3/notes/review.json). notes-15..24 were written after the first dev head sent who / which
+# questions about the user's people to app; with them alone, Hinglish world facts ("japan ka prime minister kaun
+# hai?") leaned to notes on val (train had no current-fact who / when / which request), so app-v1-05..06 and
+# chat-v1-03..04 are the general versions of those questions. All 14 are pinned to train.
 #
 # notes: who / when / how much / which, about the user's life, with or without the word "notes"; never a
 # named file (read_document), "what do you remember" (retrieve_memory) or "the last N notes" (summarize), all

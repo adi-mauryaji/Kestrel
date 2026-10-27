@@ -1,6 +1,6 @@
 {
  "dataset": "kestrel-kinds-v1",
- "status": "draft",
+ "status": "reviewed",
  "seed": 0,
  "labels": [
   "app",
@@ -12,7 +12,7 @@
  ],
  "sources": {
   "kestrel_kinds_v0/kinds.toml": "e96d7a92d70a7e3218955c53134edec35b0059731cda49a5c7b5eedac1fe0514",
-  "notes.toml": "67e4a04bf1567a32d60971e123f3375fe4dfef5490f34b24660c4048ea383a8a",
+  "notes.toml": "b539da4514147477b8fbb55c905c90e1609e963bff1e11d3abe71488ef7e1de7",
   "contracts/kinds_v1.txt": "d898dbd825a262e0e3098d6bfce46cb1d8e0b10c435d673edb98009bdcadff1a",
   "kestrel_intents_v0/splits/train.jsonl": "38054ba3755c141420cfea69e9f4dbe4d775bfe09ee59b51405e07e406fa3000",
   "kestrel_intents_v0/splits/cal.jsonl": "32a758c2893714a592d8d8890462ff599687c03cd98e9c5c492f15aa71b084d4",

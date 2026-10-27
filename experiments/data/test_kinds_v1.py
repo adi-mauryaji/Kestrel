@@ -72,3 +72,14 @@ def test_pinned_families_go_to_train_and_leave_every_other_split_as_it_was():
         assert [r for r in with_pins[name] if r["group"] not in pinned] == without[name], name
     assert {r["group"] for r in with_pins["train"]} >= pinned
     assert not any(r["group"] in pinned for name in ("cal", "val", "test") for r in with_pins[name])
+
+
+def test_the_frozen_build_says_reviewed_because_every_card_is_ok():
+    import json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    manifest = json.loads((root / "datasets/kestrel_kinds_v1/splits/manifest.json").read_text())
+    s = json.loads((root / "experiments/logs/v3/notes/review.json").read_text())["status"]["kindsv1"]
+    assert manifest["status"] == "reviewed"
+    assert s["ready"] and s["ok"] == s["units"] == len(load())
+    assert (root / "datasets/kestrel_kinds_v1/README.md").exists()

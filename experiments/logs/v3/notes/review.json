@@ -5,121 +5,205 @@
    "hash": "ab10c246fbdf4102",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:28.996Z"
+   "at": "2026-10-27T07:42:08.710Z"
   },
   "kindsv1:app:app-v1-02": {
    "hash": "670c4742a25ba4a1",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:31.130Z"
+   "at": "2026-10-27T07:42:10.726Z"
   },
   "kindsv1:app:app-v1-03": {
    "hash": "635367db3eaafe44",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:34.364Z"
+   "at": "2026-10-27T07:42:16.886Z"
   },
   "kindsv1:app:app-v1-04": {
    "hash": "2dd0490e3787f460",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:36.716Z"
+   "at": "2026-10-27T07:42:19.870Z"
+  },
+  "kindsv1:app:app-v1-05": {
+   "hash": "a3a87c865386587d",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:22.289Z"
+  },
+  "kindsv1:app:app-v1-06": {
+   "hash": "789bc40789dc4012",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:24.786Z"
   },
   "kindsv1:chat:chat-v1-01": {
    "hash": "ab22c9763b15932d",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:38.883Z"
+   "at": "2026-10-27T07:42:27.776Z"
   },
   "kindsv1:chat:chat-v1-02": {
    "hash": "f01395891573ef56",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:41.629Z"
+   "at": "2026-10-27T07:42:29.568Z"
+  },
+  "kindsv1:chat:chat-v1-03": {
+   "hash": "9873ea00037f0525",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:31.327Z"
+  },
+  "kindsv1:chat:chat-v1-04": {
+   "hash": "8443ef465ce1c5c8",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:33.020Z"
   },
   "kindsv1:notes:notes-01": {
    "hash": "b97cb13450a36285",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:26.542Z"
+   "at": "2026-10-27T07:37:59.214Z"
   },
   "kindsv1:notes:notes-02": {
    "hash": "63287618371e46da",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:38.011Z"
+   "at": "2026-10-27T07:38:14.758Z"
   },
   "kindsv1:notes:notes-03": {
    "hash": "d47dbe013948aecd",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:41.654Z"
+   "at": "2026-10-27T07:39:31.839Z"
   },
   "kindsv1:notes:notes-04": {
    "hash": "57a56a9f8b8c8ca4",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:44.150Z"
+   "at": "2026-10-27T07:40:30.091Z"
   },
   "kindsv1:notes:notes-05": {
    "hash": "8e3d1f9bd060d937",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:50.369Z"
+   "at": "2026-10-27T07:40:37.275Z"
   },
   "kindsv1:notes:notes-06": {
    "hash": "09bd08050cc6d89a",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:43:53.038Z"
+   "at": "2026-10-27T07:40:42.545Z"
   },
   "kindsv1:notes:notes-07": {
    "hash": "3bdecc915745e986",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:00.672Z"
+   "at": "2026-10-27T07:40:44.772Z"
   },
   "kindsv1:notes:notes-08": {
    "hash": "d6d58916b994590d",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:02.865Z"
+   "at": "2026-10-27T07:40:47.679Z"
   },
   "kindsv1:notes:notes-09": {
    "hash": "2e16997cde25ca77",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:05.415Z"
+   "at": "2026-10-27T07:40:50.242Z"
   },
   "kindsv1:notes:notes-10": {
    "hash": "22fd5a2511b1638d",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:08.517Z"
+   "at": "2026-10-27T07:40:54.387Z"
   },
   "kindsv1:notes:notes-11": {
    "hash": "b840694ae8ce760b",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:20.420Z"
+   "at": "2026-10-27T07:40:59.072Z"
   },
   "kindsv1:notes:notes-12": {
    "hash": "7a58393620906b5d",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:22.449Z"
+   "at": "2026-10-27T07:41:02.346Z"
   },
   "kindsv1:notes:notes-13": {
    "hash": "ac4ecbc5a9f65394",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:24.958Z"
+   "at": "2026-10-27T07:41:04.896Z"
   },
   "kindsv1:notes:notes-14": {
    "hash": "39ca0e3ee3beea15",
    "decision": "ok",
    "note": "",
-   "at": "2026-10-27T06:44:27.006Z"
+   "at": "2026-10-27T07:41:07.248Z"
+  },
+  "kindsv1:notes:notes-15": {
+   "hash": "386187fe58796d05",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:15.412Z"
+  },
+  "kindsv1:notes:notes-16": {
+   "hash": "f7e7de16817266df",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:18.344Z"
+  },
+  "kindsv1:notes:notes-17": {
+   "hash": "4a2756b7ca452ee2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:23.304Z"
+  },
+  "kindsv1:notes:notes-18": {
+   "hash": "7be4884472b8bd65",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:36.751Z"
+  },
+  "kindsv1:notes:notes-19": {
+   "hash": "53d38ac6cd395d87",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:38.114Z"
+  },
+  "kindsv1:notes:notes-20": {
+   "hash": "dcdcc2ff397fb1b5",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:46.061Z"
+  },
+  "kindsv1:notes:notes-21": {
+   "hash": "52d17b97f80aecb2",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:51.864Z"
+  },
+  "kindsv1:notes:notes-22": {
+   "hash": "aafa069ca200ac47",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:41:59.962Z"
+  },
+  "kindsv1:notes:notes-23": {
+   "hash": "8ca822ecd79c1cd0",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:03.789Z"
+  },
+  "kindsv1:notes:notes-24": {
+   "hash": "e49a4479824be8bc",
+   "decision": "ok",
+   "note": "",
+   "at": "2026-10-27T07:42:05.562Z"
   },
   "notesq:found:q-book": {
    "hash": "f4244885b54940cc",
@@ -411,11 +495,11 @@
   },
   "kindsv1": {
    "units": 34,
-   "ok": 20,
+   "ok": 34,
    "fix": 0,
    "stale": 0,
-   "missing": 14,
-   "ready": false
+   "missing": 0,
+   "ready": true
   }
  },
  "fixes": []
