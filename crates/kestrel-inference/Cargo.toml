@@ -33,5 +33,9 @@ required-features = ["llama"]
 name = "classify_items"
 required-features = ["llama"]
 
+[[example]]
+name = "chat_lines"
+required-features = ["llama"]
+
 [lints]
 workspace = true
