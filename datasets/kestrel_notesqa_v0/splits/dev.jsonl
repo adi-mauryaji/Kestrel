@@ -1,0 +1,24 @@
+{"facts": [["40"]], "family": "qa-battery", "id": "qa-battery/en/0", "lang": "en", "notes": ["2026-09-10-laptop-issues.md"], "text": "how low does my laptop battery go in two hours?"}
+{"facts": [["40"]], "family": "qa-battery", "id": "qa-battery/hi-en/0", "lang": "hi-en", "notes": ["2026-09-10-laptop-issues.md"], "text": "do ghante mein laptop ki battery kitni reh jaati hai?"}
+{"facts": [["monday"], ["wednesday"], ["friday"]], "family": "qa-gym-days", "id": "qa-gym-days/en/0", "lang": "en", "notes": ["2026-09-05-gym-routine.md"], "text": "on which days do i do squats?"}
+{"facts": [["monday"], ["wednesday"], ["friday"]], "family": "qa-gym-days", "id": "qa-gym-days/hi-en/0", "lang": "hi-en", "notes": ["2026-09-05-gym-routine.md"], "text": "squats kis din karne hain?"}
+{"facts": [["25"]], "family": "qa-insurance", "id": "qa-insurance/en/0", "lang": "en", "notes": ["2026-10-03-car-service.md"], "text": "by when do i renew the car insurance?"}
+{"facts": [["25"]], "family": "qa-insurance", "id": "qa-insurance/hi-en/0", "lang": "hi-en", "notes": ["2026-10-03-car-service.md"], "text": "car insurance kab tak renew karna hai?"}
+{"facts": [["aadhaar", "aadhar"], ["pan"]], "family": "qa-kyc", "id": "qa-kyc/en/0", "lang": "en", "notes": ["2026-10-11-bank-kyc.md"], "text": "which documents does the bank need for kyc?"}
+{"facts": [["aadhaar", "aadhar"], ["pan"]], "family": "qa-kyc", "id": "qa-kyc/hi-en/0", "lang": "hi-en", "notes": ["2026-10-11-bank-kyc.md"], "text": "kyc ke liye bank ko kaunse documents chahiye?"}
+{"facts": [["kapoor"]], "family": "qa-landlord", "id": "qa-landlord/en/0", "lang": "en", "notes": ["2026-09-22-landlord.md"], "text": "what is my landlord's name?"}
+{"facts": [["kapoor"]], "family": "qa-landlord", "id": "qa-landlord/hi-en/0", "lang": "hi-en", "notes": ["2026-09-22-landlord.md"], "text": "mere landlord ka naam kya hai?"}
+{"facts": [["friday"], ["7"]], "family": "qa-mock", "id": "qa-mock/en/0", "lang": "en", "notes": ["2026-09-20-interview-prep.md"], "text": "when is my mock interview?"}
+{"facts": [["friday"], ["7"]], "family": "qa-mock", "id": "qa-mock/hi-en/0", "lang": "hi-en", "notes": ["2026-09-20-interview-prep.md"], "text": "mock interview kab hai?"}
+{"facts": [["chocolate"], ["eggless"]], "family": "qa-mom-cake", "id": "qa-mom-cake/en/0", "lang": "en", "notes": ["2026-09-08-mom-birthday.md"], "text": "which cake do i order for maa?"}
+{"facts": [["chocolate"], ["eggless"]], "family": "qa-mom-cake", "id": "qa-mom-cake/hi-en/0", "lang": "hi-en", "notes": ["2026-09-08-mom-birthday.md"], "text": "maa ke birthday ke liye kaunsa cake order karna hai?"}
+{"facts": [], "family": "qa-none-cake-price", "id": "qa-none-cake-price/en/0", "lang": "en", "notes": [], "text": "how much does maa's cake cost?"}
+{"facts": [], "family": "qa-none-cake-price", "id": "qa-none-cake-price/hi-en/0", "lang": "hi-en", "notes": [], "text": "maa ke cake ki keemat kitni hai?"}
+{"facts": [], "family": "qa-none-phone", "id": "qa-none-phone/en/0", "lang": "en", "notes": [], "text": "what is ravi's phone number?"}
+{"facts": [], "family": "qa-none-phone", "id": "qa-none-phone/hi-en/0", "lang": "hi-en", "notes": [], "text": "ravi ka phone number kya hai?"}
+{"facts": [], "family": "qa-none-salary", "id": "qa-none-salary/en/0", "lang": "en", "notes": [], "text": "what is my salary?"}
+{"facts": [], "family": "qa-none-salary", "id": "qa-none-salary/hi-en/0", "lang": "hi-en", "notes": [], "text": "meri salary kitni hai?"}
+{"facts": [["monday"]], "family": "qa-release", "id": "qa-release/en/0", "lang": "en", "notes": ["2026-10-01-team-meeting.md"], "text": "when is the release now?"}
+{"facts": [["monday"]], "family": "qa-release", "id": "qa-release/hi-en/0", "lang": "hi-en", "notes": ["2026-10-01-team-meeting.md"], "text": "release ab kab hai?"}
+{"facts": [["12000", "12,000"]], "family": "qa-rent", "id": "qa-rent/en/0", "lang": "en", "notes": ["2026-09-02-budget-plan.md"], "text": "how much is my rent?"}
+{"facts": [["12000", "12,000"]], "family": "qa-rent", "id": "qa-rent/hi-en/0", "lang": "hi-en", "notes": ["2026-09-02-budget-plan.md"], "text": "mera rent kitna hai?"}

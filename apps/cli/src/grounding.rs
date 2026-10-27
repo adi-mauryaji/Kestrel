@@ -26,6 +26,37 @@ const STOP: &[&str] = &[
 /// Ok, or why not: the numbers and names the notes lack, or the share of content words they
 /// support.
 pub fn check(summary: &str, sources: &[&str]) -> Result<(), String> {
+    let (missing, content, supported) = scan(summary, sources);
+    facts_in_notes(missing)?;
+    if content == 0 {
+        return Err("no content words".into());
+    }
+    if (supported as f64) < MIN_SUPPORT * content as f64 {
+        return Err(format!(
+            "only {supported} of {content} content words are in the notes"
+        ));
+    }
+    Ok(())
+}
+
+/// Ok, or the numbers and names `answer` has that the notes lack: the check for an answer from the
+/// notes (src/notes_qa.rs), which may be in Hinglish over English notes and so use other words.
+pub fn check_facts(answer: &str, sources: &[&str]) -> Result<(), String> {
+    facts_in_notes(scan(answer, sources).0)
+}
+
+fn facts_in_notes(missing: Vec<String>) -> Result<(), String> {
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "names or numbers not in the notes: {}",
+        missing.join(", ")
+    ))
+}
+
+/// (the numbers and names of `text` the notes lack, its content words, how many the notes support)
+fn scan(text: &str, sources: &[&str]) -> (Vec<String>, usize, usize) {
     let source: Vec<String> = sources
         .iter()
         .flat_map(|s| tokens(s))
@@ -34,7 +65,7 @@ pub fn check(summary: &str, sources: &[&str]) -> Result<(), String> {
     let known = |w: &str| source.iter().any(|s| supports(s, w));
     let mut missing: Vec<String> = Vec::new();
     let (mut content, mut supported) = (0usize, 0usize);
-    for (w, starts_sentence) in tokens(summary) {
+    for (w, starts_sentence) in tokens(text) {
         let low = w.to_lowercase();
         let number = w.chars().all(|c| c.is_ascii_digit());
         let name = !starts_sentence && w != "I" && w.starts_with(char::is_uppercase);
@@ -52,21 +83,7 @@ pub fn check(summary: &str, sources: &[&str]) -> Result<(), String> {
             supported += usize::from(known(&low));
         }
     }
-    if !missing.is_empty() {
-        return Err(format!(
-            "names or numbers not in the notes: {}",
-            missing.join(", ")
-        ));
-    }
-    if content == 0 {
-        return Err("no content words".into());
-    }
-    if (supported as f64) < MIN_SUPPORT * content as f64 {
-        return Err(format!(
-            "only {supported} of {content} content words are in the notes"
-        ));
-    }
-    Ok(())
+    (missing, content, supported)
 }
 
 /// The words of `text` (letters and digits; split where they meet, so "3pm" is "3", "pm"), each
@@ -215,5 +232,22 @@ mod tests {
             Ok(())
         );
         assert!(check("Budget meeting Sunil ke saath hui.", &[a, b]).is_err());
+    }
+
+    #[test]
+    fn an_answer_in_hinglish_keeps_its_facts_to_the_notes() {
+        // Notes Q&A (src/notes_qa.rs): the answer may be in Hinglish over English notes, so only its
+        // numbers and names are held to the notes.
+        let notes = ["Monthly budget\n\nRent 12000, groceries about 6000."];
+        assert_eq!(check_facts("Mera rent 12000 hai.", &notes), Ok(()));
+        assert!(
+            check("Mera rent 12000 hai.", &notes).is_err(),
+            "the summary rule would refuse it"
+        );
+        assert_eq!(
+            check_facts("Mera rent 15000 hai.", &notes),
+            Err("names or numbers not in the notes: 15000".into())
+        );
+        assert!(check_facts("Rent is paid to Sharma ji.", &notes).is_err());
     }
 }

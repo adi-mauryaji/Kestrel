@@ -1,0 +1,175 @@
+# Kestrel-NotesQA-v0 (DRAFT, ADR-041): questions a notes folder answers, or does not.
+# Drafted by Claude on 2026-10-27; not yet reviewed by the human.
+#
+# The notes are Kestrel-NotesQ-v0's fixture notes (datasets/kestrel_notesq_v0/notes/). Each family: the note
+# that answers it and the facts a right answer contains (every inner list is one fact, written any of its
+# ways), or no note and no facts (the notes do not say: the right answer is that they do not). One English
+# and one Romanized Hinglish question each.
+
+[[family]]
+id = "qa-rent"
+notes = ["2026-09-02-budget-plan.md"]
+facts = [["12000", "12,000"]]
+en = ["how much is my rent?"]
+hi-en = ["mera rent kitna hai?"]
+
+[[family]]
+id = "qa-deposit"
+notes = ["2026-09-02-budget-plan.md"]
+facts = [["5000", "5,000"]]
+en = ["how much do i put in the recurring deposit?"]
+hi-en = ["recurring deposit mein kitna dalna hai?"]
+
+[[family]]
+id = "qa-gym-days"
+notes = ["2026-09-05-gym-routine.md"]
+facts = [["monday"], ["wednesday"], ["friday"]]
+en = ["on which days do i do squats?"]
+hi-en = ["squats kis din karne hain?"]
+
+[[family]]
+id = "qa-mom-cake"
+notes = ["2026-09-08-mom-birthday.md"]
+facts = [["chocolate"], ["eggless"]]
+en = ["which cake do i order for maa?"]
+hi-en = ["maa ke birthday ke liye kaunsa cake order karna hai?"]
+
+[[family]]
+id = "qa-mom-date"
+notes = ["2026-09-08-mom-birthday.md"]
+facts = [["20"], ["september", "sep"]]
+en = ["when is maa's birthday?"]
+hi-en = ["maa ka birthday kab hai?"]
+
+[[family]]
+id = "qa-battery"
+notes = ["2026-09-10-laptop-issues.md"]
+facts = [["40"]]
+en = ["how low does my laptop battery go in two hours?"]
+hi-en = ["do ghante mein laptop ki battery kitni reh jaati hai?"]
+
+[[family]]
+id = "qa-goa-flight"
+notes = ["2026-09-15-goa-trip.md"]
+facts = [["14"]]
+en = ["on which date do i fly to goa?"]
+hi-en = ["goa ki flight kis tareekh ko hai?"]
+
+[[family]]
+id = "qa-goa-stay"
+notes = ["2026-09-15-goa-trip.md"]
+facts = [["palolem"]]
+en = ["where are we staying in goa?"]
+hi-en = ["goa mein kahan rukna hai?"]
+
+[[family]]
+id = "qa-doctor"
+notes = ["2026-09-18-doctor-visit.md"]
+facts = [["mehta"]]
+en = ["which doctor did i see for the fever?"]
+hi-en = ["bukhaar ke liye maine kis doctor ko dikhaya tha?"]
+
+[[family]]
+id = "qa-dose"
+notes = ["2026-09-18-doctor-visit.md"]
+facts = [["three", "3", "teen"]]
+en = ["how many times a day do i take paracetamol?"]
+hi-en = ["paracetamol din mein kitni baar leni hai?"]
+
+[[family]]
+id = "qa-mock"
+notes = ["2026-09-20-interview-prep.md"]
+facts = [["friday"], ["7"]]
+en = ["when is my mock interview?"]
+hi-en = ["mock interview kab hai?"]
+
+[[family]]
+id = "qa-landlord"
+notes = ["2026-09-22-landlord.md"]
+facts = [["kapoor"]]
+en = ["what is my landlord's name?"]
+hi-en = ["mere landlord ka naam kya hai?"]
+
+[[family]]
+id = "qa-release"
+notes = ["2026-10-01-team-meeting.md"]
+facts = [["monday"]]
+en = ["when is the release now?"]
+hi-en = ["release ab kab hai?"]
+
+[[family]]
+id = "qa-api"
+notes = ["2026-10-01-team-meeting.md"]
+facts = [["ravi"]]
+en = ["who owns the api changes?"]
+hi-en = ["api changes kaun dekh raha hai?"]
+
+[[family]]
+id = "qa-tyre"
+notes = ["2026-10-03-car-service.md"]
+facts = [["32"]]
+en = ["what tyre pressure should i keep?"]
+hi-en = ["tyre mein kitna pressure rakhna hai?"]
+
+[[family]]
+id = "qa-insurance"
+notes = ["2026-10-03-car-service.md"]
+facts = [["25"]]
+en = ["by when do i renew the car insurance?"]
+hi-en = ["car insurance kab tak renew karna hai?"]
+
+[[family]]
+id = "qa-kyc"
+notes = ["2026-10-11-bank-kyc.md"]
+facts = [["aadhaar", "aadhar"], ["pan"]]
+en = ["which documents does the bank need for kyc?"]
+hi-en = ["kyc ke liye bank ko kaunse documents chahiye?"]
+
+[[family]]
+id = "qa-router"
+notes = ["docs/wifi-setup.md"]
+facts = [["192.168.1.1"]]
+en = ["what is the router's admin address?"]
+hi-en = ["router ke admin page ka address kya hai?"]
+
+[[family]]
+id = "qa-none-passport"
+notes = []
+facts = []
+en = ["when does my passport expire?"]
+hi-en = ["mera passport kab expire hoga?"]
+
+[[family]]
+id = "qa-none-salary"
+notes = []
+facts = []
+en = ["what is my salary?"]
+hi-en = ["meri salary kitni hai?"]
+
+[[family]]
+id = "qa-none-dentist"
+notes = []
+facts = []
+en = ["when is my dentist appointment?"]
+hi-en = ["dentist ka appointment kab hai?"]
+
+[[family]]
+id = "qa-none-hotel"
+notes = []
+facts = []
+en = ["what is the name of our hotel in goa?"]
+hi-en = ["goa wale hotel ka naam kya hai?"]
+
+[[family]]
+id = "qa-none-phone"
+notes = []
+facts = []
+en = ["what is ravi's phone number?"]
+hi-en = ["ravi ka phone number kya hai?"]
+
+[[family]]
+id = "qa-none-cake-price"
+notes = []
+facts = []
+en = ["how much does maa's cake cost?"]
+hi-en = ["maa ke cake ki keemat kitni hai?"]

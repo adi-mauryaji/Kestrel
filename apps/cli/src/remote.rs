@@ -10,7 +10,8 @@
 //! for each `{"id": N, "write": {"kind": "...", "text": "..."}}` (v3, src/kinds.rs) the text as it
 //! is written, `{"part": "..."}` per piece, then `{"text": "..."}`; for each `{"id": N, "kind":
 //! "..."}` (v3's fallback when the kind head is unsure) `{"probs": [["chat", 0.93]]}` in kinds;
-//! any may be `{"error": "..."}`.
+//! for each `{"id": N, "answer": {"question": "...", "notes": [{"name", "text"}, ...]}}` (v3 notes
+//! Q&A, src/notes_qa.rs) `{"text": "...", "ungrounded": null | "why"}`; any may be `{"error": "..."}`.
 
 use std::cell::{Cell, RefCell};
 use std::io::{BufRead, BufReader, Write};
@@ -129,6 +130,45 @@ impl RemoteTier {
             Some(e) => Err(KestrelError::Invalid(e.to_string())),
             None => Ok(v),
         }
+    }
+}
+
+/// Gemma's answer from the notes (src/notes_qa.rs), and why it is not grounded when it is not.
+#[derive(Debug, PartialEq)]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "used once Kinds-v1's notes kind is wired (ADR-041)"
+    )
+)]
+pub struct NotesAnswer {
+    pub text: String,
+    pub ungrounded: Option<String>,
+}
+
+impl RemoteTier {
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "used once Kinds-v1's notes kind is wired (ADR-041)"
+        )
+    )]
+    pub fn answer_from_notes(
+        &self,
+        question: &str,
+        notes: &[(&str, &str)],
+    ) -> Result<NotesAnswer, KestrelError> {
+        let notes: Vec<Value> = (notes.iter())
+            .map(|(name, text)| json!({"name": name, "text": text}))
+            .collect();
+        let msg = json!({"id": 0, "answer": {"question": question, "notes": notes}});
+        let v = self.exchange(&msg, &mut |_| {})?;
+        Ok(NotesAnswer {
+            text: v["text"].as_str().ok_or_else(unavailable)?.to_string(),
+            ungrounded: v["ungrounded"].as_str().map(String::from),
+        })
     }
 }
 
@@ -346,6 +386,25 @@ mod tests {
             Err(KestrelError::Invalid(_))
         ));
         assert!(t.is_loaded(), "one worker for everything");
+    }
+
+    #[test]
+    fn the_same_worker_answers_from_notes_and_says_when_it_is_not_grounded() {
+        let script = r#"echo '{"ready": true}'; while read -r l; do case "$l" in
+            *'"question":"mera rent kitna hai?"'*) echo '{"text": "Rent 12000 hai.", "ungrounded": null}';;
+            *'"question":"rent?"'*) echo '{"text": "Rent 15000.", "ungrounded": "15000 is not in the notes"}';;
+            *) echo '{"error": "unexpected"}';; esac; done"#;
+        let t = RemoteTier::new(
+            "sh".into(),
+            vec!["-c".into(), script.into()],
+            900,
+            Duration::from_secs(600),
+        );
+        let notes = [("budget.md", "Rent 12000.")];
+        let a = t.answer_from_notes("mera rent kitna hai?", &notes).unwrap();
+        assert_eq!((a.text.as_str(), a.ungrounded), ("Rent 12000 hai.", None));
+        let a = t.answer_from_notes("rent?", &notes).unwrap();
+        assert_eq!(a.ungrounded.as_deref(), Some("15000 is not in the notes"));
     }
 
     #[test]

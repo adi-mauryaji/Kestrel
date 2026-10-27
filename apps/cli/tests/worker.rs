@@ -159,3 +159,33 @@ fn the_worker_chooses_kinds_as_the_dev_run_did() {
     }
     let _ = std::fs::remove_dir_all(&cache);
 }
+
+#[test]
+#[ignore = "needs models/ and --features llama"]
+fn the_worker_answers_from_the_notes_or_says_they_do_not() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let cache = std::env::temp_dir().join(format!("kestrel_qa_{}", std::process::id()));
+    let note = std::fs::read_to_string(
+        root.join("datasets/kestrel_notesq_v0/notes/2026-09-02-budget-plan.md"),
+    )
+    .unwrap();
+    let ask = |q: &str| {
+        let msg = serde_json::json!({"id": 0, "answer": {"question": q, "notes": [{"name": "2026-09-02-budget-plan.md", "text": note}]}});
+        let (reply, _) = start_and_send(&root, &cache, &msg.to_string());
+        serde_json::from_str::<serde_json::Value>(&reply).unwrap()
+    };
+    let v = ask("how much is my rent?");
+    let text = v["text"].as_str().unwrap();
+    assert!(text.contains("12000") || text.contains("12,000"), "{v}");
+    assert!(v["ungrounded"].is_null(), "{v}");
+    let v = ask("when does my passport expire?");
+    assert!(
+        v["text"]
+            .as_str()
+            .unwrap()
+            .to_lowercase()
+            .starts_with("not in notes"),
+        "{v}"
+    );
+    let _ = std::fs::remove_dir_all(&cache);
+}

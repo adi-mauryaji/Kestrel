@@ -58,6 +58,8 @@ mod labels;
 mod meaning;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod notes_qa;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;

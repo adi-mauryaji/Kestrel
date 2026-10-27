@@ -1,0 +1,22 @@
+{
+ "dataset": "kestrel-notesqa-v0",
+ "status": "draft",
+ "seed": 0,
+ "sources": {
+  "questions.toml": "df301a840734ec46db973a1db9249dca73cb0a03ba47541ed9b56eea2381dcbb",
+  "kestrel_notesq_v0/notes/": "1a0db5d58ea17aa0d070c4695b133d471547e0541a28ad0ea0c694fcf712a24c"
+ },
+ "fingerprint": "7b97782899f1e79236f3eeac630ebab56bff3e0428566a2270d33e8b5de1104e",
+ "splits": {
+  "dev": {
+   "families": 12,
+   "questions": 24,
+   "unanswerable": 6
+  },
+  "test": {
+   "families": 12,
+   "questions": 24,
+   "unanswerable": 6
+  }
+ }
+}

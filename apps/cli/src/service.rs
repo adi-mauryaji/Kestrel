@@ -260,6 +260,28 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 Some(Err(e)) => json!({"error": e.to_string()}),
                 None => json!({"error": "unknown kind"}),
             }
+        } else if v["answer"].is_object() {
+            // v3 notes Q&A (ADR-041): from the given notes only, and checked before it is shown.
+            let q = v["answer"]["question"].as_str().unwrap_or_default();
+            let notes: Vec<(String, String)> = (v["answer"]["notes"].as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|n| {
+                            Some((n["name"].as_str()?.into(), n["text"].as_str()?.into()))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            match write_notes_answer(slm, &mut writer, format, q, &notes) {
+                Ok(t) => {
+                    let texts: Vec<&str> = notes.iter().map(|(_, t)| t.as_str()).collect();
+                    let ungrounded = (!crate::notes_qa::not_in_notes(&t))
+                        .then(|| crate::grounding::check_facts(&t, &texts).err())
+                        .flatten();
+                    json!({"text": t, "ungrounded": ungrounded})
+                }
+                Err(e) => json!({"error": e.to_string()}),
+            }
         } else if let Some(text) = v["kind"].as_str() {
             let tier =
                 kinds.get_or_insert_with(|| models.kinds_fallback().map_err(|e| e.to_string()));
@@ -340,6 +362,38 @@ fn write_skill<'m>(
         None => request.to_string(),
     };
     answer(slm, writer, &prompt, &user, kind.max_tokens(), on_part)
+}
+
+/// Gemma's answer to `question` from `notes` (name, text) only (src/notes_qa.rs), in `writer`'s
+/// context; not streamed, since the caller shows it only once it is checked.
+#[cfg(feature = "llama")]
+fn write_notes_answer<'m>(
+    slm: &'m kestrel_inference::llama::LlamaSlm,
+    writer: &mut Option<kestrel_inference::llama::LlamaSession<'m>>,
+    format: kestrel_inference::prompt::ChatFormat,
+    question: &str,
+    notes: &[(String, String)],
+) -> Result<String, kestrel_core::KestrelError> {
+    let pairs: Vec<(&str, &str)> = notes
+        .iter()
+        .map(|(n, t)| (n.as_str(), t.as_str()))
+        .collect();
+    let user = crate::notes_qa::user_message(question, &pairs);
+    // Note text and the question must not open or close chat turns (as for Tier 4, tier.rs).
+    if slm.has_special_tokens(&user)? {
+        return Err(kestrel_core::KestrelError::Invalid(
+            "the notes or the question contain control-token text".into(),
+        ));
+    }
+    let prompt = kestrel_inference::prompt::ChatPrompt::new(format, crate::notes_qa::SYSTEM);
+    answer(
+        slm,
+        writer,
+        &prompt,
+        &user,
+        crate::notes_qa::MAX_TOKENS,
+        &mut |_| {},
+    )
 }
 
 /// Gemma's greedy answer (at most `max_tokens`) to `user` under `prompt`, in `writer`'s context

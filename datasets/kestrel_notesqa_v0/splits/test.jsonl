@@ -1,0 +1,24 @@
+{"facts": [["ravi"]], "family": "qa-api", "id": "qa-api/en/0", "lang": "en", "notes": ["2026-10-01-team-meeting.md"], "text": "who owns the api changes?"}
+{"facts": [["ravi"]], "family": "qa-api", "id": "qa-api/hi-en/0", "lang": "hi-en", "notes": ["2026-10-01-team-meeting.md"], "text": "api changes kaun dekh raha hai?"}
+{"facts": [["5000", "5,000"]], "family": "qa-deposit", "id": "qa-deposit/en/0", "lang": "en", "notes": ["2026-09-02-budget-plan.md"], "text": "how much do i put in the recurring deposit?"}
+{"facts": [["5000", "5,000"]], "family": "qa-deposit", "id": "qa-deposit/hi-en/0", "lang": "hi-en", "notes": ["2026-09-02-budget-plan.md"], "text": "recurring deposit mein kitna dalna hai?"}
+{"facts": [["mehta"]], "family": "qa-doctor", "id": "qa-doctor/en/0", "lang": "en", "notes": ["2026-09-18-doctor-visit.md"], "text": "which doctor did i see for the fever?"}
+{"facts": [["mehta"]], "family": "qa-doctor", "id": "qa-doctor/hi-en/0", "lang": "hi-en", "notes": ["2026-09-18-doctor-visit.md"], "text": "bukhaar ke liye maine kis doctor ko dikhaya tha?"}
+{"facts": [["three", "3", "teen"]], "family": "qa-dose", "id": "qa-dose/en/0", "lang": "en", "notes": ["2026-09-18-doctor-visit.md"], "text": "how many times a day do i take paracetamol?"}
+{"facts": [["three", "3", "teen"]], "family": "qa-dose", "id": "qa-dose/hi-en/0", "lang": "hi-en", "notes": ["2026-09-18-doctor-visit.md"], "text": "paracetamol din mein kitni baar leni hai?"}
+{"facts": [["14"]], "family": "qa-goa-flight", "id": "qa-goa-flight/en/0", "lang": "en", "notes": ["2026-09-15-goa-trip.md"], "text": "on which date do i fly to goa?"}
+{"facts": [["14"]], "family": "qa-goa-flight", "id": "qa-goa-flight/hi-en/0", "lang": "hi-en", "notes": ["2026-09-15-goa-trip.md"], "text": "goa ki flight kis tareekh ko hai?"}
+{"facts": [["palolem"]], "family": "qa-goa-stay", "id": "qa-goa-stay/en/0", "lang": "en", "notes": ["2026-09-15-goa-trip.md"], "text": "where are we staying in goa?"}
+{"facts": [["palolem"]], "family": "qa-goa-stay", "id": "qa-goa-stay/hi-en/0", "lang": "hi-en", "notes": ["2026-09-15-goa-trip.md"], "text": "goa mein kahan rukna hai?"}
+{"facts": [["20"], ["september", "sep"]], "family": "qa-mom-date", "id": "qa-mom-date/en/0", "lang": "en", "notes": ["2026-09-08-mom-birthday.md"], "text": "when is maa's birthday?"}
+{"facts": [["20"], ["september", "sep"]], "family": "qa-mom-date", "id": "qa-mom-date/hi-en/0", "lang": "hi-en", "notes": ["2026-09-08-mom-birthday.md"], "text": "maa ka birthday kab hai?"}
+{"facts": [], "family": "qa-none-dentist", "id": "qa-none-dentist/en/0", "lang": "en", "notes": [], "text": "when is my dentist appointment?"}
+{"facts": [], "family": "qa-none-dentist", "id": "qa-none-dentist/hi-en/0", "lang": "hi-en", "notes": [], "text": "dentist ka appointment kab hai?"}
+{"facts": [], "family": "qa-none-hotel", "id": "qa-none-hotel/en/0", "lang": "en", "notes": [], "text": "what is the name of our hotel in goa?"}
+{"facts": [], "family": "qa-none-hotel", "id": "qa-none-hotel/hi-en/0", "lang": "hi-en", "notes": [], "text": "goa wale hotel ka naam kya hai?"}
+{"facts": [], "family": "qa-none-passport", "id": "qa-none-passport/en/0", "lang": "en", "notes": [], "text": "when does my passport expire?"}
+{"facts": [], "family": "qa-none-passport", "id": "qa-none-passport/hi-en/0", "lang": "hi-en", "notes": [], "text": "mera passport kab expire hoga?"}
+{"facts": [["192.168.1.1"]], "family": "qa-router", "id": "qa-router/en/0", "lang": "en", "notes": ["docs/wifi-setup.md"], "text": "what is the router's admin address?"}
+{"facts": [["192.168.1.1"]], "family": "qa-router", "id": "qa-router/hi-en/0", "lang": "hi-en", "notes": ["docs/wifi-setup.md"], "text": "router ke admin page ka address kya hai?"}
+{"facts": [["32"]], "family": "qa-tyre", "id": "qa-tyre/en/0", "lang": "en", "notes": ["2026-10-03-car-service.md"], "text": "what tyre pressure should i keep?"}
+{"facts": [["32"]], "family": "qa-tyre", "id": "qa-tyre/hi-en/0", "lang": "hi-en", "notes": ["2026-10-03-car-service.md"], "text": "tyre mein kitna pressure rakhna hai?"}

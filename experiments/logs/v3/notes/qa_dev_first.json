@@ -1,0 +1,700 @@
+{
+ "encoder": "multilingual-e5-small-q8_0",
+ "n_notes_given": 2,
+ "theta": 0.83,
+ "dev_questions": 24,
+ "retrieved_at_n": 1.0,
+ "at_theta": {
+  "answerable": {
+   "right": 14,
+   "wrong": 0,
+   "abstained": 4
+  },
+  "unanswerable": {
+   "right": 4,
+   "wrong": 2
+  }
+ },
+ "by_lang_at_theta": {
+  "en": {
+   "answerable": {
+    "right": 9,
+    "wrong": 0
+   },
+   "unanswerable": {
+    "right": 2,
+    "wrong": 1
+   }
+  },
+  "hi-en": {
+   "answerable": {
+    "right": 5,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 2,
+    "wrong": 1
+   }
+  }
+ },
+ "grid": {
+  "0.78": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.79": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.8": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.81": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.82": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.83": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.84": {
+   "answerable": {
+    "right": 14,
+    "wrong": 0,
+    "abstained": 4
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.85": {
+   "answerable": {
+    "right": 12,
+    "wrong": 0,
+    "abstained": 6
+   },
+   "unanswerable": {
+    "right": 4,
+    "wrong": 2
+   }
+  },
+  "0.86": {
+   "answerable": {
+    "right": 11,
+    "wrong": 0,
+    "abstained": 7
+   },
+   "unanswerable": {
+    "right": 6,
+    "wrong": 0
+   }
+  },
+  "0.87": {
+   "answerable": {
+    "right": 9,
+    "wrong": 0,
+    "abstained": 9
+   },
+   "unanswerable": {
+    "right": 6,
+    "wrong": 0
+   }
+  }
+ },
+ "answer_s": {
+  "mean": 5.86,
+  "max": 8.93
+ },
+ "errors": [],
+ "questions": [
+  {
+   "id": "qa-battery/en/0",
+   "text": "how low does my laptop battery go in two hours?",
+   "asked": "how low does my laptop battery go in two hours?",
+   "notes": [
+    "2026-09-10-laptop-issues.md"
+   ],
+   "top": [
+    [
+     "2026-09-10-laptop-issues.md",
+     0.8952
+    ],
+    [
+     "2026-09-05-gym-routine.md",
+     0.8265
+    ]
+   ],
+   "answer": "The battery drops from 100 to 40 in two hours.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 6.16
+  },
+  {
+   "id": "qa-battery/hi-en/0",
+   "text": "do ghante mein laptop ki battery kitni reh jaati hai?",
+   "asked": "How many hours does the laptop battery last?",
+   "notes": [
+    "2026-09-10-laptop-issues.md"
+   ],
+   "top": [
+    [
+     "2026-09-10-laptop-issues.md",
+     0.8955
+    ],
+    [
+     "2026-10-14-sleep.md",
+     0.8261
+    ]
+   ],
+   "answer": "Battery do ghante mein 100 se 40 ho jaati hai.",
+   "ungrounded": "only 1 of 3 content words are in the notes",
+   "seen": "withheld",
+   "grade": "abstained",
+   "s": 6.16
+  },
+  {
+   "id": "qa-gym-days/en/0",
+   "text": "on which days do i do squats?",
+   "asked": "on which days do i do squats?",
+   "notes": [
+    "2026-09-05-gym-routine.md"
+   ],
+   "top": [
+    [
+     "2026-09-05-gym-routine.md",
+     0.8832
+    ],
+    [
+     "2026-10-11-bank-kyc.md",
+     0.8221
+    ]
+   ],
+   "answer": "You do squats on Monday, Wednesday, and Friday.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.47
+  },
+  {
+   "id": "qa-gym-days/hi-en/0",
+   "text": "squats kis din karne hain?",
+   "asked": "On which day should I do squats?",
+   "notes": [
+    "2026-09-05-gym-routine.md"
+   ],
+   "top": [
+    [
+     "2026-09-05-gym-routine.md",
+     0.8769
+    ],
+    [
+     "2026-10-11-bank-kyc.md",
+     0.8283
+    ]
+   ],
+   "answer": "Squats Monday, Wednesday, aur Friday ko karne hain.",
+   "ungrounded": "only 1 of 2 content words are in the notes",
+   "seen": "withheld",
+   "grade": "abstained",
+   "s": 5.57
+  },
+  {
+   "id": "qa-insurance/en/0",
+   "text": "by when do i renew the car insurance?",
+   "asked": "by when do i renew the car insurance?",
+   "notes": [
+    "2026-10-03-car-service.md"
+   ],
+   "top": [
+    [
+     "2026-10-03-car-service.md",
+     0.8766
+    ],
+    [
+     "2026-09-15-goa-trip.md",
+     0.8147
+    ]
+   ],
+   "answer": "Insurance renewal is before the 25th of October.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.67
+  },
+  {
+   "id": "qa-insurance/hi-en/0",
+   "text": "car insurance kab tak renew karna hai?",
+   "asked": "When do I have to renew car insurance?",
+   "notes": [
+    "2026-10-03-car-service.md"
+   ],
+   "top": [
+    [
+     "2026-10-03-car-service.md",
+     0.8763
+    ],
+    [
+     "2026-09-15-goa-trip.md",
+     0.8224
+    ]
+   ],
+   "answer": "Insurance renewal before the 25th of October hai.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.64
+  },
+  {
+   "id": "qa-kyc/en/0",
+   "text": "which documents does the bank need for kyc?",
+   "asked": "which documents does the bank need for kyc?",
+   "notes": [
+    "2026-10-11-bank-kyc.md"
+   ],
+   "top": [
+    [
+     "2026-10-11-bank-kyc.md",
+     0.8813
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8242
+    ]
+   ],
+   "answer": "The bank asked for the Aadhaar card, PAN card, and one passport photo for KYC.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 6.62
+  },
+  {
+   "id": "qa-kyc/hi-en/0",
+   "text": "kyc ke liye bank ko kaunse documents chahiye?",
+   "asked": "What documents does the bank need for KYC?",
+   "notes": [
+    "2026-10-11-bank-kyc.md"
+   ],
+   "top": [
+    [
+     "2026-10-11-bank-kyc.md",
+     0.8826
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8277
+    ]
+   ],
+   "answer": "The branch asked for the Aadhaar card, PAN card, and one passport photo for bank KYC.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 6.71
+  },
+  {
+   "id": "qa-landlord/en/0",
+   "text": "what is my landlord's name?",
+   "asked": "what is my landlord's name?",
+   "notes": [
+    "2026-09-22-landlord.md"
+   ],
+   "top": [
+    [
+     "2026-09-22-landlord.md",
+     0.8401
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8273
+    ]
+   ],
+   "answer": "Mr. Kapoor is the landlord.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.31
+  },
+  {
+   "id": "qa-landlord/hi-en/0",
+   "text": "mere landlord ka naam kya hai?",
+   "asked": "What is my landlord's name?",
+   "notes": [
+    "2026-09-22-landlord.md"
+   ],
+   "top": [
+    [
+     "2026-09-22-landlord.md",
+     0.8401
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8273
+    ]
+   ],
+   "answer": "Mr. Kapoor mere landlord ka naam hai.",
+   "ungrounded": "only 2 of 4 content words are in the notes",
+   "seen": "withheld",
+   "grade": "abstained",
+   "s": 5.5
+  },
+  {
+   "id": "qa-mock/en/0",
+   "text": "when is my mock interview?",
+   "asked": "when is my mock interview?",
+   "notes": [
+    "2026-09-20-interview-prep.md"
+   ],
+   "top": [
+    [
+     "2026-09-20-interview-prep.md",
+     0.8636
+    ],
+    [
+     "2026-09-08-mom-birthday.md",
+     0.7991
+    ]
+   ],
+   "answer": "Your mock interview is with Ravi on Friday at 7 pm.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.76
+  },
+  {
+   "id": "qa-mock/hi-en/0",
+   "text": "mock interview kab hai?",
+   "asked": "When is the mock interview?",
+   "notes": [
+    "2026-09-20-interview-prep.md"
+   ],
+   "top": [
+    [
+     "2026-09-20-interview-prep.md",
+     0.8552
+    ],
+    [
+     "2026-09-08-mom-birthday.md",
+     0.7856
+    ]
+   ],
+   "answer": "Mock interview with Ravi is on Friday at 7 pm.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.68
+  },
+  {
+   "id": "qa-mom-cake/en/0",
+   "text": "which cake do i order for maa?",
+   "asked": "which cake do i order for maa?",
+   "notes": [
+    "2026-09-08-mom-birthday.md"
+   ],
+   "top": [
+    [
+     "2026-09-08-mom-birthday.md",
+     0.8796
+    ],
+    [
+     "2026-10-08-diwali-shopping.md",
+     0.8172
+    ]
+   ],
+   "answer": "Order the eggless chocolate cake from the corner bakery two days before.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 6.08
+  },
+  {
+   "id": "qa-mom-cake/hi-en/0",
+   "text": "maa ke birthday ke liye kaunsa cake order karna hai?",
+   "asked": "Which cake should I order for mom's birthday?",
+   "notes": [
+    "2026-09-08-mom-birthday.md"
+   ],
+   "top": [
+    [
+     "2026-09-08-mom-birthday.md",
+     0.8785
+    ],
+    [
+     "2026-10-08-diwali-shopping.md",
+     0.8221
+    ]
+   ],
+   "answer": "Order the eggless chocolate cake from the corner bakery two days before.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 6.16
+  },
+  {
+   "id": "qa-none-cake-price/en/0",
+   "text": "how much does maa's cake cost?",
+   "asked": "how much does maa's cake cost?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-08-mom-birthday.md",
+     0.853
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8083
+    ]
+   ],
+   "answer": "The notes mention ordering the eggless chocolate cake from the corner bakery two days before Maa's birthday on 20 September, but it does not state the cost of the cake.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "wrong",
+   "s": 8.93
+  },
+  {
+   "id": "qa-none-cake-price/hi-en/0",
+   "text": "maa ke cake ki keemat kitni hai?",
+   "asked": "How much is the price of mom's cake?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-08-mom-birthday.md",
+     0.8506
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8215
+    ]
+   ],
+   "answer": "The notes mention ordering an eggless chocolate cake from the corner bakery two days before Maa's birthday, but the cost is not specified.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "wrong",
+   "s": 7.7
+  },
+  {
+   "id": "qa-none-phone/en/0",
+   "text": "what is ravi's phone number?",
+   "asked": "what is ravi's phone number?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-20-interview-prep.md",
+     0.8545
+    ],
+    [
+     "2026-10-01-team-meeting.md",
+     0.8516
+    ]
+   ],
+   "answer": "NOT IN NOTES",
+   "ungrounded": null,
+   "seen": "not in notes",
+   "grade": "right",
+   "s": 4.44
+  },
+  {
+   "id": "qa-none-phone/hi-en/0",
+   "text": "ravi ka phone number kya hai?",
+   "asked": "What is Ravi's phone number?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-20-interview-prep.md",
+     0.8545
+    ],
+    [
+     "2026-10-01-team-meeting.md",
+     0.8516
+    ]
+   ],
+   "answer": "NOT IN NOTES",
+   "ungrounded": null,
+   "seen": "not in notes",
+   "grade": "right",
+   "s": 4.44
+  },
+  {
+   "id": "qa-none-salary/en/0",
+   "text": "what is my salary?",
+   "asked": "what is my salary?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-02-budget-plan.md",
+     0.8541
+    ],
+    [
+     "2026-09-20-interview-prep.md",
+     0.8267
+    ]
+   ],
+   "answer": "NOT IN NOTES",
+   "ungrounded": null,
+   "seen": "not in notes",
+   "grade": "right",
+   "s": 4.95
+  },
+  {
+   "id": "qa-none-salary/hi-en/0",
+   "text": "meri salary kitni hai?",
+   "asked": "How much is my salary?",
+   "notes": [],
+   "top": [
+    [
+     "2026-09-02-budget-plan.md",
+     0.875
+    ],
+    [
+     "2026-09-15-goa-trip.md",
+     0.8481
+    ]
+   ],
+   "answer": "NOT IN NOTES",
+   "ungrounded": null,
+   "seen": "not in notes",
+   "grade": "right",
+   "s": 5.22
+  },
+  {
+   "id": "qa-release/en/0",
+   "text": "when is the release now?",
+   "asked": "when is the release now?",
+   "notes": [
+    "2026-10-01-team-meeting.md"
+   ],
+   "top": [
+    [
+     "2026-10-01-team-meeting.md",
+     0.8493
+    ],
+    [
+     "2026-10-14-sleep.md",
+     0.8149
+    ]
+   ],
+   "answer": "The release moves to Monday because the payment tests are failing.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.14
+  },
+  {
+   "id": "qa-release/hi-en/0",
+   "text": "release ab kab hai?",
+   "asked": "When is the release?",
+   "notes": [
+    "2026-10-01-team-meeting.md"
+   ],
+   "top": [
+    [
+     "2026-10-01-team-meeting.md",
+     0.8631
+    ],
+    [
+     "2026-09-08-mom-birthday.md",
+     0.8237
+    ]
+   ],
+   "answer": "The release moves to Monday because the payment tests are failing.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.44
+  },
+  {
+   "id": "qa-rent/en/0",
+   "text": "how much is my rent?",
+   "asked": "how much is my rent?",
+   "notes": [
+    "2026-09-02-budget-plan.md"
+   ],
+   "top": [
+    [
+     "2026-09-02-budget-plan.md",
+     0.8953
+    ],
+    [
+     "2026-09-15-goa-trip.md",
+     0.8556
+    ]
+   ],
+   "answer": "Your rent is 12000.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.91
+  },
+  {
+   "id": "qa-rent/hi-en/0",
+   "text": "mera rent kitna hai?",
+   "asked": "How much is my rent?",
+   "notes": [
+    "2026-09-02-budget-plan.md"
+   ],
+   "top": [
+    [
+     "2026-09-02-budget-plan.md",
+     0.8953
+    ],
+    [
+     "2026-09-15-goa-trip.md",
+     0.8556
+    ]
+   ],
+   "answer": "Mera rent 12000 hai.",
+   "ungrounded": "only 1 of 2 content words are in the notes",
+   "seen": "withheld",
+   "grade": "abstained",
+   "s": 6.02
+  }
+ ]
+}
