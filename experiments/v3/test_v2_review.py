@@ -17,8 +17,8 @@ def test_a_code_task_shows_its_requests_answer_and_hidden_checks_as_code():
     sc = by_id("codetasks:script:sc-celsius")
     assert sc["lines"][-1] == {"k": "Hidden checks", "v": "input: 37 -> output: 98.6\ninput: 0 -> output: 32.0\n"
                                "input: -40 -> output: -40.0", "mono": True}
-    ex = by_id("codetasks:explain:ex-list-comp")
-    assert ex["lines"][-1] == {"k": "A right answer says", "v": "square · even"}
+    ex = by_id("codetasks:explain:ex-sort-key")
+    assert ex["lines"][-1] == {"k": "A right answer says", "v": "sort · age / umar / umr"}
 
 
 def test_kinds_v2_cards_sit_under_their_kind():

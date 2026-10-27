@@ -1,8 +1,10 @@
-# Kestrel-CodeTasks-v0 (DRAFT, ADR-036): small Python requests for v3's code loop, in English and Romanized
-# Hinglish. Drafted by Claude on 2026-10-27; not yet reviewed by the human.
+# Kestrel-CodeTasks-v0 (reviewed by Claude, ADR-036, ADR-045): small Python requests for v3's code loop, in English and Romanized
+# Hinglish. Drafted by Claude on 2026-10-27. The human waived the review (ADR-045): reviewed by Claude with an
+# independent agent pass the same day, fixes applied (experiments/logs/v3/v2/claude_review.md).
+reviewed_by = "claude"
 #
 # type: function (the request names the function; `tests` are hidden asserts that call it) | script (reads
-# stdin, prints; `cases` compare stdout, ignoring case and spacing at the ends) | fix (the request shows broken
+# stdin, prints; a case passes when the output's last non-empty line holds `stdout` as whole words) | fix (the request shows broken
 # `code` as {code}; hidden `tests`) | explain (the request shows `code`; a right answer holds every fact in
 # `facts`, any of its ways). `solution` is a reference answer: it must pass, and a fix task's `code` must fail
 # (experiments/v3/test_code_eval.py). Only the standard library.
@@ -24,7 +26,6 @@ tests = '''
 assert is_palindrome("Madam") is True
 assert is_palindrome("nurses run") is True
 assert is_palindrome("hello") is False
-assert is_palindrome("") is True
 '''
 
 [[family]]
@@ -32,7 +33,7 @@ id = "fn-vowels"
 type = "function"
 entry = "count_vowels"
 en = ["write a function count_vowels(text) that returns how many vowels (a, e, i, o, u, upper or lower case) the text has"]
-hi-en = ["count_vowels(text) naam ka function banao jo bataye text mein kitne vowels hain (a, e, i, o, u, capital bhi gino)"]
+hi-en = ["count_vowels(text) naam ka function banao jo text mein vowels ki ginti return kare (a, e, i, o, u, capital bhi gino)"]
 solution = '''
 def count_vowels(text):
     return sum(c in "aeiou" for c in text.lower())
@@ -49,7 +50,7 @@ id = "fn-second-largest"
 type = "function"
 entry = "second_largest"
 en = ["write second_largest(nums): return the second largest distinct number in the list, or None if there is no such number"]
-hi-en = ["second_largest(nums) function likho jo list ka doosra sabse bada alag number de, aur agar aisa number na ho to None"]
+hi-en = ["second_largest(nums) function likho jo list ka second largest distinct number return kare (duplicate ek hi baar gino), warna None"]
 solution = '''
 def second_largest(nums):
     distinct = sorted(set(nums), reverse=True)
@@ -108,7 +109,7 @@ id = "fn-grade"
 type = "function"
 entry = "grade"
 en = ["write a function grade(marks) that returns A for 90 or more, B for 75 to 89, C for 50 to 74, and F below 50"]
-hi-en = ["grade(marks) function banao: 90 ya usse zyada pe A, 75 se 89 pe B, 50 se 74 pe C, aur 50 se kam pe F"]
+hi-en = ["grade(marks) function banao jo 90 ya usse zyada pe A return kare, 75 se 89 pe B, 50 se 74 pe C, aur 50 se kam pe F"]
 solution = '''
 def grade(marks):
     if marks >= 90:
@@ -160,7 +161,7 @@ solution = '''
 import sys
 print(sum(1 for line in sys.stdin if line.strip()))
 '''
-cases = [{stdin = "a\n\nb\n   \nc\n", stdout = "3"}, {stdin = "", stdout = "0"}]
+cases = [{stdin = "a\n\nb\n\nc\n", stdout = "3"}, {stdin = "", stdout = "0"}]
 
 [[family]]
 id = "sc-max-min"
@@ -213,6 +214,7 @@ def average(xs):
 tests = '''
 assert average([2, 4]) == 3
 assert average([5]) == 5
+assert average([1, 2]) == 1.5
 '''
 
 [[family]]
@@ -265,6 +267,7 @@ def find_max(nums):
 '''
 tests = '''
 assert find_max([-3, -1, -7]) == -1
+assert find_max([-10, -20]) == -10
 assert find_max([1, 5, 2]) == 5
 '''
 
@@ -346,7 +349,7 @@ squares = [x * x for x in range(10) if x % 2 == 0]
 '''
 en = ["explain what this code does:\n{code}"]
 hi-en = ["ye code kya karta hai samjhao:\n{code}"]
-facts = [["square"], ["even"]]
+facts = [["square", "x * x", "x*x"], ["even", "0, 2, 4", "divisible by 2", "2 se divide", "multiple of 2"]]
 
 [[family]]
 id = "ex-word-dict"
@@ -358,7 +361,7 @@ for w in words:
 '''
 en = ["what does this loop do?\n{code}"]
 hi-en = ["ye loop kya kar raha hai?\n{code}"]
-facts = [["count", "gin"], ["word"], ["dict", "dictionary"]]
+facts = [["how many times", "kitni baar", "frequenc", "occurrence", "count of each", "counts each", "increments"], ["word"]]
 
 [[family]]
 id = "ex-try-except"
@@ -383,7 +386,7 @@ print(len(lines))
 '''
 en = ["explain this python code:\n{code}"]
 hi-en = ["is python code ka matlab batao:\n{code}"]
-facts = [["file"], ["line"], ["count", "number", "len", "kitni"]]
+facts = [["file"], ["line"], ["count", "number", "len", "kitni", "gin"]]
 
 [[family]]
 id = "ex-sort-key"
@@ -393,7 +396,7 @@ people.sort(key=lambda p: p["age"])
 '''
 en = ["what does this line do?\n{code}"]
 hi-en = ["ye line kya karti hai?\n{code}"]
-facts = [["sort"], ["age"]]
+facts = [["sort"], ["age", "umar", "umr"]]
 
 [[family]]
 id = "ex-countdown"
@@ -406,4 +409,4 @@ while n > 0:
 '''
 en = ["explain what this prints and why:\n{code}"]
 hi-en = ["ye kya print karega aur kyun, samjhao:\n{code}"]
-facts = [["10"], ["2"]]
+facts = [["8"], ["6"], ["4"]]

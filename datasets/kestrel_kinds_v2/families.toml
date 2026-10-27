@@ -1,6 +1,8 @@
 # Kestrel-Kinds-v2 draft (ADR-044): the `code` kind and its boundaries, plus notes / rewrite / chat families of
 # the types Kinds-v1's test missed. Kinds-v2 = Kinds-v1 (frozen) + these families (experiments/data/kinds_v2.py).
-# Drafted by Claude on 2026-10-27; not yet reviewed by the human.
+# Drafted by Claude on 2026-10-27. The human waived the review (ADR-045): reviewed by Claude with an independent
+# agent pass the same day, fixes applied (experiments/logs/v3/v2/claude_review.md).
+reviewed_by = "claude"
 #
 # code: write or fix Python (a function, a script, a class, a regex, tests; fixing given code or an error with its
 # code), Qwen3-4B writes it. chat: explaining code or an error, programming concepts and advice, poems and stories
@@ -86,16 +88,16 @@ id = "code-11"
 kind = "code"
 domain = "fix-error"
 note = "an error with the code that gives it: fix it (code); an error asked about in general is chat-v2-02"
-en = ["i'm getting KeyError: 'name' here, fix it: print(user['name'])", "why does this crash and how do i fix it: int('12a')"]
-hi-en = ["yahan KeyError: 'name' aa raha hai, theek karo: print(user['name'])", "ye crash kyun hota hai, fix karo: int('12a')"]
+en = ["i'm getting KeyError: 'name' here, fix it: print(user['name'])", "this crashes with ValueError when the input has letters, fix it: n = int(input())"]
+hi-en = ["yahan KeyError: 'name' aa raha hai, theek karo: print(user['name'])", "input mein letters ho to ValueError aata hai, fix karo: n = int(input())"]
 
 [[family]]
 id = "code-12"
 kind = "code"
 domain = "improve"
 note = "rewriting code is code, rewriting text is rewrite"
-en = ["make this code shorter: result = [] then for x in nums: if x > 0: result.append(x)", "rewrite this loop as a list comprehension: for x in range(10): squares.append(x * x)"]
-hi-en = ["is code ko chhota karo: result = [] phir for x in nums: if x > 0: result.append(x)", "is loop ko list comprehension mein badlo: for x in range(10): squares.append(x * x)"]
+en = ["make this code shorter:\nresult = []\nfor x in nums:\n    if x > 0:\n        result.append(x)", "rewrite this loop as a list comprehension:\nfor x in range(10):\n    squares.append(x * x)"]
+hi-en = ["is code ko chhota karo:\nresult = []\nfor x in nums:\n    if x > 0:\n        result.append(x)", "is loop ko list comprehension mein badlo:\nfor x in range(10):\n    squares.append(x * x)"]
 
 # ---- chat: explaining code, concepts, advice ----
 
@@ -139,8 +141,8 @@ hi-en = ["mere shehar pe ek chhoti si kavita likho", "sardi ki subah pe chaar li
 id = "chat-v2-06"
 kind = "chat"
 domain = "stories"
-en = ["write a funny poem about mondays", "write a short story about a lost cat"]
-hi-en = ["monday pe ek mazedaar kavita likho", "ek khoyi hui billi ki chhoti si kahani likho"]
+en = ["write a bedtime story about a brave little elephant", "write a short story about a lost cat"]
+hi-en = ["ek bahadur chhote haathi ki bedtime story likho", "ek khoyi hui billi ki chhoti si kahani likho"]
 
 # ---- app: boundaries ----
 
@@ -179,28 +181,28 @@ id = "rewrite-v2-02"
 kind = "rewrite"
 domain = "captions"
 en = ["turn this into an instagram caption: we finally visited the taj mahal", "make a short catchy line from this: our shop is open on sundays now"]
-hi-en = ["isse instagram caption bana do: hum aakhir taj mahal dekh aaye", "isse ek catchy line banao: hamari dukaan ab sunday ko bhi khuli hai"]
+hi-en = ["isse instagram caption bana do: finally hum taj mahal dekh aaye", "isse ek catchy line banao: hamari dukaan ab sunday ko bhi khuli hai"]
 
 [[family]]
 id = "rewrite-v2-03"
 kind = "rewrite"
 domain = "expand"
 en = ["expand this into a paragraph: meeting moved, budget approved, launch in june", "write this out in full sentences: exam tomorrow, room 204, bring id"]
-hi-en = ["isko ek paragraph mein badha do: meeting shift hui, budget approve hua, launch june mein", "isko poore sentences mein likho: kal exam, room 204, id laana"]
+hi-en = ["isko expand karke ek paragraph bana do: meeting shift hui, budget approve hua, launch june mein", "isko poore sentences mein likho: kal exam, room 204, id laana"]
 
 [[family]]
 id = "rewrite-v2-04"
 kind = "rewrite"
 domain = "short"
-en = ["rewrite this as a tweet: our college fest starts this friday with music and food", "make this fit in one line: the library will stay closed on monday because of repairs"]
-hi-en = ["isko tweet jaisa likho: hamara college fest is friday se shuru, music aur khana", "isko ek line mein karo: repair ki wajah se library monday ko band rahegi"]
+en = ["rewrite this as a tweet: our college fest starts this friday with music and food", "cut this to under ten words: the library will stay closed on monday because of repairs"]
+hi-en = ["isko tweet jaisa likho: hamara college fest is friday se shuru, music aur khana", "isko 10 words se kam mein likho: repair ki wajah se library monday ko band rahegi"]
 
 [[family]]
 id = "rewrite-v2-05"
 kind = "rewrite"
 domain = "summary"
-en = ["summarize this in one line: the train was late by two hours so we missed the wedding lunch but reached for the evening", "give me a title for this: tips to save money on groceries every month"]
-hi-en = ["ise ek line mein summarize karo: train do ghante late thi isliye shaadi ka lunch chhoot gaya par shaam tak pahunch gaye", "iska title batao: har mahine grocery pe paise bachane ke tips"]
+en = ["summarize this in one line: the train was late by two hours so we missed the wedding lunch but reached for the evening", "give me a title for this: we halved our grocery bill by planning meals every sunday and buying dal in bulk"]
+hi-en = ["ise ek line mein summarize karo: train do ghante late thi isliye shaadi ka lunch chhoot gaya par shaam tak pahunch gaye", "iska title batao: har sunday meals plan karke aur dal bulk mein lekar humne grocery ka bill aadha kar diya"]
 
 # ---- notes: the questions Kinds-v1's test missed ----
 
@@ -215,8 +217,8 @@ hi-en = ["mere history exam mein kaunse topics hain?", "chemistry practical kab 
 id = "notes-v2-02"
 kind = "notes"
 domain = "documents"
-en = ["what is my passport number?", "what is my pan card number?"]
-hi-en = ["mera passport number kya hai?", "mera pan card number kya hai?"]
+en = ["what is my passport number?", "when does my driving licence expire?"]
+hi-en = ["mera passport number kya hai?", "mera driving licence kab expire hota hai?"]
 
 [[family]]
 id = "notes-v2-03"
@@ -230,7 +232,7 @@ id = "notes-v2-04"
 kind = "notes"
 domain = "appointments"
 en = ["when is my eye checkup?", "what time is my haircut appointment?"]
-hi-en = ["meri eye checkup kab hai?", "haircut ka appointment kitne baje hai?"]
+hi-en = ["mera eye checkup kab hai?", "haircut ka appointment kitne baje hai?"]
 
 [[family]]
 id = "notes-v2-05"
@@ -244,4 +246,4 @@ id = "notes-v2-06"
 kind = "notes"
 domain = "plans"
 en = ["which movies did i want to watch this month?", "what did i decide about the new phone?"]
-hi-en = ["is mahine maine kaunsi movies dekhni thi?", "naye phone ke baare mein maine kya decide kiya tha?"]
+hi-en = ["is mahine mujhe kaunsi movies dekhni thi?", "naye phone ke baare mein maine kya decide kiya tha?"]

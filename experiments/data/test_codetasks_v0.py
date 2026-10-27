@@ -59,11 +59,12 @@ def test_families_never_straddle_and_both_splits_hold_every_type():
     assert set(parts) == {"dev", "test"}
 
 
-def test_the_build_is_byte_for_byte_deterministic_and_a_draft(tmp_path):
+def test_the_build_is_byte_for_byte_deterministic_and_says_claude_reviewed(tmp_path):
     a, b = tmp_path / "a", tmp_path / "b"
     build(a)
     build(b)
     names = sorted(p.name for p in a.iterdir())
     assert names == ["dev.jsonl", "manifest.json", "test.jsonl"]
     assert all((a / n).read_bytes() == (b / n).read_bytes() for n in names)
-    assert json.loads((a / "manifest.json").read_text())["status"] == "draft"
+    # ADR-045: the human waived the review; never "reviewed", which means the human's.
+    assert json.loads((a / "manifest.json").read_text())["status"] == "claude-reviewed"

@@ -35,8 +35,13 @@ def load(path: Path = DATA / "tasks.toml") -> list[dict]:
     return tomllib.loads(Path(path).read_text(encoding="utf-8"))["family"]
 
 
-def reviewed(path: Path = DATA / "tasks.toml") -> bool:
-    return tomllib.loads(Path(path).read_text(encoding="utf-8")).get("default_reviewed", False)
+def status(path: Path = DATA / "tasks.toml") -> str:
+    """"reviewed" by the human (`default_reviewed = true`), "claude-reviewed" when the human waived the review
+    (`reviewed_by = "claude"`, ADR-045), else "draft"."""
+    head = tomllib.loads(Path(path).read_text(encoding="utf-8"))
+    if head.get("default_reviewed"):
+        return "reviewed"
+    return "claude-reviewed" if head.get("reviewed_by") == "claude" else "draft"
 
 
 def validate(families: list[dict]) -> list[str]:
@@ -97,7 +102,7 @@ def build(out: Path = DATA / "splits") -> dict:
         (out / f"{name}.jsonl").write_text(text, encoding="utf-8")
     labelled = [{"text": r["text"], "label": r["type"]} for r in parts["dev"] + parts["test"]]
     manifest = {
-        "dataset": "kestrel-codetasks-v0", "status": "reviewed" if reviewed() else "draft", "seed": SEED,
+        "dataset": "kestrel-codetasks-v0", "status": status(), "seed": SEED,
         "sources": {"tasks.toml": hashlib.sha256((DATA / "tasks.toml").read_bytes()).hexdigest()},
         "fingerprint": dataset_fingerprint(labelled),
         "splits": {name: {"families": len({r["family"] for r in part}), "requests": len(part),

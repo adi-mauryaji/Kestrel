@@ -1,0 +1,35 @@
+{
+ "note": "the 767b138 answers judged again with the reviewed checks (ADR-045): fairer script output, stronger fix asserts, reviewed explain facts; models answered the old request wording (3 Hinglish requests changed)",
+ "models": {
+  "gemma-4-e2b": {
+   "strict_before": 19,
+   "rescored": 22,
+   "code_write_fix": "16/18",
+   "explain": "6/6",
+   "fix": "6/6",
+   "function": "6/6",
+   "script": "4/6",
+   "gen_s_per_request": 11.1
+  },
+  "qwen3-1.7b": {
+   "strict_before": 17,
+   "rescored": 18,
+   "code_write_fix": "13/18",
+   "explain": "5/6",
+   "fix": "5/6",
+   "function": "5/6",
+   "script": "3/6",
+   "gen_s_per_request": 10.4
+  },
+  "qwen3-4b": {
+   "strict_before": 23,
+   "rescored": 22,
+   "code_write_fix": "17/18",
+   "explain": "5/6",
+   "fix": "6/6",
+   "function": "6/6",
+   "script": "5/6",
+   "gen_s_per_request": 29.0
+  }
+ }
+}

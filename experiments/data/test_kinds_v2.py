@@ -57,6 +57,6 @@ def test_the_build_is_deterministic_and_counts_its_fresh_test_items(tmp_path):
     assert names == ["cal.jsonl", "manifest.json", "test.jsonl", "train.jsonl", "val.jsonl"]
     assert all((a / n).read_bytes() == (b / n).read_bytes() for n in names)
     m = json.loads((a / "manifest.json").read_text())
-    assert m["status"] == "draft" and m["conflicts_dropped"] == []
+    assert m["status"] == "claude-reviewed" and m["conflicts_dropped"] == []  # ADR-045
     fresh = [json.loads(l) for l in (a / "test.jsonl").open() if json.loads(l)["source"] == "kinds_v2"]
     assert m["splits"]["test"]["fresh_items"] == len(fresh) > 0

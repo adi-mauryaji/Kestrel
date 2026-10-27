@@ -89,6 +89,15 @@ def reviewed() -> bool:
     return bool(json.loads(REVIEW.read_text())["status"].get("kindsv2", {}).get("ready"))
 
 
+def status(path: Path = DATA / "families.toml") -> str:
+    """"reviewed" by the human (the review log all OK), "claude-reviewed" when the human waived the review
+    (`reviewed_by = "claude"`, ADR-045), else "draft"."""
+    if reviewed():
+        return "reviewed"
+    head = tomllib.loads(Path(path).read_text(encoding="utf-8"))
+    return "claude-reviewed" if head.get("reviewed_by") == "claude" else "draft"
+
+
 def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -107,7 +116,7 @@ def build(out: Path = DATA / "splits") -> dict:
         (out / f"{name}.jsonl").write_text(text, encoding="utf-8")
     manifest = {
         "dataset": "kestrel-kinds-v2",
-        "status": "reviewed" if reviewed() else "draft",
+        "status": status(),
         "seed": SEED,
         "labels": LABELS,
         "sources": {"kestrel_kinds_v1/splits/manifest.json": _sha(kinds_v1.DATA / "splits" / "manifest.json"),

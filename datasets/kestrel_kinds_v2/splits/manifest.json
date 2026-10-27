@@ -1,6 +1,6 @@
 {
  "dataset": "kestrel-kinds-v2",
- "status": "draft",
+ "status": "claude-reviewed",
  "seed": 0,
  "labels": [
   "app",
@@ -13,7 +13,7 @@
  ],
  "sources": {
   "kestrel_kinds_v1/splits/manifest.json": "b16065cf5445d75a413abf1f6c524df6c11e315978f6930b1f1dcdce2a7cf40b",
-  "families.toml": "ef111063807a5783002be932d49719942e11ced23b9d97f0ef867aee6e0a518c",
+  "families.toml": "499067782fb23230ba1edd413212d3f9f1835998b1f9fa7e6f08992bfae73745",
   "contracts/kinds_v2.txt": "09ab98a06356c4bdd88cb28e1d3d1a8609e259839cb17586fa59aa3a68146088"
  },
  "conflicts_dropped": [],
@@ -21,7 +21,7 @@
   "train": {
    "items": 1000,
    "fresh_items": 80,
-   "fingerprint": "2325911832f3213ae1cc78f0a8fb77f2e6ea29f3cebb74fb23ee64348b897f03",
+   "fingerprint": "3d18b032c153ecb666e3b91cf70809c72b5308a70c2551e2dfacb6ecbe6783a9",
    "by_label": {
     "app": 592,
     "chat": 108,
@@ -39,7 +39,7 @@
   "cal": {
    "items": 123,
    "fresh_items": 8,
-   "fingerprint": "dba0f0dab848762351e4a2b4179cdd647acd1a2b318c570317eae9b4aaba2aed",
+   "fingerprint": "85f8809015a2b5df53e63e8f5958c5b1f1aa4f6d341bc53efc15859a7d72196b",
    "by_label": {
     "app": 72,
     "chat": 8,
@@ -57,7 +57,7 @@
   "val": {
    "items": 152,
    "fresh_items": 16,
-   "fingerprint": "07878191fae09d56a571c6899860bc84b56fb2662bc8f4755d14b819f37bb2fa",
+   "fingerprint": "295dfff157e6aa754e9f7b22dade9c829e408d396474ea6ca6332e464e88ff3a",
    "by_label": {
     "app": 96,
     "chat": 16,
@@ -75,7 +75,7 @@
   "test": {
    "items": 280,
    "fresh_items": 24,
-   "fingerprint": "29e1cd46083c0ddf5547702992f4a3f94288334dc798aafeee5bca98ddcdc974",
+   "fingerprint": "09c320f2c9d194d2a67c33468d41c95524a98aeb76d4c4b43856217aec801ab4",
    "by_label": {
     "app": 184,
     "chat": 20,

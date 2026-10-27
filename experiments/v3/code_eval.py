@@ -2,9 +2,10 @@
 """experiments/v3/code_eval.py -- v3's code requests on Kestrel-CodeTasks-v0 (ADR-036), dev only.
 
 Judging (hidden from the model): a `function` or `fix` answer is imported as solution.py and the family's
-asserts run against it; a `script` answer is run on each case's stdin and its output compared, ignoring
-case and spacing at the ends; an `explain` answer holds every fact (any of its ways). Code runs only in
-experiments/v3/sandbox.py.
+asserts run against it; a `script` answer is run on each case's stdin and passes when the last non-empty
+line of its output holds the expected output as whole words, any case (an input prompt or a sentence around
+the answer is fine for a person running it: the review, 2026-10-27); an `explain` answer holds every fact
+(any of its ways). Code runs only in experiments/v3/sandbox.py.
 
 The loop (ADR-044, after the dev comparison 767b138): a code request gets CODE_SYSTEM and answers with a
 ```python block. The sandbox's own errors decide a retry (`self_check`: a function's code is imported, a
@@ -66,12 +67,25 @@ def _norm(s: str) -> str:
     return " ".join(s.split()).lower()
 
 
+def answers(stdout: str, expected: str) -> bool:
+    """The last non-empty line holds `expected` as whole words (not inside a longer word or number)."""
+    lines = [l for l in stdout.splitlines() if l.strip()]
+    if not lines:
+        return _norm(expected) == ""
+    exp = _norm(expected)
+    want = r"\s+".join(re.escape(w) for w in exp.split())
+    # A number may carry a unit ("98.6F"), never more digits; a word may not run into another.
+    before = r"(?<![\d.\-])" if exp[:1].isdigit() or exp[:1] == "-" else r"(?<!\w)"
+    after = r"(?!\d|\.\d)" if exp[-1:].isdigit() else r"(?!\w)"
+    return re.search(before + want + after, _norm(lines[-1])) is not None
+
+
 def passes(row: dict, code: str) -> bool:
     if row["type"] in ("function", "fix"):
         r = run_python("from solution import *\n" + row["tests"], files={"solution.py": code})
         return r.ok
     if row["type"] == "script":
-        return all((r := run_python(code, stdin=c["stdin"])).ok and _norm(r.stdout) == _norm(c["stdout"])
+        return all((r := run_python(code, stdin=c["stdin"])).ok and answers(r.stdout, c["stdout"])
                    for c in row["cases"])
     raise ValueError(f"{row['type']} answers are judged by facts_hold")
 

@@ -18,9 +18,9 @@
 {"family": "chat-v1-02", "group": "chat-v1-02", "id": "chat-v1-02/en/1", "label": "chat", "lang": "en", "source": "kinds_v1", "stratum": "v1-chat", "text": "how often should a bike be serviced?"}
 {"family": "chat-v1-02", "group": "chat-v1-02", "id": "chat-v1-02/hi-en/0", "label": "chat", "lang": "hi-en", "source": "kinds_v1", "stratum": "v1-chat", "text": "papa ke liye accha gift kya ho sakta hai?"}
 {"family": "chat-v1-02", "group": "chat-v1-02", "id": "chat-v1-02/hi-en/1", "label": "chat", "lang": "hi-en", "source": "kinds_v1", "stratum": "v1-chat", "text": "bike ki service kitne time mein karani chahiye?"}
-{"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/en/0", "label": "chat", "lang": "en", "source": "kinds_v2", "stratum": "v2-chat", "text": "write a funny poem about mondays"}
+{"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/en/0", "label": "chat", "lang": "en", "source": "kinds_v2", "stratum": "v2-chat", "text": "write a bedtime story about a brave little elephant"}
 {"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/en/1", "label": "chat", "lang": "en", "source": "kinds_v2", "stratum": "v2-chat", "text": "write a short story about a lost cat"}
-{"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/hi-en/0", "label": "chat", "lang": "hi-en", "source": "kinds_v2", "stratum": "v2-chat", "text": "monday pe ek mazedaar kavita likho"}
+{"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/hi-en/0", "label": "chat", "lang": "hi-en", "source": "kinds_v2", "stratum": "v2-chat", "text": "ek bahadur chhote haathi ki bedtime story likho"}
 {"family": "chat-v2-06", "group": "chat-v2-06", "id": "chat-v2-06/hi-en/1", "label": "chat", "lang": "hi-en", "source": "kinds_v2", "stratum": "v2-chat", "text": "ek khoyi hui billi ki chhoti si kahani likho"}
 {"family": "code-07", "group": "code-07", "id": "code-07/en/0", "label": "code", "lang": "en", "source": "kinds_v2", "stratum": "v2-code", "text": "write a python program for a number guessing game"}
 {"family": "code-07", "group": "code-07", "id": "code-07/en/1", "label": "code", "lang": "en", "source": "kinds_v2", "stratum": "v2-code", "text": "create a simple calculator in python"}

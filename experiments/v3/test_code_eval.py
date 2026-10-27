@@ -21,10 +21,18 @@ def test_every_reference_solution_passes_and_every_broken_code_fails(family):
         assert not passes(r, family["code"]), f"{family['id']}: the code to fix already passes"
 
 
-def test_a_script_is_judged_by_its_output_whatever_the_case_and_spacing():
+def test_a_script_passes_when_its_last_line_holds_the_answer_as_whole_words():
+    # Review 2026-10-27: an input prompt or a sentence around the answer is fine for a person running it.
     r = {"type": "script", "cases": [{"stdin": "4\n", "stdout": "even"}]}
     assert passes(r, "print('  Even ')")
-    assert not passes(r, "print('Enter a number:', 'even')")
+    assert passes(r, "n = int(input('Enter a whole number: '))\nprint(n, 'is even.')")
+    assert not passes(r, "print('uneven')"), "whole words only"
+    assert not passes(r, "print('even')\nprint('done')"), "the last line"
+    temp = {"type": "script", "cases": [{"stdin": "37\n", "stdout": "98.6"}]}
+    assert passes(temp, "c = float(input())\nprint(f'{c}C is {c * 9 / 5 + 32:.1f}F')")
+    assert not passes(temp, "print('198.6')") and not passes(temp, "print(98.65)")
+    pair = {"type": "script", "cases": [{"stdin": "3 9 -2\n", "stdout": "9 -2"}]}
+    assert passes(pair, "print('Result: 9 -2')") and not passes(pair, "print('max 9, min -2')")
 
 
 def test_facts_hold_in_any_of_their_ways():
