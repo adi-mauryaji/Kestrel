@@ -24,12 +24,23 @@ pub const NOT_IN_NOTES: &str = "NOT IN NOTES";
 /// The longest answer, in tokens: one or two sentences.
 pub const MAX_TOKENS: usize = 96;
 
-/// The notes (name and text), then the question.
+/// After a Hinglish question: Gemma answered half of them in English when only the system prompt
+/// said so (Kestrel-NotesQA-v0 test, 177122b); the writer follows such a line better (src/kinds.rs).
+/// Its second sentence came after dev: with the first alone, Gemma put NOT IN NOTES into Hinglish.
+pub const HINGLISH_NOTE: &str = "The question is Hinglish: answer in Hinglish, in Latin letters. \
+If the notes do not answer it, still reply exactly: NOT IN NOTES.";
+
+/// The notes (name and text), then the question, and for a Hinglish question its language.
 pub fn user_message(question: &str, notes: &[(&str, &str)]) -> String {
     let body: Vec<String> = (notes.iter())
         .map(|(name, text)| format!("[{name}]\n{}", text.trim_end()))
         .collect();
-    format!("Notes:\n\n{}\n\nQuestion: {question}", body.join("\n\n"))
+    let mut m = format!("Notes:\n\n{}\n\nQuestion: {question}", body.join("\n\n"));
+    if crate::kinds::is_hinglish(question) {
+        m.push_str("\n\n");
+        m.push_str(HINGLISH_NOTE);
+    }
+    m
 }
 
 /// Did Gemma say the notes do not answer the question?
@@ -96,7 +107,7 @@ mod tests {
     #[test]
     fn the_notes_come_named_before_the_question() {
         let m = user_message(
-            "mera rent kitna hai?",
+            "how much is my rent?",
             &[(
                 "2026-09-02-budget-plan.md",
                 "Monthly budget\n\nRent 12000.\n",
@@ -104,8 +115,22 @@ mod tests {
         );
         assert_eq!(
             m,
-            "Notes:\n\n[2026-09-02-budget-plan.md]\nMonthly budget\n\nRent 12000.\n\nQuestion: mera rent kitna hai?"
+            "Notes:\n\n[2026-09-02-budget-plan.md]\nMonthly budget\n\nRent 12000.\n\nQuestion: how much is my rent?"
         );
+    }
+
+    #[test]
+    fn a_hinglish_question_is_followed_by_its_language_once_more() {
+        let notes = [("budget.md", "Rent 12000.")];
+        let m = user_message("mera rent kitna hai?", &notes);
+        assert!(
+            m.ends_with(&format!(
+                "Question: mera rent kitna hai?\n\n{HINGLISH_NOTE}"
+            )),
+            "{m}"
+        );
+        assert!(!user_message("how much is my rent?", &notes).contains(HINGLISH_NOTE));
+        assert!(HINGLISH_NOTE.ends_with(&format!("{NOT_IN_NOTES}.")));
     }
 
     #[test]

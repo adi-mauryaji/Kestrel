@@ -2,11 +2,12 @@
  "encoder": "multilingual-e5-small-q8_0",
  "n_notes_given": 2,
  "theta": 0.83,
- "dev_questions": 24,
+ "split": "dev",
+ "questions_n": 26,
  "retrieved_at_n": 1.0,
  "at_theta": {
   "answerable": {
-   "right": 18,
+   "right": 20,
    "wrong": 0
   },
   "unanswerable": {
@@ -27,7 +28,7 @@
   },
   "hi-en": {
    "answerable": {
-    "right": 9,
+    "right": 11,
     "wrong": 0
    },
    "unanswerable": {
@@ -39,7 +40,7 @@
  "grid": {
   "0.78": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -49,7 +50,7 @@
   },
   "0.79": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -59,7 +60,7 @@
   },
   "0.8": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -69,7 +70,7 @@
   },
   "0.81": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -79,7 +80,7 @@
   },
   "0.82": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -89,7 +90,7 @@
   },
   "0.83": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -99,7 +100,7 @@
   },
   "0.84": {
    "answerable": {
-    "right": 18,
+    "right": 20,
     "wrong": 0
    },
    "unanswerable": {
@@ -109,7 +110,7 @@
   },
   "0.85": {
    "answerable": {
-    "right": 15,
+    "right": 17,
     "wrong": 0,
     "abstained": 3
    },
@@ -120,7 +121,7 @@
   },
   "0.86": {
    "answerable": {
-    "right": 14,
+    "right": 16,
     "wrong": 0,
     "abstained": 4
    },
@@ -131,7 +132,7 @@
   },
   "0.87": {
    "answerable": {
-    "right": 12,
+    "right": 14,
     "wrong": 0,
     "abstained": 6
    },
@@ -141,9 +142,19 @@
    }
   }
  },
+ "answer_language": {
+  "hi-en": {
+   "answered": 12,
+   "same_language": 9
+  },
+  "en": {
+   "answered": 10,
+   "same_language": 10
+  }
+ },
  "answer_s": {
-  "mean": 6.06,
-  "max": 8.72
+  "mean": 5.14,
+  "max": 8.81
  },
  "errors": [],
  "questions": [
@@ -168,7 +179,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.39
+   "s": 4.71
   },
   {
    "id": "qa-battery/hi-en/0",
@@ -191,7 +202,30 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.35
+   "s": 5.15
+  },
+  {
+   "id": "qa-battery/hi-en/1",
+   "text": "do ghante mein laptop ki battery kitni ghat ti hai?",
+   "asked": "How much does the laptop battery decrease in an hour?",
+   "notes": [
+    "2026-09-10-laptop-issues.md"
+   ],
+   "top": [
+    [
+     "2026-09-10-laptop-issues.md",
+     0.8845
+    ],
+    [
+     "2026-09-02-budget-plan.md",
+     0.8123
+    ]
+   ],
+   "answer": "Battery do ghante mein 100 se 40 ho jaati hai.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.51
   },
   {
    "id": "qa-gym-days/en/0",
@@ -214,7 +248,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.67
+   "s": 4.27
   },
   {
    "id": "qa-gym-days/hi-en/0",
@@ -240,6 +274,29 @@
    "s": 5.72
   },
   {
+   "id": "qa-gym-days/hi-en/1",
+   "text": "squats kis kis din karne hain?",
+   "asked": "On which days should I do squats?",
+   "notes": [
+    "2026-09-05-gym-routine.md"
+   ],
+   "top": [
+    [
+     "2026-09-05-gym-routine.md",
+     0.8842
+    ],
+    [
+     "2026-10-14-sleep.md",
+     0.8264
+    ]
+   ],
+   "answer": "Squats Monday, Wednesday, aur Friday ko karne hain.",
+   "ungrounded": null,
+   "seen": "answered",
+   "grade": "right",
+   "s": 5.14
+  },
+  {
    "id": "qa-insurance/en/0",
    "text": "by when do i renew the car insurance?",
    "asked": "by when do i renew the car insurance?",
@@ -260,7 +317,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.99
+   "s": 4.72
   },
   {
    "id": "qa-insurance/hi-en/0",
@@ -279,11 +336,11 @@
      0.8224
     ]
    ],
-   "answer": "Insurance renewal before the 25th of October hai.",
+   "answer": "Insurance renewal 25th of October se pehle karna hai.",
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.18
+   "s": 4.92
   },
   {
    "id": "qa-kyc/en/0",
@@ -306,7 +363,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.77
+   "s": 5.87
   },
   {
    "id": "qa-kyc/hi-en/0",
@@ -325,11 +382,11 @@
      0.8277
     ]
    ],
-   "answer": "Bank ne Aadhaar card, PAN card aur ek passport photo maangi hai.",
+   "answer": "Bank ko Aadhaar card, PAN card aur ek passport photo chahiye.",
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.5
+   "s": 5.79
   },
   {
    "id": "qa-landlord/en/0",
@@ -352,7 +409,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.44
+   "s": 4.55
   },
   {
    "id": "qa-landlord/hi-en/0",
@@ -375,7 +432,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.7
+   "s": 4.43
   },
   {
    "id": "qa-mock/en/0",
@@ -398,7 +455,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.99
+   "s": 5.33
   },
   {
    "id": "qa-mock/hi-en/0",
@@ -417,11 +474,11 @@
      0.7856
     ]
    ],
-   "answer": "Mock interview with Ravi is on Friday at 7 pm.",
+   "answer": "Mock interview Ravi ke saath Friday ko 7 pm hai.",
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.88
+   "s": 5.45
   },
   {
    "id": "qa-mom-cake/en/0",
@@ -444,7 +501,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.25
+   "s": 5.19
   },
   {
    "id": "qa-mom-cake/hi-en/0",
@@ -467,7 +524,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.3
+   "s": 4.89
   },
   {
    "id": "qa-none-cake-price/en/0",
@@ -488,7 +545,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "wrong",
-   "s": 8.72
+   "s": 8.81
   },
   {
    "id": "qa-none-cake-price/hi-en/0",
@@ -505,11 +562,11 @@
      0.8215
     ]
    ],
-   "answer": "The notes mention ordering an eggless chocolate cake from the corner bakery two days before Maa's birthday on 20 September, but the cost is not specified.",
+   "answer": "The notes do not state the price of maa ke cake.",
    "ungrounded": null,
    "seen": "answered",
    "grade": "wrong",
-   "s": 8.39
+   "s": 5.7
   },
   {
    "id": "qa-none-phone/en/0",
@@ -530,7 +587,7 @@
    "ungrounded": null,
    "seen": "not in notes",
    "grade": "right",
-   "s": 4.61
+   "s": 3.35
   },
   {
    "id": "qa-none-phone/hi-en/0",
@@ -551,7 +608,7 @@
    "ungrounded": null,
    "seen": "not in notes",
    "grade": "right",
-   "s": 4.59
+   "s": 3.55
   },
   {
    "id": "qa-none-salary/en/0",
@@ -572,7 +629,7 @@
    "ungrounded": null,
    "seen": "not in notes",
    "grade": "right",
-   "s": 5.15
+   "s": 5.55
   },
   {
    "id": "qa-none-salary/hi-en/0",
@@ -593,7 +650,7 @@
    "ungrounded": null,
    "seen": "not in notes",
    "grade": "right",
-   "s": 5.44
+   "s": 4.76
   },
   {
    "id": "qa-release/en/0",
@@ -616,7 +673,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.27
+   "s": 4.39
   },
   {
    "id": "qa-release/hi-en/0",
@@ -639,7 +696,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 5.67
+   "s": 4.44
   },
   {
    "id": "qa-rent/en/0",
@@ -662,7 +719,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.14
+   "s": 6.0
   },
   {
    "id": "qa-rent/hi-en/0",
@@ -685,7 +742,7 @@
    "ungrounded": null,
    "seen": "answered",
    "grade": "right",
-   "s": 6.24
+   "s": 5.41
   }
  ]
 }

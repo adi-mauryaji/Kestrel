@@ -355,8 +355,8 @@ mod tests {
         let out = a.handle("hello", &mut yes());
         assert_eq!(
             out.last().unwrap(),
-            "Hi! I can find, open and summarize your notes, keep your tasks, draft emails and \
-             messages, rewrite or translate text, and chat."
+            "Hi! I can find, open and summarize your notes and answer questions from them, keep \
+             your tasks, draft emails and messages, rewrite or translate text, and chat."
         );
     }
 

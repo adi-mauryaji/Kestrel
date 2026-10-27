@@ -501,6 +501,7 @@ fn clarify(slot: &str) -> String {
 }
 
 fn no_action(parts: &[(Intent, String)], writes: bool) -> String {
+    const NOTES: &str = "find, open and summarize your notes and answer questions from them";
     const WRITES: &str = "draft emails and messages, rewrite or translate text, and chat";
     match (parts.iter().any(|(i, _)| *i == Intent::Unsupported), writes) {
         (true, false) => {
@@ -509,15 +510,12 @@ fn no_action(parts: &[(Intent, String)], writes: bool) -> String {
                 .into()
         }
         (true, true) => format!(
-            "I can't do that. I can find, open and summarize your notes, keep your tasks, remember \
-             your preferences, {WRITES}."
+            "I can't do that. I can {NOTES}, keep your tasks, remember your preferences, {WRITES}."
         ),
         (false, false) => {
             "Hi! I can find, open and summarize your notes, and keep your tasks.".into()
         }
-        (false, true) => {
-            format!("Hi! I can find, open and summarize your notes, keep your tasks, {WRITES}.")
-        }
+        (false, true) => format!("Hi! I can {NOTES}, keep your tasks, {WRITES}."),
     }
 }
 

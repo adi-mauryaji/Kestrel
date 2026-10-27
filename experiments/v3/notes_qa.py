@@ -34,7 +34,7 @@ for sub in ("data", "tier3", "v3"):
     sys.path.insert(0, str(ROOT / "experiments" / sub))
 from embed import embed, load_encoder  # noqa: E402
 from notes_meaning import chunks, needs_translation  # noqa: E402
-from writer_lang import BIN, CACHE, CONFIG  # noqa: E402
+from writer_lang import BIN, CACHE, CONFIG, is_hinglish  # noqa: E402
 
 DATA = ROOT / "datasets" / "kestrel_notesqa_v0"
 NOTES = ROOT / "datasets" / "kestrel_notesq_v0" / "notes"
@@ -47,6 +47,17 @@ LOG = ROOT / "experiments" / "logs" / "v3" / "notes" / "qa_dev.json"
 
 def log_path(split: str) -> Path:
     return LOG if split == "dev" else LOG.with_name(f"qa_{split}.json")
+
+
+def answer_language(rows) -> dict:
+    """Per question language: answers shown, and how many are in it (Hinglish by its common Hindi
+    words, as experiments/v3/writer_lang.py checks)."""
+    out = {}
+    for lang in ("hi-en", "en"):
+        shown = [r for r in rows if r["lang"] == lang and r["seen"] == "answered"]
+        same = sum(is_hinglish(r["answer"]) == (lang == "hi-en") for r in shown)
+        out[lang] = {"answered": len(shown), "same_language": same}
+    return out
 
 
 def has_facts(text: str, facts: list[list[str]]) -> bool:
@@ -149,6 +160,7 @@ def main(argv=None):
         "at_theta": _rates(rows, THETA),
         "by_lang_at_theta": {lang: _rates([r for r in rows if r["lang"] == lang], THETA) for lang in ("en", "hi-en")},
         "grid": {str(t): _rates(rows, t) for t in GRID},
+        "answer_language": answer_language(rows),
         "answer_s": {"mean": round(sum(r["s"] for r in rows) / len(rows), 2), "max": max(r["s"] for r in rows)},
         "errors": [r["id"] for r in rows if r["error"]],
         "questions": [{k: r[k] for k in ("id", "text", "asked", "notes", "top", "answer", "ungrounded", "seen", "grade", "s")}

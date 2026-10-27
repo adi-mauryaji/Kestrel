@@ -30,3 +30,13 @@ def test_each_split_has_its_own_log():
     from notes_qa import LOG, log_path
     assert log_path("dev") == LOG
     assert log_path("test") == LOG.with_name("qa_test.json")
+
+
+def test_answers_are_counted_in_the_language_of_their_question():
+    from notes_qa import answer_language
+    rows = [{"lang": "hi-en", "seen": "answered", "answer": "Aapka rent 12000 hai."},
+            {"lang": "hi-en", "seen": "answered", "answer": "Your rent is 12000."},
+            {"lang": "hi-en", "seen": "not in notes", "answer": "NOT IN NOTES"},
+            {"lang": "en", "seen": "answered", "answer": "Your rent is 12000."}]
+    assert answer_language(rows) == {"hi-en": {"answered": 2, "same_language": 1},
+                                     "en": {"answered": 1, "same_language": 1}}
