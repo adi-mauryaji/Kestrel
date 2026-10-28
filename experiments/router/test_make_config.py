@@ -94,7 +94,15 @@ def test_build_refuses_a_missing_point_or_a_signal_the_router_lacks():
         build(POLICIES, META, "s", RUNTIME, signal="ambiguous", delta=0.0)
 
 
-@pytest.mark.parametrize("dataset", ["intents_v0", "clinc150"])
+# CLINC150's rebuild reads the raw dataset, which is not in git (CI has none).
+CLINC_RAW = Path(__file__).resolve().parents[2] / "datasets/raw/clinc150/data_full.json"
+
+
+@pytest.mark.parametrize("dataset", [
+    "intents_v0",
+    pytest.param("clinc150", marks=pytest.mark.skipif(
+        not CLINC_RAW.exists(), reason="needs datasets/raw (scripts/fetch_datasets.py)")),
+])
 def test_the_committed_config_is_current_and_unedited(dataset):
     import json
 
