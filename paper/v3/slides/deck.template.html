@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kestrel v3</title>
+<!--
+  The v3 presentation for a non-technical audience. Source of paper/v3/slides/kestrel_v3_slides.html:
+  build.py fills every double-braced key from paper/v3/generated/numbers.json (made from the committed logs) and inlines
+  every file reference (fonts, the screenshot) as a data URI, so the built page works offline. Keys: ← → Space PageUp PageDown Home End;
+  click to go on. ?slide=N opens slide N; ?static shows final states; printing gives one slide per page.
+-->
+<style>
+@font-face { font-family: "K Sans"; src: url("[[file:fonts/sans-regular.woff]]") format("woff"); font-weight: 400; }
+@font-face { font-family: "K Sans"; src: url("[[file:fonts/sans-medium.woff]]") format("woff"); font-weight: 500; }
+@font-face { font-family: "K Sans"; src: url("[[file:fonts/sans-semibold.woff]]") format("woff"); font-weight: 600; }
+@font-face { font-family: "K Cond"; src: url("[[file:fonts/cond-semibold.woff]]") format("woff"); font-weight: 600; }
+@font-face { font-family: "K Tall"; src: url("[[file:fonts/xcond-light.woff]]") format("woff"); font-weight: 300; }
+@font-face { font-family: "K Voice"; src: url("[[file:fonts/serif-italic.woff]]") format("woff"); font-style: italic; }
+@font-face { font-family: "K Deva"; src: url("[[file:fonts/deva.woff]]") format("woff"); font-weight: 400 600; }
+
+:root {
+  --dusk: #121A20;     /* the stage: a slate evening sky */
+  --panel: #1B252C;
+  --line: #2E3C45;
+  --wing: #93A4AE;     /* secondary text: the kestrel's blue-grey head */
+  --mist: #DCE4E8;     /* primary text */
+  --buff: #E8CBA0;     /* what people typed: their own words */
+  --rufous: #E2794A;   /* the bird, and the results that matter */
+  --rufous-deep: #A0441C;
+  --tip: #7A3416;
+  --sans: "K Sans", "Noto Sans", sans-serif;
+  --cond: "K Cond", "Noto Sans", sans-serif;
+  --tall: "K Tall", "Noto Sans", sans-serif;
+  --voice: "K Voice", "Noto Serif", serif;
+  --deva: "K Deva", "Noto Sans Devanagari", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0B1014; color: var(--mist); }
+body { font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+.viewport { position: fixed; inset: 0; overflow: hidden; }
+.stage {
+  position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--s, 1)); background: var(--dusk); overflow: hidden;
+}
+
+/* ---- slides ---- */
+.slide { position: absolute; inset: 0; padding: 112px 140px 0; opacity: 0; visibility: hidden;
+  transition: opacity .55s ease, visibility 0s linear .55s; }
+.slide.on { opacity: 1; visibility: visible; transition: opacity .55s ease, visibility 0s; }
+.r { opacity: 0; transform: translateY(10px);
+  transition: opacity .6s ease calc(.12s + var(--d, 0) * .14s), transform .7s cubic-bezier(.2, .7, .2, 1) calc(.12s + var(--d, 0) * .14s); }
+.slide.on .r { opacity: 1; transform: none; }
+
+h1, h2 { font-family: var(--cond); font-weight: 600; letter-spacing: -0.012em; margin: 0; color: var(--mist); }
+h2 { font-size: 84px; line-height: 1.04; max-width: 1400px; }
+p { margin: 0; }
+.lede { font-size: 36px; line-height: 1.38; color: var(--wing); max-width: 1180px; margin-top: 26px; }
+.voice { font-family: var(--voice); font-style: italic; color: var(--buff); }
+.deva { font-family: var(--deva); font-style: normal; }
+.note { font-size: 23px; line-height: 1.45; color: var(--wing); max-width: 1500px; }
+.foot { position: absolute; left: 140px; right: 140px; bottom: 150px; }
+.num { font-family: var(--tall); font-weight: 300; line-height: .86; letter-spacing: -0.01em; color: var(--rufous); }
+.num small { font-size: .42em; letter-spacing: 0; }
+.k { color: var(--rufous); }
+b, strong { font-weight: 600; color: var(--mist); }
+
+/* ---- the horizon: progress, with the kestrel hovering over where we are ---- */
+.horizon { position: absolute; left: 140px; right: 140px; bottom: 54px; height: 70px; pointer-events: none; }
+.horizon .line { position: absolute; left: 0; right: 0; bottom: 18px; height: 2px; background: var(--line); }
+.horizon .done { position: absolute; left: 0; bottom: 18px; height: 2px; background: var(--rufous-deep);
+  width: var(--p, 0); transition: width .9s cubic-bezier(.3, .6, .2, 1); }
+.horizon .bird { position: absolute; bottom: 19px; left: var(--p, 0); width: 44px; margin-left: -22px;
+  transition: left .9s cubic-bezier(.3, .6, .2, 1); }
+.horizon .bird svg { display: block; width: 44px; height: 44px; }
+.horizon .bird i { display: block; width: 2px; height: 14px; margin: -2px auto 0; background: var(--rufous); }
+.horizon .count { position: absolute; right: 0; bottom: -18px; font-size: 22px; color: var(--wing);
+  font-variant-numeric: tabular-nums; }
+.horizon.static { display: none; }
+
+/* ---- 1 cover ---- */
+.s-cover { padding-top: 0; }
+.s-cover .title { position: absolute; left: 140px; top: 250px; width: 900px; }
+.s-cover h1 { font-size: 248px; line-height: .9; letter-spacing: -0.03em; }
+.s-cover .tag { font-size: 50px; line-height: 1.3; margin-top: 46px; color: var(--mist); }
+.s-cover .tag .voice { display: block; }
+.s-cover .when { position: absolute; left: 140px; bottom: 150px; font-size: 26px; color: var(--wing); }
+.s-cover .scene { position: absolute; right: 120px; top: 70px; width: 820px; height: 860px; }
+.hover { animation: hover 5.5s ease-in-out infinite; transform-origin: 50% 50%; }
+.s-cover .arrive { transform: translateY(-70px); opacity: 0; transition: transform 1.6s cubic-bezier(.2, .8, .2, 1) .2s, opacity 1s ease .2s; }
+.s-cover .drop { transform: scaleY(0); transform-origin: 50% 0; transform-box: fill-box; transition: transform .7s cubic-bezier(.3, .7, .2, 1) 1.5s; }
+.s-cover .typed rect, .s-cover .pin { opacity: 0; transition: opacity .35s ease; }
+.s-cover .pin { transition-delay: 2.1s; }
+.s-cover .typed rect:nth-child(1) { transition-delay: 2.3s; }
+.s-cover .typed rect:nth-child(2) { transition-delay: 2.55s; }
+.s-cover .typed rect:nth-child(3) { transition-delay: 2.8s; }
+.s-cover.on .arrive { transform: none; opacity: 1; }
+.s-cover.on .drop { transform: none; }
+.s-cover.on .typed rect, .s-cover.on .pin { opacity: 1; }
+@keyframes hover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+.stem { animation: stem 5.5s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes stem { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.04); } }
+
+/* ---- 2 hook ---- */
+.paths { margin-top: 44px; display: grid; gap: 18px; }
+.path { display: grid; grid-template-columns: 210px 1fr; align-items: center; gap: 30px; }
+.path .who { font-family: var(--cond); font-size: 40px; color: var(--wing); }
+.path.ours .who { color: var(--rufous); }
+.path svg { width: 100%; height: 160px; display: block; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 60px; margin-top: 34px; padding-left: 240px; }
+.facts p { font-size: 30px; line-height: 1.35; color: var(--wing); }
+.facts b { display: block; font-size: 38px; margin-bottom: 6px; font-family: var(--cond); font-weight: 600; }
+
+/* ---- 3 skills ---- */
+.skills { display: grid; grid-template-columns: 1fr 1fr; column-gap: 110px; row-gap: 54px; margin-top: 74px; }
+.skill { display: grid; grid-template-columns: 58px 1fr; column-gap: 26px; align-items: start; }
+.skill svg { width: 52px; height: 52px; margin-top: 2px; stroke: var(--rufous); fill: none; stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round; }
+.skill h3 { font-size: 36px; font-weight: 600; margin: 0 0 6px; }
+.skill p { font-size: 28px; line-height: 1.35; }
+.skill.cant svg { stroke: var(--wing); }
+.skill.cant h3 { color: var(--wing); }
+
+/* ---- 4 real moments ---- */
+.moments { display: grid; grid-template-columns: 1fr 1fr; gap: 46px 70px; margin-top: 56px; }
+.moment { border-left: 3px solid var(--rufous-deep); padding: 6px 0 6px 30px; }
+.moment .asked { font-size: 36px; line-height: 1.3; }
+.moment .said { font-size: 30px; line-height: 1.4; margin-top: 16px; color: var(--mist); }
+.moment .said .deva { font-size: 40px; }
+.moment .t { font-size: 22px; color: var(--wing); margin-top: 12px; font-variant-numeric: tabular-nums; }
+
+/* ---- 5 decide ---- */
+.flow { position: relative; margin-top: 46px; height: 330px; }
+.flow svg { position: absolute; inset: 0; width: 1640px; height: 330px; overflow: visible; }
+.node.lane { display: flex; align-items: baseline; gap: 26px; padding: 22px 30px; }
+.node.lane p { margin: 0; }
+.node.step { min-height: 124px; }
+.node { position: absolute; padding: 20px 26px; border-radius: 14px; background: var(--panel);
+  border: 1.5px solid var(--line); }
+.node h4 { margin: 0; font-size: 31px; font-weight: 600; }
+.node p { font-size: 24px; color: var(--wing); margin-top: 6px; line-height: 1.35; }
+.node.you { background: none; border-style: dashed; }
+.node.end { background: none; border-color: var(--rufous-deep); }
+.node.end h4 { color: var(--rufous); }
+.edge-label { position: absolute; font-size: 23px; color: var(--wing); }
+.results { display: grid; grid-template-columns: 1.3fr 1fr 1.2fr; gap: 50px; margin-top: 34px; align-items: end; }
+.results .num { font-size: 132px; }
+.results p { font-size: 28px; line-height: 1.3; color: var(--mist); margin-top: 10px; }
+.results .small .num { font-size: 96px; color: var(--mist); }
+
+/* ---- 6 meaning ---- */
+.meaning { display: grid; grid-template-columns: 1.05fr 1fr; gap: 110px; margin-top: 60px; }
+.match { position: relative; }
+.match .asked { font-size: 58px; line-height: 1.2; }
+.match .gloss { font-size: 25px; color: var(--wing); margin-top: 8px; }
+.notecard { margin-top: 60px; background: #F1F4F6; color: #22303A; border-radius: 10px; padding: 32px 36px 30px;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .7); transform: rotate(-1.2deg); width: 760px; }
+.notecard .file { font-size: 21px; color: #56666F; margin-bottom: 14px; }
+.notecard h5 { margin: 0 0 12px; font-size: 32px; font-weight: 600; color: #141B20; }
+.notecard p { font-size: 25px; line-height: 1.45; }
+.notecard mark { background: none; color: #A0441C; font-weight: 600; }
+.link { position: absolute; left: 160px; top: 128px; width: 3px; height: 92px;
+  background: repeating-linear-gradient(to bottom, var(--rufous) 0 8px, transparent 8px 16px); }
+.stat-block { border-left: 2px solid var(--line); padding-left: 56px; }
+.stat-block h4 { margin: 0 0 22px; font-size: 32px; font-weight: 600; line-height: 1.3; }
+.dots { display: flex; gap: 12px; align-items: center; margin: 10px 0 4px; }
+.dots span { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--wing); }
+.dots span.on { background: var(--rufous); border-color: var(--rufous); }
+.dotrow { display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 16px; margin-bottom: 14px; }
+.dotrow .lbl { font-size: 26px; color: var(--wing); }
+.dotrow .val { font-size: 26px; color: var(--mist); margin-left: 16px; font-variant-numeric: tabular-nums; }
+.stat-block .sep { height: 1px; background: var(--line); margin: 36px 0; }
+.stat-block .big { display: flex; align-items: baseline; gap: 22px; }
+.stat-block .big .num { font-size: 120px; }
+.stat-block .big p { font-size: 28px; line-height: 1.3; }
+
+/* ---- 7 honest ---- */
+.honest { display: grid; grid-template-columns: 1.15fr 1fr; gap: 100px; margin-top: 64px; }
+.qa { margin-bottom: 52px; }
+.qa .asked { font-size: 40px; line-height: 1.25; }
+.qa .said { font-size: 32px; line-height: 1.4; margin-top: 14px; padding-left: 26px; border-left: 3px solid var(--rufous-deep); }
+.qa .said.none { border-left-color: var(--wing); color: var(--mist); }
+.hero { display: flex; flex-direction: column; justify-content: center; }
+.hero .num { font-size: 300px; }
+.hero h4 { margin: 18px 0 0; font-size: 38px; font-weight: 600; }
+.hero p { font-size: 28px; color: var(--wing); line-height: 1.4; margin-top: 12px; }
+
+/* ---- 8 code ---- */
+.code { display: grid; grid-template-columns: 1.02fr .92fr 1fr; gap: 64px; margin-top: 56px; align-items: start; }
+.code .asked { font-size: 32px; line-height: 1.3; }
+.codebox { margin-top: 22px; background: #0C1216; border: 1.5px solid var(--line); border-radius: 12px; padding: 24px 28px;
+  font-family: "Hack", "Noto Sans Mono", monospace; font-size: 27px; line-height: 1.5; color: var(--mist); white-space: pre; }
+.codebox .kw { color: var(--rufous); }
+.code .check { font-size: 25px; color: var(--wing); margin-top: 16px; line-height: 1.4; }
+.box svg { width: 100%; height: 300px; display: block; }
+.box ul { list-style: none; padding: 0; margin: 18px 0 0; }
+.box li { font-size: 27px; line-height: 1.35; padding: 10px 0; border-top: 1px solid var(--line); }
+.units h4 { margin: 0 0 22px; font-size: 30px; font-weight: 600; }
+.unit-row { display: grid; grid-template-columns: 180px auto 80px; align-items: center; gap: 18px; margin-bottom: 18px; }
+.unit-row .lbl { font-size: 27px; }
+.unit-row .sq { display: flex; gap: 8px; }
+.unit-row .sq span { width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--wing); }
+.unit-row .sq span.on { background: var(--rufous); border-color: var(--rufous); }
+.unit-row .val { font-size: 27px; color: var(--wing); font-variant-numeric: tabular-nums; }
+.units .total { margin-top: 30px; display: flex; align-items: baseline; gap: 20px; }
+.units .total .num { font-size: 132px; }
+.units .total p { font-size: 27px; line-height: 1.3; }
+
+/* ---- 9 laptop ---- */
+.spec { font-size: 34px; line-height: 1.4; color: var(--wing); margin-top: 22px; }
+.spec b { color: var(--mist); font-weight: 500; }
+.compare { margin-top: 74px; display: grid; gap: 70px; }
+.cmp h4 { margin: 0; font-size: 36px; font-weight: 600; }
+.cmp .why { font-size: 27px; color: var(--wing); margin: 8px 0 22px; }
+.bar { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 24px; margin-bottom: 14px; }
+.bar .lbl { font-size: 26px; color: var(--wing); }
+.bar .track { position: relative; height: 46px; }
+.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 6px 6px 0; background: #4A5964;
+  width: var(--w, 0); transition: width 1.1s cubic-bezier(.2, .7, .2, 1) .35s; }
+.bar.now .fill { background: var(--rufous); }
+.bar .v { position: absolute; top: 50%; transform: translateY(-50%); left: calc(var(--w, 0) + 18px); font-size: 30px;
+  white-space: nowrap; transition: left 1.1s cubic-bezier(.2, .7, .2, 1) .35s; font-variant-numeric: tabular-nums; }
+.bar.now .v { color: var(--mist); font-weight: 600; }
+.slide:not(.on) .bar .fill { width: 0; }
+.slide:not(.on) .bar .v { left: 18px; }
+.cut { font-family: var(--tall); font-size: 46px; color: var(--rufous); margin-left: 18px; }
+
+/* ---- 10 speed ---- */
+.speed { margin-top: 44px; display: grid; grid-template-columns: 1fr 360px; gap: 60px; }
+.lolli { position: relative; }
+.lrow { display: grid; grid-template-columns: 430px 1fr; align-items: center; height: 47px; }
+.lrow .lbl { font-size: 26px; color: var(--mist); }
+.lrow .lbl .voice { font-size: 24px; }
+.lrow .track { position: relative; height: 47px; }
+.lrow .stick { position: absolute; left: 0; top: 50%; height: 3px; margin-top: -1.5px; background: var(--rufous-deep);
+  width: var(--w, 0); transition: width 1s cubic-bezier(.2, .7, .2, 1) calc(.3s + var(--i, 0) * .05s); }
+.lrow .dot { position: absolute; top: 50%; left: var(--w, 0); width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: var(--rufous); transition: left 1s cubic-bezier(.2, .7, .2, 1) calc(.3s + var(--i, 0) * .05s); }
+.lrow .v { position: absolute; top: 50%; transform: translateY(-50%); left: calc(var(--w, 0) + 20px); font-size: 24px;
+  color: var(--wing); white-space: nowrap; font-variant-numeric: tabular-nums;
+  transition: left 1s cubic-bezier(.2, .7, .2, 1) calc(.3s + var(--i, 0) * .05s); }
+.slide:not(.on) .lrow .stick { width: 0; }
+.slide:not(.on) .lrow .dot, .slide:not(.on) .lrow .v { left: 0; }
+.lrow:hover .lbl, .lrow:hover .v { color: var(--rufous); }
+.zone { position: absolute; top: 0; bottom: 0; left: 430px; width: 0; }
+.axis { display: grid; grid-template-columns: 430px 1fr; margin-top: 10px; }
+.axis .ticks { position: relative; height: 34px; border-top: 1px solid var(--line); }
+.axis .ticks span { position: absolute; top: 8px; font-size: 21px; color: var(--wing); transform: translateX(-50%); white-space: nowrap; }
+.speed aside p { font-size: 27px; line-height: 1.45; color: var(--wing); margin-bottom: 30px; }
+.speed aside b { display: block; color: var(--mist); font-size: 30px; margin-bottom: 6px; }
+
+/* ---- 11 tested ---- */
+.tested { display: grid; grid-template-columns: 1fr 720px; gap: 80px; margin-top: 50px; }
+.tested .hero .num { font-size: 250px; }
+.tested ul { list-style: none; padding: 0; margin: 34px 0 0; }
+.tested li { font-size: 30px; line-height: 1.4; padding: 18px 0; border-top: 1px solid var(--line); color: var(--wing); }
+.tested li b { color: var(--mist); font-weight: 600; }
+.shot { position: relative; height: 640px; overflow: hidden; border-radius: 14px; border: 1.5px solid var(--line);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, .8); }
+.shot img { width: 101.8%; display: block; }
+.shot figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 110px 26px 22px; font-size: 22px; color: var(--wing);
+  background: linear-gradient(to bottom, rgba(18, 26, 32, 0), #121A20 62%); }
+
+/* ---- 12 limits ---- */
+.limits { display: grid; grid-template-columns: 1fr 1fr; gap: 54px 90px; margin-top: 70px; }
+.limit h4 { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.3; }
+.limit p { font-size: 26px; line-height: 1.4; color: var(--wing); margin-top: 8px; }
+.limit .voice { font-size: 26px; }
+
+/* ---- 13 next ---- */
+.next { display: grid; grid-template-columns: repeat(3, 1fr); gap: 70px; margin-top: 110px; }
+.next div { border-top: 3px solid var(--rufous-deep); padding-top: 30px; }
+.next h4 { margin: 0 0 16px; font-size: 40px; font-weight: 600; line-height: 1.2; font-family: var(--cond); }
+.next p { font-size: 31px; line-height: 1.5; color: var(--wing); }
+
+/* ---- 14 close ---- */
+.s-close { text-align: center; }
+.s-close .scene { position: absolute; left: 50%; top: 70px; width: 520px; margin-left: -260px; }
+.s-close h2 { position: absolute; left: 0; right: 0; top: 600px; font-size: 104px; max-width: none; }
+.s-close p { position: absolute; left: 0; right: 0; top: 740px; font-size: 36px; color: var(--wing); }
+
+/* ---- modes ---- */
+.static * { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .slide, .r, .bar .fill, .bar .v, .lrow .stick, .lrow .dot, .lrow .v, .horizon .bird, .horizon .done { transition: none !important; }
+  .hover, .stem { animation: none !important; }
+  .s-cover .arrive, .s-cover .drop, .s-cover .typed rect, .s-cover .pin { transition: none !important; }
+}
+@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { background: var(--dusk); overflow: visible; height: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .viewport { position: static; overflow: visible; }
+  .stage { position: static; transform: none; height: auto; overflow: visible; background: none; }
+  .slide { position: relative; width: 1920px; height: 1080px; opacity: 1; visibility: visible; background: var(--dusk);
+    break-after: page; page-break-after: always; overflow: hidden; }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .r { opacity: 1; transform: none; }
+  * { transition: none !important; animation: none !important; }
+  .s-cover .arrive, .s-cover .drop { transform: none; opacity: 1; }
+  .s-cover .typed rect, .s-cover .pin { opacity: 1; }
+  .chrome, .horizon.live { display: none; }
+  .horizon.static { display: block; }
+  .slide:not(.on) .bar .fill { width: var(--w, 0); }
+  .slide:not(.on) .bar .v { left: calc(var(--w, 0) + 18px); }
+  .slide:not(.on) .lrow .stick { width: var(--w, 0); }
+  .slide:not(.on) .lrow .dot { left: var(--w, 0); }
+  .slide:not(.on) .lrow .v { left: calc(var(--w, 0) + 20px); }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- the kestrel, front view while hovering (after apps/cli/web/kestrel.svg, drawn at 10x) -->
+    <symbol id="kestrel" viewBox="0 0 320 300">
+      <g>
+        <path fill="#E2794A" d="M140 126C104 99 55 67 8 58C28 94 63 128 102 150C116 158 128 168 137 181Z"/>
+        <path fill="#E2794A" d="M180 126C216 99 265 67 312 58C292 94 257 128 218 150C204 158 192 168 183 181Z"/>
+        <path fill="#7A3416" d="M8 58C24 61 41 66 57 73C53 86 49 96 45 104C30 91 17 76 8 58Z"/>
+        <path fill="#7A3416" d="M312 58C296 61 279 66 263 73C267 86 271 96 275 104C290 91 303 76 312 58Z"/>
+        <path stroke="#121A20" stroke-width="2" fill="none" d="M18 66L44 90M28 64L50 84M38 66L54 79M302 66L276 90M292 64L270 84M282 66L266 79"/>
+        <g fill="#7A3416">
+          <ellipse cx="96" cy="108" rx="3.6" ry="2.4" transform="rotate(30 96 108)"/>
+          <ellipse cx="112" cy="124" rx="3.6" ry="2.4" transform="rotate(30 112 124)"/>
+          <ellipse cx="80" cy="102" rx="3" ry="2" transform="rotate(30 80 102)"/>
+          <ellipse cx="124" cy="141" rx="3.4" ry="2.3" transform="rotate(40 124 141)"/>
+          <ellipse cx="224" cy="108" rx="3.6" ry="2.4" transform="rotate(-30 224 108)"/>
+          <ellipse cx="208" cy="124" rx="3.6" ry="2.4" transform="rotate(-30 208 124)"/>
+          <ellipse cx="240" cy="102" rx="3" ry="2" transform="rotate(-30 240 102)"/>
+          <ellipse cx="196" cy="141" rx="3.4" ry="2.3" transform="rotate(-40 196 141)"/>
+        </g>
+        <path fill="#93A4AE" d="M149 180L127 262Q160 275 193 262L171 180Z"/>
+        <path fill="#121A20" d="M130 251Q160 262 190 251L193 262Q160 275 127 262Z"/>
+        <path fill="#E8CBA0" d="M127 262Q160 275 193 262L194 266Q160 280 126 266Z"/>
+        <ellipse cx="160" cy="146" rx="25" ry="50" fill="#E8CBA0"/>
+        <g fill="#7A3416">
+          <path d="M151 126q1.8 5 0 9q-1.8-4 0-9Z"/><path d="M169 126q1.8 5 0 9q-1.8-4 0-9Z"/>
+          <path d="M160 138q1.8 5 0 9q-1.8-4 0-9Z"/><path d="M149 151q1.8 5 0 9q-1.8-4 0-9Z"/>
+          <path d="M171 151q1.8 5 0 9q-1.8-4 0-9Z"/><path d="M160 164q1.8 5 0 9q-1.8-4 0-9Z"/>
+          <path d="M153 177q1.4 4 0 7q-1.4-3 0-7Z"/><path d="M167 177q1.4 4 0 7q-1.4-3 0-7Z"/>
+        </g>
+        <circle cx="160" cy="82" r="23" fill="#93A4AE"/>
+        <ellipse cx="160" cy="96" rx="15" ry="10" fill="#E8CBA0"/>
+        <path fill="#121A20" d="M146 84q-2.6 9 0 17q2.6-8 0-17Z"/><path fill="#121A20" d="M174 84q2.6 9 0 17q-2.6-8 0-17Z"/>
+        <circle cx="151" cy="79" r="3.6" fill="#121A20"/><circle cx="169" cy="79" r="3.6" fill="#121A20"/>
+        <circle cx="152" cy="78" r="1" fill="#DCE4E8"/><circle cx="170" cy="78" r="1" fill="#DCE4E8"/>
+        <path fill="#EDA100" d="M155 83h10l-1 3h-8Z"/>
+        <path fill="#3B4B55" d="M156 86h8l-3 8q-1 2-2 0Z"/>
+      </g>
+    </symbol>
+    <symbol id="mark" viewBox="0 0 32 32">
+      <g fill="#E2794A">
+        <circle cx="16" cy="8.4" r="2.5"/><ellipse cx="16" cy="14.8" rx="2.8" ry="5.4"/>
+        <path d="M14 12.6C10.4 9.9 5.5 6.7.8 5.8c2 3.6 5.5 7 9.4 9.2 1.4.8 2.6 1.8 3.5 3.1Z"/>
+        <path d="M18 12.6c3.6-2.7 8.5-5.9 13.2-6.8-2 3.6-5.5 7-9.4 9.2-1.4.8-2.6 1.8-3.5 3.1Z"/>
+        <path d="M14.5 18.9 11.2 27.6c2.9 1.5 6.7 1.5 9.6 0L17.5 18.9Z"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="viewport">
+<main class="stage" id="stage">
+
+<!-- 1 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide s-cover" data-title="Kestrel">
+  <div class="title">
+    <h1 class="r">Kestrel</h1>
+    <p class="tag r" style="--d:1">An assistant that lives on your laptop.
+      <span class="voice">Nothing you type leaves it.</span></p>
+  </div>
+  <p class="when r" style="--d:2">Version 3, October 2026</p>
+  <svg class="scene r" style="--d:1" viewBox="0 0 820 860" aria-label="A kestrel hovering over a laptop">
+    <g class="stem"><rect class="drop" x="409" y="420" width="3" height="252" fill="#E2794A"/></g>
+    <g class="arrive"><g class="hover"><use href="#kestrel" x="150" y="110" width="520" height="488"/></g></g>
+    <g fill="none" stroke="#3B4B55" stroke-width="3" stroke-linejoin="round">
+      <path d="M210 812V676q0-10 10-10h380q10 0 10 10v136"/>
+      <path d="M120 812h580l-30 30H150Z" fill="#1B252C"/>
+    </g>
+    <g fill="#2E3C45" class="typed">
+      <rect x="244" y="704" width="160" height="10" rx="5"/>
+      <rect x="244" y="730" width="300" height="10" rx="5"/>
+      <rect x="244" y="756" width="236" height="10" rx="5"/>
+    </g>
+    <circle class="pin" cx="410.5" cy="672" r="5" fill="#E2794A"/>
+  </svg>
+</section>
+
+<!-- 2 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Where your words go">
+  <h2 class="r">Most assistants send your words to someone else's computer.</h2>
+  <p class="lede r" style="--d:1">Kestrel does the work on the laptop in front of you.</p>
+  <div class="paths">
+    <div class="path r" style="--d:2">
+      <span class="who">Usually</span>
+      <svg viewBox="0 0 1400 190" preserveAspectRatio="xMinYMid meet" aria-label="Words travel from the laptop over the internet to a far-away server">
+        <g fill="none" stroke="#93A4AE" stroke-width="3" stroke-linejoin="round">
+          <path d="M20 150V86q0-8 8-8h112q8 0 8 8v64"/><path d="M6 150h156l-10 12H16Z"/>
+        </g>
+        <path d="M170 124C470 52 900 52 1190 110" fill="none" stroke="#93A4AE" stroke-width="2.5" stroke-dasharray="3 14" stroke-linecap="round"/>
+        <g font-family="K Voice, serif" font-style="italic" font-size="26" fill="#E8CBA0">
+          <text x="330" y="44">maa ka birthday kab hai?</text>
+          <text x="760" y="34">my rent, my notes…</text>
+        </g>
+        <g fill="none" stroke="#93A4AE" stroke-width="3">
+          <rect x="1210" y="56" width="120" height="44" rx="6"/><rect x="1210" y="106" width="120" height="44" rx="6"/>
+          <circle cx="1232" cy="78" r="4" fill="#93A4AE"/><circle cx="1232" cy="128" r="4" fill="#93A4AE"/>
+        </g>
+        <text x="1270" y="182" text-anchor="middle" font-size="22" fill="#93A4AE" font-family="K Sans, sans-serif">someone else's computer</text>
+      </svg>
+    </div>
+    <div class="path ours r" style="--d:3">
+      <span class="who">Kestrel</span>
+      <svg viewBox="0 0 1400 190" preserveAspectRatio="xMinYMid meet" aria-label="Words stay on the laptop">
+        <g fill="none" stroke="#E2794A" stroke-width="3" stroke-linejoin="round">
+          <path d="M20 150V86q0-8 8-8h112q8 0 8 8v64"/><path d="M6 150h156l-10 12H16Z"/>
+        </g>
+        <ellipse cx="84" cy="118" rx="112" ry="62" fill="none" stroke="#E2794A" stroke-width="2.5" stroke-dasharray="3 14" stroke-linecap="round"/>
+        <text x="250" y="88" font-family="K Voice, serif" font-style="italic" font-size="26" fill="#E8CBA0">maa ka birthday kab hai?</text>
+        <text x="250" y="138" font-family="K Sans, sans-serif" font-size="27" fill="#DCE4E8">The question, the notes and the answer stay on this laptop.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="facts">
+    <p class="r" style="--d:4"><b>No internet needed</b>Works with the wifi off.</p>
+    <p class="r" style="--d:5"><b>₹0 to use</b>No subscription and no paid service behind it.</p>
+    <p class="r" style="--d:6"><b>Open models</b>Small language models that run on the laptop itself.</p>
+  </div>
+</section>
+
+<!-- 3 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="What it does">
+  <h2 class="r">What you can ask it, in English or Hinglish</h2>
+  <div class="skills">
+    <div class="skill r" style="--d:1">
+      <svg viewBox="0 0 52 52"><path d="M26 8c-8 0-13 6-13 14v9l-4 6h34l-4-6v-9c0-8-5-14-13-14Z"/><path d="M21 42a5 5 0 0 0 10 0"/></svg>
+      <div><h3>Tasks and reminders</h3><p class="voice">remind me to call asha tomorrow at 5 pm</p></div>
+    </div>
+    <div class="skill r" style="--d:1">
+      <svg viewBox="0 0 52 52"><circle cx="22" cy="22" r="13"/><path d="M32 32l11 11"/><path d="M22 15v4m0 6v4m-7-7h4m6 0h4"/></svg>
+      <div><h3>Find notes by meaning</h3><p class="voice">search my notes for maa ke liye tohfa</p></div>
+    </div>
+    <div class="skill r" style="--d:2">
+      <svg viewBox="0 0 52 52"><path d="M13 6h19l9 9v31H13Z"/><path d="M32 6v9h9"/><path d="M22 26a5 5 0 1 1 6 5c-1 .5-1 1.5-1 3"/><circle cx="27" cy="39" r=".8"/></svg>
+      <div><h3>Answer questions from your notes</h3><p class="voice">maa ka birthday kab hai?</p></div>
+    </div>
+    <div class="skill r" style="--d:2">
+      <svg viewBox="0 0 52 52"><rect x="7" y="12" width="38" height="28" rx="3"/><path d="M8 14l18 14 18-14"/></svg>
+      <div><h3>Write emails</h3><p class="voice">manager ko friday ki chutti ke liye mail likh do</p></div>
+    </div>
+    <div class="skill r" style="--d:3">
+      <svg viewBox="0 0 52 52"><path d="M8 16h22m-6-6 6 6-6 6"/><path d="M44 36H22m6-6-6 6 6 6"/></svg>
+      <div><h3>Rewrite and translate</h3><p class="voice">make this polite: send me the file now</p></div>
+    </div>
+    <div class="skill r" style="--d:3">
+      <svg viewBox="0 0 52 52"><path d="M8 12h36v22H22l-9 8v-8H8Z"/></svg>
+      <div><h3>Chat and explain</h3><p class="voice">sardi ki subah pe chaar lines likho</p></div>
+    </div>
+    <div class="skill r" style="--d:4">
+      <svg viewBox="0 0 52 52"><path d="M18 14 7 26l11 12M34 14l11 12-11 12M29 10l-6 32"/></svg>
+      <div><h3>Write and check small Python code</h3><p class="voice">prime number check karne ka python function likho</p></div>
+    </div>
+    <div class="skill cant r" style="--d:4">
+      <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="18"/><path d="M13 39 39 13"/></svg>
+      <div><h3>Says so when it can't</h3><p class="voice">what's the weather in delhi today?</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Real requests">
+  <h2 class="r">Real requests, real answers</h2>
+  <div class="moments">
+    <div class="moment r" style="--d:1">
+      <p class="asked voice">kal shaam 6 baje bill bharna yaad dila dena</p>
+      <p class="said">created task #2: bill bharna (due 2026-10-28 18:00)</p>
+      <p class="t">answered in {{acc.s.taskhi}} s</p>
+    </div>
+    <div class="moment r" style="--d:2">
+      <p class="asked voice">maa ka birthday kab hai?</p>
+      <p class="said">Maa ka birthday 20 September hai.<br>(from 2026-09-08-mom-birthday.md)</p>
+      <p class="t">answered in {{acc.s.qa}} s</p>
+    </div>
+    <div class="moment r" style="--d:3">
+      <p class="asked voice">translate to hindi: good morning, see you tomorrow</p>
+      <p class="said"><span class="deva">सुप्रभात, कल मिलते हैं</span></p>
+      <p class="t">answered in {{acc.s.tohindi}} s</p>
+    </div>
+    <div class="moment r" style="--d:4">
+      <p class="asked voice">goa wale hotel ka naam kya hai?</p>
+      <p class="said">The notes do not say this: so the reply is not available for this information</p>
+      <p class="t">answered in {{acc.s.qanone}} s</p>
+    </div>
+  </div>
+  <p class="note foot r" style="--d:5">Word for word from the last full test before version 3 was frozen, on a copy of Kestrel with sample notes, not anyone's real notes.</p>
+</section>
+
+<!-- 5 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="How it decides">
+  <h2 class="r">How it decides what you want</h2>
+  <p class="lede r" style="--d:1; max-width:1600px">Like a good receptionist: a quick look, a second opinion, then a question.</p>
+  <div class="flow r" style="--d:2">
+    <svg viewBox="0 0 1640 330" aria-hidden="true">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+        <path d="M0 0L10 5L0 10Z" fill="#93A4AE"/></marker>
+        <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+        <path d="M0 0L10 5L0 10Z" fill="#E2794A"/></marker></defs>
+      <g fill="none" stroke-width="2.5">
+        <path d="M232 238H320" stroke="#93A4AE" marker-end="url(#ah)"/>
+        <path d="M724 238H826" stroke="#93A4AE" marker-end="url(#ah)"/>
+        <path d="M1228 238H1330" stroke="#93A4AE" marker-end="url(#ah)"/>
+        <path d="M540 172V100" stroke="#E2794A" marker-end="url(#ahr)"/>
+        <path d="M1032 172V100" stroke="#E2794A" marker-end="url(#ahr)"/>
+        <path d="M1490 172V100" stroke="#E2794A" stroke-dasharray="6 8" marker-end="url(#ahr)"/>
+      </g>
+    </svg>
+    <div class="node end lane" style="left:330px; top:0; width:1310px"><h4>The right helper</h4><p>tasks, notes, email, translation, chat, code</p></div>
+    <div class="node you" style="left:0; top:196px; width:226px"><h4 class="voice" style="font-weight:400; white-space:nowrap">your request</h4></div>
+    <div class="node step" style="left:330px; top:176px; width:390px"><h4>A quick first look</h4><p>a small model: a few milliseconds</p></div>
+    <div class="node step" style="left:834px; top:176px; width:390px"><h4>A second opinion</h4><p>Gemma, a bigger model: about {{fb2.ms.p50}} ms</p></div>
+    <div class="node you step" style="left:1340px; top:176px; width:300px"><h4>It asks you</h4><p>“Write this as an email or message draft?”</p></div>
+    <span class="edge-label" style="left:556px; top:116px">sure</span>
+    <span class="edge-label" style="left:1048px; top:116px">sure</span>
+    <span class="edge-label" style="left:1506px; top:116px">yes</span>
+    <span class="edge-label" style="left:740px; top:196px">unsure</span>
+    <span class="edge-label" style="left:1244px; top:196px">unsure</span>
+  </div>
+  <div class="results">
+    <div class="r" style="--d:3"><div class="num">{{kt2.hg.right}}</div><p>decisions right on the test set</p></div>
+    <div class="small r" style="--d:4"><div class="num">{{kt2.hg.asked}}</div><p>times it asked first</p></div>
+    <div class="small r" style="--d:5"><div class="num">{{kt2.hg.notaskedfor}}</div><p>times it started something nobody asked for</p></div>
+  </div>
+  <p class="note r" style="--d:6; margin-top:20px">{{kt2.n}} test requests we wrote in English and Hinglish ({{kv2.test.fresh}} new, the rest used once before). When both are unsure but the first look leans to Kestrel's everyday tools, it just uses them. Gemma's time is from the practice set.</p>
+</section>
+
+<!-- 6 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Notes by meaning">
+  <h2 class="r">It finds notes by what they mean</h2>
+  <div class="meaning">
+    <div class="match r" style="--d:1">
+      <p class="asked voice">maa ke liye tohfa</p>
+      <p class="gloss">“a gift for mom”: the note says “gift ideas”, never “tohfa”</p>
+      <div class="notecard">
+        <p class="file">2026-09-08-mom-birthday.md, found by meaning</p>
+        <h5>Maa's birthday, 20 September</h5>
+        <p><mark>Gift ideas</mark>: a cotton saree in light blue, or the steel tiffin set she liked at the mall.</p>
+        <p style="margin-top:12px">Order the eggless chocolate cake from the corner bakery two days before.</p>
+      </div>
+    </div>
+    <div class="stat-block r" style="--d:2">
+      <h4>Hinglish searches found, practice set</h4>
+      <div class="dotrow"><span class="lbl">at first</span><div class="dots" data-frac="{{md.found.hi}}"></div></div>
+      <div class="dotrow"><span class="lbl">now</span><div class="dots" data-frac="{{mdt.found.hi}}"></div></div>
+      <p class="note" style="margin-top:14px">Now it first turns a Hinglish search into English, then looks.</p>
+      <div class="sep"></div>
+      <div class="big"><div class="num">{{mtt.found}}</div><p>searches found the right note<br>on the test set</p></div>
+      <p class="note" style="margin-top:20px">When no note fits, it adds none: {{mtt.noise}} wrong notes added on the test set.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Honest answers">
+  <h2 class="r">It answers from your notes, or says they don't have it</h2>
+  <div class="honest">
+    <div>
+      <div class="qa r" style="--d:1">
+        <p class="asked voice">on which date do i fly to goa?</p>
+        <p class="said">Flights are booked for the 14th, and you will be back on the 18th.</p>
+      </div>
+      <div class="qa r" style="--d:2">
+        <p class="asked voice">goa wale hotel ka naam kya hai?</p>
+        <p class="said none">The notes do not say this: so the reply is not available for this information</p>
+      </div>
+      <p class="note r" style="--d:3">Before it shows an answer, Kestrel checks that the numbers and names in it are in your note.</p>
+    </div>
+    <div class="hero r" style="--d:2">
+      <div class="num">{{qa.test.all}}</div>
+      <h4>test questions handled right</h4>
+      <p>Questions the notes answer: {{qa.test.ans}} right.<br>Questions they don't: {{qa.test.un}} times it said so.<br>A small test of the answering step, on sample notes. Spotting that a question is about your notes is a separate step: {{kt2.hg.kind.notes}} on its test.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Code">
+  <h2 class="r">It writes small Python code, and checks it in a sealed box</h2>
+  <div class="code">
+    <div class="r" style="--d:1">
+      <p class="asked voice">fix this function: def add(a, b): return a - b</p>
+      <div class="codebox"><span class="kw">def</span> add(a, b):
+    <span class="kw">return</span> a + b</div>
+      <p class="check">(I checked it in a safe sandbox: no errors.)</p>
+    </div>
+    <div class="box r" style="--d:2">
+      <svg viewBox="0 0 420 300" aria-label="The code runs inside a sealed box">
+        <g fill="none" stroke="#93A4AE" stroke-width="3" stroke-linejoin="round">
+          <path d="M60 110 210 50 360 110 210 170Z"/><path d="M60 110v120l150 60V170"/><path d="M360 110v120l-150 60"/>
+        </g>
+        <g fill="none" stroke="#E2794A" stroke-width="3" stroke-linecap="round">
+          <path d="M168 100l-18 12 18 12M252 100l18 12-18 12M222 94l-24 36"/>
+        </g>
+        <g fill="#E2794A"><rect x="194" y="214" width="32" height="26" rx="4"/></g>
+        <path d="M200 214v-8a10 10 0 0 1 20 0v8" fill="none" stroke="#E2794A" stroke-width="3"/>
+      </svg>
+      <ul>
+        <li>No internet inside the box</li>
+        <li>It can't see your files</li>
+        <li>Limits on time and memory</li>
+      </ul>
+    </div>
+    <div class="units r" style="--d:3">
+      <h4>On the test set</h4>
+      <div class="unit-row"><span class="lbl">Functions</span><div class="sq" data-frac="{{code.test.function}}"></div><span class="val">{{code.test.function}}</span></div>
+      <div class="unit-row"><span class="lbl">Fixes</span><div class="sq" data-frac="{{code.test.fix}}"></div><span class="val">{{code.test.fix}}</span></div>
+      <div class="unit-row"><span class="lbl">Explanations</span><div class="sq" data-frac="{{code.test.explain}}"></div><span class="val">{{code.test.explain}}</span></div>
+      <div class="unit-row"><span class="lbl">Scripts</span><div class="sq" data-frac="{{code.test.script}}"></div><span class="val">{{code.test.script}}</span></div>
+      <div class="total"><div class="num">{{code.test.all}}</div><p>requests passed our checks</p></div>
+    </div>
+  </div>
+  <p class="note foot r" style="--d:4">Python's built-in tools only. The box loads the code to catch mistakes; it does not run your program with your own input. Explanations were checked for their key points only.</p>
+</section>
+
+<!-- 9 ---------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="An ordinary laptop">
+  <h2 class="r">All of this runs on an ordinary laptop</h2>
+  <p class="spec r" style="--d:1"><b>{{hw.cpu}}</b> processor, {{hw.cores}} cores, <b>{{hw.ram}} GiB</b> of memory, no separate graphics card.</p>
+  <div class="compare">
+    <div class="cmp r" style="--d:2">
+      <h4>Memory the language model holds and can't give back</h4>
+      <p class="why">Version 3 maps the model file instead of copying it, so the laptop can take most of that memory back when it needs it.</p>
+      <div class="bar" data-v="{{mmap.copy.cold.anon}}" data-max="{{mmap.copy.cold.anon}}"><span class="lbl">copied</span><div class="track"><div class="fill"></div><span class="v">{{mmap.copy.cold.anon}} MiB</span></div></div>
+      <div class="bar now" data-v="{{mmap.map.cold.anon}}" data-max="{{mmap.copy.cold.anon}}"><span class="lbl">mapped</span><div class="track"><div class="fill"></div><span class="v">{{mmap.map.cold.anon}} MiB <span class="cut">−{{mmap.anon.cut}}</span></span></div></div>
+    </div>
+    <div class="cmp r" style="--d:3">
+      <h4>Time until the language model is ready</h4>
+      <p class="why">Version 3 saves its warm-up on the disk once, instead of redoing it every time it starts.</p>
+      <div class="bar" data-v="{{worker.v2.s}}" data-max="{{worker.v2.s}}"><span class="lbl">version 2</span><div class="track"><div class="fill"></div><span class="v">{{worker.v2.s}} s</span></div></div>
+      <div class="bar now" data-v="{{worker.hit.s}}" data-max="{{worker.v2.s}}"><span class="lbl">version 3</span><div class="track"><div class="fill"></div><span class="v">{{worker.hit.s}} s</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 --------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="How long you wait">
+  <h2 class="r">How long you wait</h2>
+  <div class="speed">
+    <div class="r" style="--d:1">
+      <div class="lolli" data-max="25">
+        <div class="lrow" data-v="{{acc.s.task}}"><span class="lbl">Make a reminder</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.task}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.search}}"><span class="lbl">Search notes for a word</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.search}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.meaninghi}}"><span class="lbl">Find a note by meaning (Hinglish)</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.meaninghi}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.tohindi}}"><span class="lbl">Translate into Hindi</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.tohindi}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.rewrite}}"><span class="lbl">Make a line polite</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.rewrite}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.codefix}}"><span class="lbl">Fix a small function</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.codefix}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.summary}}"><span class="lbl">Summarize a note</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.summary}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.emailhi}}"><span class="lbl">Write an email (Hinglish)</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.emailhi}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.qa}}"><span class="lbl">Answer from your notes</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.qa}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.poem}}"><span class="lbl">Write four lines of poetry</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.poem}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.codefn}}"><span class="lbl">Write a new function</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.codefn}} s</span></div></div>
+        <div class="lrow" data-v="{{acc.s.chat}}"><span class="lbl">Explain how something works</span><div class="track"><i class="stick"></i><i class="dot"></i><span class="v">{{acc.s.chat}} s</span></div></div>
+      </div>
+      <div class="axis"><span></span><div class="ticks" data-max="25" data-ticks="0,5,10,15,20,25"></div></div>
+    </div>
+    <aside class="r" style="--d:2">
+      <p><b>Under a second</b>for most of Kestrel's own tools; some Hinglish requests take seconds.</p>
+      <p><b>A few seconds or more</b>when the language model writes, because it writes word by word.</p>
+      <p><b>You start reading early</b>Written answers appear word by word; notes answers and summaries once checked.</p>
+      <p class="note">Seconds until the whole answer, one test run each.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- 11 --------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Tested">
+  <h2 class="r">Tested like a real user, then frozen</h2>
+  <div class="tested">
+    <div>
+      <div class="hero r" style="--d:1"><div class="num">{{acc.socket}}</div><h4>everyday requests passed end to end</h4></div>
+      <ul class="r" style="--d:2">
+        <li><b>The web page</b> passed {{acc.page.headless}} checks in a hidden browser and {{acc.page.headed}} on a real screen.</li>
+        <li><b>A reminder</b> set for {{acc.reminder.due}} popped up at {{acc.reminder.rang}}.</li>
+        <li><b>{{acc.cargo}}</b> automatic checks of Kestrel's code passed, and <b>{{acc.pytest}}</b> of the scripts that test it.</li>
+      </ul>
+    </div>
+    <figure class="shot r" style="--d:3; margin:0">
+      <img src="[[file:../../../experiments/logs/v3/acceptance/page_headed.png]]" alt="The Kestrel page in a browser: the day strip with the kestrel over the current time, the request box, a task, a chat answer and a code box">
+      <figcaption>The Kestrel page during that test, on a real screen.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 12 --------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Not yet">
+  <h2 class="r">What it can't do well yet</h2>
+  <p class="lede r" style="--d:1; max-width:1600px">The main ones; the full list written down at the freeze has {{acc.limits}}.</p>
+  <div class="limits">
+    <div class="limit r" style="--d:1"><h4>Some questions about your notes are refused</h4><p><span class="voice">how much is my rent?</span> got “I can't do that”, though the rent is in the notes.</p></div>
+    <div class="limit r" style="--d:1"><h4>Programs that read what you type often fail</h4><p>Scripts were right {{code.test.script}} times on the test set.</p></div>
+    <div class="limit r" style="--d:2"><h4>It doesn't remember the conversation</h4><p><span class="voice">continue</span> or a follow-up question does not see its last answer.</p></div>
+    <div class="limit r" style="--d:2"><h4>Some Hinglish questions get English answers</h4><p>Notes answers came back in Hinglish {{qa.dev.hinglish}} times on the practice set.</p></div>
+    <div class="limit r" style="--d:3"><h4>Formatting shows as symbols</h4><p>Bold text and bullet points appear with their stars.</p></div>
+    <div class="limit r" style="--d:3"><h4>Small tests, written by us</h4><p>Every test set was made for this project. Real people's requests come next.</p></div>
+  </div>
+</section>
+
+<!-- 13 --------------------------------------------------------------------------------------------------- -->
+<section class="slide" data-title="Next">
+  <h2 class="r">What comes next</h2>
+  <p class="lede r" style="--d:1; max-width:1600px">Version 3 is frozen. The next round starts from how people really use it.</p>
+  <div class="next">
+    <div class="r" style="--d:1"><h4>Learn from real mistakes</h4><p>Collect the requests it gets wrong in daily use, teach it with them, and test again on questions it has never seen.</p></div>
+    <div class="r" style="--d:2"><h4>Close the gaps</h4><p>Work through the list on the last slide, one at a time, each with its own test.</p></div>
+    <div class="r" style="--d:3"><h4>Version 4 on a bigger machine</h4><p>Larger models on a Mac or a stronger computer, still offline, still private.</p></div>
+  </div>
+</section>
+
+<!-- 14 --------------------------------------------------------------------------------------------------- -->
+<section class="slide s-close" data-title="Thank you">
+  <svg class="scene r" viewBox="0 0 520 488" aria-hidden="true"><g class="hover"><use href="#kestrel" x="0" y="0" width="520" height="488"/></g></svg>
+  <h2 class="r" style="--d:1">Your words stay on your laptop.</h2>
+  <p class="r" style="--d:2">Thank you. Questions are welcome.</p>
+</section>
+
+</main>
+<div class="chrome"></div>
+</div>
+
+<script>
+(function () {
+  const stage = document.getElementById("stage");
+  const slides = [...stage.querySelectorAll(".slide")];
+  const params = new URLSearchParams(location.search);
+  const N = slides.length;
+  const isStatic = params.has("static") || params.has("print");
+  if (isStatic) document.documentElement.classList.add("static");
+
+  // the horizon: one live copy on screen, one fixed copy per slide for print
+  function horizon(i, cls) {
+    const h = document.createElement("div");
+    h.className = "horizon " + cls;
+    h.innerHTML = '<div class="line"></div><div class="done"></div>' +
+      '<div class="bird"><svg viewBox="0 0 32 32"><use href="#mark"/></svg><i></i></div><div class="count"></div>';
+    h.style.setProperty("--p", (100 * i / (N - 1)) + "%");
+    h.querySelector(".count").textContent = (i + 1) + " / " + N;
+    return h;
+  }
+  const live = horizon(0, "live");
+  stage.appendChild(live);
+  slides.forEach((s, i) => s.appendChild(horizon(i, "static")));
+
+  // numbers drawn from their own values: "k/n" dots and squares, bar and lollipop lengths
+  document.querySelectorAll("[data-frac]").forEach(el => {
+    const [k, n] = el.dataset.frac.split("/").map(Number);
+    for (let j = 0; j < n; j++) {
+      const s = document.createElement("span");
+      if (j < k) s.className = "on";
+      el.appendChild(s);
+    }
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", k + " of " + n);
+  });
+  document.querySelectorAll(".bar[data-v]").forEach(el => {
+    el.style.setProperty("--w", (100 * parseFloat(el.dataset.v) / parseFloat(el.dataset.max) * 0.78) + "%");
+  });
+  document.querySelectorAll(".lolli").forEach(l => {
+    const max = parseFloat(l.dataset.max);
+    l.querySelectorAll(".lrow").forEach((r, i) => {
+      r.style.setProperty("--w", (100 * parseFloat(r.dataset.v) / max) + "%");
+      r.style.setProperty("--i", i);
+    });
+  });
+  document.querySelectorAll(".ticks").forEach(t => {
+    const max = parseFloat(t.dataset.max);
+    t.dataset.ticks.split(",").forEach(v => {
+      const s = document.createElement("span");
+      s.style.left = (100 * parseFloat(v) / max) + "%";
+      s.textContent = v + " s";
+      t.appendChild(s);
+    });
+  });
+
+  let cur = 0;
+  function show(i) {
+    cur = Math.max(0, Math.min(N - 1, i));
+    slides.forEach((s, j) => s.classList.toggle("on", j === cur));
+    live.style.setProperty("--p", (100 * cur / (N - 1)) + "%");
+    live.querySelector(".count").textContent = (cur + 1) + " / " + N;
+    document.title = "Kestrel v3 (" + (cur + 1) + "/" + N + "): " + slides[cur].dataset.title;
+    if (!isStatic) history.replaceState(null, "", "#" + (cur + 1));
+  }
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.setProperty("--s", s);
+  }
+  addEventListener("resize", fit);
+  fit();
+  addEventListener("keydown", e => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); show(cur + 1); }
+    else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) { e.preventDefault(); show(cur - 1); }
+    else if (e.key === "Home") show(0);
+    else if (e.key === "End") show(N - 1);
+  });
+  addEventListener("click", e => { if (e.button === 0) show(e.clientX < innerWidth * 0.2 ? cur - 1 : cur + 1); });
+  const start = parseInt(params.get("slide") || location.hash.slice(1) || "1", 10);
+  show((isNaN(start) ? 1 : start) - 1);
+})();
+</script>
+</body>
+</html>

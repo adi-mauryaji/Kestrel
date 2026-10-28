@@ -1,0 +1,561 @@
+% Kestrel v3 paper. Build: cd paper/v3 && latexmk -pdf kestrel_v3.tex
+% Every result number is a \kv{key} macro from generated/numbers.tex, and every results table is generated, by
+% experiments/analysis/paper_assets_v3.py from the committed v3 logs. An undefined key prints as ??key??.
+% Configuration constants typed here (sandbox limits, retries, token caps, N) are checked against the code in
+% number_check.md.
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit}
+\usepackage[round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\setlength{\emergencystretch}{2em}
+
+\DeclareRobustCommand{\kv}[1]{\ifcsname kv@#1\endcsname\csname kv@#1\endcsname\else\textbf{??#1??}\fi}
+\input{generated/numbers.tex}
+\newcommand{\ms}{\,ms}
+\newcommand{\s}{\,s}
+\newcommand{\MiB}{\,MiB}
+
+\title{From an Intent Cascade to a Usable Offline Assistant:\\
+Request-Kind Routing, Grounded Notes Q\&A and a Sandboxed Code Loop on a Laptop CPU}
+\author{[Author name]\\[2pt] \small [Affiliation] \quad \small [email]}
+\date{Draft, 28 October 2026 (Kestrel v3, tag \texttt{v3-frozen})}
+
+\begin{document}
+\maketitle
+
+% ---------------------------------------------------------------------------------------------------------------
+\begin{abstract}
+Kestrel is a personal assistant that runs entirely on a laptop CPU. Its first version routed requests among nine
+intents with a calibrated cascade: eight app actions, and \emph{unsupported}, which it refused. We describe and evaluate its third version, which
+adds written answers (chat, email drafts, rewriting, translation), notes found by meaning, questions answered from
+the user's notes, and small Python programs checked in a sandbox, all offline, on a \kv{hw.cores}-core laptop with
+\kv{hw.ram}~GiB of RAM and a single 4-bit small language model (Gemma-4-E2B). A temperature-scaled linear head on a
+frozen multilingual encoder chooses the request's \emph{kind} before the old cascade runs; when it is unsure, the
+language model scores the kinds, and when that is unsure too, a skill is proposed to the user as a question (a request
+that leans to the app takes the old path). On a held-out English--Hinglish test
+split ($n=\kv{kt2.n}$) the decision was right for \kv{kt2.hg.right} requests (\kv{kt2.hg.right.pct}, 95\% CI
+\kv{kt2.hg.right.ci}), started a skill nobody asked for \kv{kt2.hg.notaskedfor} times and asked the user
+\kv{kt2.hg.asked} times; \kv{kv1.test} of those requests had been scored once before, and on the \kv{kv2.test.fresh}
+fresh ones the decision was right for \kv{kt2.fresh.hg.right}. Retrieval by meaning found the right note for
+\kv{mtt.found} test queries that keyword search missed and added no note to queries that had none, once Romanized
+Hindi queries were first put into English (on development data this raised Hinglish from \kv{md.found.hi} to
+\kv{mdt.found.hi}). Grounded notes Q\&A answered \kv{qa.test.ans} answerable test questions correctly and declined all
+\kv{qa.test.un} unanswerable ones. On \kv{code.test.n} held-out code requests the model was right \kv{code.test.all}
+times, but only \kv{code.test.script} on scripts that read input, and its sandbox retry loop never fired. Mapping the
+model file cut the model's non-reclaimable memory from \kv{mmap.copy.cold.anon} to \kv{mmap.map.cold.anon}\MiB, and,
+with a cached prompt prefix as well, the worker became ready in \kv{worker.hit.s}\s\ instead of the previous version's
+\kv{worker.v2.s}\s. An end-to-end acceptance run passed
+\kv{acc.socket} requests. All evaluation sets are small and synthetic; unlike the pre-registered first study, v3's
+protocol was fixed step by step, and we say where that weakens a result.
+\end{abstract}
+
+\noindent\textbf{Keywords:} on-device assistants; small language models; request routing; calibration; retrieval;
+grounded question answering; code generation; sandboxing; code-mixed Hinglish; privacy.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Introduction}\label{sec:intro}
+
+A personal assistant that never sends the user's words to a server has to do all of its work on the user's own
+machine. Kestrel is such an assistant for notes, tasks and reminders. Its first version (v1) studied one question: can
+a calibrated cascade of keyword rules, a frozen sentence encoder and a 4-bit small language model (SLM) classify a
+request into one of nine intents (eight app actions and \emph{unsupported}) as accurately as the SLM alone, and
+faster? That study was pre-registered and
+reported separately (the v1 paper); its primary hypothesis was supported on CLINC150. A second version made the
+system usable day to day: task commands in English and Hinglish, desktop reminders, an always-on service that loads the
+SLM on demand, and a local browser page.
+
+Both versions refused anything outside the eight app actions. ``Write an email to my landlord'', ``translate this into
+Hindi'', ``when is my mock interview?'' or ``fix this function'' ended as \emph{unsupported}, or worse, in a wrong
+intent. Version 3 (v3) set out to answer these on the same laptop, completely offline and at no cost: tasks and
+reminders; notes search by meaning and summaries; email drafts in English and Hinglish; rewriting and translation;
+normal chat; questions answered from the user's notes; and, with a compile and test loop, small Python scripts and
+functions, explanations of code and fixes of simple errors.
+
+This paper reports how v3 does that and how well each part works. Its contributions are:
+\begin{enumerate}
+  \item A \emph{kind decision} before the intent cascade: one encoder pass and a temperature-scaled linear head choose
+  between the old app path and six skills; below a threshold the SLM scores the kinds, and below a second threshold
+  a skill is proposed to the user as a question. It needs no extra model and leaves the research cascade unchanged (Section~\ref{sec:kinds}).
+  \item Retrieval by meaning over the user's notes, added after the unchanged keyword search, with Romanized Hindi
+  queries put into English by the SLM first, because the encoder does not handle them (Section~\ref{sec:notes}).
+  \item Notes Q\&A that answers only from the closest notes, checks numbers and names against them, and says when the
+  notes do not answer (Section~\ref{sec:notes}).
+  \item A code loop in which the same 2B-class SLM writes, fixes and explains small Python programs, checked in a
+  network-less sandbox with at most two retries on the sandbox's own errors (Section~\ref{sec:code}).
+  \item Two engineering measurements that make an always-on service practical on 15~GiB of RAM: memory-mapped
+  weights and a cached primed prompt prefix (Section~\ref{sec:system}).
+  \item An evaluation on five small English--Hinglish sets with one test run each, an end-to-end acceptance run, and the
+  negative results: notes questions and rewrite requests are often not recognised, scripts that read input fail half
+  the time, and some answers come back in the wrong language.
+\end{enumerate}
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Related Work}\label{sec:related}
+
+\paragraph{Routing and cascades.} Model cascades answer with a cheap model when it is confident and defer otherwise
+\citep{varshney2022modelcascading}; FrugalGPT~\citep{chen2023frugalgpt} and RouteLLM~\citep{ong2024routellm} route
+between language models of different cost, and confidence-based deferral can fail under distribution
+shift~\citep{jitkrittum2023deferral}. Our kind decision is such a cascade over \emph{tasks} rather than models: the
+encoder head decides, the SLM is consulted only when the head is unsure, and the last resort is a question to the user.
+Temperature scaling~\citep{guo2017calibration} and the selective-prediction view~\citep{geifman2017selective}, both
+used in v1, carry over.
+
+\paragraph{Encoders, intents and code-mixing.} We reuse v1's frozen multilingual E5 encoder~\citep{wang2024me5}, a
+sentence-embedding model in the line of Sentence-BERT~\citep{reimers2019sbert}. Intent detection with out-of-scope
+requests~\citep{larson2019clinc} and an encoder that defers to an LLM on uncertainty~\citep{arora2024intentllm} are the
+closest classification settings; code-switched task-oriented parsing has been studied for
+Spanish--English~\citep{einolghozati2021cstop}. We found that the encoder does not place Romanized Hindi queries near
+English notes with the same meaning, and route them through translation instead.
+
+\paragraph{Retrieval and grounded answers.} Retrieval-augmented generation conditions a generator on retrieved
+passages~\citep{lewis2020rag}. SQuAD~2.0 added questions that the passage does not answer, so that a reader must also
+abstain~\citep{rajpurkar2018squad2}; our notes Q\&A set has such questions, and the system must answer ``not in your
+notes'' for them.
+
+\paragraph{Code generation and repair.} HumanEval~\citep{chen2021codex} and MBPP~\citep{austin2021mbpp} judge
+generated Python by running it against unit tests; we judge our requests by tests the model never sees, on far fewer
+items, with English and Hinglish phrasings and a fourth type (explanations, judged by required facts). Self-debugging~\citep{chen2024selfdebug} feeds
+execution results back to the model; our loop does this only for the sandbox's own errors, after the model's own tests
+proved unreliable (Section~\ref{sec:res-code}).
+
+\paragraph{The models.} The SLM is Gemma-4-E2B~\citep{gemma4} at 4-bit, run with llama.cpp~\citep{llamacpp}; two
+Qwen3 models~\citep{yang2025qwen3} were compared for code on development data.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{System}\label{sec:system}
+
+\begin{figure}[t]
+\centering
+\input{figures/arch.tex}
+\caption{How v3 handles a request. Saving a note (read from the text as typed) and task commands are checked first. If the
+kind head's top kind reaches $\tau$, it decides: \emph{app} takes the unchanged app path (v1's cascade and tools), a
+skill is written. Below $\tau$, whatever the top kind, Gemma's choice decides if its confidence reaches $\tau_g$;
+otherwise the head's top kind decides, except that a skill is proposed to the user as a y/N question.}
+\label{fig:arch}
+\end{figure}
+
+Figure~\ref{fig:arch} shows the path of a request. Everything runs in one always-on process, \texttt{kestrel serve},
+that keeps the rules and the encoder (multilingual-e5-small, 8-bit) loaded and starts the SLM in a worker process on
+the first request that needs it, stopping it after ten idle minutes. The terminal client and the browser page talk to
+it over a local socket and a localhost HTTP server; answers from the SLM are streamed as they are written, except notes answers and note summaries, which are shown after a
+grounding check (Section~\ref{sec:notes}). The research
+code paths, the nine-intent ontology, its datasets and its frozen configurations are untouched: v3 adds an application
+layer in front of them.
+
+\paragraph{Skills.} \emph{Chat} answers general questions and explanations; every chat answer ends with a visible note
+that an offline small model wrote it and may be wrong. Current facts, live data and calculations stay on the app path,
+where they are refused. \emph{Email} writes a draft (sending stays an app request). \emph{Rewrite} changes a given text
+in its own language, and \emph{translate} puts it into another; a short note after the request names the output
+language and script (``hindi'' is written in Devanagari, Hinglish in Latin letters). Answers are capped at 512 tokens
+for chat and email and 384 for rewriting and translation, and a capped answer says that it was cut.
+
+\paragraph{The worker's start.} On this laptop Gemma-4-E2B decodes \kv{e0.gemma.tg} tokens per second and reads a
+prompt at \kv{e0.gemma.pp} tokens per second (E0, v1's measurement protocol), so long prompts dominate latency. Two
+changes make the on-demand worker cheap to start (Section~\ref{sec:res-system}): its weights are memory-mapped instead
+of copied, and the key--value state of its \kv{worker.prefix.tokens}-token few-shot prompt prefix is saved to a cache
+file after the first start and loaded afterwards, if and only if the saved token list equals the prefix.
+
+\paragraph{Privacy.} No component opens a network connection; the browser page binds to 127.0.0.1 by default and
+requires a key for its API. (A wifi-sharing option exists for a trusted local network over plain HTTP and is off.)
+Model-written code runs only inside the sandbox of Section~\ref{sec:code}.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{The kind decision}\label{sec:kinds}
+
+\paragraph{Kinds.} A request's kind is \emph{app} (the old path), \emph{chat}, \emph{email}, \emph{rewrite},
+\emph{translate}, \emph{notes} (a question that the user's notes answer) or \emph{code} (code to write, fix, shorten or
+test; explaining code is chat). The kinds were added in three dataset versions, Kinds-v0 to v2; Table~\ref{tab:datasets} lists the two that were
+tested.
+
+\paragraph{Head.} One e5 pass embeds the request (``query:'' prefix), and a multinomial logistic regression head
+gives a probability per kind. Its regularization $C$ is chosen on validation macro-F1. Its temperature $T$ is
+cross-fitted: train and calibration items are split into \kv{kh2.folds} folds by template family, each fold's logits
+come from a head trained on the other folds, and $T$ minimises the negative log-likelihood of all out-of-fold logits; the
+final head is then trained on train and calibration together. (On Kinds-v0, a temperature fitted on its
+calibration split alone (84 to 103 items) made validation ECE worse in four of five development runs.)
+
+\paragraph{Fallback and asking.} If the head's top kind reaches $\tau$, it decides: \emph{app} goes the old way, a
+skill is written. Below $\tau$, Gemma is prompted with the kinds' definitions and two examples per kind and language,
+decodes one label under a grammar that allows only the labels, and its confidence (the label's probability,
+temperature-scaled on the calibration split by binary cross-entropy, as v1's Tier~4) must reach $\tau_g$ for its kind
+to decide. Otherwise the head's top kind decides as before, except that a skill is not written but proposed to the
+user as a y/N question. Each decision is therefore one of four outcomes: \emph{right}; \emph{asked}; \emph{sent the old
+way} (a skill request taken by the app path, which refuses it or takes it for another action); or \emph{a skill not asked for} (a wrong skill
+written).
+
+\paragraph{Choosing $\tau$ and $\tau_g$.} Both were chosen on the validation split, over
+$\{0.5,0.6,0.7,0.8,0.9\}^2$, by a rule fixed before the run: fewest wrong decisions (both wrong outcomes), then
+fewest questions, then the lower $\tau$ (fewer SLM calls), then the higher $\tau_g$. For Kinds-v1 this gave
+$\tau=\kv{fb1.tau}$, $\tau_g=\kv{fb1.taug}$; for Kinds-v2, $\tau=\kv{fb2.tau}$, $\tau_g=\kv{fb2.taug}$
+(\kv{fb2.val.right} right on validation). The service uses the Kinds-v2 head and settings.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Notes by meaning and notes Q\&A}\label{sec:notes}
+
+\paragraph{Retrieval.} Each note is cut into chunks (its title and one paragraph), embedded once with the
+``passage:'' prefix and cached by a hash of the note's text. The keyword search of v1 runs first, unchanged; when it
+returns fewer than three notes, the single closest note by meaning (a note's score is its best chunk's cosine) is added
+if its score reaches $\theta$, labelled ``(by meaning)''. A query that contains a common Hindi word is first put into
+English by Gemma. $\theta$ was chosen on development data to maximise the share of queries whose note was found minus
+the share of queries without a note that received one.
+
+\paragraph{Q\&A.} A question of kind \emph{notes} retrieves the $N=2$ closest notes, none if even the closest is below
+$\theta$. Gemma is told to answer only from them, in the question's language, or to say exactly \texttt{NOT IN NOTES}.
+A grounding check then requires every number and name in the answer to occur in the notes. The user sees a grounded
+answer with the note it came from, or the reply ``The notes do not say this: so the reply is not available for this
+information'' (the author's own wording), or, when the answer could not be checked, the closest note instead.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{The code loop}\label{sec:code}
+
+A request of kind \emph{code} goes to Gemma with a system prompt for short, standard-library Python (at most 640
+tokens). The code is then checked in a sandbox: bubblewrap\footnote{\url{https://github.com/containers/bubblewrap}}
+with every namespace unshared (so no network), \texttt{/usr} read-only, an empty \texttt{/tmp} and a fresh work folder
+as the only writable place, a clean environment and no home directory; inside it, resource limits of 512~MiB of
+memory, 10~s of CPU, 10~MiB files and 64 processes, plus a wall-clock timeout, and \texttt{python3 -E -S}. Code is
+imported (so it compiles and its top level runs); code that waits for input at its top level is only compiled, since
+the sandbox has no input to give it. A syntax error, a crash or a timeout goes back to Gemma with the code, at most two
+times. The answer carries one line saying what was checked (``I checked it in a safe sandbox: no errors.'') and a
+caveat. The evaluation harness (Section~\ref{sec:res-code}) checks by request type instead: a function or a fix is
+imported, a script is only compiled.
+
+The loop deliberately does not run tests written by the model. In the first harness, models were asked to add their
+own checks and were retried when those failed; on development data Qwen3-4B's own checks failed on right code (wrong
+asserts, or asserts written where a sample input was expected) and caused \kv{code.dev.qbig.retries} retries without
+changing a single outcome (Section~\ref{sec:res-code}).
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Data and protocol}\label{sec:setup}
+
+\begin{table}[t]
+\centering\small
+\caption{The v3 evaluation sets. All are synthetic: drafted with an AI assistant from families of English and
+Romanized Hindi (Hinglish) phrasings, and split by family. ``Reviewed'' means reviewed by the author; ``claude
+reviewed'' means the author waived the review and the AI assistant reviewed it, with a separate agent judging the files
+against written criteria. Kinds-v2's test split contains Kinds-v1's test split plus \kv{kv2.test.fresh} fresh items.}
+\label{tab:datasets}
+\resizebox{\textwidth}{!}{\input{generated/table_datasets.tex}}
+\end{table}
+
+\paragraph{Datasets.} Table~\ref{tab:datasets} lists the sets. Kestrel-Kinds-v0 to v2 contain \emph{app} items
+taken from the train, calibration and validation splits of v1's Kestrel-Intents-v0 (its test split was never read)
+plus families on the boundaries (``send an email'' and ``search my notes for the translation'' are app requests), and
+families for each skill. Kinds-v0 (\kv{kv0.labels} kinds) was reviewed but never tested: its test was moved to
+Kinds-v1, which added \emph{notes}. Kinds-v2 added \kv{kv2.fam.n} families: \kv{kv2.fam.code} code, \kv{kv2.fam.chat} chat (among them
+explaining code and poems), \kv{kv2.fam.notes} notes, \kv{kv2.fam.rewrite} rewrite and \kv{kv2.fam.app} app; it keeps
+Kinds-v1's rows in their splits and adds \kv{kv2.test.fresh} fresh test items. Kestrel-NotesQ-v0 holds paraphrase
+queries that share no keyword with their note, over \kv{notes.fixture} fixture notes (never the user's own), with
+queries that no note answers; Kestrel-NotesQA-v0 asks questions about the same notes, answerable ones with their key
+facts and unanswerable ones. Kestrel-CodeTasks-v0 has \kv{code.families} families of four types (write a function,
+write a script, fix broken code, explain code), each with one English and one Hinglish request and hidden checks:
+asserts for functions and fixes, input/output cases for scripts (the last output line must contain the answer as
+whole words), and facts that a right explanation contains.
+
+\paragraph{Protocol.} Every choice (head, $C$, $T$, $\tau$, $\tau_g$, $\theta$, prompts, model) was made on development
+splits. Each test split was then run once. Unlike v1, this protocol was not
+pre-registered as a whole: each step's rule was written down before its own run, sometimes after earlier steps' results
+were known (Section~\ref{sec:threats}). Proportions are reported with 95\% Wilson intervals~\citep{wilson1927}, computed
+from the logged counts. Timings come from the laptop as found (the memory runs record AC power, CPU boost on and Kestrel's own service idle), not from
+v1's controlled protocol, and are comparable only within one log.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Results}\label{sec:results}
+
+\subsection{The kind decision}\label{sec:res-kinds}
+
+\begin{table}[t]
+\centering\small
+\caption{Kind decisions on the test splits, each run once. ``Skill req.'' are requests whose gold kind is a skill;
+``app req.'' are app requests. A taken decision is right, sent the old way, or a skill not asked for; the rest were
+asked.}
+\label{tab:kinds}
+\resizebox{\textwidth}{!}{\input{generated/table_kinds.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/kinds.pdf}
+\caption{Decisions on requests for a skill (test splits). The fallback turns many questions to the user, and some
+requests sent the old way, into right answers. On Kinds-v1 a third of skill requests were still sent the old way; on Kinds-v2 most of those are gone, but
+\kv{kv1.test} of its \kv{kt2.n} test items had been scored once before (Section~\ref{sec:threats}).}
+\label{fig:kinds}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\caption{Right decisions per gold kind on the test splits.}
+\label{tab:perkind}
+\input{generated/table_perkind.tex}
+\end{table}
+
+Table~\ref{tab:kinds}, Table~\ref{tab:perkind} and Figure~\ref{fig:kinds} give the test results. On Kinds-v1 the head
+alone took \kv{kt1.ha.right} decisions right; with the fallback, \kv{kt1.hg.right} (\kv{kt1.hg.right.pct}, CI
+\kv{kt1.hg.right.ci}), with no skill written that was not asked for. Every app request was right (\kv{kt1.hg.app}),
+but only \kv{kt1.hg.skill} skill requests were (notes questions \kv{kt1.hg.kind.notes}, rewrite requests
+\kv{kt1.hg.kind.rewrite}), and \kv{kt1.hg.sentoldway} skill requests went the old way. Questions about the user's
+own people and things (``which floor is the dentist on?'') looked like app requests to both the head and Gemma.
+
+On Kinds-v2, with the fallback, \kv{kt2.hg.right} decisions were right (\kv{kt2.hg.right.pct}, CI
+\kv{kt2.hg.right.ci}), \kv{kt2.hg.skill} skill requests among them; \kv{kt2.hg.sentoldway} were sent the old way,
+\kv{kt2.hg.notaskedfor} started a skill nobody asked for and \kv{kt2.hg.asked} were asked. The fallback mattered most
+for chat and translation: the head alone was right for \kv{kt2.ha.kind.chat} chat and \kv{kt2.ha.kind.translate}
+translation requests, the head with Gemma for \kv{kt2.hg.kind.chat} and \kv{kt2.hg.kind.translate}. It cost app
+requests a little (\kv{kt2.ha.kind.app} to \kv{kt2.hg.kind.app}): Gemma answered three jokes (``tell me a joke'', ``ek
+joke sunao'', ``kuch funny bolo'') and ``google exam preparation'' as chat, which the data label app (small talk and web
+searches belong to the app). The head itself, above $\tau$, sent ``london mein abhi kitne baje hain?'' to notes. Rewrite stayed weakest:
+\kv{kt2.hg.kind.rewrite} right, most of the others asked first.
+
+The \kv{kv2.test.fresh} fresh items give the cleanest view: \kv{kt2.fresh.hg.right} right with the fallback (CI
+\kv{kt2.fresh.hg.right.ci}) against \kv{kt2.fresh.ha.right} for the head alone, which asked
+\kv{kt2.fresh.ha.asked} times. English and Hinglish were close (\kv{kt2.hg.en} and \kv{kt2.hg.hi}).
+
+The final heads' validation accuracy was \kv{kh1.val.acc} (Kinds-v1) and \kv{kh2.val.acc} (Kinds-v2), with
+macro-F1 \kv{kh1.val.f1} and \kv{kh2.val.f1}; temperature scaling lowered validation ECE from \kv{kh1.val.ece.raw} to
+\kv{kh1.val.ece} and from \kv{kh2.val.ece.raw} to \kv{kh2.val.ece}. On test, the Kinds-v2 head reached accuracy
+\kv{kt2.head.acc}, macro-F1 \kv{kt2.head.f1} and ECE \kv{kt2.head.ece}; its recall was lowest for chat
+(\kv{kt2.head.recall.chat}) and code (\kv{kt2.head.recall.code}). On the validation items where the Kinds-v2 head's top kind
+was below $\tau$, Gemma was right \kv{fb2.unsure.gemma} times out of \kv{fb2.unsure.n}, the head \kv{fb2.unsure.head} times.
+Gemma's label call took \kv{fb2.ms.p50}\ms\ at the median (p95 \kv{fb2.ms.p95}\ms) on development data, once the
+model is loaded; one e5 pass and the head take a few milliseconds (v1 measured the encoder-alone system at a median of
+\kv{e1.encoder.median}\ms\ per request).
+
+\subsection{Notes by meaning}\label{sec:res-notes}
+
+\begin{table}[t]
+\centering\small
+\caption{Retrieval by meaning on Kestrel-NotesQ-v0. Every query's note is missed by the keyword search. ``Right note
+added'': the closest note is the query's note and reaches $\theta$. The test split was run once, with $\theta$ from
+development.}
+\label{tab:notes}
+\resizebox{\textwidth}{!}{\input{generated/table_notes.tex}}
+\end{table}
+
+No query's note was found by keywords (by construction), so every success in Table~\ref{tab:notes} is the meaning
+search's. Without translation, the right note was the closest one for \kv{md.rank1.en} English but only
+\kv{md.rank1.hi} Hinglish development queries, and at the chosen $\theta=\kv{md.theta}$ the search added it for
+\kv{md.found.en} and \kv{md.found.hi}. Putting Hinglish queries into English first (``maa ke liye tohfa'' became ``gift
+for mother'') made the right note the closest for all \kv{mdt.rank1} development queries, and $\theta=\kv{mdt.theta}$
+added it for all of them without adding a note to any of the \kv{notesq.dev.none} queries that have none. On test the
+search found \kv{mtt.found} (\kv{mtt.found.pct}, CI \kv{mtt.found.ci}), the same in both languages
+(\kv{mtt.found.en} and \kv{mtt.found.hi}), and added no wrong note (\kv{mtt.noise} on queries without a note). The
+closest note was right for \kv{mtt.rank1}; for two queries the right note was the closest but just below $\theta$, and ``festival shopping''
+ranked the Goa trip above the Diwali shopping note in both languages.
+
+\subsection{Notes Q\&A}
+
+On the test split all \kv{qa.test.all} answers were graded right: \kv{qa.test.ans} answerable questions answered with
+their facts and \kv{qa.test.un} unanswerable ones declined (CI \kv{qa.test.all.ci} for the whole split). For every answerable question,
+the right note was among the two given. Generating an answer took \kv{qa.test.s.mean}\s\ on average (at most \kv{qa.test.s.max}\s). On development data the same system declined only
+\kv{qa.dev.un} unanswerable questions, both before and after the language note described below. Both misses
+asked for the price of a cake that the notes mention without a price: Gemma said in its own words that the notes do not
+state it, instead of the exact marker, so the app would have shown that sentence as an answer.
+
+The answer's language lagged behind. The test run came before a note that tells Gemma to answer a Hinglish question in
+Hinglish; counted afterwards with the same word-list check, \kv{qa.test.hinglish} answered Hinglish test questions got a
+Hinglish answer. With the note, \kv{qa.dev.hinglish} did on development data; the test split was not run again.
+
+\subsection{Code}\label{sec:res-code}
+
+\begin{table}[t]
+\centering\small
+\caption{Kestrel-CodeTasks-v0: requests right after the loop, by type (6 per type), and the mean generation seconds per request (model time; wall time is slightly longer).
+The first harness let models add their own tests; the final harness retries only on the sandbox's own errors. In every
+run, pass@1 equalled the result after the loop.}
+\label{tab:code}
+\resizebox{\textwidth}{!}{\input{generated/table_code.tex}}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/code.pdf}
+\caption{Gemma-4-E2B with the final harness on development data and on the test split (run once).}
+\label{fig:code}
+\end{figure}
+
+With the first harness (Table~\ref{tab:code}), Qwen3-4B was right \kv{code.dev.qbig.all} times on development data,
+Gemma-4-E2B \kv{code.dev.gemma.all} and Qwen3-1.7B \kv{code.dev.qsmall.all}; all of Gemma's misses were scripts
+(\kv{code.dev.gemma.script} right). A review of the hidden checks then made script
+grading fairer and fix checks stronger, and the same answers rescored to \kv{code.resc.gemma} for Gemma and
+\kv{code.resc.qbig} for Qwen3-4B (writing and fixing code: \kv{code.resc.gemma.writefix} vs \kv{code.resc.qbig.writefix}),
+at \kv{code.resc.gemma.s} against \kv{code.resc.qbig.s}\s\ of generation per request. Since Qwen3-4B would need a second model in memory
+and a second worker, Gemma was kept for code. Its explanations of Hinglish requests were Hinglish
+(\kv{code.dev.gemma.explain.hi.hinglish}), against \kv{code.dev.qbig.explain.hi.hinglish} for Qwen3-4B.
+
+With the final harness Gemma was right \kv{code.devfinal.all} times on development data, and on the test split, run
+once, \kv{code.test.all} times (\kv{code.test.all.pct}, CI \kv{code.test.all.ci}): all functions
+(\kv{code.test.function}), fixes (\kv{code.test.fix}) and explanations (\kv{code.test.explain}), but only
+\kv{code.test.script} scripts (Figure~\ref{fig:code}). The failed scripts read input until an uncaught end-of-file
+error, stopped at the first blank line, or reversed the line's letters when the Hinglish request (``words ulte order'')
+asked for its words in reverse order. Generation took \kv{code.test.s}\s\ per request on average. The sandbox raised no
+error in any test answer, so the retry loop never ran (\kv{code.test.retries} retries): its value here is as a check,
+not as a repair. Two weaknesses the scores do not show: explanations were asked for in the request's language, but all
+three English explanation requests were answered in Hinglish (English: \kv{code.test.explain.en.english}); and the
+fact-based grading passed an explanation of a list comprehension that stated a wrong output list.
+
+\subsection{Writing in the right language (development only)}
+
+On \kv{writer.n} development requests for rewriting and translation, a check of the answer's script and
+language passed \kv{writer.baseline} with the first prompts and
+\kv{writer.final} after the prompts named the output language and a note was added after the request. Translation into
+Hindi in Devanagari went from \kv{writer.baseline.translate-hindi} to \kv{writer.final.translate-hindi}; translation
+into Hinglish fell from \kv{writer.baseline.translate-hinglish} to \kv{writer.final.translate-hinglish} (the English
+text came back unchanged). The prompts were changed while looking at these items, so these scores are optimistic.
+
+\subsection{System costs}\label{sec:res-system}
+
+\begin{table}[t]
+\centering\small
+\caption{Gemma-4-E2B (Q4\_0) loaded with its weights copied or memory-mapped, page cache cold or warm (median of 3
+runs each; one session). Output text was byte-identical in all runs.}
+\label{tab:systems}
+\input{generated/table_systems.tex}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/memory.pdf}
+\caption{Left: memory at the end of a run, copied vs mapped weights. Right: time until the service's Gemma worker is
+ready, for the v2 worker and the v3 worker with its prompt prefix computed or loaded from the cache.}
+\label{fig:memory}
+\end{figure}
+
+Mapping the weights cut anonymous memory, which the kernel cannot reclaim, from \kv{mmap.copy.cold.anon} to
+\kv{mmap.map.cold.anon}\MiB\ (\kv{mmap.anon.saved}\MiB, \kv{mmap.anon.cut}); the rest of the file,
+\kv{mmap.map.cold.file}\MiB, is file-backed and clean (Table~\ref{tab:systems}, Figure~\ref{fig:memory}). Peak-RSS
+counters still count those pages, so measured that way the mapped process looks larger. Loading became faster (cold
+\kv{mmap.copy.cold.load} to \kv{mmap.map.cold.load}\ms; warm \kv{mmap.copy.warm.load} to \kv{mmap.map.warm.load}\ms),
+and the first token came after \kv{mmap.first.min}--\kv{mmap.first.max}\ms\ in every condition. The model's per-layer
+embeddings, almost half of the file, are still read at load: the installed llama.cpp binding has no setter for the lazy
+mode.
+
+Loading is only part of a cold start. The service's worker primes a \kv{worker.prefix.tokens}-token few-shot prefix
+before it can answer. The v2 worker was ready after \kv{worker.v2.s}\s\ (median of \kv{worker.v2.n}); the v3 worker,
+computing and saving the prefix, after \kv{worker.miss.s}\s; and loading the saved prefix, after \kv{worker.hit.s}\s,
+\kv{worker.speedup} times faster than v2, with \kv{worker.hit.anon}\MiB\ of anonymous memory at ready against
+\kv{worker.v2.anon}\MiB.
+
+\subsection{Acceptance run}
+
+Before the version was frozen, every goal feature was driven end to end on a scratch service with the fixture notes.
+Over the socket, \kv{acc.socket} requests passed (tasks with times in English and Hinglish, task commands, keyword and
+meaning search, summaries, memory, chat, email, rewrite, translation, notes Q\&A, code, saving a note, refusals and the
+cut-off note); a first run had passed \kv{acc.run1}, with two failures caused by wrong checks in the script, which were
+corrected before a fresh rerun. The browser page passed \kv{acc.page.headless} steps in headless Chrome and
+\kv{acc.page.headed} in a visible window, including the Copy button read back from the clipboard. A reminder due at
+\kv{acc.reminder.due} was shown \kv{acc.reminder.late}\s\ after its minute began. The automated suites passed
+(\kv{acc.cargo} Rust tests, \kv{acc.pytest} Python tests, \kv{acc.bwrap} sandbox tests and \kv{acc.worker} model-worker
+tests).
+
+The two failures are the limitations that matter most. ``How much is my rent?'' was refused: the head gave app
+0.62, below $\tau$, Gemma also chose app, and the question never reached notes Q\&A, which answers it correctly when it
+does. ``Which preferences have I set?'' found nothing, because the memory search of v2 matches stored words. In this run
+\kv{acc.fast} requests (\kv{acc.fast.pct}) were answered in under a second: the greeting, creating and deleting a task, task
+commands, keyword and English meaning search, opening a document, memory, saving a note and a refusal (median
+\kv{acc.fast.median}\s); a translation took \kv{acc.s.tohindi}--\kv{acc.s.toenglish}\s, an email
+\kv{acc.s.emailhi}--\kv{acc.s.email}\s, a notes answer \kv{acc.s.qa}\s\ and a written function \kv{acc.s.codefn}\s\ (one run, not a
+benchmark: these times include whatever the worker was doing, such as starting).
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Discussion}\label{sec:discussion}
+
+\paragraph{Ask, fall back, or refuse.} The four-outcome view made the trade-offs visible. A higher $\tau$ turns wrong
+decisions into questions; the SLM fallback answers many of those questions itself (questions to the user fell from
+\kv{kt2.ha.asked} to \kv{kt2.hg.asked} on Kinds-v2, from \kv{kt1.ha.asked} to \kv{kt1.hg.asked} on Kinds-v1), at the
+cost of about half a second (Section~\ref{sec:res-kinds}) and occasional confident mistakes on the app's boundary
+(jokes, web searches). On Kinds-v1, sending a skill request the old way was by far the most common failure
+(\kv{kt1.hg.sentoldway}, against \kv{kt1.hg.notaskedfor} skills not asked for); with Kinds-v2 the two were close
+(\kv{kt2.hg.sentoldway} and \kv{kt2.hg.notaskedfor}). The old way is the costlier failure for the user, since the
+app path refuses the request or takes it for another action, and nothing tells them that a skill exists.
+
+\paragraph{Data and settings changed together.} Right decisions on skill requests rose from \kv{kt1.hg.skill} on
+Kinds-v1 to \kv{kt2.hg.skill} on Kinds-v2, but new families, a new Gemma prompt and new thresholds came together, and no
+run separates their effects. The rent question shows the limit of what synthetic families
+cover: the Q\&A component answers it, but the decision never sends it there.
+
+\paragraph{A 2B-class model is enough for small, well-specified code, not for I/O.} Gemma matched the larger Qwen3-4B
+on our rescored development data in well under half of its time, and on test wrote every function and fix right. Scripts that
+read input are its weak spot, and the sandbox cannot catch them, because it has no input to give: it only proves that
+code compiles or imports.
+
+\paragraph{Calibration still pays, unevenly.} Cross-fitted temperatures lowered validation ECE for both heads, and the
+Kinds-v2 head's test ECE was \kv{kt2.head.ece} (validation: \kv{kh2.val.ece}). But calibration cannot help where the data has no
+family: for the rent question both the head (below $\tau$) and Gemma's fallback chose app.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Threats to Validity}\label{sec:threats}
+
+\paragraph{Internal.} Thresholds, prompts and the code model were chosen on development data, and each test split was
+run once. But the protocol grew step by step: Kinds-v2's new families were written after Kinds-v1's test errors were
+known, and \kv{kv1.test} of Kinds-v2's \kv{kt2.n} test items are Kinds-v1's test items, so the Kinds-v2 result on those
+items is optimistic; the \kv{kv2.test.fresh} fresh items are the clean measure. The prompt changes for answer language
+were made while looking at development items. The code model was chosen after the checks were revised on the same
+development answers.
+
+\paragraph{Construct.} Explanations are judged by required facts, which a wrong statement can pass. Script grading
+reads the last output line. Notes Q\&A grades were assigned by the evaluation script's rules and the author's review
+of the sets, not by a second annotator. Language is judged by a word list.
+
+\paragraph{External.} Every set is small (\kv{notesq.test.q} to \kv{kt2.n} test items), synthetic, drafted with an AI
+assistant, and about one imagined user's life; two sets were reviewed by the assistant and an independent agent, not
+by the author. The notes are \kv{notes.fixture} fixture files. One laptop, one SLM, one encoder; timings were taken on
+the laptop as found.
+
+\paragraph{Statistical.} Intervals are wide: \kv{code.test.all} has a 95\% interval of \kv{code.test.all.ci}, and
+\kv{qa.test.all} of \kv{qa.test.all.ci}. No hypothesis test was planned, and none is reported.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Limitations and Future Work}\label{sec:limits}
+
+The acceptance run's README lists \kv{acc.limits} known limitations, frozen with the version. Beyond the two failures
+above: requests to write a program ``to solve X'' go to chat (the program comes, unchecked); rewrite requests are often
+asked first; jokes go to chat and a time question to notes; Markdown is shown as typed; some notes answers to Hinglish
+questions are English; code uses the standard library only and is never run with input; the page can be shared on a
+wifi over plain HTTP when the user turns that on; and there is no memory of the conversation, so ``continue'' does not
+see the last answer. Energy was not measured.
+
+The next round should start from the user's own misrouted requests: a Kinds-v3 and a CodeTasks-v1 built from them,
+reviewed by the author, with a fresh test split. A larger machine (v4) would allow larger models; on this laptop Qwen3-4B
+already decodes only \kv{e0.qbig.tg} tokens per second.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Ethical Considerations}\label{sec:ethics}
+
+All inference runs on the user's machine, and the evaluation used fixture notes, never the user's own. Model-written
+code runs only in the sandbox, which has no network and no access to the user's files. Chat answers carry a note that
+an offline small model may be wrong, and notes answers name the note they came from. The page's wifi option exposes the
+notes to anyone on that network who has the link or can read its traffic; it is off by default and was off when this
+paper was written. The data sets and much of the code were drafted with an AI coding assistant and describe no real
+person.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Conclusion}\label{sec:conclusion}
+
+A single 4-bit 2B-class model and a frozen encoder were enough to turn an intent classifier into an offline assistant
+that writes, translates, answers from the user's notes and writes small checked programs on an ordinary laptop. The
+decisive pieces were cheap: a calibrated head with a model fallback and a question to the user, translation before
+retrieval, an explicit ``not in your notes'', a sandbox that checks what it can, and two systems changes that make an
+always-on service start in about \kv{worker.hit.s}\s. The weak pieces are recognition of personal questions and rewrite
+requests, scripts that read input, and the language of some answers; they need real users' requests rather than more
+synthetic families.
+
+\paragraph{Reproducibility.} The system, its data sets, configurations and logs are in the repository at tag
+\texttt{v3-frozen}; this paper and its generator were added in a later commit on the same branch. Every measured value,
+share, interval and table entry in this paper is generated from the committed logs by
+\path{experiments/analysis/paper_assets_v3.py}; configuration constants (token caps, sandbox limits, $N$) and a few
+small counts in the prose (such as the number of development runs or of misrouted requests named) are typed and were
+checked by hand. \path{paper/v3/number_check.md}
+records independent re-derivations of the numbers and claims, with the corrections they led to.
+
+\bibliographystyle{plainnat}
+\bibliography{../references,references_v3}
+
+\end{document}

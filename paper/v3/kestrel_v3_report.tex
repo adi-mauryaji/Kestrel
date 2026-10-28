@@ -1,0 +1,458 @@
+% Kestrel v3 project report. Build: cd paper/v3 && latexmk -pdf kestrel_v3_report.tex
+% Every result number is a \kv{key} macro from generated/numbers.tex (experiments/analysis/paper_assets_v3.py, from
+% the committed v3 logs). Quoted requests and answers are copied from experiments/logs/v3/acceptance/socket.json.
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\DeclareRobustCommand{\kv}[1]{\ifcsname kv@#1\endcsname\csname kv@#1\endcsname\else\textbf{??#1??}\fi}
+\input{generated/numbers.tex}
+\newcommand{\ms}{\,ms}
+\newcommand{\s}{\,s}
+\newcommand{\MiB}{\,MiB}
+\definecolor{kestrel}{HTML}{D9692E}
+\newcommand{\req}[1]{\textit{``#1''}}
+\newcommand{\ans}[1]{\texttt{\small #1}}
+\setlist{itemsep=2pt, topsep=4pt}
+\setlength{\emergencystretch}{3em}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\Huge\bfseries Kestrel v3\par}
+\vspace{6pt}
+{\Large An offline personal assistant on a laptop\par}
+\vspace{1.2cm}
+{\large Project report\par}
+\vspace{2cm}
+\begin{minipage}{0.78\textwidth}\centering
+Kestrel answers in English and Hinglish, keeps tasks and reminders, finds and answers from the user's notes, writes
+emails, rewrites and translates text, chats, and writes small Python programs that it checks in a sandbox. All of it
+runs on one laptop, without the internet and at no cost.
+\end{minipage}
+\vfill
+{\large [Author name] \\ {[Affiliation]}\par}
+\vspace{6pt}
+28 October 2026 \quad·\quad version tag \texttt{v3-frozen}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Summary}
+
+Kestrel is a personal assistant whose every step runs on the user's own laptop. Version~1 (v1) was a research system
+that sorted requests into nine intents: eight app actions (search, open or summarize notes, add or delete a task, a
+preference, what it remembers, small talk) and \emph{unsupported}, which it refused. Version~2 made it usable every day: tasks with times, reminders, an always-on service and a
+browser page. Version~3 (v3), reported here, set out to make Kestrel answer the requests it used to refuse, on the same
+laptop and still completely offline:
+
+\begin{itemize}
+  \item tasks and reminders (from v2), in English and Hinglish;
+  \item finding notes by meaning, not only by their words, and summarizing them;
+  \item answering questions from the user's notes, and saying so when the notes do not answer;
+  \item drafting emails, rewriting and translating text, and normal chat;
+  \item writing and fixing small Python programs, checked in a sealed sandbox, and explaining code.
+\end{itemize}
+
+All of it runs on the CPU of a \kv{hw.cores}-core laptop with \kv{hw.ram}~GiB of memory, with two
+models already used in v1: a small multilingual sentence encoder and the 4-bit Gemma-4-E2B language model.
+Table~\ref{tab:headline} gives the main results; each comes from a log in the repository.
+
+\begin{table}[h]
+\centering\small
+\caption{Main results of v3. Test splits were run once, after every setting had been chosen on development data. All
+evaluation sets are small and synthetic (written for this project, not by real users).}
+\label{tab:headline}
+\begin{tabularx}{\textwidth}{Xr}
+\toprule
+What was measured & Result \\
+\midrule
+Choosing what kind of answer a request needs (test, $n=\kv{kt2.n}$) & \kv{kt2.hg.right} right \\
+\quad \ldots on the \kv{kv2.test.fresh} test requests never scored before & \kv{kt2.fresh.hg.right} right \\
+\quad a skill started that the request did not ask for & \kv{kt2.hg.notaskedfor} times \\
+Finding the right note by meaning, when keywords find nothing (test) & \kv{mtt.found} \\
+\quad a wrong note added to a query with no note & \kv{mtt.noise} \\
+Answering questions from the notes (test) & \kv{qa.test.ans} answered right \\
+\quad questions the notes do not answer, declined & \kv{qa.test.un} \\
+Small Python requests (test): functions, fixes, explanations$^{a}$ & \kv{code.test.function}, \kv{code.test.fix}, \kv{code.test.explain} \\
+\quad scripts that read input & \kv{code.test.script} \\
+Memory the system cannot take back, language model loaded & \kv{mmap.copy.cold.anon} $\to$ \kv{mmap.map.cold.anon}\MiB \\
+Time until the language model is ready to answer & \kv{worker.v2.s} $\to$ \kv{worker.hit.s}\s \\
+End-to-end acceptance run (real service, typed requests) & \kv{acc.socket} passed \\
+Browser page checks, headless and on screen & \kv{acc.page.headless}, \kv{acc.page.headed} \\
+Automated tests (Rust, Python) & \kv{acc.cargo}, \kv{acc.pytest} passed \\
+\bottomrule
+\end{tabularx}\\[2pt]
+{\footnotesize $^{a}$ Measured with the evaluation's own explain prompt; in the service, explaining code is a chat
+answer.}
+\end{table}
+
+The version was frozen on 27 October 2026 after the acceptance run, with \kv{acc.limits} known limitations written down
+(Section~\ref{sec:limits}). The two most important: some questions about the user's own life are not recognised as
+notes questions and are refused, and scripts that read input fail half the time.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Goals and starting point}
+
+\paragraph{Where v3 started.} After v2, Kestrel could add, list, finish, rename and reschedule tasks, remind at a
+time, search, open and summarize notes, remember preferences, and run as an always-on service with a browser page. A
+request outside these, such as \req{write an email to my landlord} or \req{translate this into Hindi},
+usually got \ans{I can't do that}, or ended in a wrong action.
+
+\paragraph{The goal (decided 26 October 2026).} Achieve, on this laptop and completely offline, with good latency and
+memory use: tasks and reminders; notes search by meaning and summaries; email drafts in English and Hinglish; rewrite and
+translate; normal chat; questions answered from the notes; and, with a compile and test loop, small Python scripts,
+single functions, explaining code and fixing simple errors. A bigger machine is the next version's target (v4).
+
+\paragraph{Constraints.} No cloud service, no paid model or API, no new model download (only models already on the
+laptop), no change to the frozen research system of v1, and a laptop with \kv{hw.ram}~GiB of memory shared with everyday
+use. On this laptop, Gemma-4-E2B writes about \kv{e0.gemma.tg} tokens per second and reads a prompt at about
+\kv{e0.gemma.pp} tokens per second, so every design choice had to keep prompts short and the model unloaded when idle.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{What Kestrel v3 does}\label{sec:features}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{../../experiments/logs/v3/acceptance/page_headed.png}
+\caption{Kestrel's browser page during the acceptance run (headed Chrome on the author's screen): the day strip with
+the kestrel marking the current time, the request box with example requests, the task list, a chat answer with its
+caveat, and a code answer in a code box with a Copy button and the sandbox's check below it.}
+\label{fig:page}
+\end{figure}
+
+The examples below are real requests and answers from the acceptance run (Section~\ref{sec:acceptance}), copied from
+its log. That run used a scratch copy of the service with sample notes, not the author's own notes.
+
+\paragraph{Tasks and reminders.} \req{kal shaam 6 baje bill bharna yaad dila dena} $\to$ \ans{created task \#2: bill
+bharna (due 2026-10-28 18:00)}. \req{move task 2 to friday} $\to$ \ans{task \#2 now due 2026-10-30}. Deleting asks
+first. A timed task pops up as a desktop notification at its time.
+
+\paragraph{Notes by meaning.} The keyword search still runs first. When it finds fewer than three notes, the note closest
+in meaning is added if it is close enough: \req{search my notes for maa ke liye tohfa} $\to$ \ans{found 1 note: -
+2026-09-08-mom-birthday.md (by meaning)}, although the keyword search, which needs every word of the query in a note,
+found nothing.
+
+\paragraph{Questions answered from the notes.} \req{maa ka birthday kab hai?} $\to$ \ans{Maa ka birthday 20 September
+hai. (from 2026-09-08-mom-birthday.md)}. When the notes do not say: \req{goa wale hotel ka naam kya hai?} $\to$
+\ans{The notes do not say this: so the reply is not available for this information}. An answer is shown only if every
+number and name in it occurs in the notes.
+
+\paragraph{Emails, rewriting and translation.} \req{manager ko friday ki chutti ke liye mail likh do} $\to$ a Hinglish
+draft starting \ans{Subject: Friday ki chutti ke liye request}. \req{make this polite: send me the file now} $\to$
+\ans{Could you please send me the file now?} \req{translate to english: aaj bahut garmi hai} $\to$ \ans{It is very hot
+today}. Translation into Hindi is written in Devanagari script; Hinglish stays in Latin letters, although a
+request to translate into Hinglish often came back in English (\kv{writer.final.translate-hinglish} on development
+items).
+
+\paragraph{Chat.} General questions, explanations, ideas and poems are answered by the language model, and every such
+answer ends with \ans{(Written offline by a small model: it may be wrong.)}. Questions that need live data or the
+internet (\req{what's the weather in delhi today?}) are refused.
+
+\paragraph{Code.} \req{fix this function: def add(a, b): return a - b} $\to$ the fixed function, then \ans{(I checked it
+in a safe sandbox: no errors.)} and \ans{(Written offline by a small model: try it before you rely on it.)}. On the page,
+code appears in a box with a Copy button.
+
+\paragraph{Saving to notes.} \req{Buy rice, dal and oil on Saturday from the market. add this to notes} asks
+\ans{Save this as a new note, 2026-10-27-buy-rice-dal-and-oil-on-saturday-from.md (10 words)?} and, after a yes, saves
+the text exactly as typed. It never writes over an existing file.
+
+\paragraph{Where to use it.} In the browser page (Figure~\ref{fig:page}), opened with \texttt{kestrel open} or from the
+applications menu, or in a terminal with \texttt{kestrel chat} and \texttt{kestrel say}. Answers from the language model
+appear as they are written, except answers from the notes and note summaries, which appear once they have been checked.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{How it works}\label{sec:how}
+
+\begin{figure}[t]
+\centering
+\input{figures/arch.tex}
+\caption{The path of a request. Saving a note and task commands are recognised first. Then a small, fast classifier
+decides the kind of answer: the old app path, or one of the new skills. When it is unsure, the language model decides;
+when that is unsure too, Kestrel proposes a skill as a yes/no question, or takes the old path if the request leans to
+the app.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{The service}
+One program, \texttt{kestrel serve}, runs from login and keeps the cheap parts loaded: keyword rules and the sentence
+encoder (multilingual-e5-small). The language model, Gemma-4-E2B at 4-bit, runs in a separate worker process that starts
+on the first request that needs it and stops after 10 idle minutes, which gives its memory back. The terminal client and
+the browser page talk to the service over a local socket and a local web server on 127.0.0.1 that needs a key.
+
+\subsection{Deciding the kind of answer}
+Every request that is not a task command first gets a \emph{kind}: \emph{app} (the v1/v2 path: tasks, notes search and
+summaries, memory, small talk, refusals), \emph{chat}, \emph{email}, \emph{rewrite}, \emph{translate}, \emph{notes} (a
+question about the user's own life) or \emph{code}. The encoder turns the request into a vector, and a small trained
+classifier on top gives a probability for each kind. Its probabilities are calibrated (temperature scaling): fitted so
+that its confidence stays close to how often it is right on held-out data. Then:
+\begin{enumerate}
+  \item if the top kind reaches the threshold $\tau=\kv{fb2.tau}$, it decides;
+  \item otherwise Gemma reads the request with a short description of each kind and chooses one; if its calibrated
+  confidence reaches $\tau_g=\kv{fb2.taug}$, its choice decides (about \kv{fb2.ms.p50}\ms\ on this laptop);
+  \item otherwise, if the classifier's top kind is a skill, Kestrel asks, for example \ans{Write this as an email or
+  message draft?}; if it is app, the request takes the old path.
+\end{enumerate}
+The thresholds were chosen on development data by a rule written down before the run: fewest wrong decisions, then
+fewest questions to the user.
+
+\subsection{Notes by meaning and answers from notes}
+Each note is cut into chunks (its title and one paragraph), and each chunk becomes a vector once; the vectors are cached
+and recomputed only for notes that change. A search query becomes a vector too, and the closest note is added if it is
+close enough (cosine similarity at least $\theta=\kv{mtt.theta}$). The encoder does not understand Romanized Hindi well,
+so a query with common Hindi words is first put into English by Gemma (\req{maa ke liye tohfa} became \req{gift for
+mother}). For a notes question, the two closest notes go to Gemma with the instruction to answer only from them, in the
+question's language, or to say exactly \texttt{NOT IN NOTES}. A grounding check then rejects an answer whose numbers or
+names are not in the notes.
+
+\subsection{Code in a sandbox}
+For a code request Gemma writes standard-library Python. The code then runs inside bubblewrap, a Linux sandbox: no
+network, no access to the home folder, a read-only system, an empty temporary folder, and limits of 512~MiB of memory,
+10~s of processor time, 10~MiB files and 64 processes. Code is imported (so it compiles and its top level runs); code
+that waits for input is only compiled, since the sandbox cannot type for it. A syntax error, a crash or a timeout is sent
+back to Gemma, at most twice, with the error. The answer always says what was checked.
+
+\subsection{Two changes that made the service fast to start}
+\begin{itemize}
+  \item \textbf{Memory-mapped weights.} The model file is mapped into memory instead of copied. The memory the system
+  cannot take back fell from \kv{mmap.copy.cold.anon} to \kv{mmap.map.cold.anon}\MiB\ (\kv{mmap.anon.cut} less), and
+  loading became faster (\kv{mmap.copy.cold.load} to \kv{mmap.map.cold.load}\ms\ from a cold disk cache).
+  \item \textbf{A saved prompt.} Before answering, the worker reads a \kv{worker.prefix.tokens}-token prompt of
+  examples. v3 saves the model's state after reading it and loads that state next time. The worker became ready in
+  \kv{worker.hit.s}\s\ instead of \kv{worker.v2.s}\s\ (medians of \kv{worker.v2.n} starts).
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/memory.pdf}
+\caption{Left: memory at the end of a run with the model's weights copied or mapped; the grey part is the mapped file,
+which the system can drop when it needs memory. Right: seconds until the language model's worker is ready.}
+\label{fig:memory}
+\end{figure}
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{How it was built}
+
+\paragraph{Decisions on record.} Every design choice of v3 was recorded as a decision with its context, the options
+considered and the reason (thirteen records, from the goal on 26 October 2026 to the freeze on 27 October 2026;
+Appendix~\ref{app:decisions}). The author made each decision, mostly by accepting a stated recommendation.
+
+\paragraph{Technology.} The assistant is written in Rust (a workspace of crates; the v3 parts live in the command-line
+app, and the memory-mapped load and the saved prompt in the inference crate), and runs the models through llama.cpp. Evaluation scripts are Python. The sandbox is bubblewrap, and the browser
+page is a single self-contained HTML page served by Kestrel itself, tested with Google Chrome over its DevTools protocol.
+No paid service was used, and only models already on the laptop were used.
+
+\paragraph{Data and fair testing.} Each part was measured on a small evaluation set written for it
+(Table~\ref{tab:data}), in English and Hinglish pairs, grouped into \emph{families} of similar requests. Each set was
+split by family into development data, used to choose every setting, and a test split, run once at the end. Most sets
+were reviewed card by card by the author on a review page; for the code set and the third kinds set the author waived the
+review, and they were reviewed by the AI assistant that drafted them, with a separate agent checking the files against
+written criteria.
+
+\begin{table}[h]
+\centering\small
+\caption{Evaluation sets. All are synthetic and split by family.}
+\label{tab:data}
+\resizebox{\textwidth}{!}{\input{generated/table_datasets.tex}}
+\end{table}
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Results}\label{sec:results}
+
+\subsection{Choosing the kind of answer}
+On Kinds-v2's test split, \kv{kt2.hg.right} decisions were right (\kv{kt2.hg.right.pct}); \kv{kt2.hg.asked} requests were
+asked about, \kv{kt2.hg.sentoldway} skill requests were sent the old way (the app path), and \kv{kt2.hg.notaskedfor} times a
+skill was started that the request did not ask for: three jokes and a web search answered as chat, a time question sent
+to notes, and a loop fix sent to rewrite. English and Hinglish were close (\kv{kt2.hg.en} and \kv{kt2.hg.hi}). Without the
+language model's second opinion, only \kv{kt2.ha.right} were right: more requests were asked about (\kv{kt2.ha.asked}) or sent the old way
+(\kv{kt2.ha.sentoldway}).
+
+\kv{kv1.test} of these \kv{kt2.n} test requests had already been used once, to test the previous version of the kinds
+set, and the new training families were written after its mistakes were known; so this result is optimistic. On the
+\kv{kv2.test.fresh} fresh requests, \kv{kt2.fresh.hg.right} were right. Per kind (Table~\ref{tab:perkind}), chat and
+translation were always recognised, code \kv{kt2.hg.kind.code}, email \kv{kt2.hg.kind.email} and notes questions
+\kv{kt2.hg.kind.notes}; rewrite requests only \kv{kt2.hg.kind.rewrite}, most of the rest being asked about first.
+
+\begin{table}[h]
+\centering\small
+\caption{Right decisions per kind on the two test splits. Kinds-v1 had no code kind.}
+\label{tab:perkind}
+\input{generated/table_perkind.tex}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{figures/kinds.pdf}
+\caption{What happened to requests for a skill on the test splits, with the classifier alone and with the language
+model's second opinion.}
+\label{fig:kinds}
+\end{figure}
+
+\subsection{Finding notes by meaning}
+Every query in this set misses its note by keywords, so every find is the meaning search's. Before the translation step,
+only \kv{md.found.hi} Hinglish development queries found their note; with it, \kv{mdt.found.hi}. On the test split the
+right note was added for \kv{mtt.found} queries (\kv{mtt.found.en} English, \kv{mtt.found.hi} Hinglish), and no note was
+added to the \kv{notesq.test.none} queries that have none. In two of the misses the right note was the closest but just
+below the threshold, so nothing was added; for \req{festival shopping} (in both languages) the closest note was the Goa trip
+note, also below the threshold, so nothing was added either.
+
+\subsection{Answering from the notes}
+On the test split, all \kv{qa.test.ans} answerable questions were answered with the right facts, and all
+\kv{qa.test.un} unanswerable ones got the ``not in your notes'' reply; generating an answer took \kv{qa.test.s.mean}\s\ on average.
+On development data \kv{qa.dev.un} unanswerable questions were declined: twice the model said in its own words that the
+notes do not give a cake's price, instead of the exact marker. The language of the answer is weaker than its content:
+in the test run (before a fix), \kv{qa.test.hinglish} answers to Hinglish questions were Hinglish; with the fix,
+\kv{qa.dev.hinglish} on development data.
+
+\subsection{Code}
+Three models already on the laptop were compared on development data. After the checks were reviewed, Gemma-4-E2B and
+Qwen3-4B were both right \kv{code.resc.gemma} times, but Gemma's generation took \kv{code.resc.gemma.s}\s\ per request against
+\kv{code.resc.qbig.s}\s\ and needs no second model in memory, so Gemma does code too. On the test split, run once, Gemma
+was right \kv{code.test.all} times: every function, fix and explanation, but only \kv{code.test.script} scripts. The failed
+scripts kept reading input until the input ended (and crashed), stopped at the first empty line, or reversed the letters
+of a line instead of its words. Generation took \kv{code.test.s}\s\ per request on average. The sandbox found no error in any answer, so
+the retry loop never ran. Two weaknesses that the scores do not show: the three English requests to explain code were
+answered in Hinglish, and one explanation stated a wrong output and still passed, because explanations are judged by
+the facts they must contain.
+
+\begin{table}[h]
+\centering\small
+\caption{Code requests right, by type (6 per type), and generation seconds per request.}
+\label{tab:code}
+\resizebox{\textwidth}{!}{\input{generated/table_code.tex}}
+\end{table}
+
+\subsection{Acceptance run}\label{sec:acceptance}
+Before the freeze, every goal feature was used end to end on a scratch copy of the service with sample notes: the same
+requests a user would type, over the same socket the terminal client uses, with yes/no questions answered.
+\kv{acc.socket} requests passed. The browser page was driven step by step in Chrome, headless and in a visible window,
+and passed \kv{acc.page.headless} and \kv{acc.page.headed} steps (load, a Try button, a task made and listed, the page's
+own yes/no question, a code box, the Copy button read back from the clipboard, a streamed chat answer with its caveat).
+A reminder due at \kv{acc.reminder.due} popped up at \kv{acc.reminder.rang}. The automated tests passed: \kv{acc.cargo}
+Rust tests, \kv{acc.pytest} Python tests, \kv{acc.bwrap} sandbox tests and \kv{acc.worker} model-worker tests.
+
+The two failed requests: \req{how much is my rent?} was refused, because both the classifier and Gemma took it for an
+app request (asked as a notes question, the same answer component gets it right); and \req{which preferences have i
+set?} found nothing, because the memory search matches the stored words.
+
+\begin{table}[h]
+\centering\small
+\caption{Seconds until the whole answer, from the acceptance run: one run on the laptop as found, not a
+benchmark.}
+\label{tab:times}
+\begin{tabular}{lr@{\hspace{2.2em}}lr}
+\toprule
+Request & s & Request & s \\
+\midrule
+add a task with a time & \kv{acc.s.task} & translate into Hindi & \kv{acc.s.tohindi} \\
+add a task, Hinglish & \kv{acc.s.taskhi} & translate into English & \kv{acc.s.toenglish} \\
+keyword search & \kv{acc.s.search} & rewrite politely & \kv{acc.s.rewrite} \\
+search by meaning & \kv{acc.s.meaning} & email (Hinglish / English) & \kv{acc.s.emailhi} / \kv{acc.s.email} \\
+search by meaning, Hinglish & \kv{acc.s.meaninghi} & answer from notes & \kv{acc.s.qa} \\
+summary of a note & \kv{acc.s.summary} & write a function & \kv{acc.s.codefn} \\
+chat: a short poem & \kv{acc.s.poem} & fix a function & \kv{acc.s.codefix} \\
+chat: an explanation & \kv{acc.s.chat} & a very long essay (cut off) & \kv{acc.s.essay} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Known limitations}\label{sec:limits}
+
+These \kv{acc.limits} were written down at the freeze and not fixed, because the author froze the product:
+\begin{enumerate}
+  \item Some notes questions are refused (\req{how much is my rent?}); others are answered (\req{maa ka birthday kab hai?}).
+  \item \req{which preferences have i set?} finds nothing, although a preference is stored.
+  \item \req{write a program to solve X} goes to chat: the whole program comes, but without the sandbox check.
+  \item Rewrite requests are often asked about first.
+  \item Scripts that read input to its end are Gemma's weak spot.
+  \item Jokes are answered by chat; \req{what time is it in London} goes to notes.
+  \item Markdown in chat answers (bold, bullets) is shown as typed.
+  \item Answers from notes to Hinglish questions are sometimes English.
+  \item Code may use Python's standard library only, and is checked by import or compile, never run with input.
+  \item Once, code did not show on the author's page; this could not be reproduced.
+  \item The page can be shared on the wifi over plain HTTP when the service is installed that way (off now).
+  \item There is no memory of the conversation: \req{continue} or a follow-up does not see the last answer.
+\end{enumerate}
+In addition, every evaluation set is small and synthetic, about an imagined user's life; real use will find other
+mistakes. Energy use was not measured.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{Installing and using it}
+
+Setup follows the repository's README: a Python environment, the models fetched and checked, the encoder converted,
+the heads trained (for v3 also the kind head, \texttt{python experiments/v3/kind\_head.py -{}-dataset kinds\_v2}), and a
+release build with the \texttt{llama} feature. Then:
+\begin{itemize}
+  \item \texttt{scripts/install\_service.sh \textasciitilde/notes} installs the always-on service for a notes folder;
+  \texttt{scripts/install\_reminders.sh} adds the morning reminder.
+  \item \texttt{kestrel open} opens the page; \texttt{kestrel chat} starts a conversation in a terminal;
+  \texttt{kestrel say "mere tasks btao"} sends one request; \texttt{kestrel stop} frees all of its memory.
+\end{itemize}
+The installed v3 service runs from its own checkout (a git worktree) at the tested build, commit \texttt{86cb3a7},
+so the research can switch branches in the main checkout without touching it.
+
+% ---------------------------------------------------------------------------------------------------------------
+\section{What comes next}
+
+\begin{itemize}
+  \item \textbf{Learn from real mistakes.} The next round starts from the author's own misrouted requests: new kinds and
+  code sets built from them, reviewed, with a fresh test split.
+  \item \textbf{A bigger machine (v4).} Larger models need more memory and speed than this laptop has; on it, Qwen3-4B
+  already writes only \kv{e0.qbig.tg} tokens per second.
+  \item \textbf{The research first.} From the week of 1 November 2026 the pre-registered research (personalization and
+  quantization experiments, final statistics) continues; heavy runs of the two never overlap.
+\end{itemize}
+
+\appendix
+% ---------------------------------------------------------------------------------------------------------------
+\section{Decision record}\label{app:decisions}
+
+\begin{small}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+Decision & What was decided \\
+\midrule
+ADR-036 & v3's goal on this laptop, fully offline; v4 is a bigger machine. \\
+ADR-037 & A kind decision before the research cascade; the first kinds data set. \\
+ADR-038 & Chat answers timeless explanations with a visible caveat; more families before review. \\
+ADR-039 & Notes found by meaning after the keyword search, in the app only. \\
+ADR-040 & Hinglish queries go through English; only the closest note is added. \\
+ADR-041 & Notes Q\&A: a \emph{notes} kind; answers only from the notes, grounded, with ``not in your notes''. \\
+ADR-042 & After the notes review: freeze the notes sets, test once on Kinds-v1, more notes families. \\
+ADR-043 & v3 becomes the always-on service, run from its own worktree. \\
+ADR-044 & Qwen3-4B for code (superseded by ADR-046); the code loop retries only on the sandbox's own errors; one
+review for the code and Kinds-v2 sets. \\
+ADR-045 & The author waives that review; the AI assistant reviews with an independent agent. \\
+ADR-046 & Gemma writes and fixes code too (one model in the service). \\
+ADR-047 & The page may be shared on the wifi (off by default). \\
+ADR-048 & v3 frozen after the acceptance run (tag \texttt{v3-frozen}). \\
+\bottomrule
+\end{tabularx}
+\end{small}
+
+\section{Where the numbers come from}
+Every measured value, share and table entry in this report comes from the committed logs through the script
+\path{experiments/analysis/paper_assets_v3.py}; its tests fail if a document asks for a value the script does not
+generate. Configuration constants (sandbox limits, retries, the number of notes given) and a few small counts in the
+prose (such as the misrouted requests named in Section~\ref{sec:results}) are typed and were checked by hand. The logs are under \texttt{experiments/logs/v3/}: \texttt{kinds/}, \texttt{notes/}, \texttt{code/},
+\texttt{writer/}, \texttt{mmap/}, \texttt{worker/} and \texttt{acceptance/}; the laptop's description is in
+\path{experiments/PREREG.md} and its model speeds in \path{experiments/logs/E0/}. \path{paper/v3/number_check.md} records an
+independent check of every number.
+
+\end{document}

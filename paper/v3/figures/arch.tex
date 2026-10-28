@@ -1,0 +1,34 @@
+% The v3 request path (Figure 1 of the paper, Figure 2 of the report); no numbers.
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\footnotesize,
+  box/.style={draw=black!60, rounded corners=2pt, align=center, inner sep=3pt, minimum height=8mm},
+  act/.style={box, draw=black!35, text=black!75, text width=28mm},
+  dec/.style={box, fill=blue!7},
+  dest/.style={box, fill=orange!10, text width=50mm, minimum height=10mm},
+  arr/.style={-{Stealth[length=2mm]}, black!70},
+  lab/.style={font=\scriptsize, text=black!60}]
+  \node[box, text width=24mm] (req) at (0,0) {request\\(English or Hinglish)};
+  \node[dec, text width=22mm] (save) at (3.4,0) {``add this to notes''?};
+  \node[dec, text width=18mm] (cmd) at (6.6,0) {task command?};
+  \node[dec, text width=34mm] (head) at (10.4,0) {kind head (e5 + linear, $T$):\\top kind $\ge\tau$?};
+  \node[dec, text width=34mm] (gem) at (10.4,-2.2) {Gemma picks a kind:\\confidence $\ge\tau_g$?};
+  \node[box, text width=40mm] (last) at (10.4,-4.2) {the head's top kind decides:\\app $\to$ the app path;\\a skill $\to$ ask the user (y/N)};
+  \node[act] (saveact) at (3.4,-1.9) {save the text as\\a new note (y/N)};
+  \node[act] (cmdact) at (6.6,-1.9) {list, done, rename,\\reschedule, set a time};
+  \node[dest, fill=black!4] (app) at (16.4,0.95) {app: v1 cascade (rules, encoder, Gemma)\\$\to$ tools; anything else refused};
+  \node[dest] (w) at (16.4,-0.45) {chat, email, rewrite, translate:\\Gemma writes, streamed};
+  \node[dest] (qa) at (16.4,-1.85) {notes: the 2 closest notes\\$\to$ a grounded answer};
+  \node[dest] (code) at (16.4,-3.25) {code: Gemma writes $\to$ sandbox check,\\at most 2 retries};
+  \node[draw=black!30, dashed, rounded corners, fit=(app)(w)(qa)(code), inner sep=2.5mm,
+        label={[lab]above:the kind chosen}] (dests) {};
+  \draw[arr] (req) -- (save);
+  \draw[arr] (save) -- node[lab, above]{no} (cmd);
+  \draw[arr] (cmd) -- node[lab, above]{no} (head);
+  \draw[arr] (save) -- node[lab, right]{yes} (saveact);
+  \draw[arr] (cmd) -- node[lab, right]{yes} (cmdact);
+  \draw[arr] (head) -- node[lab, right]{no} (gem);
+  \draw[arr] (gem) -- node[lab, right]{no} (last);
+  \draw[arr] (head.east) -- node[lab, above]{yes} (head.east -| dests.west);
+  \draw[arr] (gem.east) -- node[lab, above]{yes} (gem.east -| dests.west);
+\end{tikzpicture}}
