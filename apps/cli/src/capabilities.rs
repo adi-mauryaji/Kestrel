@@ -184,18 +184,44 @@ fn file_id(path: &Path) -> Option<(u64, u64)> {
 pub struct Assessment {
     pub device: Device,
     pub verdicts: Vec<Verdict>,
+    /// How the writer was chosen ("automatic", "your choice", "your file").
+    pub how: Option<&'static str>,
+    /// The model the running service writes with (its config's), which can differ from the
+    /// chosen one until `kestrel calibrate`.
+    pub service_writer: Option<String>,
 }
 
-/// Probes this machine and evaluates the cards with the speeds kept in `data` (no measuring).
-/// `config` is the router config naming the writer (the service's by default).
-pub fn assess(
+/// Everything the cards are judged with on this machine.
+pub struct Context {
+    pub cards: Vec<Card>,
+    /// The catalog, with the user's own GGUF when the model slot names one.
+    pub catalog: Catalog,
+    /// The probe, its writer the model slot's (src/slot.rs).
+    pub device: Device,
+    pub measured: kestrel_capability::Measured,
+    pub choice: kestrel_capability::Choice,
+    pub how: Option<&'static str>,
+    pub service_writer: Option<String>,
+}
+
+/// Probes this machine and reads the kept speeds and the model slot from `data` (no measuring).
+/// `config` is the router config the service runs (its writer is the service's).
+pub fn context(
     root: &Path,
     data: Option<&Path>,
     config: Option<&str>,
-) -> Result<Assessment, Box<dyn Error>> {
+) -> Result<Context, Box<dyn Error>> {
     let cards = kestrel_capability::load_cards(&root.join("capabilities"))?;
-    let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json"))?;
+    let mut catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json"))?;
     kestrel_capability::check(&cards, &catalog)?;
+    let settings = crate::slot::load(data);
+    if let crate::slot::Writer::File { path } = &settings.writer
+        && let Some((bytes, _)) = file_id(Path::new(path))
+    {
+        catalog
+            .models
+            .push(crate::slot::file_model(Path::new(path), bytes));
+    }
     let os = Os::current();
     let config = std::fs::read_to_string(root.join(config.unwrap_or(DEFAULT_CONFIG))).ok();
     let writer = config.as_deref().and_then(writer_file);
@@ -208,15 +234,58 @@ pub fn assess(
         writer_file: writer.as_deref(),
     };
     let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
+    // An absolute path (the user's own file) stays as it is under join.
     let have_file = |f: &str| root.join("models").join(f).is_file();
-    let device = device(found, &cards, &catalog, &on_path, &have_file);
+    let mut device = device(found, &cards, &catalog, &on_path, &have_file);
+    let service_writer = device.writer.take();
     let model_file = |id: &str| {
         let m = catalog.models.iter().find(|m| m.id == id)?;
         file_id(&root.join("models").join(&m.file))
     };
     let measured = load_profile(data).measured(&model_file, this_binary());
-    let verdicts = kestrel_capability::evaluate(&cards, &catalog, &device, &measured);
-    Ok(Assessment { device, verdicts })
+    let gates = kestrel_capability::writer_gates(&cards);
+    let choice = kestrel_capability::choose(&catalog, &device, &measured, &gates);
+    let chosen = crate::slot::effective(&settings, &choice);
+    device.writer = chosen.as_ref().map(|(id, _)| id.clone());
+    Ok(Context {
+        cards,
+        catalog,
+        device,
+        measured,
+        choice,
+        how: chosen.map(|(_, how)| how),
+        service_writer,
+    })
+}
+
+/// Probes this machine and evaluates the cards with the speeds kept in `data` (no measuring).
+// The service's page (a llama build) asks for it; the tests use it everywhere.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+pub fn assess(
+    root: &Path,
+    data: Option<&Path>,
+    config: Option<&str>,
+) -> Result<Assessment, Box<dyn Error>> {
+    let c = context(root, data, config)?;
+    let verdicts = kestrel_capability::evaluate(&c.cards, &c.catalog, &c.device, &c.measured);
+    Ok(Assessment {
+        device: c.device,
+        verdicts,
+        how: c.how,
+        service_writer: c.service_writer,
+    })
+}
+
+/// When the chosen writer is not the one the service runs: the service keeps its config's model
+/// until `kestrel calibrate` has checked the new one with the router.
+pub fn service_note(c: &Context) -> Option<String> {
+    let (chosen, running) = (c.device.writer.as_deref()?, c.service_writer.as_deref()?);
+    (chosen != running).then(|| {
+        format!(
+            "The service still writes with {running}: switching to {chosen} waits for `kestrel \
+             calibrate`."
+        )
+    })
 }
 
 /// The page's `GET /api/capabilities`: the device in words and each card's state with its notes.
@@ -263,6 +332,8 @@ pub fn to_json(a: &Assessment) -> serde_json::Value {
             "ram": size(d.ram_total_mib),
             "budget": size(kestrel_capability::memory_budget_mib(d)),
             "writer": d.writer,
+            "writer_how": a.how,
+            "service_writer": a.service_writer,
             "gpus": gpus,
         },
         "cards": cards,
@@ -304,8 +375,12 @@ pub fn run_in(
     if measure {
         measure_and_keep(root, data, config, out)?;
     }
-    let a = assess(root, data, config)?;
-    out.write_all(render(&a.device, &a.verdicts, hi).as_bytes())?;
+    let c = context(root, data, config)?;
+    let verdicts = kestrel_capability::evaluate(&c.cards, &c.catalog, &c.device, &c.measured);
+    out.write_all(render(&c.device, &verdicts, hi).as_bytes())?;
+    if let Some(note) = service_note(&c) {
+        writeln!(out, "{note}")?;
+    }
     Ok(())
 }
 
@@ -698,6 +773,8 @@ mod tests {
                     },
                 ),
             ],
+            how: None,
+            service_writer: None,
         };
         let note = |en: &str, hi: &str| serde_json::json!({"en": en, "hi": hi});
         assert_eq!(
@@ -705,6 +782,7 @@ mod tests {
             serde_json::json!({
                 "device": {
                     "os": "windows", "ram": "7.8 GB", "budget": "7.5 GB", "writer": null,
+                    "writer_how": null, "service_writer": null,
                     "gpus": [{"name": "NVIDIA GeForce RTX 4060", "memory": "8.0 GB", "kind": "discrete"}]
                 },
                 "cards": [
@@ -717,6 +795,52 @@ mod tests {
                 ]
             })
         );
+    }
+
+    #[test]
+    fn the_model_slot_sets_the_writer_and_a_note_says_when_the_service_differs() {
+        use crate::slot::{Settings, Writer, save};
+        let root = repo();
+        let data = std::env::temp_dir().join(format!("kestrel_slotcap_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        std::fs::create_dir_all(&data).unwrap();
+        let e2b = "gemma-4-E2B-it-Q4_0";
+        let c = context(&root, Some(&data), None).unwrap();
+        assert_eq!(
+            c.service_writer.as_deref(),
+            Some(e2b),
+            "the service's config"
+        );
+        if root.join("models").join(format!("{e2b}.gguf")).is_file() {
+            assert_eq!(c.device.writer.as_deref(), Some(e2b));
+            assert_eq!(c.how, Some("automatic"));
+            assert_eq!(service_note(&c), None);
+        }
+        let e4b = "gemma-4-E4B-it-Q4_0";
+        let chosen = Settings {
+            writer: Writer::Catalog { id: e4b.into() },
+        };
+        save(&data, &chosen).unwrap();
+        let c = context(&root, Some(&data), None).unwrap();
+        assert_eq!(c.device.writer.as_deref(), Some(e4b));
+        assert_eq!(c.how, Some("your choice"));
+        assert!(
+            service_note(&c)
+                .unwrap()
+                .contains(&format!("still writes with {e2b}"))
+        );
+        let a = assess(&root, Some(&data), None).unwrap();
+        let chat = a.verdicts.iter().find(|v| v.id == "chat").unwrap();
+        assert_eq!(
+            chat.state,
+            State::Setup {
+                steps: vec![text(
+                    &format!("download {e4b} (4.2 GB)"),
+                    &format!("{e4b} download karo (4.2 GB)")
+                )]
+            }
+        );
+        let _ = std::fs::remove_dir_all(&data);
     }
 
     #[test]

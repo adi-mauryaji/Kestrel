@@ -590,7 +590,9 @@ function drawCapabilities(data) {
     ? d.gpus.map((g) => g.kind === "integrated" ? `GPU ${g.name} (shares the RAM)` : `GPU ${g.name} (${g.memory})`).join(", ")
     : "no GPU";
   $("device").textContent = `${d.ram} RAM, ${gpus}; a model may use ${d.budget}`
-    + (d.writer ? `; writes with ${d.writer}` : "; no model chosen yet");
+    + (d.writer ? `; writes with ${d.writer}` : "; no model chosen yet")
+    + (d.service_writer && d.writer && d.service_writer !== d.writer
+      ? ` (for now ${d.service_writer}, until kestrel calibrate)` : "");
   const ready = data.cards.filter((c) => c.state === "ready" || c.state === "slow").length;
   $("can-count").textContent = `${ready} of ${data.cards.length} ready`;
   const list = $("cards");

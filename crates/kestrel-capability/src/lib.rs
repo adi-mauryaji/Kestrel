@@ -99,6 +99,9 @@ pub struct Model {
     pub file_mib: u64,
     /// Resident while it runs: weights, KV cache, buffers.
     pub memory_mib: u64,
+    /// Weights read per token, when less than the file (a mixture of experts); writing speed
+    /// scales with it.
+    pub active_mib: Option<u64>,
     pub role: Role,
     /// Sizes not yet measured on any device.
     #[serde(default)]
@@ -225,6 +228,126 @@ impl Profile {
         self.entries.retain(|old| old.model != e.model);
         self.entries.push(e);
     }
+}
+
+/// How a writer model would do here.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Fit {
+    pub model: String,
+    /// Within this device's memory budget.
+    pub fits: bool,
+    /// Its file is here.
+    pub here: bool,
+    /// Measured here, or estimated from a measured model.
+    pub speed: Option<Speed>,
+    pub estimated: bool,
+    /// Passes the gates (with `speed`); None without a speed.
+    pub passes: Option<bool>,
+}
+
+/// The writer to use and what else this device could run.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Choice {
+    /// Every writer in the catalog, largest first.
+    pub fits: Vec<Fit>,
+    /// The largest model here that fits and passes the gates; without any speed known, the
+    /// smallest model here that fits (then the speed test decides).
+    pub best: Option<String>,
+    /// The largest model not here that fits and is estimated to pass: worth a download.
+    pub could_run: Option<String>,
+}
+
+/// A writer's speed: measured, or scaled from a measured writer by the weights read per token
+/// (writing reads every active weight once per token; reading scales about the same way).
+pub fn predict(m: &Model, catalog: &Catalog, measured: &Measured) -> Option<(Speed, bool)> {
+    if let Some(s) = measured.get(&m.id) {
+        return Some((*s, false));
+    }
+    let weight = |x: &Model| x.active_mib.unwrap_or(x.file_mib).max(1) as f64;
+    // The measured writer nearest in weights scales least.
+    let (r, s) = catalog
+        .models
+        .iter()
+        .filter(|x| x.role == Role::Writer)
+        .filter_map(|x| measured.get(&x.id).map(|s| (x, s)))
+        .min_by(|(a, _), (b, _)| {
+            (weight(a) - weight(m))
+                .abs()
+                .total_cmp(&(weight(b) - weight(m)).abs())
+        })?;
+    let k = weight(r) / weight(m);
+    let estimate = Speed {
+        decode_tok_s: s.decode_tok_s * k,
+        prefill_tok_s: s.prefill_tok_s * k,
+    };
+    Some((estimate, true))
+}
+
+/// `s` passes every gate.
+fn passes(s: &Speed, gates: &[Gate]) -> bool {
+    gates.iter().all(|g| match g.measure {
+        Measure::DecodeTokS => s.decode_tok_s >= g.min,
+        Measure::PrefillTokS => s.prefill_tok_s >= g.min,
+    })
+}
+
+/// The writer models against this device and the gates the writing cards set.
+pub fn choose(catalog: &Catalog, d: &Device, measured: &Measured, gates: &[Gate]) -> Choice {
+    let budget = memory_budget_mib(d);
+    let mut writers: Vec<&Model> = catalog
+        .models
+        .iter()
+        .filter(|m| m.role == Role::Writer)
+        .collect();
+    writers.sort_by_key(|m| std::cmp::Reverse(m.file_mib));
+    let fits: Vec<Fit> = writers
+        .iter()
+        .map(|m| {
+            let p = predict(m, catalog, measured);
+            Fit {
+                model: m.id.clone(),
+                fits: m.memory_mib <= budget,
+                here: d.models.contains(&m.id),
+                speed: p.map(|(s, _)| s),
+                estimated: p.is_some_and(|(_, e)| e),
+                passes: p.map(|(s, _)| passes(&s, gates)),
+            }
+        })
+        .collect();
+    let usable = |f: &&Fit| f.fits && f.here;
+    // Largest first: the first that passes is the largest that does.
+    let best = fits
+        .iter()
+        .filter(usable)
+        .find(|f| f.passes == Some(true))
+        .or_else(|| fits.iter().rfind(|f| usable(f)))
+        .map(|f| f.model.clone());
+    let could_run = fits
+        .iter()
+        .find(|f| f.fits && !f.here && f.passes == Some(true))
+        .map(|f| f.model.clone());
+    Choice {
+        fits,
+        best,
+        could_run,
+    }
+}
+
+/// The strictest of the cards' gates per measure (what a writer must pass for all of them).
+pub fn writer_gates(cards: &[Card]) -> Vec<Gate> {
+    [Measure::DecodeTokS, Measure::PrefillTokS]
+        .into_iter()
+        .filter_map(|measure| {
+            cards
+                .iter()
+                .filter(|c| c.needs.writer)
+                .flat_map(|c| c.gates.iter())
+                .filter(|g| g.measure == measure)
+                .map(|g| g.min)
+                .reduce(f64::max)
+                .map(|min| Gate { measure, min })
+        })
+        .collect()
 }
 
 /// What a graphics card keeps for itself (its own buffers, the screen).

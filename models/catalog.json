@@ -48,7 +48,8 @@
       "role": "writer",
       "estimate": true,
       "tau2": 68.2,
-      "source": "Gemma 4 model card (25.2B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured"
+      "source": "Gemma 4 model card (25.2B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured; active weights per token estimated as 3.8B of 25.2B parameters (mixture of experts)",
+      "active_mib": 2020
     },
     {
       "id": "gemma-4-31B-it-Q4_0",

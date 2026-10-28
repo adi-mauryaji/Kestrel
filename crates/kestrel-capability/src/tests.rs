@@ -531,3 +531,141 @@ fn recording_replaces_the_models_earlier_entry_and_survives_json() {
     let text = serde_json::to_string_pretty(&p).unwrap();
     assert_eq!(serde_json::from_str::<Profile>(&text).unwrap(), p);
 }
+
+const LADDER: &str = r#"{"models": [
+  {"id": "e5", "file": "e5.gguf", "file_mib": 126, "memory_mib": 200, "role": "encoder", "source": "t"},
+  {"id": "e2b", "file": "e2b.gguf", "file_mib": 2710, "memory_mib": 3900, "role": "writer", "source": "t"},
+  {"id": "e4b", "file": "e4b.gguf", "file_mib": 4250, "memory_mib": 6100, "role": "writer", "source": "t"},
+  {"id": "12b", "file": "12b.gguf", "file_mib": 6350, "memory_mib": 9100, "role": "writer", "source": "t"},
+  {"id": "26b", "file": "26b.gguf", "file_mib": 13390, "memory_mib": 19300, "active_mib": 2020,
+   "role": "writer", "source": "t"}
+]}"#;
+
+fn ladder() -> Catalog {
+    serde_json::from_str(LADDER).unwrap()
+}
+
+const GATES: &[Gate] = &[
+    Gate {
+        measure: Measure::DecodeTokS,
+        min: 7.0,
+    },
+    Gate {
+        measure: Measure::PrefillTokS,
+        min: 40.0,
+    },
+];
+
+fn fit<'a>(c: &'a Choice, id: &str) -> &'a Fit {
+    c.fits.iter().find(|f| f.model == id).unwrap()
+}
+
+fn near(a: f64, b: f64) -> bool {
+    (a - b).abs() < 0.05
+}
+
+#[test]
+fn an_unmeasured_writer_is_estimated_from_a_measured_one_by_its_weights() {
+    let m = Measured::from([("e2b".to_string(), speed(12.5, 91.0))]);
+    let c = ladder();
+    let model = |id: &str| c.models.iter().find(|x| x.id == id).unwrap();
+    assert_eq!(
+        predict(model("e2b"), &c, &m),
+        Some((speed(12.5, 91.0), false))
+    );
+    let (e4b, estimated) = predict(model("e4b"), &c, &m).unwrap();
+    assert!(estimated);
+    assert!(near(e4b.decode_tok_s, 12.5 * 2710.0 / 4250.0), "{e4b:?}");
+    assert!(near(e4b.prefill_tok_s, 91.0 * 2710.0 / 4250.0), "{e4b:?}");
+    // A mixture of experts reads only its active weights per token.
+    let (moe, _) = predict(model("26b"), &c, &m).unwrap();
+    assert!(near(moe.decode_tok_s, 12.5 * 2710.0 / 2020.0), "{moe:?}");
+    assert_eq!(predict(model("e4b"), &c, &Measured::new()), None);
+}
+
+#[test]
+fn on_this_laptop_e2b_stays_and_e4b_is_the_one_worth_a_download() {
+    let d = Device {
+        models: strings(&["e5", "e2b"]),
+        ..laptop()
+    };
+    let m = Measured::from([("e2b".to_string(), speed(12.5, 91.0))]);
+    let c = choose(&ladder(), &d, &m, GATES);
+    assert_eq!(
+        c.fits.iter().map(|f| f.model.as_str()).collect::<Vec<_>>(),
+        ["26b", "12b", "e4b", "e2b"],
+        "largest first"
+    );
+    assert_eq!(c.best.as_deref(), Some("e2b"));
+    assert_eq!(
+        c.could_run.as_deref(),
+        Some("e4b"),
+        "about 8 tokens/s: passes 7"
+    );
+    assert_eq!(fit(&c, "12b").passes, Some(false), "about 5.3 tokens/s");
+    assert!(!fit(&c, "26b").fits, "19.3 GB > 11.9 GB");
+    assert!(fit(&c, "e2b").here && !fit(&c, "e2b").estimated);
+}
+
+#[test]
+fn a_big_machine_picks_its_largest_passing_model_and_points_at_the_next() {
+    let d = Device {
+        models: strings(&["e5", "e2b", "12b"]),
+        ..big()
+    };
+    let m = Measured::from([("12b".to_string(), speed(30.0, 400.0))]);
+    let c = choose(&ladder(), &d, &m, GATES);
+    assert_eq!(
+        c.best.as_deref(),
+        Some("12b"),
+        "measured, passes, larger than e2b"
+    );
+    assert_eq!(
+        c.could_run.as_deref(),
+        Some("26b"),
+        "fits 29 GB; ~94 tokens/s estimated"
+    );
+}
+
+#[test]
+fn without_any_speed_the_smallest_model_here_waits_for_the_speed_test() {
+    let d = Device {
+        models: strings(&["e5", "e2b", "e4b"]),
+        ..laptop()
+    };
+    let c = choose(&ladder(), &d, &Measured::new(), GATES);
+    assert_eq!(c.best.as_deref(), Some("e2b"));
+    assert_eq!(c.could_run, None, "nothing to estimate from");
+    assert_eq!(fit(&c, "e4b").passes, None);
+}
+
+#[test]
+fn a_model_too_slow_here_is_never_the_best() {
+    let d = Device {
+        models: strings(&["e5", "e2b", "12b"]),
+        ..laptop()
+    };
+    let m = Measured::from([
+        ("e2b".to_string(), speed(12.5, 91.0)),
+        ("12b".to_string(), speed(5.1, 35.0)),
+    ]);
+    let c = choose(&ladder(), &d, &m, GATES);
+    assert_eq!(c.best.as_deref(), Some("e2b"));
+    assert_eq!(fit(&c, "12b").passes, Some(false));
+    let tiny_only = choose(&ladder(), &tiny(), &Measured::new(), GATES);
+    assert_eq!(tiny_only.best, None, "nothing fits 1 GB");
+}
+
+#[test]
+fn the_writer_gates_are_the_strictest_per_measure() {
+    let g = writer_gates(&cards());
+    assert_eq!(g.len(), 2);
+    assert!(g.contains(&Gate {
+        measure: Measure::DecodeTokS,
+        min: 7.0
+    }));
+    assert!(g.contains(&Gate {
+        measure: Measure::PrefillTokS,
+        min: 40.0
+    }));
+}
