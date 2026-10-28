@@ -117,7 +117,7 @@ Every OS difference goes here. This is what exists today in v3 and what replaces
 - which models and tools are present (python.wasm, keyring)
 - whether internet features are switched on
 
-**Capability cards:** one TOML file per capability in `capabilities/`. A card lists what the capability needs:
+**Capability cards:** one JSON file per capability in `capabilities/` (JSON, not TOML: serde_json is already here, ADR-053). A card lists what the capability needs:
 - OS
 - other cards that must be ready
 - memory
@@ -126,16 +126,13 @@ Every OS difference goes here. This is what exists today in v3 and what replaces
 - measured gates
 
 Example:
-```toml
-id = "notes.conversation"
-name = { en = "Long conversation over notes", hi = "Notes pe lambi baat" }
-needs.cards = ["notes.search"]
-needs.model = "writer"                    # the device's writer model must be loaded
-gate = [
-  { measure = "decode_tok_s",  min = 7.0 },
-  { measure = "prefill_tok_s", min = 40.0 },
-  { measure = "task:notesqa/dev", min = "v3" },   # at least v3's logged level
-]
+```json
+{
+  "id": "notes.conversation",
+  "name": {"en": "Long conversation over notes", "hi": "Notes pe lambi baat"},
+  "needs": {"cards": ["notes.search"], "writer": true},
+  "gates": [{"measure": "decode_tok_s", "min": 7.0}, {"measure": "prefill_tok_s", "min": 40.0}]
+}
 ```
 
 **Evaluation (pure function; tested first with fake probes):**
@@ -152,7 +149,7 @@ Results go to `device_profile.json` in the data dir, keyed by model SHA-256 and 
 **Shown on:** the page's "What Kestrel can do here" section, `GET /api/capabilities`, and `kestrel capabilities`.
 
 ### 4.3 Model slot and catalog
-`models/catalog.toml` lists each model with its file, SHA-256, size, licence, estimated memory and a quality reference. Gemma 4 sizes and multi-step tool-use scores (Tau2, from the model card):
+`models/catalog.json` lists each model with its file, SHA-256, size, licence, estimated memory and a quality reference. Gemma 4 sizes and multi-step tool-use scores (Tau2, from the model card):
 
 | Model | Q4 file | Tau2 | Expected home |
 |---|---|---|---|
@@ -343,8 +340,8 @@ crates/   kestrel-core, -nlu, -router, -inference, -memory, -tools, -learning, -
 apps/     cli      `kestrel`      existing: serve, chat, say, workers, calibrate, capabilities
           net      `kestrel-net`  NEW  the only network binary (§4.8)
           desktop  Tauri 2 shell  NEW  (§4.10)
-capabilities/*.toml               NEW  one card per capability
-models/catalog.toml               NEW  model ladder
+capabilities/*.json               NEW  one card per capability
+models/catalog.json               NEW  model ladder
 ```
 
 **Features:** `llama` (as today), plus `metal` and `vulkan` passed through to `llama-cpp-2`.
@@ -396,7 +393,7 @@ Sizes: S ≈ a v3 step, M ≈ 2–3 steps, L ≈ a v3 stage. Each phase ends wit
 | wasmtime + wasmtime-wasi, CPython WASI build | code sandbox on 3 OSes | same isolation everywhere, no OS sandbox per platform | A4 |
 | a keyring crate | mail password in the OS keyring | Secret Service / Keychain / Credential Manager | C |
 | a dirs crate, a time-zone crate (eval) | platform layer | replaces XDG-only paths and `date` | A1 |
-| a system-info crate (eval) | probe: RAM, CPU, OS | one API on 3 OSes | A2 |
+| ~~a system-info crate~~ (not needed, ADR-053) | probe: RAM, CPU, OS | llama.cpp's device list gives RAM and GPUs; /proc/meminfo, std for the rest | A2 |
 | a file-watcher crate (eval) | notes index rescans | cross-platform change events | B |
 | a Rust PDF text crate (eval) | PDFs and documents | `pdftotext` is not on Windows or macOS | B |
 | an HTTP client with rustls; an SMTP crate (`kestrel-net` only) | fetch, search, mail | kept out of the core | C |
