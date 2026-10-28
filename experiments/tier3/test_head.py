@@ -137,8 +137,20 @@ def test_committed_parity_fixture_is_current(tmp_path):
     from head import PARITY_DIR
 
     write_parity_fixture(tmp_path)
-    for name in ("head.json", "head.bin", "head_bias.bin", "cases.json"):
+    for name in ("head.json", "head.bin", "head_bias.bin"):
         assert (tmp_path / name).read_bytes() == (PARITY_DIR / name).read_bytes(), name
+    # The probabilities come out of a BLAS matrix product, whose summation order (and so the last
+    # bit of a float64) differs between CPUs: CI's differed here in one digit. Everything else must
+    # match exactly; the probabilities to 1e-12 relative (the Rust test reads them to 1e-5), so any
+    # real change to the head or the inputs still fails.
+    import json
+
+    new = json.loads((tmp_path / "cases.json").read_text())
+    committed = json.loads((PARITY_DIR / "cases.json").read_text())
+    assert new.keys() == committed.keys()
+    assert new["tolerance"] == committed["tolerance"]
+    assert new["inputs"] == committed["inputs"]
+    np.testing.assert_allclose(new["probs"], committed["probs"], rtol=1e-12, atol=0)
 
 
 def test_train_head_balanced_weighs_each_class_equally():
