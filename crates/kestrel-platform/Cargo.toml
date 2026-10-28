@@ -1,0 +1,13 @@
+[package]
+name = "kestrel-platform"
+description = "What differs between Linux, macOS and Windows: folders, commands, notifications (ADR-052, v4 blueprint §4.1)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+# Standard library only.
+[dependencies]
+
+[lints]
+workspace = true
