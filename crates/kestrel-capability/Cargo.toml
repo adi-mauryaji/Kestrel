@@ -1,0 +1,15 @@
+[package]
+name = "kestrel-capability"
+description = "What Kestrel can do on this device: capability cards, the model catalog, and the pure evaluation into ready / setup / locked (ADR-049, ADR-053, v4 blueprint §4.2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kestrel-platform.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

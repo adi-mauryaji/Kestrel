@@ -20,6 +20,15 @@ pub enum Os {
 }
 
 impl Os {
+    /// How cards and profiles name the system: "linux", "macos", "windows".
+    pub fn label(self) -> &'static str {
+        match self {
+            Os::Linux => "linux",
+            Os::MacOs => "macos",
+            Os::Windows => "windows",
+        }
+    }
+
     pub fn current() -> Os {
         if cfg!(windows) {
             Os::Windows
@@ -273,6 +282,13 @@ mod tests {
         let os = Os::current();
         assert_eq!(os == Os::Windows, cfg!(windows));
         assert_eq!(os == Os::MacOs, cfg!(target_os = "macos"));
+    }
+
+    #[test]
+    fn each_system_has_a_label() {
+        assert_eq!(Os::Linux.label(), "linux");
+        assert_eq!(Os::MacOs.label(), "macos");
+        assert_eq!(Os::Windows.label(), "windows");
     }
 
     #[test]

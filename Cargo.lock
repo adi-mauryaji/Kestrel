@@ -204,6 +204,15 @@ name = "kestrel-bench"
 version = "0.1.0"
 
 [[package]]
+name = "kestrel-capability"
+version = "0.1.0"
+dependencies = [
+ "kestrel-platform",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kestrel-cli"
 version = "0.1.0"
 dependencies = [
