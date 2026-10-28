@@ -474,3 +474,60 @@ fn a_bad_card_file_is_named() {
     assert_eq!(load_cards(&dir).unwrap().len(), 1, "only *.json");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+fn entry(model: &str, file: (u64, u64), decode: f64) -> Entry {
+    Entry {
+        model: model.into(),
+        file,
+        binary: (900, 1),
+        decode_tok_s: decode,
+        prefill_tok_s: 60.0,
+        threads: 6,
+        measured_at: 1_761_600_000,
+    }
+}
+
+#[test]
+fn a_speed_counts_while_its_model_file_and_binary_are_the_same() {
+    let p = Profile {
+        entries: vec![
+            entry("gemma-e2b", (2_841, 7), 12.8),
+            entry("gemma-12b", (7_000, 3), 30.0),
+        ],
+    };
+    let files = |id: &str| match id {
+        "gemma-e2b" => Some((2_841, 7)),
+        "gemma-12b" => Some((7_000, 4)), // replaced since
+        _ => None,
+    };
+    let m = p.measured(&files, (900, 1));
+    assert_eq!(m.len(), 1);
+    assert_eq!(m["gemma-e2b"], speed(12.8, 60.0));
+    assert!(
+        p.measured(&files, (901, 1)).is_empty(),
+        "a new binary measures again"
+    );
+    assert!(
+        p.measured(&|_| None, (900, 1)).is_empty(),
+        "the files are gone"
+    );
+}
+
+#[test]
+fn recording_replaces_the_models_earlier_entry_and_survives_json() {
+    let mut p = Profile::default();
+    p.record(entry("gemma-e2b", (2_841, 7), 11.0));
+    p.record(entry("gemma-12b", (7_000, 3), 30.0));
+    p.record(entry("gemma-e2b", (2_841, 7), 12.8));
+    assert_eq!(p.entries.len(), 2);
+    assert_eq!(
+        p.entries
+            .iter()
+            .find(|e| e.model == "gemma-e2b")
+            .unwrap()
+            .decode_tok_s,
+        12.8
+    );
+    let text = serde_json::to_string_pretty(&p).unwrap();
+    assert_eq!(serde_json::from_str::<Profile>(&text).unwrap(), p);
+}

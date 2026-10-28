@@ -10,7 +10,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use kestrel_platform::Os;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// What the operating system and other apps are left (estimate; the pilot's devices revisit it).
 pub const RESERVE_MIB: u64 = 3072;
@@ -174,6 +174,57 @@ pub struct Verdict {
     pub id: String,
     pub name: Text,
     pub state: State,
+}
+
+/// Speeds measured on this device (`device_profile.json` in Kestrel's data folder). An entry
+/// counts while its model file and the binary that measured it are the same.
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Profile {
+    pub entries: Vec<Entry>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Entry {
+    /// Catalog id.
+    pub model: String,
+    /// The model file then: (bytes, modified, s since 1970).
+    pub file: (u64, u64),
+    /// The kestrel binary then, the same way.
+    pub binary: (u64, u64),
+    pub decode_tok_s: f64,
+    pub prefill_tok_s: f64,
+    pub threads: i32,
+    /// Unix time.
+    pub measured_at: u64,
+}
+
+impl Profile {
+    /// The speeds still valid: `file_now` gives a model's file now (None if gone).
+    pub fn measured(
+        &self,
+        file_now: &dyn Fn(&str) -> Option<(u64, u64)>,
+        binary: (u64, u64),
+    ) -> Measured {
+        self.entries
+            .iter()
+            .filter(|e| e.binary == binary && file_now(&e.model) == Some(e.file))
+            .map(|e| {
+                let s = Speed {
+                    decode_tok_s: e.decode_tok_s,
+                    prefill_tok_s: e.prefill_tok_s,
+                };
+                (e.model.clone(), s)
+            })
+            .collect()
+    }
+
+    /// Keeps `e`, replacing the model's earlier entry.
+    pub fn record(&mut self, e: Entry) {
+        self.entries.retain(|old| old.model != e.model);
+        self.entries.push(e);
+    }
 }
 
 /// What a graphics card keeps for itself (its own buffers, the screen).

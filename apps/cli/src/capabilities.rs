@@ -1,11 +1,13 @@
-//! `kestrel capabilities [--hi] [CONFIG]` (v4 A2; ADR-049, ADR-053): what Kestrel can do on this
-//! device, card by card: ready, setup (with the steps) or locked (with the reasons).
+//! `kestrel capabilities [--measure] [--hi] [CONFIG]` (v4 A2; ADR-049, ADR-053): what Kestrel can
+//! do on this device, card by card: ready, setup (with the steps) or locked (with the reasons).
 //!
 //! The probe: RAM and GPUs from llama.cpp's devices (a llama build; otherwise the RAM from
 //! /proc/meminfo on Linux); the programs the cards need, on PATH; which catalog model files are in
 //! models/; the writer = the catalog model whose file is CONFIG's tier-4 model (the service's
-//! config by default). Speeds come from the first-run speed test, which is not built yet: until
-//! then the writing cards ask for it. Run from the repo root, like the other commands.
+//! config by default). Speeds: `--measure` runs the speed test (the writer loaded as the service
+//! loads it; reading and writing timed) and keeps them in device_profile.json in Kestrel's data
+//! folder, valid while the model file and the binary stay the same. Run from the repo root, like
+//! the other commands.
 
 use std::error::Error;
 use std::io::Write;
@@ -163,17 +165,35 @@ pub fn render(d: &Device, verdicts: &[Verdict], hi: bool) -> String {
 }
 
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
-    run_in(Path::new("."), args, out)
+    let data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
+    run_in(Path::new("."), data.as_deref(), args, out)
 }
 
-/// `run` with the repo at `root`.
-pub fn run_in(root: &Path, args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
-    const USE: &str = "usage: kestrel capabilities [--hi] [CONFIG]";
-    let mut hi = false;
+/// (bytes, modified as s since 1970) of a file.
+fn file_id(path: &Path) -> Option<(u64, u64)> {
+    let m = std::fs::metadata(path).ok()?;
+    let at = m
+        .modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?;
+    Some((m.len(), at.as_secs()))
+}
+
+/// `run` with the repo at `root` and the profile in `data` (none: speeds are not kept).
+pub fn run_in(
+    root: &Path,
+    data: Option<&Path>,
+    args: &[String],
+    out: &mut dyn Write,
+) -> Result<(), Box<dyn Error>> {
+    const USE: &str = "usage: kestrel capabilities [--measure] [--hi] [CONFIG]";
+    let (mut hi, mut measure) = (false, false);
     let mut config = None;
     for a in args {
         match a.as_str() {
             "--hi" => hi = true,
+            "--measure" => measure = true,
             _ if a.starts_with("--") || config.is_some() => return Err(USE.into()),
             _ => config = Some(a.as_str()),
         }
@@ -184,6 +204,11 @@ pub fn run_in(root: &Path, args: &[String], out: &mut dyn Write) -> Result<(), B
     let os = Os::current();
     let config = std::fs::read_to_string(root.join(config.unwrap_or(DEFAULT_CONFIG))).ok();
     let writer = config.as_deref().and_then(writer_file);
+    let n_ctx = config
+        .as_deref()
+        .and_then(|c| serde_json::from_str::<serde_json::Value>(c).ok())
+        .and_then(|v| v["models"]["tier4"]["n_ctx"].as_u64())
+        .unwrap_or(2048) as u32;
     let meminfo = std::fs::read_to_string("/proc/meminfo").ok();
     let backends = backends();
     let found = Found {
@@ -195,11 +220,140 @@ pub fn run_in(root: &Path, args: &[String], out: &mut dyn Write) -> Result<(), B
     let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
     let have_file = |f: &str| root.join("models").join(f).is_file();
     let d = device(found, &cards, &catalog, &on_path, &have_file);
-    // Speeds: none until the first-run speed test is built (v4 A2's next step).
-    let measured = kestrel_capability::Measured::new();
+    let profile_path = data.map(|d| d.join("device_profile.json"));
+    let mut profile: kestrel_capability::Profile = profile_path
+        .as_deref()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default();
+    let binary = std::env::current_exe()
+        .ok()
+        .and_then(|e| file_id(&e))
+        .unwrap_or((0, 0));
+    let model_file = |id: &str| {
+        let m = catalog.models.iter().find(|m| m.id == id)?;
+        file_id(&root.join("models").join(&m.file))
+    };
+    if measure {
+        let id = d.writer.clone().ok_or("no writer model here to measure")?;
+        let path = root.join("models").join(
+            &catalog
+                .models
+                .iter()
+                .find(|m| m.id == id)
+                .ok_or("unknown writer")?
+                .file,
+        );
+        let file = file_id(&path).ok_or_else(|| format!("{} is missing", path.display()))?;
+        writeln!(out, "measuring {id} (about a minute)...")?;
+        let (speed, threads) = measure_speed(&path, n_ctx)?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_secs();
+        profile.record(kestrel_capability::Entry {
+            model: id.clone(),
+            file,
+            binary,
+            decode_tok_s: speed.decode_tok_s,
+            prefill_tok_s: speed.prefill_tok_s,
+            threads,
+            measured_at: now,
+        });
+        writeln!(
+            out,
+            "{id}: writes {:.1} tokens/s, reads {:.0} tokens/s ({threads} threads)",
+            speed.decode_tok_s, speed.prefill_tok_s
+        )?;
+        let p = profile_path.ok_or("no data folder to keep the speeds in")?;
+        if let Some(dir) = p.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(&p, serde_json::to_string_pretty(&profile)? + "\n")?;
+    }
+    let measured = profile.measured(&model_file, binary);
     let verdicts = kestrel_capability::evaluate(&cards, &catalog, &d, &measured);
     out.write_all(render(&d, &verdicts, hi).as_bytes())?;
     Ok(())
+}
+
+/// About 300 tokens of plain prose to read: the prefill half of the speed test.
+#[cfg(feature = "llama")]
+const READING: &str = "The kestrel is a small falcon that hovers in the wind above open fields, \
+     its head perfectly still while its wings beat fast, watching the grass below for the movement \
+     of a mouse or a beetle. When it sees one it drops in short steps, stops, hovers again, and \
+     only then falls the last few metres with its feet forward. Farmers have long liked it, \
+     because a pair raising young can take thousands of voles in a summer. It nests in old crow \
+     nests, in holes in trees and cliffs, and more and more on buildings in towns, where ledges \
+     and boxes put up for it take the place of rock. In winter the birds of the north move south, \
+     while those of milder places stay all year near the same few fields. A kestrel sees \
+     ultraviolet light, and the trails that voles leave with their urine shine in it, so the bird \
+     can tell from the air where its prey has been running. It is not fast like a peregrine in a \
+     dive; it is patient, and its whole way of hunting is to wait, look and hang in the air at no \
+     cost, using the wind the way a sailor uses a sail. Watching one for a few minutes on a windy \
+     day is one of the quiet pleasures of a walk in open country.";
+
+/// The speed test (v4 A2): the writer loaded as the service loads it (mapped, the config's
+/// context, the adapter's threads); a short warm-up answer, then reading `READING` (prefill)
+/// and writing up to 64 tokens of a long answer (decode). (speed, threads).
+#[cfg(feature = "llama")]
+fn measure_speed(
+    model: &Path,
+    n_ctx: u32,
+) -> Result<(kestrel_capability::Speed, i32), Box<dyn Error>> {
+    use kestrel_core::resources::{CancelToken, Deadline};
+    use kestrel_inference::llama::{LlamaConfig, LlamaSlm};
+    use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
+    use kestrel_inference::{GenParams, Generator};
+    let cfg = LlamaConfig {
+        n_ctx,
+        mmap: true,
+        ..LlamaConfig::default()
+    };
+    let threads = cfg.n_threads;
+    let slm = LlamaSlm::load(model, cfg)?;
+    let format = ChatFormat::for_architecture(&slm.architecture()?)
+        .ok_or("no chat format known for this model")?;
+    let chat = ChatPrompt::new(format, "You are a helpful assistant.");
+    let ask = |user: &str| format!("{}{}", chat.prefix(), chat.suffix(user));
+    let (cancel, deadline) = (
+        CancelToken::new(),
+        Deadline::after(std::time::Duration::from_secs(600)),
+    );
+    // Warm-up: the weights into memory, the threads started.
+    slm.session()?.generate(
+        &ask("Say hi."),
+        &GenParams::greedy(8),
+        &cancel,
+        &deadline,
+        &mut |_| {},
+    )?;
+    let mut reading = slm.session()?;
+    let t = std::time::Instant::now();
+    let n = reading.prime(READING)?;
+    let prefill = n as f64 / t.elapsed().as_secs_f64();
+    let stats = slm.session()?.generate(
+        &ask("Write the numbers from one to forty in words, separated by commas."),
+        &GenParams::greedy(64),
+        &cancel,
+        &deadline,
+        &mut |_| {},
+    )?;
+    let decode = stats
+        .decode_tokens_per_s()
+        .filter(|_| stats.tokens >= 16)
+        .ok_or("the model stopped too early to time its writing")?;
+    Ok((
+        kestrel_capability::Speed {
+            decode_tok_s: decode,
+            prefill_tok_s: prefill,
+        },
+        threads,
+    ))
+}
+
+#[cfg(not(feature = "llama"))]
+fn measure_speed(_: &Path, _: u32) -> Result<(kestrel_capability::Speed, i32), Box<dyn Error>> {
+    Err("the speed test needs the llama build: cargo build --release -p kestrel-cli --features llama".into())
 }
 
 /// llama.cpp's devices; a build without it has none (the RAM then comes from /proc/meminfo).
@@ -422,7 +576,7 @@ mod tests {
     #[test]
     fn the_command_lists_every_shipped_card_on_this_machine() {
         let mut out = Vec::new();
-        run_in(&repo(), &[], &mut out).unwrap();
+        run_in(&repo(), None, &[], &mut out).unwrap();
         let text = String::from_utf8(out).unwrap();
         let mut lines = text.lines();
         assert!(
@@ -433,7 +587,69 @@ mod tests {
         );
         let cards = lines.filter(|l| !l.starts_with("   - ")).count();
         assert_eq!(cards, shipped().0.len());
-        assert!(run_in(&repo(), &["--nope".into()], &mut Vec::new()).is_err());
-        let _ = Measured::new(); // the speed test fills this later
+        assert!(run_in(&repo(), None, &["--nope".into()], &mut Vec::new()).is_err());
+    }
+
+    #[test]
+    fn a_kept_speed_unlocks_the_writing_cards_while_the_model_and_binary_stay() {
+        let root = repo();
+        let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json")).unwrap();
+        let e2b = catalog
+            .models
+            .iter()
+            .find(|m| m.role == kestrel_capability::Role::Writer)
+            .unwrap();
+        let Some(file) = file_id(&root.join("models").join(&e2b.file)) else {
+            return; // a checkout without the model (CI): nothing to unlock
+        };
+        let binary = file_id(&std::env::current_exe().unwrap()).unwrap();
+        let data = std::env::temp_dir().join(format!("kestrel_profile_{}", std::process::id()));
+        std::fs::create_dir_all(&data).unwrap();
+        let mut p = kestrel_capability::Profile::default();
+        p.record(kestrel_capability::Entry {
+            model: e2b.id.clone(),
+            file,
+            binary,
+            decode_tok_s: 12.8,
+            prefill_tok_s: 58.5,
+            threads: 6,
+            measured_at: 0,
+        });
+        std::fs::write(
+            data.join("device_profile.json"),
+            serde_json::to_string(&p).unwrap(),
+        )
+        .unwrap();
+        let mut out = Vec::new();
+        run_in(&root, Some(&data), &[], &mut out).unwrap();
+        let text = String::from_utf8(out).unwrap();
+        assert!(text.contains("✅ Chat\n"), "{text}");
+        assert!(!text.contains("run the speed test"), "{text}");
+        // Another binary (a new build) measures again.
+        p.entries[0].binary = (1, 1);
+        std::fs::write(
+            data.join("device_profile.json"),
+            serde_json::to_string(&p).unwrap(),
+        )
+        .unwrap();
+        let mut out = Vec::new();
+        run_in(&root, Some(&data), &[], &mut out).unwrap();
+        assert!(
+            String::from_utf8(out)
+                .unwrap()
+                .contains("run the speed test")
+        );
+        let _ = std::fs::remove_dir_all(&data);
+        let _ = Measured::new();
+    }
+
+    #[cfg(not(feature = "llama"))]
+    #[test]
+    fn the_speed_test_needs_the_llama_build() {
+        let root = repo();
+        let have_model = root.join("models/gemma-4-E2B-it-Q4_0.gguf").is_file();
+        let e = run_in(&root, None, &["--measure".into()], &mut Vec::new()).unwrap_err();
+        let want = if have_model { "llama build" } else { "missing" };
+        assert!(e.to_string().contains(want), "{e}");
     }
 }
