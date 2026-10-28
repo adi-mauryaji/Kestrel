@@ -1,19 +1,15 @@
 name: ci-cross
 
-# macOS and Windows (v4 phase A1, ADR-052). Not on every push: on a private repo their minutes
-# cost more (Windows ~2x, macOS ~10x Linux). Run it by hand (Actions -> ci-cross -> Run workflow),
-# on a pull request into main, and on a release tag.
+# macOS and Windows (v4 phase A1, ADR-052). The repo is public, so GitHub's standard runners cost
+# nothing: this runs on every push like ci.yml. (A "Run workflow" button would only appear once
+# this file is on the default branch, main, which waits for the final research tag: ADR-034.)
 on:
-  workflow_dispatch:
-    inputs:
-      llama:
-        description: "Also build the llama feature (llama.cpp via cmake; ~10-20 min per system)"
-        type: boolean
-        default: false
+  push:
+    branches: [main, "feat/**"]
+    tags: ["v*"]
   pull_request:
     branches: [main]
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   rust:
@@ -32,7 +28,6 @@ jobs:
       - run: cargo test --workspace
 
   llama:
-    if: github.event_name == 'workflow_dispatch' && inputs.llama
     strategy:
       fail-fast: false
       matrix:
@@ -42,5 +37,6 @@ jobs:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v5
       - run: rustc -V && cargo -V
-      # The service (`kestrel serve`) and the model worker only build with this feature.
+      # The service (`kestrel serve`) and the model worker only build with this feature; it builds
+      # llama.cpp with cmake (~10-20 min).
       - run: cargo clippy -p kestrel-cli --all-targets --features llama -- -D warnings
