@@ -1,0 +1,263 @@
+% Kestrel vs SLM360: a plain-English comparison report. Build: cd paper/comparison && latexmk -pdf kestrel_vs_slm360.tex
+% Kestrel numbers come from the committed logs and files listed in Appendix A. SLM360 numbers are quoted from the
+% six public 360labs.ai pages listed there, read on 2026-10-28; they are the company's claims, not our measurements.
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{kestrel}{HTML}{D9692E}
+\definecolor{note}{HTML}{555555}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\quoted}[1]{\textit{``#1''}}
+\setlist{itemsep=3pt, topsep=4pt}
+\setlength{\emergencystretch}{3em}
+\renewcommand{\arraystretch}{1.25}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries Kestrel and SLM360\par}
+\vspace{4pt}
+{\large An honest comparison: who is behind, in what, and by how much\par}
+\vspace{6pt}
+{\color{note}28 October 2026\par}
+\end{center}
+\vspace{6pt}
+
+\section*{The short answer}
+
+SLM360 is an on-device language engine made by 360 Labs (Lightyear 360 Labs Pvt Ltd, India). Its main job is to read
+a short command and pick one action from a fixed list. Kestrel is an offline personal assistant. It also picks
+actions, but it can write emails, translate, rewrite text, answer questions from your notes and write small programs.
+
+\begin{itemize}
+  \item \textbf{SLM360 is far ahead on size and on phones.} Its intent model is about 33 times smaller than Kestrel's
+  (4\,MB vs 132\,MB), and its text model about 45 times smaller (63\,MB vs 2.84\,GB). 360 Labs describes Android apps
+  built on it. Kestrel has never run on a phone.
+  \item \textbf{Kestrel is ahead on accuracy, languages, abilities and proof.} On the same 150-intent test
+  (CLINC150), Kestrel's intent step scored 95.9\% on 4,500 test sentences; SLM360 Nano's page claims 85.1\%. SLM360's
+  headline 98--100\% comes from tests of only 49 and 50 sentences. Kestrel measured Hinglish; SLM360's paper is
+  English only.
+  \item \textbf{Many SLM360 numbers cannot be checked.} The model is not public, no test phone is named, the paper's
+  ``raw results'' link returns an error (404), and the same model is described with three different sizes.
+\end{itemize}
+
+\noindent In one sentence: \textbf{SLM360 is small enough for phones but proves little; Kestrel proves what it does
+but is too big for phones.}
+
+\section{How this comparison was made}
+
+\begin{itemize}
+  \item \textbf{Kestrel:} numbers from the committed logs in this repository, all measured on one laptop: AMD Ryzen 5
+  5500U, 6 cores, 14\,GiB RAM, Fedora 44, CPU only, no GPU. Appendix A lists the file behind each number.
+  \item \textbf{SLM360:} six public pages on 360labs.ai, read on 28 October 2026 (Appendix A). These are the company's
+  own claims. The model is \quoted{available for licensing} and is not public, so we could not run it on the same
+  data or the same hardware.
+  \item When two numbers come from different hardware or different tests, the text says so. Sizes are in decimal
+  megabytes (1\,MB = 1,000,000 bytes) unless MiB is written.
+\end{itemize}
+
+\section{What the two systems are}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}P{3.1cm}LL@{}}
+\toprule
+ & \textbf{SLM360} & \textbf{Kestrel} \\
+\midrule
+Made by & 360 Labs, a company & A research project (this repository) \\
+Main job & Pick one intent (action) from a fixed list; 25--30 intents in its phone apps & Personal assistant: tasks,
+reminders, notes, writing, translation, questions about notes, small programs \\
+How it decides & Four steps: patterns, an 85K-parameter model, Nano (6.4M parameters), Base (125M) & Three steps: keyword
+rules, a sentence encoder (multilingual-e5-small, about 118M parameters), Gemma-4-E2B \\
+Writes text & Base (125M) is claimed to. In the phone apps: a tiny decoder (KAVACH) or SmolLM2-360M, a public model
+that is not SLM360 (SAGAR) & Yes, with Gemma-4-E2B (4-bit) \\
+Languages & Paper: English only. SAGAR page: English and Hinglish commands & English and Hinglish, both measured \\
+Runs on & Claims Linux, macOS, Windows, web browsers (WebAssembly), Android, iOS & One Linux laptop so far; the next
+version plans Linux, macOS and Windows \\
+Open & Closed; sold under licence & Public models pinned by checksum; every number from a committed log \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Where Kestrel is behind}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}P{3.1cm}LLP{2.6cm}@{}}
+\toprule
+\textbf{Area} & \textbf{Kestrel} & \textbf{SLM360 (claimed)} & \textbf{Gap} \\
+\midrule
+Intent model file & 132\,MB (multilingual-e5-small, 8-bit) & 4\,MB (Nano, 4-bit); 0.85\,MB in the KAVACH app &
+Kestrel 33$\times$ bigger (156$\times$ vs KAVACH) \\
+Text model file & 2.84\,GB (Gemma-4-E2B, 4-bit) & 63\,MB (Base, 4-bit) & Kestrel 45$\times$ bigger \\
+Both models vs the SAGAR app & 2.97\,GB & 386\,MB (Nano + SmolLM2-360M) & Kestrel 7.7$\times$ bigger \\
+Memory, intent path & 278\,MiB peak (291\,MB) & 50\,MB in total (paper) & Kestrel about 6$\times$ more \\
+Memory with the text model & 1,144\,MiB the system cannot take back, plus the 2,702\,MiB model file mapped & KAVACH
+needs a phone with at least 3\,GB RAM for everything & Kestrel needs a large-memory device \\
+Phones & None built, none measured & KAVACH, SAGAR and VAJRA are described as Android apps (KAVACH about 45\,MB,
+VAJRA about 38\,MB) & Kestrel has nothing here yet \\
+Writing speed & 12.1 tokens (word pieces) per second; an email took 8.5--10.8\,s and a chat answer 23.2\,s in one run
+& Base: \quoted{<50ms/tok}, that is over 20 tokens per second, on hardware not named & Kestrel about 1.7$\times$
+slower per token, if the claim holds \\
+Energy & Not measured (the energy counter needs root on this laptop) & 0.001\,Wh per query; method not given & No
+Kestrel number to compare \\
+Users & One user; the pilot has not started & Apps described for defence clients (cannot be verified) & -- \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\noindent\textbf{What this means.} On everything that decides whether an assistant fits on a phone (file size, memory,
+phone builds), SLM360 is ahead by 6 to 45 times, and more against the KAVACH model. This gap is real, and it is the
+main thing Kestrel would have to fix to reach phones.
+
+\section{Where SLM360 is behind}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}P{3.1cm}LLP{2.6cm}@{}}
+\toprule
+\textbf{Area} & \textbf{Kestrel} & \textbf{SLM360 (claimed)} & \textbf{Gap} \\
+\midrule
+Accuracy on CLINC150 (150 intents) & 95.9\% on 4,500 test sentences (intent step)$^{1}$ & 85.1\% (Nano page; number
+of test sentences not given) & Kestrel +10.8 points. SLM360's own reference model, BERT-base, scores 91.4\% \\
+Size of the test behind the headline & 5,500 CLINC150 test items; the rules were fixed before any test item was read
+& 98.0\% on 49 SNIPS sentences; 100\% on 50 sentences from a 10-intent part of Banking77 (the full set has 77) &
+Kestrel tested about 110$\times$ more items \\
+Same tests at full size & -- & Nano page: Banking77 with all 77 intents 88.3\%; SNIPS 96.2\% & SLM360's numbers
+disagree with each other (100\% vs 88.3\%) \\
+Hinglish & 90.0\% of Hinglish requests (126/140) vs 92.9\% of English (130/140) sent to the right skill & Paper: \quoted{English
+only}. SAGAR: two Hinglish examples, no numbers & Measured vs not measured \\
+Writing & Emails, translation, rewriting; notes questions 19/19 answered right and 6/6 unanswerable ones declined;
+programs 21/24 right & KAVACH's sample: \quoted{cobra team conducting clearance activity observed patrol grid 2ring
+north}; its paper admits \quoted{limited vocabulary and occasional grammatical imprecision}. No sample from Base &
+SLM360's phone apps cannot do Kestrel's writing tasks \\
+Requests that fit no action & 1,000 such test items counted; Kestrel says it cannot do them & Paper: \quoted{Fixed
+intent set} & Not measured \\
+Learning without forgetting & Measured: with EWC, forgetting 0.932, no better than without it (0.947); with replay
+$-$0.002 & Model page: under 2\% forgetting with EWC. Its own paper lists on-device learning as future work & SLM360
+contradicts itself \\
+Can others check it & Public models pinned by SHA-256; every number from a committed log & No public model; benchmark
+link returns 404; test phone never named & -- \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+{\small\color{note}\noindent$^{1}$ The 95.9\% counts the 4,500 test sentences that belong to one of the 150 intents,
+the same 150-intent setting as SLM360's number. On all 5,500 test items, including 1,000 that fit no intent, Kestrel's
+encoder alone scored 89.3\% and its full cascade 87.4\%.\par}
+
+\subsection*{SLM360 contradicts itself}
+
+\begin{itemize}
+  \item \textbf{Three sizes for one model:} 577K parameters and 848\,KB (KAVACH paper); 6.4M parameters and 4\,MB (Nano
+  page); a 32\,MB model and 50\,MB in total (SLM360 paper).
+  \item \textbf{``Pure Rust with zero external ML dependencies''}, but the same page lists an \quoted{ONNX model
+  (32MB)}, and the KAVACH app, which uses SLM360, names \quoted{TensorFlow Lite 2.14.0} as its ML runtime.
+  \item \textbf{``Proprietary'' model:} the paper calls it proprietary, but its own benchmark commands load
+  \texttt{gte-small-quantized.onnx}, a public embedding model.
+  \item \textbf{Phones:} one section of the model page says \quoted{iOS and Android planned}; another lists
+  \quoted{Android via JNI bindings}.
+  \item \textbf{Speed vs Rasa:} \quoted{4x faster} in the abstract, \quoted{3.8x faster} in the results.
+\end{itemize}
+
+\section{Not a contest: different jobs}
+
+\begin{itemize}
+  \item \textbf{Camera detection} of people and vehicles (YOLOv8n, 12\,MB), \textbf{drone sounds}, \textbf{patrol
+  routes} (A* path search) and \textbf{reports} (filled-in templates) are features of 360 Labs' apps, but they are not
+  SLM360. VAJRA, the drone app, does not use SLM360 at all. Kestrel does not try to do any of these.
+  \item \textbf{Why a 45\,MB app can do so much:} in KAVACH, SLM360 is 0.85\,MB. The rest is a standard 12\,MB
+  detector, ordinary code, a map and the screens. Picking one of 25 actions needs only a small model; writing free text
+  needs a large one.
+  \item \textbf{Fair pairing:} Kestrel's intent step does the same job as SLM360 Nano. Kestrel's Gemma step has no
+  real counterpart in SLM360's phone apps.
+\end{itemize}
+
+\section{Kestrel's own weak spots}
+
+Kestrel's logs also show where it falls short, regardless of SLM360:
+
+\begin{itemize}
+  \item On CLINC150, the encoder alone (89.3\%, 5.6\,ms on average) beat Kestrel's full cascade (87.4\%, 146\,ms on
+  average). Sending hard cases to Gemma made results worse there.
+  \item On the small English--Hinglish set (252 items), the cascade (96.8\%) stayed below always using Gemma (100\%).
+  The result is inconclusive.
+  \item The English--Hinglish test sets are small and synthetic (252 and 280 items).
+  \item Programs that read input: 3 of 6 right. Translation into Hinglish: 1 of 4 (development data only).
+  \item Everything was measured on one laptop.
+\end{itemize}
+
+\section{What this means if Kestrel goes to phones}
+
+\begin{itemize}
+  \item \textbf{Size is the main problem.} The intent step must shrink from 132\,MB to a few MB. Gemma (2.84\,GB) is
+  the bigger question: either it stays on the laptop and the phone sends it only the hard requests, or it is measured on
+  a phone with a lot of memory.
+  \item \textbf{Going small has a cost.} If SLM360's numbers hold, a 4\,MB model loses about 10 points on CLINC150
+  compared with Kestrel's encoder. A smaller Kestrel encoder must be measured, in English and in Hinglish, before it
+  replaces the current one.
+  \item \textbf{Nothing has been measured on a phone yet.} Every phone statement in this section is a plan, not a
+  result.
+\end{itemize}
+
+\section{Scorecard}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}LlL@{}}
+\toprule
+\textbf{Area} & \textbf{Ahead} & \textbf{By how much} \\
+\midrule
+Model file size & SLM360 & 33$\times$ (intent), 45$\times$ (text) \\
+Memory, intent path & SLM360 & about 6$\times$ \\
+Phones & SLM360 & Kestrel has no phone build \\
+Energy figures & SLM360 (claim only) & Kestrel has no number \\
+Writing speed per token & SLM360 (claim only) & about 1.7$\times$ \\
+Intent accuracy, CLINC150 & Kestrel & +10.8 points (95.9\% vs 85.1\%) \\
+Hinglish & Kestrel & measured vs not measured \\
+Writing, translation, notes questions & Kestrel & SLM360's phone apps do not do these \\
+Size of the tests & Kestrel & 5,500 items vs 49 and 50 sentences \\
+Others can check it & Kestrel & public models and logs vs a closed model \\
+In real use & SLM360 (claim only) & Kestrel: one user \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\appendix
+\section{Sources}
+\raggedright\small
+
+\subsection*{Kestrel (this repository)}
+\begin{itemize}[leftmargin=*]
+  \item CLINC150 accuracy, speed and memory: \texttt{experiments/RESULTS.md}, Tables R1 and R2; per-tier accuracy on the
+  4,500 in-scope test sentences: \texttt{experiments/logs/E2/analysis\_clinc150\_test.json}.
+  \item Forgetting (EWC, replay): \texttt{experiments/RESULTS.md}, Table R6.
+  \item English and Hinglish decisions, notes questions, programs, translation into Hinglish, answer times, memory with
+  Gemma loaded, Gemma speed: \texttt{paper/v3/generated/numbers.json}, keys \texttt{kt2.hg.en}, \texttt{kt2.hg.hi},
+  \texttt{qa.test.ans}, \texttt{qa.test.un}, \texttt{code.test.all}, \texttt{code.test.script},
+  \texttt{writer.final.translate-hinglish}, \texttt{acc.s.email}, \texttt{acc.s.emailhi}, \texttt{acc.s.chat},
+  \texttt{mmap.map.cold.anon}, \texttt{mmap.map.cold.file}, \texttt{e0.gemma.tg}.
+  \item Model sizes: \texttt{models/MANIFEST.toml} (Gemma-4-E2B Q4\_0: 2,841,481,184 bytes; the encoder's 32-bit
+  source: 470,641,600 bytes, about 118M parameters) and the converted encoder file
+  \texttt{models/multilingual-e5-small-q8\_0.gguf} (132,440,544 bytes).
+  \item Laptop: \texttt{docs/environment.md}. Service memory: \texttt{README.md}.
+\end{itemize}
+
+\subsection*{SLM360 (360labs.ai, read on 28 October 2026)}
+\begin{itemize}[leftmargin=*]
+  \item Model page: \url{https://www.360labs.ai/models/slm360}
+  \item Nano page: \url{https://www.360labs.ai/models/slm360-nano}
+  \item SLM360 paper (``Technical Report, 2025'', S.~Kumar and P.~R.~Agrawal, not peer reviewed):
+  \url{https://www.360labs.ai/research/slm360-paper}
+  \item KAVACH paper (``Technical Report, 2026''): \url{https://www.360labs.ai/research/kavach-paper}
+  \item VAJRA paper: \url{https://www.360labs.ai/research/vajra-paper}
+  \item SAGAR page: \url{https://www.360labs.ai/product/sagar}
+  \item The paper's raw-results link, \url{https://360labs.ai/lllm360/benchmarks}, returned 404.
+\end{itemize}
+
+\end{document}
