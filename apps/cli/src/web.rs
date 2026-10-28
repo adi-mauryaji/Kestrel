@@ -247,7 +247,8 @@ pub fn write_private(path: &Path, text: &str) -> io::Result<()> {
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
 }
 
-/// The page's secret: read from `path`, or made (32 random bytes as hex) and saved 0600.
+/// The page's secret: read from `path`, or made (32 secure random bytes as hex, kestrel-platform)
+/// and saved private.
 pub fn token(path: &Path) -> io::Result<String> {
     if let Ok(t) = std::fs::read_to_string(path) {
         let t = t.trim();
@@ -255,8 +256,7 @@ pub fn token(path: &Path) -> io::Result<String> {
             return Ok(t.to_string());
         }
     }
-    let mut bytes = [0u8; 32];
-    std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
+    let bytes = kestrel_platform::random_bytes(kestrel_platform::Os::current(), 32)?;
     let t: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir)?;

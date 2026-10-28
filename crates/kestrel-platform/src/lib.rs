@@ -196,6 +196,56 @@ pub fn parse_utc_offset(os: Os, out: &str) -> Option<i64> {
     }
 }
 
+/// `n` bytes from the system's secure random source (the page's key): /dev/urandom on Unix; on
+/// Windows .NET's RandomNumberGenerator through PowerShell, since the standard library has no stable
+/// random API yet (`std::random` is unstable in 1.99) and Kestrel calls no OS function unsafely.
+pub fn random_bytes(os: Os, n: usize) -> std::io::Result<Vec<u8>> {
+    use std::io::Read;
+    match os {
+        Os::Linux | Os::MacOs => {
+            let mut bytes = vec![0u8; n];
+            std::fs::File::open("/dev/urandom")?.read_exact(&mut bytes)?;
+            Ok(bytes)
+        }
+        Os::Windows => {
+            let out = random_hex_command(n).output()?;
+            parse_hex(&String::from_utf8_lossy(&out.stdout))
+                .filter(|b| out.status.success() && b.len() == n)
+                .ok_or_else(|| std::io::Error::other("PowerShell gave no random bytes"))
+        }
+    }
+}
+
+/// Prints `n` secure random bytes as hex on Windows (Windows PowerShell 5.1 / .NET Framework too:
+/// no `ToHexString`, no static `GetBytes(n)`).
+pub fn random_hex_command(n: usize) -> Command {
+    let mut c = Command::new("powershell");
+    c.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        &format!(
+            "$b = New-Object byte[] {n}; \
+             [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); \
+             -join ($b | ForEach-Object {{ $_.ToString('x2') }})"
+        ),
+    ]);
+    c
+}
+
+/// Lower- or upper-case hex, surrounding whitespace allowed, as bytes.
+pub fn parse_hex(s: &str) -> Option<Vec<u8>> {
+    let s = s.trim();
+    if s.is_empty() || !s.len().is_multiple_of(2) {
+        return None;
+    }
+    let digit = |b: u8| (b as char).to_digit(16);
+    s.as_bytes()
+        .chunks(2)
+        .map(|p| Some((digit(p[0])? * 16 + digit(p[1])?) as u8))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,6 +464,29 @@ mod tests {
         assert_eq!(parse_utc_offset(Os::Windows, "345"), Some(20_700));
         for bad in ["", "+0530", "5.5", "900", "-900", "x"] {
             assert_eq!(parse_utc_offset(Os::Windows, bad), None, "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn random_bytes_come_from_this_system_and_differ_each_time() {
+        // On Windows CI this runs PowerShell for real.
+        let a = random_bytes(Os::current(), 32).unwrap();
+        let b = random_bytes(Os::current(), 32).unwrap();
+        assert_eq!((a.len(), b.len()), (32, 32));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn windows_random_bytes_come_from_dotnet_as_hex() {
+        let c = random_hex_command(32);
+        assert_eq!(c.get_program(), "powershell");
+        let script = c.get_args().last().unwrap().to_string_lossy().into_owned();
+        assert!(script.contains("byte[] 32"), "{script}");
+        assert!(script.contains("RandomNumberGenerator"), "{script}");
+        assert_eq!(parse_hex("00ff7a\r\n"), Some(vec![0x00, 0xff, 0x7a]));
+        assert_eq!(parse_hex("ABcd"), Some(vec![0xab, 0xcd]));
+        for bad in ["", "abc", "zz", "0x12", "12 34"] {
+            assert_eq!(parse_hex(bad), None, "{bad:?}");
         }
     }
 }

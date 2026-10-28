@@ -48,6 +48,8 @@ pub type Streamer<'h> =
 
 /// Serves one client: each `{"say"}` goes to `handle`, whose y/N questions and written parts
 /// travel to the client.
+// The Unix socket's protocol: Windows has no socket yet (v4 phase A3).
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn handle_connection(
     reader: &mut dyn BufRead,
     writer: &mut dyn Write,
@@ -104,6 +106,8 @@ pub fn handle_connection(
 
 /// One request from the client's side: send it, print its lines, answer its questions, and show
 /// written text as it comes (`part`), ended by a "\n" part before anything that follows it.
+// The Unix socket's protocol: Windows has no socket yet (v4 phase A3).
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn client_exchange(
     reader: &mut dyn BufRead,
     writer: &mut dyn Write,
