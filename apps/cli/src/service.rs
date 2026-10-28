@@ -465,6 +465,7 @@ fn answer<'m>(
 #[cfg(feature = "llama")]
 fn open_web(
     port: u16,
+    config: &std::path::Path,
     memory: &std::path::Path,
     skills: bool,
     lan: Option<std::net::Ipv4Addr>,
@@ -484,7 +485,16 @@ fn open_web(
             skills,
         )
     };
-    let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?;
+    // What Kestrel can do here, probed again at each ask (a speed test may have run since).
+    let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let config = config.to_string_lossy().into_owned();
+    let capabilities = move || {
+        crate::capabilities::assess(std::path::Path::new("."), data.as_deref(), Some(&config))
+            .map(|a| crate::capabilities::to_json(&a))
+            .unwrap_or(serde_json::Value::Null)
+    };
+    let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
+        .with_capabilities(Box::new(capabilities));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
@@ -635,7 +645,7 @@ pub fn serve(
     let ring_db = memory.to_path_buf();
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
     // The browser page; without it the service still answers on the socket.
-    let mut web = web_port.and_then(|port| match open_web(port, memory, skills, web_lan) {
+    let mut web = web_port.and_then(|port| match open_web(port, config, memory, skills, web_lan) {
         Ok(w) => {
             eprintln!(
                 "the page is at http://127.0.0.1:{}/ (kestrel open)",

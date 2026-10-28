@@ -3,6 +3,8 @@
 //!
 //! - `GET /` is the page (apps/cli/web/page.html, one file, nothing fetched from elsewhere: its
 //!   Content-Security-Policy allows only this server).
+//! - `GET /api/capabilities` (v4 A2): what Kestrel can do on this device, card by card
+//!   (src/capabilities.rs).
 //! - `GET /api/tasks`: the tasks, today's date, the minute now and whether v3's skills are on
 //!   (the page then names them). `POST /api/say {"text"}`: the
 //!   answer as JSON lines, `{"part"}` ... while a skill's text is written (v3), `{"line"}` ...,
@@ -281,6 +283,7 @@ pub struct Web {
     port: u16,
     token: String,
     tasks: Box<dyn Fn() -> Value>,
+    capabilities: Box<dyn Fn() -> Value>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -306,8 +309,15 @@ impl Web {
             port,
             token,
             tasks,
+            capabilities: Box::new(|| Value::Null),
             lan,
         })
+    }
+
+    /// `capabilities` answers `GET /api/capabilities` (v4 A2); without it the answer is null.
+    pub fn with_capabilities(mut self, capabilities: Box<dyn Fn() -> Value>) -> Self {
+        self.capabilities = capabilities;
+        self
     }
 
     pub fn port(&self) -> u16 {
@@ -333,7 +343,14 @@ impl Web {
             return Ok(());
         };
         let mut answer = || self.wait_for_answer();
-        respond(&req, &mut out, &*self.tasks, say, &mut answer)
+        respond(
+            &req,
+            &mut out,
+            &*self.tasks,
+            &*self.capabilities,
+            say,
+            &mut answer,
+        )
     }
 
     /// The request on `stream` if it is allowed (else it is refused here), and the stream to
@@ -402,6 +419,7 @@ impl Web {
                         &req,
                         &mut out,
                         &*self.tasks,
+                        &*self.capabilities,
                         &mut |_, _, _| vec![],
                         &mut || None,
                     );
@@ -412,18 +430,23 @@ impl Web {
     }
 }
 
-/// Answers one allowed request. `tasks` reads the task list, `say` handles a request (its y/N
-/// questions and written parts go to the page), `answer` waits for the page's answer to one.
+/// Answers one allowed request. `tasks` reads the task list, `capabilities` what Kestrel can do on
+/// this device, `say` handles a request (its y/N questions and written parts go to the page),
+/// `answer` waits for the page's answer to one.
 pub fn respond(
     req: &HttpRequest,
     out: &mut dyn Write,
     tasks: &dyn Fn() -> Value,
+    capabilities: &dyn Fn() -> Value,
     say: &mut Streamer<'_>,
     answer: &mut dyn FnMut() -> Option<bool>,
 ) -> io::Result<()> {
     match (req.method.as_str(), req.path.as_str()) {
         ("GET", "/") => reply(out, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes()),
         ("GET", "/api/tasks") => reply(out, "200 OK", JSON, tasks().to_string().as_bytes()),
+        ("GET", "/api/capabilities") => {
+            reply(out, "200 OK", JSON, capabilities().to_string().as_bytes())
+        }
         ("POST", "/api/say") => {
             let text = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -457,7 +480,7 @@ pub fn respond(
             out.flush()
         }
         ("POST", "/api/answer") => reply(out, "409 Conflict", TEXT, b"no question is waiting"),
-        (_, "/" | "/api/tasks" | "/api/say" | "/api/answer") => {
+        (_, "/" | "/api/tasks" | "/api/capabilities" | "/api/say" | "/api/answer") => {
             reply(out, "405 Method Not Allowed", TEXT, b"method not allowed")
         }
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
@@ -559,6 +582,16 @@ mod tests {
         assert_eq!(
             allowed(&with("127.0.0.1:7811", None, api), 7811, "s3cret", None),
             Err(401)
+        );
+        assert_eq!(
+            allowed(
+                &with("127.0.0.1:7811", None, "/api/capabilities"),
+                7811,
+                "s3cret",
+                None
+            ),
+            Err(401),
+            "the device's details need the key too"
         );
         assert_eq!(
             allowed(
@@ -723,11 +756,25 @@ mod tests {
             }
             vec!["no tasks".into()]
         };
-        respond(r, &mut out, &|| json!({"tasks": []}), &mut say, &mut || {
-            page_says
-        })
+        respond(
+            r,
+            &mut out,
+            &|| json!({"tasks": []}),
+            &|| json!({"cards": ["x"]}),
+            &mut say,
+            &mut || page_says,
+        )
         .unwrap();
         (String::from_utf8(out).unwrap(), heard)
+    }
+
+    #[test]
+    fn the_capabilities_come_from_their_reader_and_only_by_get() {
+        let (out, _) = answer_to(&get("/api/capabilities"), None);
+        assert!(out.starts_with("HTTP/1.1 200 OK\r\n"), "{out:.80}");
+        assert!(out.ends_with("{\"cards\":[\"x\"]}"), "{out}");
+        let (out, _) = answer_to(&post("/api/capabilities", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 
     #[test]

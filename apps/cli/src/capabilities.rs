@@ -180,6 +180,109 @@ fn file_id(path: &Path) -> Option<(u64, u64)> {
     Some((m.len(), at.as_secs()))
 }
 
+/// What Kestrel can do here: the device as probed and a verdict per card.
+pub struct Assessment {
+    pub device: Device,
+    pub verdicts: Vec<Verdict>,
+}
+
+/// Probes this machine and evaluates the cards with the speeds kept in `data` (no measuring).
+/// `config` is the router config naming the writer (the service's by default).
+pub fn assess(
+    root: &Path,
+    data: Option<&Path>,
+    config: Option<&str>,
+) -> Result<Assessment, Box<dyn Error>> {
+    let cards = kestrel_capability::load_cards(&root.join("capabilities"))?;
+    let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json"))?;
+    kestrel_capability::check(&cards, &catalog)?;
+    let os = Os::current();
+    let config = std::fs::read_to_string(root.join(config.unwrap_or(DEFAULT_CONFIG))).ok();
+    let writer = config.as_deref().and_then(writer_file);
+    let meminfo = std::fs::read_to_string("/proc/meminfo").ok();
+    let backends = backends();
+    let found = Found {
+        os,
+        backends: &backends,
+        meminfo: meminfo.as_deref(),
+        writer_file: writer.as_deref(),
+    };
+    let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
+    let have_file = |f: &str| root.join("models").join(f).is_file();
+    let device = device(found, &cards, &catalog, &on_path, &have_file);
+    let model_file = |id: &str| {
+        let m = catalog.models.iter().find(|m| m.id == id)?;
+        file_id(&root.join("models").join(&m.file))
+    };
+    let measured = load_profile(data).measured(&model_file, this_binary());
+    let verdicts = kestrel_capability::evaluate(&cards, &catalog, &device, &measured);
+    Ok(Assessment { device, verdicts })
+}
+
+/// The page's `GET /api/capabilities`: the device in words and each card's state with its notes.
+// The service (a llama build) serves it; the tests use it everywhere.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+pub fn to_json(a: &Assessment) -> serde_json::Value {
+    use kestrel_capability::{GpuKind, State, size};
+    use serde_json::json;
+    let d = &a.device;
+    let note = |t: &kestrel_capability::Text| json!({"en": t.en, "hi": t.hi});
+    let gpus: Vec<_> = d
+        .gpus
+        .iter()
+        .map(|g| {
+            let kind = match g.kind {
+                GpuKind::Discrete => "discrete",
+                GpuKind::AppleUnified => "apple",
+                GpuKind::Integrated => "integrated",
+            };
+            json!({"name": g.name, "memory": size(g.memory_mib), "kind": kind})
+        })
+        .collect();
+    let cards: Vec<_> = a
+        .verdicts
+        .iter()
+        .map(|v| {
+            let (state, notes) = match &v.state {
+                State::Ready { slow: false } => ("ready", &[][..]),
+                State::Ready { slow: true } => ("slow", &[][..]),
+                State::Setup { steps } => ("setup", &steps[..]),
+                State::Locked { reasons } => ("locked", &reasons[..]),
+            };
+            json!({
+                "id": v.id,
+                "name": note(&v.name),
+                "state": state,
+                "notes": notes.iter().map(note).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    json!({
+        "device": {
+            "os": d.os.label(),
+            "ram": size(d.ram_total_mib),
+            "budget": size(kestrel_capability::memory_budget_mib(d)),
+            "writer": d.writer,
+            "gpus": gpus,
+        },
+        "cards": cards,
+    })
+}
+
+fn load_profile(data: Option<&Path>) -> kestrel_capability::Profile {
+    data.and_then(|d| std::fs::read_to_string(d.join("device_profile.json")).ok())
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+/// The running kestrel binary, as a speed's validity is keyed.
+fn this_binary() -> (u64, u64) {
+    std::env::current_exe()
+        .ok()
+        .and_then(|e| file_id(&e))
+        .unwrap_or((0, 0))
+}
+
 /// `run` with the repo at `root` and the profile in `data` (none: speeds are not kept).
 pub fn run_in(
     root: &Path,
@@ -198,81 +301,66 @@ pub fn run_in(
             _ => config = Some(a.as_str()),
         }
     }
-    let cards = kestrel_capability::load_cards(&root.join("capabilities"))?;
+    if measure {
+        measure_and_keep(root, data, config, out)?;
+    }
+    let a = assess(root, data, config)?;
+    out.write_all(render(&a.device, &a.verdicts, hi).as_bytes())?;
+    Ok(())
+}
+
+/// The speed test for this device's writer, kept in `data`'s profile.
+fn measure_and_keep(
+    root: &Path,
+    data: Option<&Path>,
+    config: Option<&str>,
+    out: &mut dyn Write,
+) -> Result<(), Box<dyn Error>> {
     let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json"))?;
-    kestrel_capability::check(&cards, &catalog)?;
-    let os = Os::current();
     let config = std::fs::read_to_string(root.join(config.unwrap_or(DEFAULT_CONFIG))).ok();
-    let writer = config.as_deref().and_then(writer_file);
     let n_ctx = config
         .as_deref()
         .and_then(|c| serde_json::from_str::<serde_json::Value>(c).ok())
         .and_then(|v| v["models"]["tier4"]["n_ctx"].as_u64())
         .unwrap_or(2048) as u32;
-    let meminfo = std::fs::read_to_string("/proc/meminfo").ok();
-    let backends = backends();
-    let found = Found {
-        os,
-        backends: &backends,
-        meminfo: meminfo.as_deref(),
-        writer_file: writer.as_deref(),
-    };
-    let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
-    let have_file = |f: &str| root.join("models").join(f).is_file();
-    let d = device(found, &cards, &catalog, &on_path, &have_file);
-    let profile_path = data.map(|d| d.join("device_profile.json"));
-    let mut profile: kestrel_capability::Profile = profile_path
+    let file_name = config
         .as_deref()
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default();
-    let binary = std::env::current_exe()
-        .ok()
-        .and_then(|e| file_id(&e))
-        .unwrap_or((0, 0));
-    let model_file = |id: &str| {
-        let m = catalog.models.iter().find(|m| m.id == id)?;
-        file_id(&root.join("models").join(&m.file))
-    };
-    if measure {
-        let id = d.writer.clone().ok_or("no writer model here to measure")?;
-        let path = root.join("models").join(
-            &catalog
-                .models
-                .iter()
-                .find(|m| m.id == id)
-                .ok_or("unknown writer")?
-                .file,
-        );
-        let file = file_id(&path).ok_or_else(|| format!("{} is missing", path.display()))?;
-        writeln!(out, "measuring {id} (about a minute)...")?;
-        let (speed, threads) = measure_speed(&path, n_ctx)?;
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-        profile.record(kestrel_capability::Entry {
-            model: id.clone(),
-            file,
-            binary,
-            decode_tok_s: speed.decode_tok_s,
-            prefill_tok_s: speed.prefill_tok_s,
-            threads,
-            measured_at: now,
-        });
-        writeln!(
-            out,
-            "{id}: writes {:.1} tokens/s, reads {:.0} tokens/s ({threads} threads)",
-            speed.decode_tok_s, speed.prefill_tok_s
-        )?;
-        let p = profile_path.ok_or("no data folder to keep the speeds in")?;
-        if let Some(dir) = p.parent() {
-            std::fs::create_dir_all(dir)?;
-        }
-        std::fs::write(&p, serde_json::to_string_pretty(&profile)? + "\n")?;
-    }
-    let measured = profile.measured(&model_file, binary);
-    let verdicts = kestrel_capability::evaluate(&cards, &catalog, &d, &measured);
-    out.write_all(render(&d, &verdicts, hi).as_bytes())?;
+        .and_then(writer_file)
+        .ok_or("no writer model here to measure")?;
+    let model = catalog
+        .models
+        .iter()
+        .find(|m| m.file == file_name)
+        .ok_or("the config's writer is not in the catalog")?;
+    let path = root.join("models").join(&model.file);
+    let file = file_id(&path).ok_or_else(|| format!("{} is missing", path.display()))?;
+    let id = model.id.clone();
+    writeln!(out, "measuring {id} (about a minute)...")?;
+    let (speed, threads) = measure_speed(&path, n_ctx)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs();
+    let mut profile = load_profile(data);
+    profile.record(kestrel_capability::Entry {
+        model: id.clone(),
+        file,
+        binary: this_binary(),
+        decode_tok_s: speed.decode_tok_s,
+        prefill_tok_s: speed.prefill_tok_s,
+        threads,
+        measured_at: now,
+    });
+    writeln!(
+        out,
+        "{id}: writes {:.1} tokens/s, reads {:.0} tokens/s ({threads} threads)",
+        speed.decode_tok_s, speed.prefill_tok_s
+    )?;
+    let dir = data.ok_or("no data folder to keep the speeds in")?;
+    std::fs::create_dir_all(dir)?;
+    std::fs::write(
+        dir.join("device_profile.json"),
+        serde_json::to_string_pretty(&profile)? + "\n",
+    )?;
     Ok(())
 }
 
@@ -570,6 +658,64 @@ mod tests {
              writer abhi koi nahi\n\
              ✅ Tasks\n\
              ✅ Baatcheet (dheema)\n"
+        );
+    }
+
+    #[test]
+    fn the_page_gets_the_device_in_words_and_each_cards_state() {
+        let a = Assessment {
+            device: Device {
+                os: Os::Windows,
+                ram_total_mib: 7_987,
+                gpus: vec![Gpu {
+                    name: "NVIDIA GeForce RTX 4060".into(),
+                    memory_mib: 8_192,
+                    kind: GpuKind::Discrete,
+                }],
+                tools: vec![],
+                models: vec![],
+                writer: None,
+                internet: false,
+                setup_done: vec![],
+            },
+            verdicts: vec![
+                verdict("tasks", "Tasks", "Tasks", State::Ready { slow: false }),
+                verdict("chat", "Chat", "Baatcheet", State::Ready { slow: true }),
+                verdict(
+                    "email.draft",
+                    "Email drafts",
+                    "Email draft",
+                    State::Setup {
+                        steps: vec![text("choose a model", "model chuno")],
+                    },
+                ),
+                verdict(
+                    "code.check",
+                    "Code check",
+                    "Code check",
+                    State::Locked {
+                        reasons: vec![text("Linux only", "sirf Linux")],
+                    },
+                ),
+            ],
+        };
+        let note = |en: &str, hi: &str| serde_json::json!({"en": en, "hi": hi});
+        assert_eq!(
+            to_json(&a),
+            serde_json::json!({
+                "device": {
+                    "os": "windows", "ram": "7.8 GB", "budget": "7.5 GB", "writer": null,
+                    "gpus": [{"name": "NVIDIA GeForce RTX 4060", "memory": "8.0 GB", "kind": "discrete"}]
+                },
+                "cards": [
+                    {"id": "tasks", "name": note("Tasks", "Tasks"), "state": "ready", "notes": []},
+                    {"id": "chat", "name": note("Chat", "Baatcheet"), "state": "slow", "notes": []},
+                    {"id": "email.draft", "name": note("Email drafts", "Email draft"), "state": "setup",
+                     "notes": [note("choose a model", "model chuno")]},
+                    {"id": "code.check", "name": note("Code check", "Code check"), "state": "locked",
+                     "notes": [note("Linux only", "sirf Linux")]}
+                ]
+            })
         );
     }
 

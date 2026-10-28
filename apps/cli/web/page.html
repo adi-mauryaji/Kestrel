@@ -310,6 +310,28 @@ h2 {
 .task.finishing .what { text-decoration: line-through; }
 .empty { color: var(--wing); margin: 0; }
 
+/* What Kestrel can do on this device (v4): ready, needs setting up, or not here, and why. */
+.can { margin-top: 2rem; }
+.can h2 { display: flex; justify-content: space-between; gap: 0.75rem; }
+.can h2 span { font-weight: 400; font-stretch: 100%; font-size: 0.85rem; color: var(--wing); }
+.device { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--wing); overflow-wrap: anywhere; }
+.cards { list-style: none; margin: 0; padding: 0; }
+.card {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 0.1rem 0.4rem;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.card:last-child { border-bottom: 0; }
+.card .mark { grid-row: 1 / span 2; font-size: 0.9rem; }
+.card .cap { overflow-wrap: anywhere; }
+.card .slow { color: var(--wing); font-size: 0.85rem; }
+.card.locked .cap { color: var(--wing); }
+.notes { grid-column: 2; list-style: none; margin: 0; padding: 0; font-size: 0.85rem; color: var(--wing); }
+.card.setup .notes { color: var(--ink); }
+
 @media (max-width: 52rem) {
   .work { grid-template-columns: minmax(0, 1fr); }
   .strip { height: 10.5rem; }
@@ -354,6 +376,11 @@ h2 {
     <aside aria-labelledby="tasks-h">
       <h2 id="tasks-h">Tasks</h2>
       <div id="tasks"><p class="empty">Loading your tasks</p></div>
+      <section class="can" id="can" aria-labelledby="can-h" hidden>
+        <h2 id="can-h">On this device <span id="can-count"></span></h2>
+        <p class="device" id="device"></p>
+        <ul class="cards" id="cards"></ul>
+      </section>
     </aside>
   </main>
 </div>
@@ -549,8 +576,50 @@ function showSkills() {
   $("try").append(b);
 }
 
+// What Kestrel can do here (GET /api/capabilities, v4): a line per card, its steps or reasons below.
+const STATES = {
+  ready: ["✅", "ready"],
+  slow: ["✅", "ready, but slow"],
+  setup: ["🔧", "needs setting up"],
+  locked: ["🔒", "not on this device"],
+};
+function drawCapabilities(data) {
+  if (!data || !Array.isArray(data.cards)) return;
+  const d = data.device;
+  const gpus = d.gpus.length
+    ? d.gpus.map((g) => g.kind === "integrated" ? `GPU ${g.name} (shares the RAM)` : `GPU ${g.name} (${g.memory})`).join(", ")
+    : "no GPU";
+  $("device").textContent = `${d.ram} RAM, ${gpus}; a model may use ${d.budget}`
+    + (d.writer ? `; writes with ${d.writer}` : "; no model chosen yet");
+  const ready = data.cards.filter((c) => c.state === "ready" || c.state === "slow").length;
+  $("can-count").textContent = `${ready} of ${data.cards.length} ready`;
+  const list = $("cards");
+  list.replaceChildren();
+  for (const c of data.cards) {
+    const [mark, said] = STATES[c.state] || ["", c.state];
+    const li = el("li", "card " + c.state);
+    const m = el("span", "mark", mark);
+    m.setAttribute("aria-hidden", "true");
+    const name = el("span", "cap"); // not "name": that is the header's brand
+    name.append(el("span", "sr", said + ": "), c.name.en);
+    if (c.state === "slow") name.append(" ", el("span", "slow", "(slow)"));
+    li.append(m, name);
+    if (c.notes.length) {
+      const notes = el("ul", "notes");
+      for (const t of c.notes) notes.append(el("li", "", t.en));
+      li.append(notes);
+    }
+    list.append(li);
+  }
+  $("can").hidden = false;
+}
+
 async function refresh() {
   if (!token) return;
+  try {
+    const r = await api("/api/capabilities");
+    if (r.ok) drawCapabilities(await r.json());
+  } catch (e) { /* the conversation reports a stopped service */ }
   try {
     const r = await api("/api/tasks");
     if (!r.ok) return;
