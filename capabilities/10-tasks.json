@@ -1,0 +1,12 @@
+{
+  "id": "tasks",
+  "name": {
+    "en": "Tasks and reminders on the page",
+    "hi": "Tasks aur reminders page pe"
+  },
+  "needs": {
+    "models": [
+      "multilingual-e5-small-q8_0"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "code.check",
+  "name": {
+    "en": "Small Python code, run and checked",
+    "hi": "Chhota Python code, chala ke check"
+  },
+  "needs": {
+    "os": [
+      "linux"
+    ],
+    "os_reason": {
+      "en": "the code sandbox runs on Linux only until v4 phase A4",
+      "hi": "code sandbox v4 phase A4 tak sirf Linux pe chalta hai"
+    },
+    "tools": [
+      "bwrap",
+      "python3"
+    ],
+    "writer": true
+  },
+  "gates": [
+    {
+      "measure": "decode_tok_s",
+      "min": 7.0
+    },
+    {
+      "measure": "prefill_tok_s",
+      "min": 40.0
+    }
+  ]
+}

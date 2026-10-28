@@ -1,0 +1,64 @@
+{
+  "models": [
+    {
+      "id": "multilingual-e5-small-q8_0",
+      "file": "multilingual-e5-small-q8_0.gguf",
+      "file_mib": 126,
+      "memory_mib": 200,
+      "role": "encoder",
+      "estimate": true,
+      "sha256": "9a2039af4b03dccd1d7e59a915679bc7997b61714a2b9174f43512ed1b0095c5",
+      "source": "file and hash from models/SHA256SUMS; resident memory not measured on its own (estimate)"
+    },
+    {
+      "id": "gemma-4-E2B-it-Q4_0",
+      "file": "gemma-4-E2B-it-Q4_0.gguf",
+      "file_mib": 2710,
+      "memory_mib": 3900,
+      "role": "writer",
+      "tau2": 24.5,
+      "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52",
+      "source": "file and hash from models/SHA256SUMS; resident 1144 + 2702 MiB with mmap (experiments/logs/v3/mmap); Tau2 from the Gemma 4 model card"
+    },
+    {
+      "id": "gemma-4-E4B-it-Q4_0",
+      "file": "gemma-4-E4B-it-Q4_0.gguf",
+      "file_mib": 4250,
+      "memory_mib": 6100,
+      "role": "writer",
+      "estimate": true,
+      "tau2": 42.2,
+      "source": "Gemma 4 model card (8.0B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured"
+    },
+    {
+      "id": "gemma-4-12B-it-Q4_0",
+      "file": "gemma-4-12B-it-Q4_0.gguf",
+      "file_mib": 6350,
+      "memory_mib": 9100,
+      "role": "writer",
+      "estimate": true,
+      "tau2": 69.0,
+      "source": "Gemma 4 model card (11.95B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured"
+    },
+    {
+      "id": "gemma-4-26B-A4B-it-Q4_0",
+      "file": "gemma-4-26B-A4B-it-Q4_0.gguf",
+      "file_mib": 13390,
+      "memory_mib": 19300,
+      "role": "writer",
+      "estimate": true,
+      "tau2": 68.2,
+      "source": "Gemma 4 model card (25.2B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured"
+    },
+    {
+      "id": "gemma-4-31B-it-Q4_0",
+      "file": "gemma-4-31B-it-Q4_0.gguf",
+      "file_mib": 16470,
+      "memory_mib": 23700,
+      "role": "writer",
+      "estimate": true,
+      "tau2": 76.9,
+      "source": "Gemma 4 model card (31.0B parameters with embeddings, Tau2); sizes estimated from E2B's ratios, to be measured"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ __pycache__/
 models/*
 !models/MANIFEST.toml
 !models/SHA256SUMS
+!models/catalog.json
 datasets/raw/
 
 # Local tool state

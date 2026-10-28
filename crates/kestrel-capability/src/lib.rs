@@ -103,6 +103,10 @@ pub struct Model {
     /// Sizes not yet measured on any device.
     #[serde(default)]
     pub estimate: bool,
+    /// Of the file, once known (a download is checked against it).
+    pub sha256: Option<String>,
+    /// Multi-step tool use, from the model card (Tau2, %).
+    pub tau2: Option<f64>,
     /// Where the numbers come from.
     pub source: String,
 }
@@ -231,6 +235,49 @@ pub fn parse_cards(files: &[&str]) -> Result<Vec<Card>, String> {
         follow(&c.id, &by_id, &mut open, &mut done)?;
     }
     Ok(cards)
+}
+
+/// The cards in `dir`: its `*.json` files in file-name order (the page's order).
+pub fn load_cards(dir: &std::path::Path) -> Result<Vec<Card>, String> {
+    let io = |e: std::io::Error| format!("{}: {e}", dir.display());
+    let mut paths = std::fs::read_dir(dir)
+        .map_err(io)?
+        .map(|e| e.map(|e| e.path()).map_err(io))
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.retain(|p| p.extension().is_some_and(|x| x == "json"));
+    paths.sort();
+    let mut texts = Vec::new();
+    for p in &paths {
+        let text = std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()))?;
+        // Each file alone first, so a broken one is named.
+        serde_json::from_str::<Card>(&text).map_err(|e| format!("{}: {e}", p.display()))?;
+        texts.push(text);
+    }
+    parse_cards(&texts.iter().map(String::as_str).collect::<Vec<_>>())
+        .map_err(|e| format!("{}: {e}", dir.display()))
+}
+
+pub fn load_catalog(path: &std::path::Path) -> Result<Catalog, String> {
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// The cards and the catalog agree: unique model ids, a writer model, and every model a card
+/// needs in the catalog.
+pub fn check(cards: &[Card], catalog: &Catalog) -> Result<(), String> {
+    let mut ids = BTreeSet::new();
+    if let Some(m) = catalog.models.iter().find(|m| !ids.insert(m.id.as_str())) {
+        return Err(format!("the catalog lists {} twice", m.id));
+    }
+    if !catalog.models.iter().any(|m| m.role == Role::Writer) {
+        return Err("the catalog has no writer model".into());
+    }
+    for c in cards {
+        if let Some(m) = c.needs.models.iter().find(|m| !ids.contains(m.as_str())) {
+            return Err(format!("{} needs {m}, which the catalog lacks", c.id));
+        }
+    }
+    Ok(())
 }
 
 /// One verdict per card, in the cards' order.

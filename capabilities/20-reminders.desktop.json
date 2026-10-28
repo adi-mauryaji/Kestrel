@@ -1,0 +1,17 @@
+{
+  "id": "reminders.desktop",
+  "name": {
+    "en": "Reminders as desktop notifications",
+    "hi": "Reminders desktop notification mein"
+  },
+  "needs": {
+    "os": [
+      "linux",
+      "macos"
+    ],
+    "os_reason": {
+      "en": "Windows gets desktop notifications with the Kestrel app (v4 phase A3)",
+      "hi": "Windows pe desktop notifications Kestrel app ke saath aayengi (v4 phase A3)"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "notes.search",
+  "name": {
+    "en": "Notes search by meaning",
+    "hi": "Notes mein matlab se search"
+  },
+  "needs": {
+    "models": [
+      "multilingual-e5-small-q8_0"
+    ]
+  }
+}

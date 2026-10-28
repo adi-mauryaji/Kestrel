@@ -357,3 +357,110 @@ fn bad_card_files_are_refused() {
     assert!(parse_cards(&[&typo]).is_err());
     assert!(parse_cards(&["not json"]).is_err());
 }
+
+fn repo() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+}
+
+fn shipped() -> (Vec<Card>, Catalog) {
+    let cards = load_cards(&repo().join("capabilities")).unwrap();
+    let catalog = load_catalog(&repo().join("models/catalog.json")).unwrap();
+    (cards, catalog)
+}
+
+const E5: &str = "multilingual-e5-small-q8_0";
+const E2B: &str = "gemma-4-E2B-it-Q4_0";
+
+#[test]
+fn the_shipped_cards_and_catalog_load_and_agree() {
+    let (cards, catalog) = shipped();
+    check(&cards, &catalog).unwrap();
+    assert_eq!(cards[0].id, "tasks", "file-name order");
+    assert_eq!(cards.last().unwrap().id, "code.check");
+    assert!(
+        cards
+            .iter()
+            .all(|c| !c.name.en.is_empty() && !c.name.hi.is_empty())
+    );
+    // Measured models say so; the ladder's sizes are estimates until measured.
+    let e2b = catalog.models.iter().find(|m| m.id == E2B).unwrap();
+    assert!(!e2b.estimate && e2b.sha256.is_some());
+    assert!(
+        catalog
+            .models
+            .iter()
+            .filter(|m| m.sha256.is_none())
+            .all(|m| m.estimate)
+    );
+}
+
+#[test]
+fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
+    let (cards, catalog) = shipped();
+    let here = Device {
+        models: strings(&[E5, E2B]),
+        writer: Some(E2B.into()),
+        ..laptop()
+    };
+    let m = Measured::from([(E2B.to_string(), speed(12.8, 58.5))]);
+    for v in evaluate(&cards, &catalog, &here, &m) {
+        assert_eq!(v.state, ready(false), "{}", v.id);
+    }
+    let fresh = Device {
+        models: strings(&[E5]),
+        ..windows_8gb()
+    };
+    let v: BTreeMap<String, State> = evaluate(&cards, &catalog, &fresh, &Measured::new())
+        .into_iter()
+        .map(|v| (v.id, v.state))
+        .collect();
+    assert_eq!(v["tasks"], ready(false));
+    assert_eq!(v["notes.search"], ready(false));
+    for id in [
+        "chat",
+        "email.draft",
+        "rewrite.translate",
+        "notes.qa",
+        "notes.summary",
+    ] {
+        assert_eq!(
+            en(&v[id]),
+            ["choose a model: gemma-4-E2B-it-Q4_0 (2.6 GB)"],
+            "{id}"
+        );
+    }
+    assert!(is_locked(&v["reminders.desktop"]));
+    assert!(is_locked(&v["code.check"]));
+}
+
+#[test]
+fn check_refuses_a_catalog_that_does_not_fit_the_cards() {
+    let (cards, catalog) = shipped();
+    let mut no_encoder = catalog.clone();
+    no_encoder.models.retain(|m| m.id != E5);
+    assert!(check(&cards, &no_encoder).unwrap_err().contains(E5));
+    let mut no_writer = catalog.clone();
+    no_writer.models.retain(|m| m.role != Role::Writer);
+    assert!(check(&cards, &no_writer).unwrap_err().contains("writer"));
+    let mut twice = catalog.clone();
+    twice.models.push(twice.models[0].clone());
+    assert!(check(&cards, &twice).unwrap_err().contains(E5));
+}
+
+#[test]
+fn a_bad_card_file_is_named() {
+    let dir = std::env::temp_dir().join(format!("kestrel_cards_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("10-a.json"),
+        r#"{"id": "a", "name": {"en": "A", "hi": "A"}}"#,
+    )
+    .unwrap();
+    std::fs::write(dir.join("20-b.json"), r#"{"id": "b", "nam": {}}"#).unwrap();
+    std::fs::write(dir.join("notes.txt"), "not a card").unwrap();
+    assert!(load_cards(&dir).unwrap_err().contains("20-b.json"));
+    std::fs::remove_file(dir.join("20-b.json")).unwrap();
+    assert_eq!(load_cards(&dir).unwrap().len(), 1, "only *.json");
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -1,0 +1,23 @@
+{
+  "id": "notes.qa",
+  "name": {
+    "en": "Questions about your notes",
+    "hi": "Notes ke baare mein sawaal"
+  },
+  "needs": {
+    "cards": [
+      "notes.search"
+    ],
+    "writer": true
+  },
+  "gates": [
+    {
+      "measure": "decode_tok_s",
+      "min": 7.0
+    },
+    {
+      "measure": "prefill_tok_s",
+      "min": 40.0
+    }
+  ]
+}
