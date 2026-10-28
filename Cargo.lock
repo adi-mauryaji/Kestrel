@@ -213,6 +213,7 @@ dependencies = [
  "kestrel-learning",
  "kestrel-memory",
  "kestrel-nlu",
+ "kestrel-platform",
  "kestrel-router",
  "kestrel-tools",
  "serde",

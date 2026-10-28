@@ -5,8 +5,10 @@
 //!     kestrel memory [--db PATH] approve ID | delete ID
 //!     kestrel memory [--db PATH] export | purge | vacuum
 //!
-//! The memory file is `--db PATH`, else $KESTREL_MEMORY, else $XDG_DATA_HOME/kestrel/memory.db,
-//! else ~/.local/share/kestrel/memory.db. Its directory is created 0700 and the file is 0600.
+//! The memory file is `--db PATH`, else $KESTREL_MEMORY, else memory.db in Kestrel's data folder
+//! (kestrel-platform: $XDG_DATA_HOME/kestrel or ~/.local/share/kestrel on Linux, ~/Library/Application
+//! Support/kestrel on macOS, %LOCALAPPDATA%\kestrel on Windows). On Unix its directory is created
+//! 0700 and the file is 0600.
 
 use std::error::Error;
 use std::ffi::OsString;
@@ -15,6 +17,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use kestrel_memory::{Filter, Memory, context};
+use kestrel_platform::Os;
 
 pub const USAGE: &str = "usage: kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum";
 
@@ -22,26 +25,23 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let (path, rest) = match args.as_slice() {
         ["--db", path, rest @ ..] => (PathBuf::from(*path), rest),
-        rest => (default_db(&|k| std::env::var_os(k))?, rest),
+        rest => (default_db(Os::current(), &kestrel_platform::env)?, rest),
     };
     let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     command(&mut open(&path)?, rest, i64::try_from(now)?, out)
 }
 
-/// $KESTREL_MEMORY, else $XDG_DATA_HOME/kestrel/memory.db, else
-/// $HOME/.local/share/kestrel/memory.db (empty variables count as unset).
+/// $KESTREL_MEMORY, else memory.db in `os`'s data folder (empty variables count as unset).
 pub(crate) fn default_db(
+    os: Os,
     var: &dyn Fn(&str) -> Option<OsString>,
 ) -> Result<PathBuf, Box<dyn Error>> {
-    let var = |k: &str| var(k).filter(|v| !v.is_empty());
-    if let Some(p) = var("KESTREL_MEMORY") {
+    if let Some(p) = var("KESTREL_MEMORY").filter(|v| !v.is_empty()) {
         return Ok(p.into());
     }
-    let data = var("XDG_DATA_HOME")
-        .map(PathBuf::from)
-        .or_else(|| var("HOME").map(|h| PathBuf::from(h).join(".local/share")))
-        .ok_or("no memory file: set KESTREL_MEMORY or HOME, or pass --db PATH")?;
-    Ok(data.join("kestrel").join("memory.db"))
+    let data = kestrel_platform::data_dir(os, var)
+        .ok_or("no memory file: set KESTREL_MEMORY, or pass --db PATH")?;
+    Ok(data.join("memory.db"))
 }
 
 /// Opens the memory file, creating a missing directory 0700 (an existing one is left as it is).
@@ -221,7 +221,7 @@ mod tests {
                     .map(|(_, v)| OsString::from(v))
             }
         };
-        let path = |pairs| default_db(&env(pairs)).unwrap();
+        let path = |pairs| default_db(Os::Linux, &env(pairs)).unwrap();
         assert_eq!(
             path(&[("KESTREL_MEMORY", "/x/m.db"), ("HOME", "/home/u")]),
             PathBuf::from("/x/m.db")
@@ -234,7 +234,20 @@ mod tests {
             path(&[("HOME", "/home/u")]),
             PathBuf::from("/home/u/.local/share/kestrel/memory.db")
         );
-        assert!(default_db(&env(&[])).is_err());
+        assert!(default_db(Os::Linux, &env(&[])).is_err());
+        // The other systems' folders (kestrel-platform's tests hold the rest).
+        assert_eq!(
+            default_db(
+                Os::Windows,
+                &env(&[("LOCALAPPDATA", "C:/L"), ("HOME", "/home/u")])
+            )
+            .unwrap(),
+            PathBuf::from("C:/L").join("kestrel").join("memory.db")
+        );
+        assert_eq!(
+            default_db(Os::MacOs, &env(&[("KESTREL_MEMORY", "/x/m.db")])).unwrap(),
+            PathBuf::from("/x/m.db")
+        );
     }
 
     #[cfg(unix)]

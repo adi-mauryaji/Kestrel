@@ -213,7 +213,10 @@ fn ask(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let memory = if no_memory {
         None
     } else {
-        Some(memory::default_db(&|k| std::env::var_os(k))?)
+        Some(memory::default_db(
+            kestrel_platform::Os::current(),
+            &kestrel_platform::env,
+        )?)
     };
     let Some((config, text)) = args.split_first() else {
         return Err(USAGE.into());
@@ -309,7 +312,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         return Err(USAGE.into());
     };
     let notes = notes.ok_or("kestrel serve needs --notes DIR (or KESTREL_NOTES)")?;
-    let memory = memory::default_db(&|k| std::env::var_os(k))?;
+    let memory = memory::default_db(kestrel_platform::Os::current(), &kestrel_platform::env)?;
     service::serve(
         config.as_ref(),
         &notes,

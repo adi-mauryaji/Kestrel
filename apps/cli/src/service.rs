@@ -16,29 +16,29 @@ use std::ffi::OsString;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
+use kestrel_platform::Os;
 use serde_json::{Value, json};
 
-/// $XDG_RUNTIME_DIR/kestrel.sock (a per-user 0700 directory), else /tmp/kestrel-$USER.sock.
+/// The service's socket (kestrel-platform): $XDG_RUNTIME_DIR/kestrel.sock, else
+/// /tmp/kestrel-$USER.sock on Linux. Windows has no socket; the path names the page's address files.
 pub fn socket_path(var: &dyn Fn(&str) -> Option<OsString>) -> PathBuf {
-    match var("XDG_RUNTIME_DIR").filter(|v| !v.is_empty()) {
-        Some(dir) => PathBuf::from(dir).join("kestrel.sock"),
-        None => {
-            let user = var("USER")
-                .and_then(|u| u.into_string().ok())
-                .unwrap_or_else(|| "user".into());
-            PathBuf::from(format!("/tmp/kestrel-{user}.sock"))
-        }
-    }
+    kestrel_platform::socket_path(Os::current(), var)
 }
 
-/// Where the Gemma worker keeps its primed prompt prefix (ADR-036): $XDG_CACHE_HOME/kestrel, else
-/// ~/.cache/kestrel; `None` without either (the prefix is then computed at every start).
+/// Where the Gemma worker keeps its primed prompt prefix (ADR-036): Kestrel's cache folder
+/// (kestrel-platform); `None` without one (the prefix is then computed at every start).
 pub fn cache_dir(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
-    let var = |k: &str| var(k).filter(|v| !v.is_empty());
-    let cache = var("XDG_CACHE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| var("HOME").map(|h| PathBuf::from(h).join(".cache")))?;
-    Some(cache.join("kestrel"))
+    kestrel_platform::cache_dir(Os::current(), var)
+}
+
+/// What to do when Kestrel is not running, for this system.
+pub fn start_hint() -> &'static str {
+    match Os::current() {
+        Os::Linux => {
+            "start it with scripts/install_service.sh (always on), or run `kestrel serve --notes DIR CONFIG`"
+        }
+        _ => "run `kestrel serve --notes DIR CONFIG` (from v4 phase A3 the Kestrel app starts it)",
+    }
 }
 
 /// What answers a request: (text, a y/N question asker, a sink for text while it is written)
@@ -148,15 +148,27 @@ pub fn client_exchange(
 }
 
 /// `kestrel chat` (one request per line) or `kestrel say TEXT` (`once`): the service's client.
+/// It talks over the Unix socket; Windows has none yet, so there the page is the way in.
+#[cfg(not(unix))]
+pub fn chat(_once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    Err(
+        "on this system Kestrel answers on its page for now: kestrel open \
+         (kestrel chat and say follow with the app, v4 phase A3)"
+            .into(),
+    )
+}
+
+/// `kestrel chat` (one request per line) or `kestrel say TEXT` (`once`): the service's client.
+#[cfg(unix)]
 pub fn chat(once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     use std::os::unix::net::UnixStream;
 
-    let path = socket_path(&|k| std::env::var_os(k));
+    let path = socket_path(&kestrel_platform::env);
     let stream = UnixStream::connect(&path).map_err(|_| {
         format!(
-            "Kestrel is not running ({}): start it with scripts/install_service.sh (always on), \
-             or run `kestrel serve --notes DIR CONFIG`",
-            path.display()
+            "Kestrel is not running ({}): {}",
+            path.display(),
+            start_hint()
         )
     })?;
     let mut reader = io::BufReader::new(stream.try_clone()?);
@@ -497,8 +509,6 @@ pub fn serve(
     web_port: Option<u16>,
     web_lan: Option<std::net::Ipv4Addr>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    use std::os::unix::fs::PermissionsExt;
-    use std::os::unix::net::{UnixListener, UnixStream};
     use std::rc::Rc;
     use std::time::Instant;
 
@@ -513,21 +523,7 @@ pub fn serve(
         return Err(format!("no notes folder at {}", notes.display()).into());
     }
     let act = crate::act::Act::open(notes, memory)?;
-    let path = socket_path(&|k| std::env::var_os(k));
-    // sockaddr_un holds about 108 bytes; a deep XDG_RUNTIME_DIR would fail with a cryptic error.
-    if path.as_os_str().len() >= 100 {
-        return Err(format!(
-            "the socket path {} is too long for a Unix socket ({} bytes, the limit is about 100): \
-             set XDG_RUNTIME_DIR to a shorter directory",
-            path.display(),
-            path.as_os_str().len()
-        )
-        .into());
-    }
-    if UnixStream::connect(&path).is_ok() {
-        return Err(format!("Kestrel is already running ({})", path.display()).into());
-    }
-    let _ = std::fs::remove_file(&path); // a socket left by a stopped service
+    let mut socket = Socket::claim(socket_path(&kestrel_platform::env))?;
 
     let t0 = Instant::now();
     let below4: Vec<u8> = cfg.tiers.iter().copied().filter(|&t| t != 4).collect();
@@ -623,13 +619,11 @@ pub fn serve(
         Err(e) => eprintln!("notes by meaning are off (the keyword search alone): {e}"),
     }
 
-    let listener = UnixListener::bind(&path)?;
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))?;
-    listener.set_nonblocking(true)?;
+    socket.listen()?;
     eprintln!(
         "Kestrel ready in {:.1} s on {} (notes {}, memory {}); the SLM loads when first needed",
         t0.elapsed().as_secs_f64(),
-        path.display(),
+        socket.place(),
         notes.display(),
         memory.display()
     );
@@ -657,32 +651,117 @@ pub fn serve(
         }
     });
     loop {
+        if socket
+            .serve_one(&mut |text, confirm, part| assistant.handle_streaming(text, confirm, part))?
+        {
+            continue;
+        }
+        // No client waiting on the socket: the page, the idle model, a short pause.
+        if let Some(w) = web.as_mut()
+            && let Err(e) =
+                w.poll(&mut |text, confirm, part| assistant.handle_streaming(text, confirm, part))
+        {
+            eprintln!("the browser page stopped: {e}");
+            web = None;
+        }
+        if remote.reap_if_idle(Instant::now()) {
+            eprintln!("the SLM was idle for {} min: unloaded", idle.as_secs() / 60);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+}
+
+/// Where `kestrel chat` and `say` reach the service: a Unix socket only this user can open.
+/// Windows has none yet: there the page is the way in (the app follows in v4 phase A3).
+#[cfg(feature = "llama")]
+struct Socket {
+    path: PathBuf,
+    #[cfg(unix)]
+    listener: Option<std::os::unix::net::UnixListener>,
+}
+
+#[cfg(feature = "llama")]
+impl Socket {
+    /// Before the models load: refuses a second service and clears a socket a stopped one left.
+    #[cfg(unix)]
+    fn claim(path: PathBuf) -> Result<Socket, Box<dyn std::error::Error>> {
+        // sockaddr_un holds about 104-108 bytes; a deep folder would fail with a cryptic error.
+        if path.as_os_str().len() >= 100 {
+            return Err(format!(
+                "the socket path {} is too long for a Unix socket ({} bytes, the limit is about \
+                 100): set XDG_RUNTIME_DIR (TMPDIR on macOS) to a shorter directory",
+                path.display(),
+                path.as_os_str().len()
+            )
+            .into());
+        }
+        if std::os::unix::net::UnixStream::connect(&path).is_ok() {
+            return Err(format!("Kestrel is already running ({})", path.display()).into());
+        }
+        let _ = std::fs::remove_file(&path); // a socket left by a stopped service
+        Ok(Socket {
+            path,
+            listener: None,
+        })
+    }
+
+    /// Before the models load: refuses a second service, whose page still answers.
+    #[cfg(not(unix))]
+    fn claim(path: PathBuf) -> Result<Socket, Box<dyn std::error::Error>> {
+        if crate::web::page_answers(&kestrel_platform::env) {
+            return Err("Kestrel is already running (its page answers)".into());
+        }
+        Ok(Socket { path })
+    }
+
+    /// After the models load: starts listening, the socket readable by this user only.
+    #[cfg(unix)]
+    fn listen(&mut self) -> io::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+        let listener = std::os::unix::net::UnixListener::bind(&self.path)?;
+        std::fs::set_permissions(&self.path, std::fs::Permissions::from_mode(0o600))?;
+        listener.set_nonblocking(true)?;
+        self.listener = Some(listener);
+        Ok(())
+    }
+
+    #[cfg(not(unix))]
+    fn listen(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    /// Where it listens, for the ready line.
+    fn place(&self) -> String {
+        if cfg!(unix) {
+            self.path.display().to_string()
+        } else {
+            "its page (no socket on this system)".into()
+        }
+    }
+
+    /// Serves one waiting client; false when none waits.
+    #[cfg(unix)]
+    fn serve_one(&self, handle: &mut Streamer<'_>) -> io::Result<bool> {
+        let Some(listener) = &self.listener else {
+            return Ok(false);
+        };
         match listener.accept() {
             Ok((stream, _)) => {
                 stream.set_nonblocking(false)?;
                 let mut reader = io::BufReader::new(stream.try_clone()?);
                 let mut writer = stream;
                 // A client that goes away mid-answer only ends its own connection.
-                let _ = handle_connection(&mut reader, &mut writer, &mut |text, confirm, part| {
-                    assistant.handle_streaming(text, confirm, part)
-                });
+                let _ = handle_connection(&mut reader, &mut writer, handle);
+                Ok(true)
             }
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                if let Some(w) = web.as_mut()
-                    && let Err(e) = w.poll(&mut |text, confirm, part| {
-                        assistant.handle_streaming(text, confirm, part)
-                    })
-                {
-                    eprintln!("the browser page stopped: {e}");
-                    web = None;
-                }
-                if remote.reap_if_idle(Instant::now()) {
-                    eprintln!("the SLM was idle for {} min: unloaded", idle.as_secs() / 60);
-                }
-                std::thread::sleep(std::time::Duration::from_millis(250));
-            }
-            Err(e) => return Err(e.into()),
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Ok(false),
+            Err(e) => Err(e),
         }
+    }
+
+    #[cfg(not(unix))]
+    fn serve_one(&self, _: &mut Streamer<'_>) -> io::Result<bool> {
+        Ok(false)
     }
 }
 
@@ -690,48 +769,6 @@ pub fn serve(
 mod tests {
     use super::*;
     use std::io::Cursor;
-
-    #[test]
-    fn the_prefix_cache_lives_in_the_users_cache_directory() {
-        let env = |k: &str| match k {
-            "XDG_CACHE_HOME" => Some(OsString::from("/c")),
-            "HOME" => Some(OsString::from("/home/adi")),
-            _ => None,
-        };
-        assert_eq!(cache_dir(&env), Some(PathBuf::from("/c/kestrel")));
-        let home = |k: &str| match k {
-            "XDG_CACHE_HOME" => Some(OsString::new()),
-            "HOME" => Some(OsString::from("/home/adi")),
-            _ => None,
-        };
-        assert_eq!(
-            cache_dir(&home),
-            Some(PathBuf::from("/home/adi/.cache/kestrel"))
-        );
-        assert_eq!(cache_dir(&|_| None), None);
-    }
-
-    #[test]
-    fn the_socket_lives_in_the_users_runtime_directory() {
-        let env = |k: &str| match k {
-            "XDG_RUNTIME_DIR" => Some(OsString::from("/run/user/1000")),
-            "USER" => Some(OsString::from("adi")),
-            _ => None,
-        };
-        assert_eq!(
-            socket_path(&env),
-            PathBuf::from("/run/user/1000/kestrel.sock")
-        );
-        let no_runtime = |k: &str| (k == "USER").then(|| OsString::from("adi"));
-        assert_eq!(
-            socket_path(&no_runtime),
-            PathBuf::from("/tmp/kestrel-adi.sock")
-        );
-        assert_eq!(
-            socket_path(&|_| None),
-            PathBuf::from("/tmp/kestrel-user.sock")
-        );
-    }
 
     #[test]
     fn the_server_relays_questions_and_ends_every_answer() {

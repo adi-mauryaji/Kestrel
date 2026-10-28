@@ -1,6 +1,6 @@
 //! `kestrel remind [--notify] [--db PATH]` (ADR-034): the tasks due today and the overdue ones,
 //! from the memory file, by the local date. With `--notify` the same goes to a desktop
-//! notification (notify-send; nothing when nothing is due), which is how the systemd user timer
+//! notification (`send`; nothing when nothing is due), which is how the systemd user timer
 //! of scripts/install_reminders.sh runs it every morning and at login. No model is loaded.
 //!
 //! A task with a time of day rings at that time from `kestrel serve`: `ring_forever` checks every
@@ -173,13 +173,14 @@ pub fn ring_forever(db: &Path) {
     }
 }
 
-/// A desktop notification (notify-send).
+/// A desktop notification (kestrel-platform: notify-send on Linux, osascript on macOS; on Windows
+/// the Kestrel app shows them, v4 phase A3).
 pub fn send(title: &str, body: &str) -> Result<(), Box<dyn Error>> {
-    let status = std::process::Command::new("notify-send")
-        .args(["--app-name=Kestrel", "--icon=appointment-soon", title, body])
-        .status()?;
+    let mut c = kestrel_platform::notify(kestrel_platform::Os::current(), title, body)
+        .ok_or("desktop notifications on this system come with the Kestrel app (v4 phase A3)")?;
+    let status = c.status()?;
     if !status.success() {
-        return Err(format!("notify-send failed: {status}").into());
+        return Err(format!("{} failed: {status}", c.get_program().to_string_lossy()).into());
     }
     Ok(())
 }
@@ -191,7 +192,7 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
             .get(i + 1)
             .map(std::path::PathBuf::from)
             .ok_or("--db needs a path")?,
-        None => crate::memory::default_db(&|k| std::env::var_os(k))?,
+        None => crate::memory::default_db(kestrel_platform::Os::current(), &kestrel_platform::env)?,
     };
     if !db.exists() {
         writeln!(out, "no tasks yet ({} does not exist)", db.display())?;

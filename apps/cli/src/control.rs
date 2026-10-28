@@ -1,5 +1,5 @@
-//! Starting and stopping the always-on assistant (ADR-034). `kestrel stop` stops the systemd user
-//! unit that scripts/install_service.sh installs: the service and its Gemma worker exit, and their
+//! Starting and stopping the always-on assistant (ADR-034). On Linux `kestrel stop` stops the
+//! systemd user unit that scripts/install_service.sh installs: the service and its Gemma worker exit, and their
 //! memory is free. `kestrel open`, `chat` and `say` start it again when it is stopped (rules +
 //! encoder load in about a second); the next login starts it too.
 
@@ -80,7 +80,12 @@ fn var(k: &str) -> Option<OsString> {
 }
 
 /// `systemctl --user ARGS...` with its output dropped; false when it fails or there is none.
+/// Only Linux has the unit: on macOS and Windows Kestrel is started by hand until the app (v4
+/// phase A3), so `stop` and `wake` see no service manager there.
 fn systemctl(args: &[&str]) -> bool {
+    if kestrel_platform::Os::current() != kestrel_platform::Os::Linux {
+        return false;
+    }
     std::process::Command::new("systemctl")
         .arg("--user")
         .args(args)
@@ -91,8 +96,15 @@ fn systemctl(args: &[&str]) -> bool {
 }
 
 /// The service answers on its socket.
+#[cfg(unix)]
 fn answers() -> bool {
     std::os::unix::net::UnixStream::connect(crate::service::socket_path(&var)).is_ok()
+}
+
+/// The service answers on its page (Windows has no socket).
+#[cfg(not(unix))]
+fn answers() -> bool {
+    crate::web::page_answers(&var)
 }
 
 /// `kestrel stop` on this machine.

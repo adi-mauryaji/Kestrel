@@ -21,6 +21,7 @@ kestrel-inference.workspace = true
 kestrel-learning.workspace = true
 kestrel-memory.workspace = true
 kestrel-nlu.workspace = true
+kestrel-platform.workspace = true
 kestrel-router.workspace = true
 kestrel-tools.workspace = true
 serde.workspace = true

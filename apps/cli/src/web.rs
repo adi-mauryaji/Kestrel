@@ -146,6 +146,25 @@ pub fn url_file(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> std::path::
     crate::service::socket_path(var).with_extension("url")
 }
 
+/// The port in a page address: "http://127.0.0.1:7811/#t=..." -> 7811.
+pub fn port_of(address: &str) -> Option<u16> {
+    let host = address.trim().strip_prefix("http://")?.split('/').next()?;
+    host.rsplit_once(':')?.1.parse().ok()
+}
+
+/// The running service's page answers on this machine: how Windows, without a socket, tells
+/// whether Kestrel runs.
+#[cfg_attr(unix, allow(dead_code))]
+pub fn page_answers(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> bool {
+    std::fs::read_to_string(url_file(var))
+        .ok()
+        .and_then(|a| port_of(&a))
+        .is_some_and(|port| {
+            let at = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port));
+            std::net::TcpStream::connect_timeout(&at, std::time::Duration::from_millis(500)).is_ok()
+        })
+}
+
 /// The page's address; the token rides in the fragment, which the browser never sends.
 pub fn url(port: u16, token: &str) -> String {
     format!("http://127.0.0.1:{port}/#t={token}")
@@ -179,8 +198,9 @@ pub fn open(
     let path = url_file(var);
     let address = std::fs::read_to_string(&path).map_err(|_| {
         format!(
-            "Kestrel is not running ({} is missing): start it with scripts/install_service.sh",
-            path.display()
+            "Kestrel is not running ({} is missing): {}",
+            path.display(),
+            crate::service::start_hint()
         )
     })?;
     let address = address.trim();
@@ -188,17 +208,31 @@ pub fn open(
         writeln!(out, "{address}")?;
         return Ok(());
     }
-    let status = std::process::Command::new("xdg-open")
-        .arg(address)
-        .status()?;
+    let mut browser = kestrel_platform::open_url(kestrel_platform::Os::current(), address);
+    let status = browser.status()?;
     if !status.success() {
-        return Err(format!("xdg-open failed ({status}); open this address: {address}").into());
+        return Err(format!(
+            "{} failed ({status}); open this address: {address}",
+            browser.get_program().to_string_lossy()
+        )
+        .into());
     }
     writeln!(out, "opened Kestrel in your browser")?;
     Ok(())
 }
 
+/// Writes `text` to `path`, readable by this user only. Windows: the file lives in the user's own
+/// %LOCALAPPDATA% (kestrel-platform), which the profile's permissions keep private.
+#[cfg(not(unix))]
+pub fn write_private(path: &Path, text: &str) -> io::Result<()> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::write(path, text)
+}
+
 /// Writes `text` to `path`, readable by this user only.
+#[cfg(unix)]
 pub fn write_private(path: &Path, text: &str) -> io::Result<()> {
     use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
@@ -585,9 +619,12 @@ mod tests {
             "http://192.168.251.140:7811/#t=ab12"
         );
         let dir = std::env::temp_dir().join(format!("kestrel_web_lan_{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let var = |k: &str| (k == "XDG_RUNTIME_DIR").then(|| dir.clone().into_os_string());
-        assert_eq!(lan_url_file(&var), dir.join("kestrel.lan.url"));
+        let var = runtime_in(&dir);
+        assert_eq!(
+            lan_url_file(&var),
+            url_file(&var).with_extension("lan.url"),
+            "next to the page's address"
+        );
         std::fs::write(url_file(&var), url(7811, "ab12")).unwrap();
         let mut out = Vec::new();
         let e = open(&["--print".into(), "--lan".into()], &var, &mut out).unwrap_err();
@@ -603,16 +640,19 @@ mod tests {
 
     #[test]
     fn the_token_is_made_once_and_kept_private() {
-        use std::os::unix::fs::PermissionsExt;
         let p = std::env::temp_dir().join(format!("kestrel_web_token_{}", std::process::id()));
         let _ = std::fs::remove_file(&p);
         let t = token(&p).unwrap();
         assert_eq!(t.len(), 64);
         assert!(t.bytes().all(|b| b.is_ascii_hexdigit()));
-        assert_eq!(
-            std::fs::metadata(&p).unwrap().permissions().mode() & 0o777,
-            0o600
-        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                std::fs::metadata(&p).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
         assert_eq!(token(&p).unwrap(), t, "the same token after a restart");
         let _ = std::fs::remove_file(&p);
     }
@@ -825,12 +865,56 @@ mod tests {
         assert_eq!(rest, "{\"line\":\"deleted task #2\"}\n{\"done\":true}\n");
     }
 
+    /// An environment whose runtime folder (on any of the three systems) is `dir`, created.
+    fn runtime_in(dir: &Path) -> impl Fn(&str) -> Option<std::ffi::OsString> + use<> {
+        let dir = dir.to_path_buf();
+        let var = move |k: &str| {
+            matches!(k, "XDG_RUNTIME_DIR" | "TMPDIR" | "LOCALAPPDATA")
+                .then(|| dir.clone().into_os_string())
+        };
+        std::fs::create_dir_all(url_file(&var).parent().unwrap()).unwrap();
+        var
+    }
+
+    #[test]
+    fn a_page_address_names_its_port() {
+        assert_eq!(port_of("http://127.0.0.1:7811/#t=ab12"), Some(7811));
+        assert_eq!(port_of("http://192.168.251.140:7811/#t=ab12\n"), Some(7811));
+        assert_eq!(port_of("http://127.0.0.1/"), None);
+        assert_eq!(port_of("https://127.0.0.1:7811/"), None);
+        assert_eq!(port_of(""), None);
+    }
+
+    #[test]
+    fn a_page_that_answers_is_found_and_a_stale_address_is_not() {
+        let dir = std::env::temp_dir().join(format!("kestrel_web_alive_{}", std::process::id()));
+        let var = runtime_in(&dir);
+        let _ = std::fs::remove_file(url_file(&var));
+        assert!(!page_answers(&var), "no address at all");
+        let live = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = live.local_addr().unwrap().port();
+        std::fs::write(url_file(&var), url(port, "ab12")).unwrap();
+        assert!(page_answers(&var));
+        drop(live);
+        assert!(
+            !page_answers(&var),
+            "the service stopped and left its address"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn open_finds_the_address_the_service_left() {
         let dir = std::env::temp_dir().join(format!("kestrel_web_open_{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let var = |k: &str| (k == "XDG_RUNTIME_DIR").then(|| dir.clone().into_os_string());
-        assert_eq!(url_file(&var), dir.join("kestrel.url"));
+        let var = runtime_in(&dir);
+        assert!(
+            url_file(&var).starts_with(&dir),
+            "{}",
+            url_file(&var).display()
+        );
+        if kestrel_platform::Os::current() == kestrel_platform::Os::Linux {
+            assert_eq!(url_file(&var), dir.join("kestrel.url"));
+        }
         assert_eq!(url(7811, "ab12"), "http://127.0.0.1:7811/#t=ab12");
         let _ = std::fs::remove_file(url_file(&var));
         let mut out = Vec::new();
