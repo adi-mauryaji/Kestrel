@@ -1,3 +1,4 @@
+import shutil
 import sys
 from pathlib import Path
 
@@ -13,6 +14,11 @@ def row_of(family):
     return next(r for r in rows([family]) if r["lang"] == "en")
 
 
+# These run code in the sandbox (bubblewrap, Linux).
+NEEDS_BWRAP = pytest.mark.skipif(shutil.which("bwrap") is None, reason="needs bubblewrap (bwrap)")
+
+
+@NEEDS_BWRAP
 @pytest.mark.parametrize("family", [f for f in load() if f["type"] != "explain"], ids=lambda f: f["id"])
 def test_every_reference_solution_passes_and_every_broken_code_fails(family):
     r = row_of(family)
@@ -21,6 +27,7 @@ def test_every_reference_solution_passes_and_every_broken_code_fails(family):
         assert not passes(r, family["code"]), f"{family['id']}: the code to fix already passes"
 
 
+@NEEDS_BWRAP
 def test_a_script_passes_when_its_last_line_holds_the_answer_as_whole_words():
     # Review 2026-10-27: an input prompt or a sentence around the answer is fine for a person running it.
     r = {"type": "script", "cases": [{"stdin": "4\n", "stdout": "even"}]}
@@ -49,6 +56,7 @@ def test_blocks_take_the_code_and_the_self_check_apart():
     assert blocks("```python\nx = 1\n```\n```input\n5\n```")[1] == "5\n"
 
 
+@NEEDS_BWRAP
 def test_the_check_is_the_sandbox_s_own_errors_never_the_model_s_asserts():
     # ADR-044: the model's own asserts were often wrong on dev (767b138).
     from code_eval import self_check

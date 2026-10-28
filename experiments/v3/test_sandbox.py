@@ -1,4 +1,11 @@
+import shutil
+
+import pytest
+
 from sandbox import run_python
+
+# The sandbox is bubblewrap (Linux); a machine without it has nothing to test here.
+pytestmark = pytest.mark.skipif(shutil.which("bwrap") is None, reason="needs bubblewrap (bwrap)")
 
 
 def test_code_runs_with_its_input_and_output():

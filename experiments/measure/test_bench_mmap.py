@@ -1,6 +1,9 @@
 import os
+import shutil
 import tempfile
 from pathlib import Path
+
+import pytest
 
 from bench_mmap import CONDITIONS, cached_bytes, evict, order, summarize, warm
 
@@ -14,6 +17,7 @@ def test_every_condition_runs_once_in_every_position_over_four_rounds():
         assert sorted(order(r)[pos] for r in range(4)) == sorted(CONDITIONS)
 
 
+@pytest.mark.skipif(shutil.which("fincore") is None, reason="needs fincore (util-linux)")
 def test_evict_and_warm_move_a_file_out_of_and_into_the_page_cache():
     DISK.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=DISK) as d:

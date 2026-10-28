@@ -24,5 +24,12 @@ jobs:
         with:
           python-version: "3.14"
       - run: pip install -r requirements.lock
+      # v3's sandbox tests need bubblewrap and the mmap test needs fincore (util-linux-extra on
+      # Ubuntu); Ubuntu's AppArmor blocks the user namespaces bubblewrap makes unless told otherwise.
+      - run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q bubblewrap
+          sudo apt-get install -y -q util-linux-extra || true
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
       # exit code 5 = no tests collected yet; anything else must pass
       - run: pytest || [ $? -eq 5 ]
