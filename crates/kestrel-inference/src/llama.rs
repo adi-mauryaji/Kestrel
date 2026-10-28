@@ -604,6 +604,30 @@ fn rt(e: impl std::fmt::Display) -> KestrelError {
     invalid(format!("llama.cpp: {e}"))
 }
 
+/// The devices this build can run a model on: the CPU always, Metal or Vulkan GPUs when built
+/// with them (v4 A2's probe).
+pub fn backend_devices() -> Result<Vec<crate::BackendDevice>, KestrelError> {
+    use crate::DeviceKind;
+    use llama_cpp_2::LlamaBackendDeviceType as T;
+    backend()?; // registers the backends
+    Ok(llama_cpp_2::list_llama_ggml_backend_devices()
+        .into_iter()
+        .map(|d| crate::BackendDevice {
+            backend: d.backend,
+            description: d.description,
+            kind: match d.device_type {
+                T::Cpu => DeviceKind::Cpu,
+                T::Gpu => DeviceKind::Gpu,
+                T::IntegratedGpu => DeviceKind::IntegratedGpu,
+                T::Accelerator => DeviceKind::Accelerator,
+                T::Unknown => DeviceKind::Unknown,
+            },
+            memory_total: d.memory_total as u64,
+            memory_free: d.memory_free as u64,
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     //! Need a model file: `KESTREL_SLM=models/Qwen3-1.7B-Q4_K_M.gguf cargo test -p
@@ -612,6 +636,17 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
+
+    /// Needs no model: the backends alone.
+    #[test]
+    fn this_build_lists_the_cpu_with_the_machines_ram() {
+        let devices = backend_devices().unwrap();
+        let cpu = devices
+            .iter()
+            .find(|d| d.kind == crate::DeviceKind::Cpu)
+            .expect("a CPU device");
+        assert!(cpu.memory_total > 1 << 30, "{cpu:?}");
+    }
 
     fn slm() -> LlamaSlm {
         slm_with(LlamaConfig::default())

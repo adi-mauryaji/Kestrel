@@ -16,6 +16,7 @@ llama = ["kestrel-inference/llama"]
 
 [dependencies]
 kestrel-bench.workspace = true
+kestrel-capability.workspace = true
 kestrel-core.workspace = true
 kestrel-inference.workspace = true
 kestrel-learning.workspace = true

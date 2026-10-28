@@ -524,7 +524,7 @@ fn add(steps: &mut Vec<Text>, t: Text) {
 }
 
 /// "126 MB", "2.6 GB".
-fn size(mib: u64) -> String {
+pub fn size(mib: u64) -> String {
     match mib {
         0..1024 => format!("{mib} MB"),
         _ => format!("{:.1} GB", mib as f64 / 1024.0),
