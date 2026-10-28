@@ -255,6 +255,65 @@ pub fn parse_hex(s: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
+/// Where `program` is on PATH: on Windows `;`-separated, also with PATHEXT's endings (.exe ...);
+/// elsewhere `:`-separated and only an executable file counts.
+pub fn which(os: Os, var: Var, program: &str) -> Option<PathBuf> {
+    let path = set(var, "PATH")?.to_string_lossy().into_owned();
+    let (separator, names) = match os {
+        Os::Windows => {
+            let mut names = Vec::new();
+            if std::path::Path::new(program).extension().is_some() {
+                names.push(program.to_string());
+            }
+            let endings = set(var, "PATHEXT")
+                .map(|v| v.to_string_lossy().into_owned())
+                .unwrap_or_else(|| ".COM;.EXE;.BAT;.CMD".into());
+            for e in endings.split(';').filter(|e| !e.is_empty()) {
+                // Windows does not mind the case; the lower one first for other file systems.
+                names.push(format!("{program}{}", e.to_lowercase()));
+                names.push(format!("{program}{e}"));
+            }
+            (';', names)
+        }
+        Os::Linux | Os::MacOs => (':', vec![program.to_string()]),
+    };
+    path.split(separator)
+        .filter(|d| !d.is_empty())
+        .flat_map(|d| names.iter().map(move |n| std::path::Path::new(d).join(n)))
+        .find(|p| runnable(os, p))
+}
+
+/// A file that `os` would run.
+fn runnable(os: Os, p: &std::path::Path) -> bool {
+    if !p.is_file() {
+        return false;
+    }
+    #[cfg(unix)]
+    if os != Os::Windows {
+        use std::os::unix::fs::PermissionsExt;
+        return p
+            .metadata()
+            .is_ok_and(|m| m.permissions().mode() & 0o111 != 0);
+    }
+    let _ = os;
+    true
+}
+
+/// Linux's /proc/meminfo as (total, available) MiB.
+pub fn parse_meminfo(text: &str) -> Option<(u64, u64)> {
+    let kib = |key: &str| {
+        text.lines().find_map(|l| {
+            l.strip_prefix(key)?
+                .trim()
+                .strip_suffix("kB")?
+                .trim()
+                .parse::<u64>()
+                .ok()
+        })
+    };
+    Some((kib("MemTotal:")? / 1024, kib("MemAvailable:")? / 1024))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -504,5 +563,83 @@ mod tests {
         for bad in ["", "abc", "zz", "0x12", "12 34"] {
             assert_eq!(parse_hex(bad), None, "{bad:?}");
         }
+    }
+
+    /// A fresh folder holding `files` (name, executable).
+    fn folder(tag: &str, files: &[(&str, bool)]) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("kestrel_which_{tag}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        for (name, exec) in files {
+            let p = d.join(name);
+            std::fs::write(&p, "").unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mode = if *exec { 0o755 } else { 0o644 };
+                std::fs::set_permissions(&p, std::fs::Permissions::from_mode(mode)).unwrap();
+            }
+            #[cfg(not(unix))]
+            let _ = exec;
+        }
+        d
+    }
+
+    #[cfg(unix)] // ":" splits PATH there; a Windows path has its own ":" after the drive
+    #[test]
+    fn which_on_linux_and_macos_searches_path_for_an_executable() {
+        let a = folder("a", &[("bwrap", true)]);
+        let b = folder("b", &[("python3", false), ("bwrap", true)]);
+        let path = format!("{}:{}", a.display(), b.display());
+        let var = move |k: &str| (k == "PATH").then(|| OsString::from(path.clone()));
+        for os in [Os::Linux, Os::MacOs] {
+            assert_eq!(
+                which(os, &var, "bwrap"),
+                Some(a.join("bwrap")),
+                "the first on PATH"
+            );
+            assert_eq!(which(os, &var, "nope"), None);
+            assert_eq!(which(os, &var, "python3"), None, "not executable");
+        }
+        assert_eq!(which(Os::Linux, &|_| None, "bwrap"), None, "no PATH");
+    }
+
+    #[test]
+    fn which_on_windows_adds_the_pathext_endings() {
+        let d = folder("w", &[("python3.exe", false), ("tool.cmd", false)]);
+        let path = format!(r"C:\nothing;{}", d.display());
+        let var = move |k: &str| (k == "PATH").then(|| OsString::from(path.clone()));
+        assert_eq!(
+            which(Os::Windows, &var, "python3"),
+            Some(d.join("python3.exe"))
+        );
+        assert_eq!(
+            which(Os::Windows, &var, "python3.exe"),
+            Some(d.join("python3.exe"))
+        );
+        assert_eq!(which(Os::Windows, &var, "tool"), Some(d.join("tool.cmd")));
+        assert_eq!(which(Os::Windows, &var, "bwrap"), None);
+        let only_exe = move |k: &str| match k {
+            "PATH" => Some(OsString::from(d.display().to_string())),
+            "PATHEXT" => Some(OsString::from(".EXE")),
+            _ => None,
+        };
+        assert_eq!(
+            which(Os::Windows, &only_exe, "tool"),
+            None,
+            "PATHEXT without .CMD"
+        );
+    }
+
+    #[test]
+    fn meminfo_gives_total_and_available_in_mib() {
+        let text = "MemTotal:       15675420 kB\nMemFree:         1234567 kB\nMemAvailable:    8297732 kB\n";
+        assert_eq!(parse_meminfo(text), Some((15_308, 8_103)));
+        assert_eq!(
+            parse_meminfo("MemTotal: 1024 kB\n"),
+            None,
+            "no MemAvailable"
+        );
+        assert_eq!(parse_meminfo(""), None);
     }
 }

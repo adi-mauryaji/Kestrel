@@ -88,7 +88,7 @@ fn m4() -> Device {
         gpus: vec![Gpu {
             name: "Apple M4".into(),
             memory_mib: 10_923,
-            unified: true,
+            kind: GpuKind::AppleUnified,
         }],
         tools: strings(&["python3"]),
         models: strings(&["e5", "gemma-e2b"]),
@@ -106,7 +106,7 @@ fn big() -> Device {
         gpus: vec![Gpu {
             name: "RTX 4060".into(),
             memory_mib: 8_192,
-            unified: false,
+            kind: GpuKind::Discrete,
         }],
         tools: strings(&["python3"]),
         models: strings(&["e5", "gemma-12b"]),
@@ -166,12 +166,22 @@ fn the_budget_is_ram_less_the_reserve_or_a_gpu_whichever_is_larger() {
         gpus: vec![Gpu {
             name: "RTX 4090".into(),
             memory_mib: 24_576,
-            unified: false,
+            kind: GpuKind::Discrete,
         }],
         ..big()
     };
     assert_eq!(memory_budget_mib(&gpu_heavy), 24_576 - 512); // a card keeps some for itself
     assert_eq!(memory_budget_mib(&tiny()), 1_024);
+    // A GPU inside the processor shares the RAM already counted: it adds nothing.
+    let integrated = Device {
+        gpus: vec![Gpu {
+            name: "AMD Radeon (Ryzen 5 5500U)".into(),
+            memory_mib: 7_000,
+            kind: GpuKind::Integrated,
+        }],
+        ..laptop()
+    };
+    assert_eq!(memory_budget_mib(&integrated), 15_308 - 3072);
 }
 
 #[test]

@@ -139,8 +139,17 @@ pub struct Device {
 pub struct Gpu {
     pub name: String,
     pub memory_mib: u64,
-    /// Apple's unified memory: what Metal may use is already the budget.
-    pub unified: bool,
+    pub kind: GpuKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GpuKind {
+    /// A card with its own memory.
+    Discrete,
+    /// Apple silicon: Metal's working set (part of the unified memory) is what it may use.
+    AppleUnified,
+    /// Inside the processor, sharing the RAM already counted (a Vulkan iGPU).
+    Integrated,
 }
 
 /// Measured on this device.
@@ -176,9 +185,10 @@ pub fn memory_budget_mib(d: &Device) -> u64 {
     let gpu = d
         .gpus
         .iter()
-        .map(|g| match g.unified {
-            true => g.memory_mib, // Metal's working set is already what it may use
-            false => g.memory_mib.saturating_sub(GPU_RESERVE_MIB),
+        .map(|g| match g.kind {
+            GpuKind::Discrete => g.memory_mib.saturating_sub(GPU_RESERVE_MIB),
+            GpuKind::AppleUnified => g.memory_mib,
+            GpuKind::Integrated => 0,
         })
         .max()
         .unwrap_or(0);
