@@ -103,6 +103,27 @@ mod tests {
     }
 
     #[test]
+    fn windows_style_escapes_are_blocked_too() {
+        // On Windows these are a traversal, a drive path and a verbatim path out of the folder;
+        // elsewhere they are odd file names that do not exist. Either way: refused (v4 §4.1).
+        let d = tmpdir("w");
+        fs::write(d.join("note.md"), "n").unwrap();
+        let sb = Sandbox::new(std::slice::from_ref(&d)).unwrap();
+        for bad in [
+            r"..\..\Windows\win.ini",
+            r"C:\Windows\win.ini",
+            r"\\?\C:\Windows\win.ini",
+            r"C:..\note.md",
+        ] {
+            assert!(
+                matches!(sb.resolve(bad), Err(KestrelError::Sandbox(_))),
+                "{bad}"
+            );
+        }
+        assert!(sb.resolve("note.md").is_ok());
+    }
+
+    #[test]
     fn a_sibling_with_a_common_prefix_is_outside() {
         let d = tmpdir("b");
         let sibling = PathBuf::from(format!("{}2", d.display()));

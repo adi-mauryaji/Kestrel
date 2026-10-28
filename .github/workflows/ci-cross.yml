@@ -1,0 +1,46 @@
+name: ci-cross
+
+# macOS and Windows (v4 phase A1, ADR-052). Not on every push: on a private repo their minutes
+# cost more (Windows ~2x, macOS ~10x Linux). Run it by hand (Actions -> ci-cross -> Run workflow),
+# on a pull request into main, and on a release tag.
+on:
+  workflow_dispatch:
+    inputs:
+      llama:
+        description: "Also build the llama feature (llama.cpp via cmake; ~10-20 min per system)"
+        type: boolean
+        default: false
+  pull_request:
+    branches: [main]
+  push:
+    tags: ["v*"]
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Windows runners turn LF into CRLF on checkout; Kestrel hashes its datasets and configs.
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+      # rustup on the runner reads rust-toolchain.toml and installs the pinned toolchain
+      - run: rustc -V && cargo -V
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  llama:
+    if: github.event_name == 'workflow_dispatch' && inputs.llama
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+      - run: rustc -V && cargo -V
+      # The service (`kestrel serve`) and the model worker only build with this feature.
+      - run: cargo clippy -p kestrel-cli --all-targets --features llama -- -D warnings
