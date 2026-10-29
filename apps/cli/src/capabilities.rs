@@ -65,6 +65,8 @@ pub struct Found<'a> {
     pub backends: &'a [BackendDevice],
     /// /proc/meminfo (Linux).
     pub meminfo: Option<&'a str>,
+    /// Physical memory in MiB from the OS (macOS, Windows), for a build without llama's devices.
+    pub os_memory_mib: Option<u64>,
     pub writer_file: Option<&'a str>,
 }
 
@@ -83,6 +85,7 @@ pub fn device(
             .and_then(kestrel_platform::parse_meminfo)
             .map(|(total, _)| total)
     });
+    let ram = ram.or(found.os_memory_mib);
     let mut tools: Vec<String> = cards
         .iter()
         .flat_map(|c| c.needs.tools.iter().cloned())
@@ -227,10 +230,17 @@ pub fn context(
     let writer = config.as_deref().and_then(writer_file);
     let meminfo = std::fs::read_to_string("/proc/meminfo").ok();
     let backends = backends();
+    // Only when nothing else knows the RAM: it costs a process on macOS / Windows.
+    let os_memory_mib = if backends.is_empty() && meminfo.is_none() {
+        os_memory(os)
+    } else {
+        None
+    };
     let found = Found {
         os,
         backends: &backends,
         meminfo: meminfo.as_deref(),
+        os_memory_mib,
         writer_file: writer.as_deref(),
     };
     let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
@@ -519,7 +529,13 @@ fn measure_speed(_: &Path, _: u32) -> Result<(kestrel_capability::Speed, i32), B
     Err("the speed test needs the llama build: cargo build --release -p kestrel-cli --features llama".into())
 }
 
-/// llama.cpp's devices; a build without it has none (the RAM then comes from /proc/meminfo).
+/// The OS's own answer for the physical memory (sysctl, PowerShell); None where it cannot say.
+fn os_memory(os: Os) -> Option<u64> {
+    let out = kestrel_platform::memory_total_command(os)?.output().ok()?;
+    kestrel_platform::parse_memory_total(&String::from_utf8_lossy(&out.stdout))
+}
+
+/// llama.cpp's devices; a build without it has none (the RAM then comes from the OS).
 #[cfg(feature = "llama")]
 fn backends() -> Vec<BackendDevice> {
     kestrel_inference::llama::backend_devices().unwrap_or_default()
@@ -631,6 +647,7 @@ mod tests {
             os: Os::Linux,
             backends: &[],
             meminfo: Some(meminfo),
+            os_memory_mib: Some(1),
             writer_file: Some("gemma-4-E2B-it-Q4_0.gguf"),
         };
         let d = device(found, &cards, &catalog, &|t| t == "bwrap", &|f| {
@@ -651,12 +668,23 @@ mod tests {
             os: Os::Linux,
             backends: &backends,
             meminfo: Some(meminfo),
+            os_memory_mib: Some(1),
             writer_file: Some("other.gguf"),
         };
         let d = device(found, &cards, &catalog, &|_| false, &|_| false);
         assert_eq!(d.ram_total_mib, 16_384);
         assert_eq!(d.writer, None);
         assert!(d.tools.is_empty() && d.models.is_empty());
+        // A non-llama build on macOS / Windows: no backends, no /proc/meminfo, only the OS's answer.
+        let found = Found {
+            os: Os::MacOs,
+            backends: &[],
+            meminfo: None,
+            os_memory_mib: Some(16_384),
+            writer_file: None,
+        };
+        let d = device(found, &cards, &catalog, &|_| false, &|_| false);
+        assert_eq!(d.ram_total_mib, 16_384);
     }
 
     fn text(en: &str, hi: &str) -> Text {
@@ -831,15 +859,32 @@ mod tests {
         );
         let a = assess(&root, Some(&data), None).unwrap();
         let chat = a.verdicts.iter().find(|v| v.id == "chat").unwrap();
-        assert_eq!(
-            chat.state,
-            State::Setup {
-                steps: vec![text(
-                    &format!("download {e4b} (4.2 GB)"),
-                    &format!("{e4b} download karo (4.2 GB)")
-                )]
-            }
-        );
+        // Whether E4B is a download here depends on this machine's memory (a CI runner may be small).
+        let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json")).unwrap();
+        let need = catalog
+            .models
+            .iter()
+            .find(|m| m.id == e4b)
+            .unwrap()
+            .memory_mib;
+        let have_file = root.join("models/gemma-4-E4B-it-Q4_0.gguf").is_file();
+        if kestrel_capability::memory_budget_mib(&c.device) >= need && !have_file {
+            assert_eq!(
+                chat.state,
+                State::Setup {
+                    steps: vec![text(
+                        &format!("download {e4b} (4.2 GB)"),
+                        &format!("{e4b} download karo (4.2 GB)")
+                    )]
+                }
+            );
+        } else if !have_file {
+            assert!(
+                !matches!(&chat.state, State::Setup { steps } if steps[0].en.starts_with("download")),
+                "too big for this device is no download: {:?}",
+                chat.state
+            );
+        }
         let _ = std::fs::remove_dir_all(&data);
     }
 

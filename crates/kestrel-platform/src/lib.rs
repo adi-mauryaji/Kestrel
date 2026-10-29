@@ -314,6 +314,34 @@ pub fn parse_meminfo(text: &str) -> Option<(u64, u64)> {
     Some((kib("MemTotal:")? / 1024, kib("MemAvailable:")? / 1024))
 }
 
+/// Prints the machine's physical memory in bytes, where /proc/meminfo is not there (macOS, Windows).
+pub fn memory_total_command(os: Os) -> Option<Command> {
+    match os {
+        Os::Linux => None,
+        Os::MacOs => {
+            let mut c = Command::new("sysctl");
+            c.args(["-n", "hw.memsize"]);
+            Some(c)
+        }
+        Os::Windows => {
+            let mut c = Command::new("powershell");
+            c.args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+            ]);
+            Some(c)
+        }
+    }
+}
+
+/// `memory_total_command`'s output (bytes) as MiB.
+pub fn parse_memory_total(out: &str) -> Option<u64> {
+    let bytes: u64 = out.trim().parse().ok()?;
+    (bytes > 0).then_some(bytes >> 20)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -641,5 +669,25 @@ mod tests {
             "no MemAvailable"
         );
         assert_eq!(parse_meminfo(""), None);
+    }
+
+    #[test]
+    fn the_memory_command_asks_the_os_and_its_output_is_bytes_read_as_mib() {
+        let mac = memory_total_command(Os::MacOs).unwrap();
+        assert_eq!(mac.get_program(), "sysctl");
+        assert_eq!(
+            memory_total_command(Os::Windows).unwrap().get_program(),
+            "powershell"
+        );
+        assert!(
+            memory_total_command(Os::Linux).is_none(),
+            "Linux reads /proc/meminfo"
+        );
+        // 16 GiB on a Mac, 7.8 GiB on a Windows laptop; both print bytes and a newline.
+        assert_eq!(parse_memory_total("17179869184\n"), Some(16_384));
+        assert_eq!(parse_memory_total("8374931456\r\n"), Some(7_986));
+        for bad in ["", "\n", "n/a", "-1", "0", "16 GB"] {
+            assert_eq!(parse_memory_total(bad), None, "{bad:?}");
+        }
     }
 }
