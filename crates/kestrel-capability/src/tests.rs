@@ -494,6 +494,7 @@ fn a_speed_counts_while_its_model_file_and_binary_are_the_same() {
             entry("gemma-e2b", (2_841, 7), 12.8),
             entry("gemma-12b", (7_000, 3), 30.0),
         ],
+        ..Profile::default()
     };
     let files = |id: &str| match id {
         "gemma-e2b" => Some((2_841, 7)),
@@ -668,4 +669,61 @@ fn the_writer_gates_are_the_strictest_per_measure() {
         measure: Measure::PrefillTokS,
         min: 40.0
     }));
+}
+
+fn calibrated(model: &str, file: (u64, u64), tau_g: f32) -> Calibrated {
+    Calibrated {
+        model: model.into(),
+        file,
+        binary: (900, 1),
+        temperature: 1.74,
+        tau: 0.8,
+        tau_g,
+        val_n: 152,
+        val_wrong: 4,
+        val_asked: 7,
+        measured_at: 1_790_000_000,
+    }
+}
+
+#[test]
+fn a_calibration_is_kept_per_model_and_counts_while_file_and_binary_stay() {
+    let mut p = Profile::default();
+    p.calibrate(calibrated("gemma-e2b", (2_841, 7), 0.7));
+    p.calibrate(calibrated("gemma-e4b", (4_000, 2), 0.6));
+    p.calibrate(calibrated("gemma-e2b", (2_841, 7), 0.8));
+    assert_eq!(
+        p.kinds.len(),
+        2,
+        "the model's earlier calibration is replaced"
+    );
+    let files = |m: &str| match m {
+        "gemma-e2b" => Some((2_841, 7)),
+        _ => None,
+    };
+    assert_eq!(
+        p.calibration("gemma-e2b", &files, (900, 1)).unwrap().tau_g,
+        0.8
+    );
+    assert!(
+        p.calibration("gemma-e2b", &files, (901, 1)).is_none(),
+        "a new binary"
+    );
+    assert!(
+        p.calibration("gemma-e2b", &|_| Some((1, 1)), (900, 1))
+            .is_none(),
+        "another file"
+    );
+    assert!(
+        p.calibration("gemma-e4b", &files, (900, 1)).is_none(),
+        "the file is gone"
+    );
+    let text = serde_json::to_string(&p).unwrap();
+    assert_eq!(serde_json::from_str::<Profile>(&text).unwrap(), p);
+}
+
+#[test]
+fn a_profile_from_before_calibrations_still_loads() {
+    let p: Profile = serde_json::from_str(r#"{"entries": []}"#).unwrap();
+    assert!(p.kinds.is_empty());
 }

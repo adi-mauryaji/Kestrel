@@ -173,7 +173,7 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
 }
 
 /// (bytes, modified as s since 1970) of a file.
-fn file_id(path: &Path) -> Option<(u64, u64)> {
+pub fn file_id(path: &Path) -> Option<(u64, u64)> {
     let m = std::fs::metadata(path).ok()?;
     let at = m
         .modified()
@@ -350,14 +350,14 @@ pub fn to_json(a: &Assessment) -> serde_json::Value {
     })
 }
 
-fn load_profile(data: Option<&Path>) -> kestrel_capability::Profile {
+pub fn load_profile(data: Option<&Path>) -> kestrel_capability::Profile {
     data.and_then(|d| std::fs::read_to_string(d.join("device_profile.json")).ok())
         .and_then(|t| serde_json::from_str(&t).ok())
         .unwrap_or_default()
 }
 
 /// The running kestrel binary, as a speed's validity is keyed.
-fn this_binary() -> (u64, u64) {
+pub fn this_binary() -> (u64, u64) {
     std::env::current_exe()
         .ok()
         .and_then(|e| file_id(&e))

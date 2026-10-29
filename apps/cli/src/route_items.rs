@@ -190,6 +190,15 @@ impl Models {
     /// (crate::kinds::FALLBACK_CONFIG); refused for another model file. Its primed prefix is kept
     /// beside Tier 4's when the service caches one.
     pub fn kinds_fallback(&self) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
+        self.kinds_fallback_for(false)
+    }
+
+    /// The same on the Tier-4 model whatever it is, for `kestrel calibrate` to measure it
+    /// (`any_model`); the prompt and examples stay the dev run's.
+    pub fn kinds_fallback_for(
+        &self,
+        any_model: bool,
+    ) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
         use crate::kinds::{FALLBACK_CONFIG, FallbackConfig};
         let slm = self
             .slm
@@ -197,7 +206,7 @@ impl Models {
             .ok_or("the kind fallback needs the Tier-4 model")?;
         let fb = FallbackConfig::load(Path::new(FALLBACK_CONFIG))?;
         let t4 = &self.cfg.models.tier4;
-        if fb.model_file != t4.model_file {
+        if !any_model && fb.model_file != t4.model_file {
             return Err(format!(
                 "the kind fallback was measured on {}, not {}",
                 fb.model_file, t4.model_file

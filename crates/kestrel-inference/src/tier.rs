@@ -11,7 +11,7 @@ use std::time::Duration;
 use kestrel_core::resources::{CancelToken, Deadline};
 use kestrel_core::{Intent, KestrelError, Request, Tier, TierModel};
 
-use crate::labels::LabelTrie;
+use crate::labels::{LabelChoice, LabelTrie};
 use crate::llama::{LlamaSession, LlamaSlm};
 use crate::prompt::ChatPrompt;
 
@@ -113,6 +113,15 @@ impl<L: Copy> TierModel<L> for GenerativeTier<'_, L> {
     }
 
     fn classify(&self, req: &Request) -> Result<Vec<(L, f32)>, KestrelError> {
+        let (label, choice) = self.classify_choice(req)?;
+        Ok(vec![(label, choice.confidence(self.temperature))])
+    }
+}
+
+impl<L: Copy> GenerativeTier<'_, L> {
+    /// `classify` with the decoding steps instead of the confidence at the config's temperature
+    /// (`kestrel calibrate` fits its own).
+    pub fn classify_choice(&self, req: &Request) -> Result<(L, LabelChoice), KestrelError> {
         // User text must not open or close chat turns (control-token injection, found in b60df9f).
         if self.slm.has_special_tokens(&req.text)? {
             return Err(KestrelError::Invalid(
@@ -130,10 +139,7 @@ impl<L: Copy> TierModel<L> for GenerativeTier<'_, L> {
             &self.cancel,
             &Deadline::after(self.timeout),
         )?;
-        Ok(vec![(
-            self.labels[choice.label],
-            choice.confidence(self.temperature),
-        )])
+        Ok((self.labels[choice.label], choice))
     }
 }
 

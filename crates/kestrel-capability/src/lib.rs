@@ -185,6 +185,30 @@ pub struct Verdict {
 #[serde(deny_unknown_fields)]
 pub struct Profile {
     pub entries: Vec<Entry>,
+    /// `kestrel calibrate`: the kind fallback measured per writer model.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub kinds: Vec<Calibrated>,
+}
+
+/// The kind fallback as `kestrel calibrate` measured it for one writer model (Kinds-v2 dev):
+/// the confidence temperature fitted on cal, (τ, τ_g) chosen on val.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct Calibrated {
+    /// Catalog id.
+    pub model: String,
+    /// The model file then, and the kestrel binary: as for `Entry`.
+    pub file: (u64, u64),
+    pub binary: (u64, u64),
+    pub temperature: f32,
+    pub tau: f32,
+    pub tau_g: f32,
+    /// On val at the chosen pair: items, wrong decisions, questions asked.
+    pub val_n: usize,
+    pub val_wrong: usize,
+    pub val_asked: usize,
+    /// Unix time.
+    pub measured_at: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -227,6 +251,24 @@ impl Profile {
     pub fn record(&mut self, e: Entry) {
         self.entries.retain(|old| old.model != e.model);
         self.entries.push(e);
+    }
+
+    /// Keeps `c`, replacing the model's earlier calibration.
+    pub fn calibrate(&mut self, c: Calibrated) {
+        self.kinds.retain(|old| old.model != c.model);
+        self.kinds.push(c);
+    }
+
+    /// The model's calibration while its file and the binary are the same as then.
+    pub fn calibration(
+        &self,
+        model: &str,
+        file_now: &dyn Fn(&str) -> Option<(u64, u64)>,
+        binary: (u64, u64),
+    ) -> Option<&Calibrated> {
+        self.kinds
+            .iter()
+            .find(|c| c.model == model && c.binary == binary && file_now(model) == Some(c.file))
     }
 }
 
