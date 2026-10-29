@@ -334,6 +334,50 @@ pub fn report(notes: &NotesQa, code: Option<&CodeTasks>) -> String {
     )
 }
 
+/// What `kestrel calibrate` kept for a model, in a line (for `kestrel model`).
+pub fn checked(c: &kestrel_capability::Calibrated, hi: bool) -> String {
+    let mut parts = Vec::new();
+    if let Some(n) = &c.notes_qa {
+        let (a, u) = (&n.answerable, &n.unanswerable);
+        parts.push(match hi {
+            false => format!(
+                "notes questions {} of {} right, {} of {} answered that the notes do not answer",
+                a.right, a.n, u.wrong, u.n
+            ),
+            true => format!(
+                "notes ke sawaal {} mein se {} sahi, notes mein jo nahi tha aise {} mein se {} ka \
+                 jawab diya",
+                a.n, a.right, u.n, u.wrong
+            ),
+        });
+    }
+    if let Some(k) = &c.code_tasks {
+        parts.push(match hi {
+            false => format!("code {} of {} pass", k.pass_loop, k.n),
+            true => format!("code {} mein se {} pass", k.n, k.pass_loop),
+        });
+    }
+    match (parts.is_empty(), hi) {
+        (true, false) => {
+            "the request kinds only; `kestrel calibrate` again adds notes and code".into()
+        }
+        (true, true) => {
+            "sirf request ke kinds; `kestrel calibrate` dobara chalao to notes aur code bhi".into()
+        }
+        (false, _) => parts.join("; "),
+    }
+}
+
+/// The same with "checked here" before it (for `kestrel capabilities`).
+pub fn summary(c: &kestrel_capability::Calibrated, hi: bool) -> String {
+    let here = if hi {
+        "yahan check hua"
+    } else {
+        "checked here"
+    };
+    format!("{here}: {}", checked(c, hi))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -672,5 +716,64 @@ mod tests {
              code: 16 of 18 pass with the first answer, 17 after the sandbox loop."
         );
         assert!(report(&notes, None).ends_with("code: not measured (no sandbox here)."));
+    }
+
+    fn kept(notes: Option<NotesQa>, code: Option<CodeTasks>) -> kestrel_capability::Calibrated {
+        kestrel_capability::Calibrated {
+            model: "e2b".into(),
+            file: (1, 1),
+            binary: (1, 1),
+            temperature: 1.74,
+            tau: 0.8,
+            tau_g: 0.7,
+            val_n: 152,
+            val_wrong: 6,
+            val_asked: 4,
+            measured_at: 1,
+            notes_qa: notes,
+            code_tasks: code,
+        }
+    }
+
+    #[test]
+    fn a_kept_check_reads_in_a_line_in_english_or_hinglish() {
+        let notes = NotesQa {
+            answerable: Tally {
+                n: 20,
+                right: 19,
+                wrong: 0,
+            },
+            unanswerable: Tally {
+                n: 6,
+                right: 4,
+                wrong: 2,
+            },
+        };
+        let code = CodeTasks {
+            n: 18,
+            pass1: 16,
+            pass_loop: 17,
+        };
+        let full = kept(Some(notes), Some(code));
+        assert_eq!(
+            summary(&full, false),
+            "checked here: notes questions 19 of 20 right, 2 of 6 answered that the notes do not \
+             answer; code 17 of 18 pass"
+        );
+        assert_eq!(
+            summary(&full, true),
+            "yahan check hua: notes ke sawaal 20 mein se 19 sahi, notes mein jo nahi tha aise 6 mein \
+             se 2 ka jawab diya; code 18 mein se 17 pass"
+        );
+        // As kept before the pass rates (2026-10-29): the kind fallback only.
+        assert_eq!(
+            summary(&kept(None, None), false),
+            "checked here: the request kinds only; `kestrel calibrate` again adds notes and code"
+        );
+        assert_eq!(
+            summary(&kept(None, None), true),
+            "yahan check hua: sirf request ke kinds; `kestrel calibrate` dobara chalao to notes \
+             aur code bhi"
+        );
     }
 }

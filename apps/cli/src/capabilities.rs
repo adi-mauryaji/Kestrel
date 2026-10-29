@@ -206,6 +206,8 @@ pub struct Context {
     pub how: Option<&'static str>,
     /// What the service writes with (`service_writer`).
     pub service: Option<ServiceWriter>,
+    /// `kestrel calibrate`'s entries that still hold here (same model file and binary).
+    pub calibrated: Vec<kestrel_capability::Calibrated>,
 }
 
 /// Probes this machine and reads the kept speeds and the model slot from `data` (no measuring).
@@ -262,6 +264,9 @@ pub fn context(
     let service = service_writer(device.writer.as_deref(), config_writer.as_deref(), &|m| {
         profile.calibration(m, &model_file, binary).cloned()
     });
+    let calibrated = (catalog.models.iter())
+        .filter_map(|m| profile.calibration(&m.id, &model_file, binary).cloned())
+        .collect();
     Ok(Context {
         cards,
         catalog,
@@ -270,6 +275,7 @@ pub fn context(
         choice,
         how: chosen.map(|(_, how)| how),
         service,
+        calibrated,
     })
 }
 
@@ -289,6 +295,21 @@ pub fn assess(
         how: c.how,
         service_writer: c.service.map(|w| w.model),
     })
+}
+
+/// Under the header: whether `kestrel calibrate` has checked the writer on this device.
+pub fn writer_check(
+    writer: Option<&str>,
+    calibrated: &[kestrel_capability::Calibrated],
+    hi: bool,
+) -> Option<String> {
+    let w = writer?;
+    let found = match (calibrated.iter().find(|c| c.model == w), hi) {
+        (Some(c), _) => crate::pass_rates::summary(c, hi),
+        (None, false) => "not checked here yet: `kestrel calibrate`".into(),
+        (None, true) => "yahan abhi check nahi hua: `kestrel calibrate` chalao".into(),
+    };
+    Some(format!("   writer {w}: {found}"))
 }
 
 /// What the service writes with, and the kind fallback's numbers when this device measured them.
@@ -427,7 +448,14 @@ pub fn run_in(
     }
     let c = context(root, data, config)?;
     let verdicts = kestrel_capability::evaluate(&c.cards, &c.catalog, &c.device, &c.measured);
-    out.write_all(render(&c.device, &verdicts, hi).as_bytes())?;
+    // The writer's check goes under the header, before the cards.
+    let text = render(&c.device, &verdicts, hi);
+    let (header, cards) = text.split_once('\n').unwrap_or((&text, ""));
+    writeln!(out, "{header}")?;
+    if let Some(line) = writer_check(c.device.writer.as_deref(), &c.calibrated, hi) {
+        writeln!(out, "{line}")?;
+    }
+    out.write_all(cards.as_bytes())?;
     if let Some(note) = service_note(&c) {
         writeln!(out, "{note}")?;
     }
@@ -1052,6 +1080,25 @@ mod tests {
     }
 
     #[test]
+    fn a_line_under_the_header_says_whether_the_writer_was_checked_here() {
+        let k = calibrated("e2b", 0.7);
+        assert_eq!(
+            writer_check(Some("e2b"), std::slice::from_ref(&k), false).unwrap(),
+            "   writer e2b: checked here: the request kinds only; `kestrel calibrate` again adds \
+             notes and code"
+        );
+        assert_eq!(
+            writer_check(Some("e4b"), std::slice::from_ref(&k), false).unwrap(),
+            "   writer e4b: not checked here yet: `kestrel calibrate`"
+        );
+        assert_eq!(
+            writer_check(Some("e4b"), &[], true).unwrap(),
+            "   writer e4b: yahan abhi check nahi hua: `kestrel calibrate` chalao"
+        );
+        assert_eq!(writer_check(None, &[k], false), None);
+    }
+
+    #[test]
     fn the_command_lists_every_shipped_card_on_this_machine() {
         let mut out = Vec::new();
         run_in(&repo(), None, &[], &mut out).unwrap();
@@ -1063,6 +1110,9 @@ mod tests {
                 .unwrap()
                 .starts_with("Kestrel on this device: ")
         );
+        let mut lines = lines.peekable();
+        // With a writer here, its check comes before the cards.
+        lines.next_if(|l| l.starts_with("   writer "));
         let cards = lines.filter(|l| !l.starts_with("   - ")).count();
         assert_eq!(cards, shipped().0.len());
         assert!(run_in(&repo(), None, &["--nope".into()], &mut Vec::new()).is_err());
