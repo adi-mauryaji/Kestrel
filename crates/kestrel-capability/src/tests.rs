@@ -683,6 +683,8 @@ fn calibrated(model: &str, file: (u64, u64), tau_g: f32) -> Calibrated {
         val_wrong: 4,
         val_asked: 7,
         measured_at: 1_790_000_000,
+        notes_qa: None,
+        code_tasks: None,
     }
 }
 
@@ -726,4 +728,49 @@ fn a_calibration_is_kept_per_model_and_counts_while_file_and_binary_stay() {
 fn a_profile_from_before_calibrations_still_loads() {
     let p: Profile = serde_json::from_str(r#"{"entries": []}"#).unwrap();
     assert!(p.kinds.is_empty());
+}
+
+#[test]
+fn pass_rates_ride_with_the_calibration_and_today_s_entries_without_them_still_load() {
+    let mut c = calibrated("gemma-e2b", (2_841, 7), 0.7);
+    c.notes_qa = Some(NotesQa {
+        answerable: Tally {
+            n: 20,
+            right: 20,
+            wrong: 0,
+        },
+        unanswerable: Tally {
+            n: 6,
+            right: 4,
+            wrong: 2,
+        },
+    });
+    c.code_tasks = Some(CodeTasks {
+        n: 18,
+        pass1: 12,
+        pass_loop: 13,
+    });
+    let text = serde_json::to_string(&c).unwrap();
+    assert_eq!(serde_json::from_str::<Calibrated>(&text).unwrap(), c);
+    assert_eq!(c.notes_qa.as_ref().unwrap().answerable.abstained(), 0);
+    assert_eq!(
+        Tally {
+            n: 20,
+            right: 17,
+            wrong: 0
+        }
+        .abstained(),
+        3
+    );
+    // As `kestrel calibrate` wrote it on 2026-10-29, before the pass rates.
+    let old = r#"{"model": "gemma-4-E2B-it-Q4_0", "file": [2841481184, 1791608727],
+        "binary": [10529576, 1793260597], "temperature": 1.7411059, "tau": 0.8, "tau_g": 0.7,
+        "val_n": 152, "val_wrong": 6, "val_asked": 4, "measured_at": 1793260792}"#;
+    let old: Calibrated = serde_json::from_str(old).unwrap();
+    assert_eq!((old.notes_qa, old.code_tasks), (None, None));
+    let plain = serde_json::to_string(&calibrated("m", (1, 1), 0.7)).unwrap();
+    assert!(
+        !plain.contains("notes_qa") && !plain.contains("code_tasks"),
+        "{plain}"
+    );
 }

@@ -4,6 +4,9 @@
 //! confidence against being right), then (τ, τ_g) are chosen on val by the rule fixed before
 //! Kinds-v1's run (ADR-042). This is experiments/v3/kind_fallback.py's policy in Rust, so a
 //! device without the Python experiments can measure a model it has.
+//!
+//! The run then measures the same writer's NotesQA and CodeTasks dev pass rates through the
+//! service's own worker (src/pass_rates.rs); all of it is kept per model in device_profile.json.
 
 use std::error::Error;
 use std::io::Write;
@@ -292,6 +295,8 @@ pub fn calibrated(
         val_wrong: c.val.wrong(),
         val_asked: c.val.asked,
         measured_at: now,
+        notes_qa: None,
+        code_tasks: None,
     }
 }
 
@@ -345,47 +350,47 @@ fn run_in(
         out,
         "calibrating {id} (about ten minutes with the 2B model)..."
     )?;
-    let models = crate::route_items::Models::load_for_writer(
-        &root.join(config),
-        &[3, 4],
-        Some(&model.file),
-    )?;
-    let head = models.kinds_tier()?;
-    // Only the steps are used: the temperature is what is being measured.
-    let fallback = models.kinds_fallback_at(Some(1.0))?;
-    let mut rows = Vec::new();
-    for (split, file_path) in dev_splits(root) {
-        let items = read_items(&file_path)?;
-        writeln!(out, "{}: {} requests...", file_path.display(), items.len())?;
-        for (n, item) in items.iter().enumerate() {
-            let req = Request::new(n as u64, &item.text);
-            let probs = head.classify(&req)?;
-            // A fallback that fails on one request counts as failed there, as in the dev run.
-            let gemma = fallback
-                .classify_choice(&req)
-                .ok()
-                .map(|(k, c)| (k, c.steps));
-            rows.push(Row {
-                split,
-                gold: item.gold,
-                head: probs,
-                gemma,
-            });
+    // The kind fallback in this process; its copy of the model is freed before the worker loads one.
+    let c = {
+        let models = crate::route_items::Models::load_for_writer(
+            &root.join(config),
+            &[3, 4],
+            Some(&model.file),
+        )?;
+        let head = models.kinds_tier()?;
+        // Only the steps are used: the temperature is what is being measured.
+        let fallback = models.kinds_fallback_at(Some(1.0))?;
+        let mut rows = Vec::new();
+        for (split, file_path) in dev_splits(root) {
+            let items = read_items(&file_path)?;
+            writeln!(out, "{}: {} requests...", file_path.display(), items.len())?;
+            for (n, item) in items.iter().enumerate() {
+                let req = Request::new(n as u64, &item.text);
+                let probs = head.classify(&req)?;
+                // A fallback that fails on one request counts as failed there, as in the dev run.
+                let gemma = fallback
+                    .classify_choice(&req)
+                    .ok()
+                    .map(|(k, c)| (k, c.steps));
+                rows.push(Row {
+                    split,
+                    gold: item.gold,
+                    head: probs,
+                    gemma,
+                });
+            }
         }
-    }
-    let c = calibrate(&rows)?;
+        calibrate(&rows)?
+    };
     writeln!(out, "{}", report(&model.id, &c))?;
+    let (notes_qa, code_tasks) = pass_rates(root, config, &model.file, out)?;
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
     let mut profile = crate::capabilities::load_profile(Some(data));
-    profile.calibrate(calibrated(
-        &c,
-        &model.id,
-        file,
-        crate::capabilities::this_binary(),
-        now,
-    ));
+    let mut entry = calibrated(&c, &model.id, file, crate::capabilities::this_binary(), now);
+    (entry.notes_qa, entry.code_tasks) = (Some(notes_qa), code_tasks);
+    profile.calibrate(entry);
     std::fs::create_dir_all(data)?;
     std::fs::write(
         data.join("device_profile.json"),
@@ -397,6 +402,82 @@ fn run_in(
         data.join("device_profile.json").display()
     )?;
     Ok(())
+}
+
+/// NotesQA and CodeTasks dev through the service's own worker (`kestrel tier4-worker`) with
+/// `writer`, and the service's notes by meaning; code is judged only where the sandbox runs.
+#[cfg(feature = "llama")]
+fn pass_rates(
+    root: &Path,
+    config: &str,
+    writer: &str,
+    out: &mut dyn Write,
+) -> Result<
+    (
+        kestrel_capability::NotesQa,
+        Option<kestrel_capability::CodeTasks>,
+    ),
+    Box<dyn Error>,
+> {
+    use crate::kinds::{Kind, Writer};
+    use crate::pass_rates as pr;
+    use crate::remote::{RemoteTier, SharedRemote};
+
+    let args = crate::service::WorkerArgs {
+        config: root.join(config),
+        writer: Some(writer.into()),
+        kinds_temperature: None,
+    };
+    let remote = std::rc::Rc::new(RemoteTier::new(
+        std::env::current_exe()?,
+        args.to_args(),
+        0,
+        std::time::Duration::from_secs(3600),
+    ));
+    let worker = SharedRemote(remote.clone());
+    let encoder = crate::route_items::Models::load_for(&root.join(config), &[3])?;
+    let mut index = encoder.meaning_index(&pr::notes_dir(root), None)?;
+    // As the service does: a Hinglish question is first put into English by the writer.
+    let mc = crate::meaning::MeaningConfig::load(Path::new(crate::meaning::CONFIG))?;
+    if mc.translate {
+        let translator = SharedRemote(remote.clone());
+        index = index.with_translation(Box::new(move |q| {
+            let ask = format!("translate to english: {q}");
+            translator.write(Kind::Translate, &ask, &mut |_| {}).ok()
+        }));
+    }
+    let questions = pr::read_questions(&pr::notes_dev(root))?;
+    writeln!(out, "notes questions: {}...", questions.len())?;
+    let mut graded = Vec::new();
+    for q in &questions {
+        let (seen, grade) = pr::run_question(&mut index, &worker, q);
+        if grade != pr::Grade::Right {
+            writeln!(out, "  {grade:?}: {} ({seen:?})", q.id)?;
+        }
+        graded.push((q, grade));
+    }
+    let notes = pr::notes_tally(&graded);
+    let tasks = pr::read_code_tasks(&pr::code_dev(root))?;
+    writeln!(out, "code requests: {}...", tasks.len())?;
+    let mut results = Vec::new();
+    for t in &tasks {
+        match pr::run_code_task(&worker, t) {
+            Ok(r) => {
+                if !r.1 {
+                    writeln!(out, "  fails: {}", t.id)?;
+                }
+                results.push(r)
+            }
+            Err(e) => {
+                writeln!(out, "code not measured: {}", e.0)?;
+                writeln!(out, "{}", pr::report(&notes, None))?;
+                return Ok((notes, None));
+            }
+        }
+    }
+    let code = pr::code_tally(&results);
+    writeln!(out, "{}", pr::report(&notes, Some(&code)))?;
+    Ok((notes, Some(code)))
 }
 
 /// What the run found, in words.

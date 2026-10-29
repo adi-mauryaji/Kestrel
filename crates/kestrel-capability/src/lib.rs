@@ -209,6 +209,44 @@ pub struct Calibrated {
     pub val_asked: usize,
     /// Unix time.
     pub measured_at: u64,
+    /// Kestrel-NotesQA-v0 dev through the service's notes Q&A.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes_qa: Option<NotesQa>,
+    /// Kestrel-CodeTasks-v0 dev (function, fix, script) through the service's code loop.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub code_tasks: Option<CodeTasks>,
+}
+
+/// Questions the notes answer (right: the answer holds every fact) and do not (right: no answer).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct NotesQa {
+    pub answerable: Tally,
+    pub unanswerable: Tally,
+}
+
+/// Right and wrong out of `n`; the rest abstained (said "not in your notes", or withheld).
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Tally {
+    pub n: usize,
+    pub right: usize,
+    pub wrong: usize,
+}
+
+impl Tally {
+    pub fn abstained(&self) -> usize {
+        self.n - self.right - self.wrong
+    }
+}
+
+/// Tasks whose hidden checks pass: with the first answer, and after the sandbox loop (ADR-044).
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CodeTasks {
+    pub n: usize,
+    pub pass1: usize,
+    pub pass_loop: usize,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]

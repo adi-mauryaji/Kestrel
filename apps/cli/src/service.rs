@@ -920,6 +920,8 @@ mod tests {
             val_wrong: 4,
             val_asked: 7,
             measured_at: 1,
+            notes_qa: None,
+            code_tasks: None,
         };
         let w = |model: &str, calibrated| ServiceWriter {
             model: model.into(),
