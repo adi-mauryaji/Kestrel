@@ -204,7 +204,8 @@ pub struct Context {
     pub measured: kestrel_capability::Measured,
     pub choice: kestrel_capability::Choice,
     pub how: Option<&'static str>,
-    pub service_writer: Option<String>,
+    /// What the service writes with (`service_writer`).
+    pub service: Option<ServiceWriter>,
 }
 
 /// Probes this machine and reads the kept speeds and the model slot from `data` (no measuring).
@@ -247,16 +248,20 @@ pub fn context(
     // An absolute path (the user's own file) stays as it is under join.
     let have_file = |f: &str| root.join("models").join(f).is_file();
     let mut device = device(found, &cards, &catalog, &on_path, &have_file);
-    let service_writer = device.writer.take();
+    let config_writer = device.writer.take();
     let model_file = |id: &str| {
         let m = catalog.models.iter().find(|m| m.id == id)?;
         file_id(&root.join("models").join(&m.file))
     };
-    let measured = load_profile(data).measured(&model_file, this_binary());
+    let (profile, binary) = (load_profile(data), this_binary());
+    let measured = profile.measured(&model_file, binary);
     let gates = kestrel_capability::writer_gates(&cards);
     let choice = kestrel_capability::choose(&catalog, &device, &measured, &gates);
     let chosen = crate::slot::effective(&settings, &choice);
     device.writer = chosen.as_ref().map(|(id, _)| id.clone());
+    let service = service_writer(device.writer.as_deref(), config_writer.as_deref(), &|m| {
+        profile.calibration(m, &model_file, binary).cloned()
+    });
     Ok(Context {
         cards,
         catalog,
@@ -264,7 +269,7 @@ pub fn context(
         measured,
         choice,
         how: chosen.map(|(_, how)| how),
-        service_writer,
+        service,
     })
 }
 
@@ -282,20 +287,55 @@ pub fn assess(
         device: c.device,
         verdicts,
         how: c.how,
-        service_writer: c.service_writer,
+        service_writer: c.service.map(|w| w.model),
     })
 }
 
-/// When the chosen writer is not the one the service runs: the service keeps its config's model
-/// until `kestrel calibrate` has checked the new one with the router.
-pub fn service_note(c: &Context) -> Option<String> {
-    let (chosen, running) = (c.device.writer.as_deref()?, c.service_writer.as_deref()?);
-    (chosen != running).then(|| {
-        format!(
-            "The service still writes with {running}: switching to {chosen} waits for `kestrel \
-             calibrate`."
-        )
+/// What the service writes with, and the kind fallback's numbers when this device measured them.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ServiceWriter {
+    /// Catalog id.
+    pub model: String,
+    /// `kestrel calibrate`'s entry for it; None: the committed fallback file's numbers, which
+    /// hold only for the model the file was measured on (the config's).
+    pub calibrated: Option<kestrel_capability::Calibrated>,
+    /// The slot's writer while it waits for `kestrel calibrate`.
+    pub waiting: Option<String>,
+}
+
+/// The slot's writer (`chosen`) once `kestrel calibrate` has measured it here; until then the
+/// config's. Routing is the same with any writer: the router's Tier 4 is its last tier, so its
+/// confidence decides nothing; only the kind fallback's τ_g is per model (blueprint §4.3).
+pub fn service_writer(
+    chosen: Option<&str>,
+    config: Option<&str>,
+    calibration: &dyn Fn(&str) -> Option<kestrel_capability::Calibrated>,
+) -> Option<ServiceWriter> {
+    if let Some(c) = chosen
+        && let Some(k) = calibration(c)
+    {
+        return Some(ServiceWriter {
+            model: c.into(),
+            calibrated: Some(k),
+            waiting: None,
+        });
+    }
+    let config = config?;
+    Some(ServiceWriter {
+        model: config.into(),
+        calibrated: calibration(config),
+        waiting: chosen.filter(|&c| c != config).map(String::from),
     })
+}
+
+/// When the chosen writer waits for `kestrel calibrate`, the service keeps its config's model.
+pub fn service_note(c: &Context) -> Option<String> {
+    let w = c.service.as_ref()?;
+    let waiting = w.waiting.as_deref()?;
+    Some(format!(
+        "The service still writes with {}: switching to {waiting} waits for `kestrel calibrate`.",
+        w.model
+    ))
 }
 
 /// The page's `GET /api/capabilities`: the device in words and each card's state with its notes.
@@ -835,7 +875,7 @@ mod tests {
         let e2b = "gemma-4-E2B-it-Q4_0";
         let c = context(&root, Some(&data), None).unwrap();
         assert_eq!(
-            c.service_writer.as_deref(),
+            c.service.as_ref().map(|w| w.model.as_str()),
             Some(e2b),
             "the service's config"
         );
@@ -885,6 +925,127 @@ mod tests {
                 chat.state
             );
         }
+        let _ = std::fs::remove_dir_all(&data);
+    }
+
+    fn calibrated(model: &str, tau_g: f32) -> kestrel_capability::Calibrated {
+        kestrel_capability::Calibrated {
+            model: model.into(),
+            file: (1, 1),
+            binary: (1, 1),
+            temperature: 1.7,
+            tau: 0.8,
+            tau_g,
+            val_n: 152,
+            val_wrong: 4,
+            val_asked: 7,
+            measured_at: 1,
+        }
+    }
+
+    #[test]
+    fn the_service_switches_to_the_slot_s_writer_only_once_it_is_calibrated_here() {
+        let (e2b, e4b) = ("gemma-4-E2B-it-Q4_0", "gemma-4-E4B-it-Q4_0");
+        let none = |_: &str| None;
+        let both = |m: &str| Some(calibrated(m, if m == e4b { 0.6 } else { 0.7 }));
+        let only = |id: &'static str| move |m: &str| (m == id).then(|| calibrated(m, 0.6));
+        // The config's own writer: the committed fallback file, or this device's measurement.
+        assert_eq!(
+            service_writer(Some(e2b), Some(e2b), &none),
+            Some(ServiceWriter {
+                model: e2b.into(),
+                calibrated: None,
+                waiting: None
+            })
+        );
+        assert_eq!(
+            service_writer(Some(e2b), Some(e2b), &both)
+                .unwrap()
+                .calibrated,
+            Some(calibrated(e2b, 0.7))
+        );
+        // Another writer waits for `kestrel calibrate`; then it runs with its own numbers.
+        assert_eq!(
+            service_writer(Some(e4b), Some(e2b), &none),
+            Some(ServiceWriter {
+                model: e2b.into(),
+                calibrated: None,
+                waiting: Some(e4b.into())
+            })
+        );
+        assert_eq!(
+            service_writer(Some(e4b), Some(e2b), &only(e4b)),
+            Some(ServiceWriter {
+                model: e4b.into(),
+                calibrated: Some(calibrated(e4b, 0.6)),
+                waiting: None
+            })
+        );
+        assert_eq!(
+            service_writer(Some(e4b), Some(e2b), &only(e2b)).unwrap(),
+            ServiceWriter {
+                model: e2b.into(),
+                calibrated: Some(calibrated(e2b, 0.6)),
+                waiting: Some(e4b.into())
+            }
+        );
+        // No writer here: the config's; no config writer either: none.
+        assert_eq!(service_writer(None, Some(e2b), &none).unwrap().model, e2b);
+        assert_eq!(service_writer(None, None, &both), None);
+        assert_eq!(
+            service_writer(Some(e4b), None, &none),
+            None,
+            "uncalibrated, nothing to keep"
+        );
+    }
+
+    #[test]
+    fn a_calibrated_gguf_of_the_user_s_becomes_the_service_s_writer_and_the_note_goes() {
+        use crate::slot::{Settings, Writer, save};
+        let root = repo();
+        let data = std::env::temp_dir().join(format!("kestrel_svcwriter_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        std::fs::create_dir_all(&data).unwrap();
+        let gguf = data.join("my-writer.gguf");
+        std::fs::write(&gguf, b"GGUF not really").unwrap();
+        let chosen = Settings {
+            writer: Writer::File {
+                path: gguf.to_string_lossy().into_owned(),
+            },
+        };
+        save(&data, &chosen).unwrap();
+        let c = context(&root, Some(&data), None).unwrap();
+        let w = c.service.as_ref().unwrap();
+        assert_eq!(w.model, "gemma-4-E2B-it-Q4_0", "not calibrated yet");
+        assert_eq!(w.waiting.as_deref(), Some("my-writer"));
+        assert!(
+            service_note(&c)
+                .unwrap()
+                .contains("waits for `kestrel calibrate`")
+        );
+        let mut profile = kestrel_capability::Profile::default();
+        profile.calibrate(kestrel_capability::Calibrated {
+            file: file_id(&gguf).unwrap(),
+            binary: this_binary(),
+            ..calibrated("my-writer", 0.6)
+        });
+        std::fs::write(
+            data.join("device_profile.json"),
+            serde_json::to_string(&profile).unwrap(),
+        )
+        .unwrap();
+        let c = context(&root, Some(&data), None).unwrap();
+        let w = c.service.as_ref().unwrap();
+        assert_eq!(
+            (w.model.as_str(), w.waiting.as_deref()),
+            ("my-writer", None)
+        );
+        assert_eq!(w.calibrated.as_ref().unwrap().tau_g, 0.6);
+        assert_eq!(service_note(&c), None);
+        // Its file changes: measured again first.
+        std::fs::write(&gguf, b"GGUF another file").unwrap();
+        let c = context(&root, Some(&data), None).unwrap();
+        assert_eq!(c.service.unwrap().waiting.as_deref(), Some("my-writer"));
         let _ = std::fs::remove_dir_all(&data);
     }
 

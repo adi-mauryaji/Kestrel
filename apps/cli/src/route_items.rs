@@ -54,14 +54,29 @@ impl Models {
 
     /// The models that `tiers` need (bench-items: the union of its configs' tiers).
     pub fn load_for(config_path: &Path, tiers: &[u8]) -> Result<Self, DynError> {
-        Self::load_with(config_path, tiers, false)
+        Self::load_with(config_path, tiers, false, None)
+    }
+
+    /// The same with `writer` (a model file under models/, or the user's own path) as Tier 4 in
+    /// place of the config's: `kestrel calibrate` measures the model slot's writer.
+    pub fn load_for_writer(
+        config_path: &Path,
+        tiers: &[u8],
+        writer: Option<&str>,
+    ) -> Result<Self, DynError> {
+        Self::load_with(config_path, tiers, false, writer)
     }
 
     /// Tier 4 for the always-on service's worker (ADR-036): weights mapped, and the primed prefix
     /// kept in `cache` (when given) under a name for this config, model file and context size.
+    /// `writer` replaces the config's model (the model slot's, once calibrated).
     /// Research runs use `load` / `load_for`: weights copied (D12), prefix computed every time.
-    pub fn load_for_service(config_path: &Path, cache: Option<&Path>) -> Result<Self, DynError> {
-        let mut models = Self::load_with(config_path, &[4], true)?;
+    pub fn load_for_service(
+        config_path: &Path,
+        writer: Option<&str>,
+        cache: Option<&Path>,
+    ) -> Result<Self, DynError> {
+        let mut models = Self::load_with(config_path, &[4], true, writer)?;
         if let Some(dir) = cache {
             std::fs::create_dir_all(dir)?;
             let t4 = &models.cfg.models.tier4;
@@ -81,8 +96,16 @@ impl Models {
         Ok(models)
     }
 
-    fn load_with(config_path: &Path, tiers: &[u8], mmap: bool) -> Result<Self, DynError> {
-        let (router, cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
+    fn load_with(
+        config_path: &Path,
+        tiers: &[u8],
+        mmap: bool,
+        writer: Option<&str>,
+    ) -> Result<Self, DynError> {
+        let (router, mut cfg) = config::load(&std::fs::read_to_string(config_path)?)?;
+        if let Some(w) = writer {
+            cfg.models.tier4.model_file = w.into();
+        }
         let labels = labels::parse_list(&std::fs::read_to_string(
             Path::new("datasets/contracts").join(&cfg.models.tier4.labels),
         )?);
@@ -186,18 +209,13 @@ impl Models {
         })
     }
 
-    /// v3's kind fallback (ADR-037) on the config's Tier-4 model, as the dev run measured it
-    /// (crate::kinds::FALLBACK_CONFIG); refused for another model file. Its primed prefix is kept
-    /// beside Tier 4's when the service caches one.
-    pub fn kinds_fallback(&self) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
-        self.kinds_fallback_for(false)
-    }
-
-    /// The same on the Tier-4 model whatever it is, for `kestrel calibrate` to measure it
-    /// (`any_model`); the prompt and examples stay the dev run's.
-    pub fn kinds_fallback_for(
+    /// v3's kind fallback (ADR-037) on Tier 4's model, as the dev run measured it
+    /// (crate::kinds::FALLBACK_CONFIG): its prompt and examples, at `temperature` when this device
+    /// measured one (`kestrel calibrate`), else at the file's and only on the model the file was
+    /// measured on. Its primed prefix is kept beside Tier 4's when the service caches one.
+    pub fn kinds_fallback_at(
         &self,
-        any_model: bool,
+        temperature: Option<f32>,
     ) -> Result<GenerativeTier<'_, crate::kinds::Kind>, DynError> {
         use crate::kinds::{FALLBACK_CONFIG, FallbackConfig};
         let slm = self
@@ -206,7 +224,7 @@ impl Models {
             .ok_or("the kind fallback needs the Tier-4 model")?;
         let fb = FallbackConfig::load(Path::new(FALLBACK_CONFIG))?;
         let t4 = &self.cfg.models.tier4;
-        if !any_model && fb.model_file != t4.model_file {
+        if temperature.is_none() && fb.model_file != t4.model_file {
             return Err(format!(
                 "the kind fallback was measured on {}, not {}",
                 fb.model_file, t4.model_file
@@ -236,7 +254,7 @@ impl Models {
             slm,
             prompt,
             &answers,
-            fb.temperature,
+            temperature.unwrap_or(fb.temperature),
             TIER4_TIMEOUT,
             self.cfg.est_cost_ms[Tier::Generative.index()],
             prefix.as_deref(),

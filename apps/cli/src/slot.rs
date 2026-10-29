@@ -3,7 +3,7 @@
 //! passes the writing gates, measured or estimated from a measured one); or the user's: a catalog
 //! model, or any GGUF file (its sizes then estimated from the file). Kept in settings.json in
 //! Kestrel's data folder. The service keeps writing with its config's model until `kestrel
-//! calibrate` (A2's next step) has checked the new one.
+//! calibrate` has measured the new one on this device (capabilities::service_writer).
 
 use std::error::Error;
 use std::io::Write;

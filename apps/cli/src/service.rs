@@ -231,15 +231,96 @@ pub fn chat(once: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+/// `kestrel tier4-worker CONFIG [--writer FILE] [--kinds-temperature T]` as the service starts it: a
+/// writer other than the config's (the model slot's, once calibrated), and the kind fallback's
+/// temperature when this device measured it (`kestrel calibrate`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct WorkerArgs {
+    pub config: PathBuf,
+    pub writer: Option<String>,
+    pub kinds_temperature: Option<f32>,
+}
+
+impl WorkerArgs {
+    const USE: &str = "usage: kestrel tier4-worker CONFIG [--writer FILE] [--kinds-temperature T]";
+
+    /// For the service's writer (crate::capabilities::service_writer); `config_file` is the
+    /// config's Tier-4 model file. A writer missing from `catalog` leaves the config as it is.
+    pub fn for_service(
+        config: &std::path::Path,
+        config_file: &str,
+        writer: Option<&crate::capabilities::ServiceWriter>,
+        catalog: &kestrel_capability::Catalog,
+    ) -> Self {
+        let found = writer.and_then(|w| {
+            let m = catalog.models.iter().find(|m| m.id == w.model)?;
+            Some((w, m))
+        });
+        WorkerArgs {
+            config: config.to_path_buf(),
+            writer: found
+                .map(|(_, m)| m.file.clone())
+                .filter(|f| f != config_file),
+            kinds_temperature: found
+                .and_then(|(w, _)| w.calibrated.as_ref())
+                .map(|k| k.temperature),
+        }
+    }
+
+    pub fn parse(args: &[String]) -> Result<Self, String> {
+        let mut it = args.iter();
+        let config = it
+            .next()
+            .filter(|c| !c.starts_with("--"))
+            .ok_or(Self::USE)?;
+        let (mut writer, mut kinds_temperature) = (None, None);
+        while let Some(a) = it.next() {
+            match a.as_str() {
+                "--writer" => writer = Some(it.next().ok_or(Self::USE)?.clone()),
+                "--kinds-temperature" => {
+                    let t: f32 = it.next().ok_or(Self::USE)?.parse().map_err(|_| Self::USE)?;
+                    if !(t.is_finite() && t > 0.0) {
+                        return Err(Self::USE.into());
+                    }
+                    kinds_temperature = Some(t);
+                }
+                _ => return Err(Self::USE.into()),
+            }
+        }
+        Ok(WorkerArgs {
+            config: config.into(),
+            writer,
+            kinds_temperature,
+        })
+    }
+
+    /// The command line after `kestrel`.
+    pub fn to_args(&self) -> Vec<String> {
+        let mut a = vec!["tier4-worker".into(), self.config.display().to_string()];
+        if let Some(w) = &self.writer {
+            a.extend(["--writer".into(), w.clone()]);
+        }
+        if let Some(t) = self.kinds_temperature {
+            a.extend(["--kinds-temperature".into(), t.to_string()]);
+        }
+        a
+    }
+}
+
 /// `kestrel tier4-worker CONFIG`: Gemma as the config's Tier 4, one request per line (src/remote.rs),
 /// and as the writer of summaries (feature 5) in a context of its own, made at the first one.
+/// `WorkerArgs` may name another writer and the kind fallback's temperature measured here.
 #[cfg(feature = "llama")]
-pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn worker(args: &WorkerArgs) -> Result<(), Box<dyn std::error::Error>> {
     use kestrel_core::Request;
     use kestrel_inference::prompt::{ChatFormat, ChatPrompt};
 
     let cache = cache_dir(&|k| std::env::var_os(k));
-    let models = crate::route_items::Models::load_for_service(config, cache.as_deref())?;
+    let models = crate::route_items::Models::load_for_service(
+        &args.config,
+        args.writer.as_deref(),
+        cache.as_deref(),
+    )?;
     let tiers = models.tiers(&crate::labels::Intents, |t| t, &[4])?;
     let tier = tiers.first().ok_or("the config has no Tier 4")?;
     let slm = models.slm().ok_or("the config has no Tier-4 model")?;
@@ -299,8 +380,11 @@ pub fn worker(config: &std::path::Path) -> Result<(), Box<dyn std::error::Error>
                 Err(e) => json!({"error": e.to_string()}),
             }
         } else if let Some(text) = v["kind"].as_str() {
-            let tier =
-                kinds.get_or_insert_with(|| models.kinds_fallback().map_err(|e| e.to_string()));
+            let tier = kinds.get_or_insert_with(|| {
+                models
+                    .kinds_fallback_at(args.kinds_temperature)
+                    .map_err(|e| e.to_string())
+            });
             let req = Request::new(v["id"].as_u64().unwrap_or(0), text);
             match tier
                 .as_ref()
@@ -545,9 +629,42 @@ pub fn serve(
     let log = Log::default();
     let wrap = |t| Box::new(Recorder::new(t, log.clone())) as Box<dyn kestrel_core::TierModel + '_>;
     let mut tiers = models.tiers(&intents, wrap, &below4)?;
+    // The model slot's writer once `kestrel calibrate` has measured it here (src/capabilities.rs);
+    // read at the start, so a new calibration counts from the next start.
+    let data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
+    let slot =
+        crate::capabilities::context(std::path::Path::new("."), data.as_deref(), config.to_str());
+    let worker = match &slot {
+        Ok(c) => {
+            if let Some(note) = crate::capabilities::service_note(c) {
+                eprintln!("{note}");
+            }
+            WorkerArgs::for_service(
+                config,
+                &cfg.models.tier4.model_file,
+                c.service.as_ref(),
+                &c.catalog,
+            )
+        }
+        Err(e) => {
+            eprintln!("the model slot was not read ({e}): writing with the config's model");
+            WorkerArgs {
+                config: config.into(),
+                writer: None,
+                kinds_temperature: None,
+            }
+        }
+    };
+    // τ and τ_g as measured with the worker's writer here; else the committed fallback file's.
+    let measured = slot
+        .as_ref()
+        .ok()
+        .and_then(|c| c.service.as_ref())
+        .and_then(|w| w.calibrated.clone())
+        .filter(|_| worker.kinds_temperature.is_some());
     let remote = Rc::new(RemoteTier::new(
         std::env::current_exe()?,
-        vec!["tier4-worker".into(), config.display().to_string()],
+        worker.to_args(),
         cfg.est_cost_ms[3],
         idle,
     ));
@@ -586,15 +703,14 @@ pub fn serve(
             });
             let kinds = match fb {
                 // τ as the fallback's dev run judged it with the head.
-                Ok(fb) => crate::kinds::Kinds::new(
-                    Box::new(head),
-                    writer,
-                    fb.tau.unwrap_or(crate::kinds::TAU),
-                )
-                .with_fallback(
-                    Box::new(crate::remote::KindFallback(remote.clone())),
-                    fb.tau_g,
-                ),
+                Ok(fb) => {
+                    let (tau, tau_g) = match &measured {
+                        Some(k) => (k.tau, k.tau_g),
+                        None => (fb.tau.unwrap_or(crate::kinds::TAU), fb.tau_g),
+                    };
+                    crate::kinds::Kinds::new(Box::new(head), writer, tau)
+                        .with_fallback(Box::new(crate::remote::KindFallback(remote.clone())), tau_g)
+                }
                 Err(e) => {
                     eprintln!("the kind fallback is off (unsure requests are asked): {e}");
                     crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU)
@@ -783,6 +899,81 @@ impl Socket {
 mod tests {
     use super::*;
     use std::io::Cursor;
+
+    #[test]
+    fn the_worker_is_told_the_writer_and_the_fallback_s_temperature_only_when_they_differ() {
+        use crate::capabilities::ServiceWriter;
+        let catalog = kestrel_capability::load_catalog(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../models/catalog.json"),
+        )
+        .unwrap();
+        let config = std::path::Path::new("experiments/configs/router_intents_v0.json");
+        let e2b_file = "gemma-4-E2B-it-Q4_0.gguf";
+        let k = |model: &str| kestrel_capability::Calibrated {
+            model: model.into(),
+            file: (1, 1),
+            binary: (1, 1),
+            temperature: 1.25,
+            tau: 0.8,
+            tau_g: 0.6,
+            val_n: 152,
+            val_wrong: 4,
+            val_asked: 7,
+            measured_at: 1,
+        };
+        let w = |model: &str, calibrated| ServiceWriter {
+            model: model.into(),
+            calibrated,
+            waiting: None,
+        };
+        // The config's writer as measured by the dev run: the worker as before.
+        let a = WorkerArgs::for_service(
+            config,
+            e2b_file,
+            Some(&w("gemma-4-E2B-it-Q4_0", None)),
+            &catalog,
+        );
+        assert_eq!(
+            a.to_args(),
+            ["tier4-worker", "experiments/configs/router_intents_v0.json"]
+        );
+        // Measured here: its temperature. Another writer: its file too.
+        let a = WorkerArgs::for_service(
+            config,
+            e2b_file,
+            Some(&w("gemma-4-E4B-it-Q4_0", Some(k("gemma-4-E4B-it-Q4_0")))),
+            &catalog,
+        );
+        assert_eq!(
+            a.to_args(),
+            [
+                "tier4-worker",
+                "experiments/configs/router_intents_v0.json",
+                "--writer",
+                "gemma-4-E4B-it-Q4_0.gguf",
+                "--kinds-temperature",
+                "1.25"
+            ]
+        );
+        assert_eq!(WorkerArgs::parse(&a.to_args()[1..]).unwrap(), a);
+        // No writer known: the config as it is.
+        assert_eq!(
+            WorkerArgs::for_service(config, e2b_file, None, &catalog)
+                .to_args()
+                .len(),
+            2
+        );
+        for bad in [
+            &[][..],
+            &["c.json".into(), "--writer".into()][..],
+            &["c.json".into(), "--kinds-temperature".into(), "0".into()][..],
+            &["c.json".into(), "--kinds-temperature".into(), "x".into()][..],
+            &["c.json".into(), "--nope".into()][..],
+            &["a.json".into(), "b.json".into()][..],
+        ] {
+            assert!(WorkerArgs::parse(bad).is_err(), "{bad:?}");
+        }
+    }
 
     #[test]
     fn the_server_relays_questions_and_ends_every_answer() {

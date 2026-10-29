@@ -333,10 +333,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(feature = "llama")]
 fn tier4_worker(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    let [config] = args else {
-        return Err("usage: kestrel tier4-worker CONFIG".into());
-    };
-    service::worker(config.as_ref())
+    service::worker(&service::WorkerArgs::parse(args)?)
 }
 
 #[cfg(not(feature = "llama"))]

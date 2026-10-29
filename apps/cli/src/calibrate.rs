@@ -295,8 +295,8 @@ pub fn calibrated(
     }
 }
 
-/// `kestrel calibrate [CONFIG]`: the writer's kind fallback measured on Kinds-v2 cal and val, kept
-/// in the device profile. About ten minutes of full CPU with the 2B writer.
+/// `kestrel calibrate [CONFIG]`: the model slot's writer's kind fallback measured on Kinds-v2 cal
+/// and val, kept in the device profile. About ten minutes of full CPU with the 2B writer.
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
     let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
     run_in(Path::new("."), data.as_deref(), args, out)
@@ -330,21 +330,29 @@ fn run_in(
         _ => return Err("usage: kestrel calibrate [CONFIG]".into()),
     };
     let data = data.ok_or("no data folder to keep the calibration in")?;
-    let catalog = kestrel_capability::load_catalog(&root.join("models/catalog.json"))?;
-    let text = std::fs::read_to_string(root.join(config))?;
-    let file_name =
-        crate::capabilities::writer_file(&text).ok_or("the config has no writer model")?;
-    let model = catalog
-        .models
-        .iter()
-        .find(|m| m.file == file_name)
-        .ok_or("the config's writer is not in the catalog")?;
+    // The model slot's writer (`kestrel model`), which the service switches to once this passes.
+    let ctx = crate::capabilities::context(root, Some(data), Some(config))?;
+    let id = (ctx.device.writer.as_deref())
+        .ok_or("no writer model here: `kestrel model` shows what fits")?;
+    let model = (ctx.catalog.models.iter())
+        .find(|m| m.id == id)
+        .ok_or("the writer is not in the catalog")?;
+    // An absolute path (the user's own file) stays as it is under join.
     let path = root.join("models").join(&model.file);
     let file = crate::capabilities::file_id(&path)
-        .ok_or_else(|| format!("{} is missing", path.display()))?;
-    let models = crate::route_items::Models::load_for(&root.join(config), &[3, 4])?;
+        .ok_or_else(|| format!("{} is missing: download it first", path.display()))?;
+    writeln!(
+        out,
+        "calibrating {id} (about ten minutes with the 2B model)..."
+    )?;
+    let models = crate::route_items::Models::load_for_writer(
+        &root.join(config),
+        &[3, 4],
+        Some(&model.file),
+    )?;
     let head = models.kinds_tier()?;
-    let fallback = models.kinds_fallback_for(true)?;
+    // Only the steps are used: the temperature is what is being measured.
+    let fallback = models.kinds_fallback_at(Some(1.0))?;
     let mut rows = Vec::new();
     for (split, file_path) in dev_splits(root) {
         let items = read_items(&file_path)?;
@@ -382,6 +390,11 @@ fn run_in(
     std::fs::write(
         data.join("device_profile.json"),
         serde_json::to_string_pretty(&profile)? + "\n",
+    )?;
+    writeln!(
+        out,
+        "kept in {}; the service writes with {id} from its next start (`kestrel stop`).",
+        data.join("device_profile.json").display()
     )?;
     Ok(())
 }
