@@ -27,11 +27,22 @@ spec; build nothing visual without it. A page with no design yet gets none of Cl
 Fonts (OFL, in `apps/cli/web/fonts` with their licences, served by the service, nothing fetched
 from elsewhere): Source Serif 4 (headings), Caveat (the day's line), Inter (text).
 
-## Not designed yet
+## The other pages (Claude's design in Home's language)
 
-Tasks and Calendar scroll to their parts of Home. Notes and Settings are plain placeholder cards
-(Settings shows what Kestrel can do here, as the old page did). Onboarding (notes folder, internet,
-model import, speed test) waits for its design too.
+The human, 2026-10-31: Claude designs the rest from Home's look (fonts, colours, cards, icons). A
+photo from the human for any page still wins.
+
+| Page | What it does | Screenshot |
+|---|---|---|
+| First open | name → notes folder → this device → start; shown while no name is saved | `built-welcome-1.jpg` |
+| Tasks | add a task (plain words become "add task …"), filter All · Today · Upcoming · No date · Overdue, Done, and ⋯: Rename, Change date, Set time, Remove date, Delete (y/N) | `built-tasks.jpg` |
+| Calendar | the month with each day's tasks, the chosen day's list and its hours | `built-calendar.jpg`, `built-calendar-dark.jpg` |
+| Notes | the folder's notes with search, one read beside them, Summarize, a question about your notes, New note (y/N) | `built-notes.jpg`, `built-notes-dark.jpg` |
+| Settings | your name, Light / Dark / System, the notes folder, the model, what Kestrel can do here | `built-settings.jpg` |
+
+Away from Home, Kestrel's answer (and any y/N question) shows in a card at the bottom right; it also
+goes into Recent on Home. The API behind them: `GET`/`POST /api/settings` (the name),
+`GET /api/notes`, `POST /api/notes/read`.
 
 ## See it
 
@@ -41,5 +52,6 @@ python3 scripts/preview_page.py        # demo data, own folders; your service an
 ```
 
 Checked by driving the page in headless Chrome over the DevTools protocol against a scratch
-service (21 checks: tasks, name, counts, fonts, a chip, a typed reminder, Done and its tick, a
-delete's y/N, both themes, Settings).
+service: Home (21 checks: tasks, name, counts, fonts, a chip, a typed reminder, Done and its tick, a
+delete's y/N, both themes) and the other pages (33 checks: the first open, add / filter / rename /
+delete, the month and a chosen day, notes list / read / search / new / summarize, name and theme).

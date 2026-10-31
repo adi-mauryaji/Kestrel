@@ -279,7 +279,7 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
 .daybox i { width: 1px; height: 24px; margin: 0 6px; background: var(--chipbox-line); }
 
 /* --- Cards ------------------------------------------------------------------------------------- */
-.card { background: var(--card); border: 1px solid var(--card-line); border-radius: 16px; box-shadow: var(--shadow); }
+.card { position: relative; background: var(--card); border: 1px solid var(--card-line); border-radius: 16px; box-shadow: var(--shadow); }
 .card-head { display: flex; align-items: center; gap: 16px; }
 .card-head h2 { margin: 0; font: 600 26px/1.15 var(--serif); color: var(--ink); letter-spacing: -.2px; }
 
@@ -399,15 +399,165 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
 .task .done:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--done-line)); }
 .task.finishing { opacity: .45; }
 
-/* Views without a design yet: Settings shows what Kestrel can do here. */
+/* --- The other pages: Claude's design in Home's language (the human, 2026-10-31) -------------- */
 .view[hidden] { display: none; }
-.plain { margin-top: 28px; padding: 24px 28px; max-width: 760px; }
-.plain p { color: var(--text); }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 30px 0 24px; }
+.page-head h1 { margin: 0; font: 600 clamp(38px, 2.75vw, 54px)/1.08 var(--serif); color: var(--ink); letter-spacing: -.4px; }
+.page-head p { margin: 8px 0 0; font-size: clamp(15.5px, .92vw, 17.5px); color: color-mix(in srgb, var(--muted) 70%, #2D63B5); }
+.statbox {
+  display: flex; align-items: center; gap: 14px; flex: none;
+  height: 52px; padding: 0 22px;
+  border-radius: 12px; background: var(--chipbox); border: 1px solid var(--chipbox-line); box-shadow: var(--shadow);
+  font-size: 14.5px; color: var(--muted); white-space: nowrap;
+}
+.statbox > svg.i { width: 23px; height: 23px; color: var(--ink); }
+.statbox b { font-size: 17px; font-weight: 500; color: var(--ink); }
+.statbox i { width: 1px; height: 24px; margin: 0 6px; background: var(--chipbox-line); }
+.btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 40px; padding: 0 18px;
+  border-radius: 8px; border: 1px solid var(--done-line); background: var(--done-bg); color: var(--done-ink);
+  font-size: 15px; white-space: nowrap;
+}
+.btn:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--done-line)); }
+.btn svg.i { width: 18px; height: 18px; }
+.btn.primary { border-color: transparent; background: var(--send); color: var(--send-ink); font-weight: 500; }
+.btn.primary:hover { background: var(--send-hover); }
+.field {
+  width: 100%; height: 48px; padding: 0 16px;
+  border: 1px solid var(--input-line); border-radius: 8px; background: var(--input); color: var(--ink); font-size: 16px;
+}
+.field::placeholder { color: var(--placeholder); }
+.field:focus { outline: none; border-color: color-mix(in srgb, var(--ink) 30%, var(--input-line)); }
+textarea.field { height: 140px; padding: 12px 16px; resize: vertical; font: inherit; font-size: 16px; line-height: 1.55; }
+.hint { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.hint.bad { color: var(--trouble); }
+code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1px solid var(--chip-line); font: 13.5px/1.6 ui-monospace, "Hack", monospace; color: var(--ink); }
+
+/* Tasks: add, filter, act on each. */
+.addbar { display: flex; align-items: center; gap: 16px; padding: 16px 18px 16px 20px; }
+.addbar > svg { width: 34px; height: 34px; color: var(--accent); flex: none; }
+.addbar .field { flex: 1; }
+.tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 16px; }
+.tabs button {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 16px;
+  border-radius: 18px; border: 1px solid var(--chip-line); background: var(--chip); color: var(--chip-ink); font-size: 14.5px;
+}
+.tabs button span { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center; background: var(--badge); color: var(--badge-ink); font-size: 12.5px; font-weight: 600; }
+.tabs button[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); font-weight: 500; }
+.tasks-full { padding-top: 6px; }
+.tasks-full .group:first-child h3 { margin-top: 12px; }
+.task .acts { display: flex; align-items: center; gap: 8px; }
+.task .more { width: 34px; height: 34px; margin: 0; font-size: 18px; }
+.task.editing { grid-template-rows: auto auto; }
+.edit { grid-column: 2 / -1; display: flex; gap: 10px; align-items: center; }
+.edit .field { height: 40px; font-size: 15px; }
+.row-menu { position: absolute; z-index: 6; min-width: 190px; padding: 6px; border-radius: 10px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--shadow); }
+.row-menu button { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 6px; background: none; text-align: left; color: var(--text); font-size: 14.5px; }
+.row-menu button:hover { background: var(--chip); }
+.row-menu button.danger { color: var(--trouble); }
+
+/* Calendar: the month, the chosen day, its strip. */
+.cal-nav { display: flex; gap: 10px; }
+.cal-nav .btn { min-width: 44px; justify-content: center; font-size: 17px; }
+.cal-layout { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.cal { padding: 10px 14px 14px; }
+.cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cal-dow span { padding: 10px 10px 8px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+.cal-day {
+  position: relative; min-height: 104px; padding: 8px 8px 6px;
+  border: 0; border-top: 1px solid var(--rule); background: none; text-align: left; color: var(--text);
+  display: flex; flex-direction: column; gap: 4px; overflow: hidden;
+}
+.cal-day:hover { background: color-mix(in srgb, var(--chip) 70%, transparent); }
+.cal-day .num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 15px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cal-day.out .num, .cal-day.out .pill { opacity: .45; }
+.cal-day.today .num { background: var(--accent); color: #fff; }
+.cal-day.sel { background: var(--accent-soft); border-radius: 10px; }
+.pill { display: block; padding: 2px 8px; border-radius: 6px; font-size: 12.5px; line-height: 1.5; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill b { font-weight: 600; margin-right: 4px; }
+.pill.late { color: var(--trouble); }
+.more-day { font-size: 12px; color: var(--muted); padding-left: 8px; }
+.cal-side .card-head { padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.cal-side .card-head h2 { font-size: 23px; }
+.cal-day-strip { margin-top: 24px; }
+
+/* Notes: the folder's notes, one read beside them. */
+.notes-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); gap: 28px; align-items: start; }
+.notes-list { padding: 16px 16px 6px; }
+.search { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid var(--input-line); border-radius: 8px; background: var(--input); }
+.search svg.i { width: 19px; height: 19px; color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font-size: 15.5px; }
+.search input:focus { outline: none; }
+.search input::placeholder { color: var(--placeholder); }
+.notes-list .rows { max-height: calc(100vh - 290px); overflow: auto; }
+.note-row .row-main { grid-template-columns: 22px minmax(0, 1fr); padding-left: 8px; }
+.note-row svg.i { width: 21px; height: 21px; color: var(--muted); }
+.note-row[aria-current="true"] { background: var(--accent-soft); border-radius: 10px; }
+.note-row[aria-current="true"] svg.i { color: var(--accent); }
+.note-row .row-text span { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.reader { padding: 26px 30px 28px; min-height: 360px; }
+.reader h2 { margin: 0; font: 600 32px/1.15 var(--serif); color: var(--ink); }
+.reader .meta { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.reader .acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 20px; }
+.reader .text { white-space: pre-wrap; font-size: 16px; line-height: 1.7; color: var(--text); border-top: 1px solid var(--rule); padding-top: 18px; overflow-wrap: anywhere; }
+.reader .ask-note { display: flex; gap: 10px; margin-top: 22px; }
+.reader .ask-note .field { height: 44px; font-size: 15px; }
+.reader-empty { display: grid; place-items: center; min-height: 300px; text-align: center; color: var(--muted); }
+.reader-empty svg { width: 64px; height: 40px; color: var(--faint); }
+.new-note { margin-bottom: 24px; padding: 20px 22px; }
+.new-note .row-acts { display: flex; gap: 10px; margin-top: 12px; }
+
+/* Settings. */
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.set { padding: 22px 26px 24px; }
+.set.wide { grid-column: 1 / -1; }
+.set h2 { margin: 0 0 6px; font: 600 24px/1.2 var(--serif); color: var(--ink); }
+.set p { margin: 6px 0 0; color: var(--text); }
+.set form { display: flex; gap: 12px; margin-top: 14px; }
+.set .path { font: 15px/1.5 ui-monospace, "Hack", monospace; color: var(--ink); overflow-wrap: anywhere; }
+.set .tabs { margin: 14px 0 0; }
 .can-list { list-style: none; margin: 16px 0 0; padding: 0; }
 .can-list > li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--rule); }
 .can-list > li:first-child { border-top: 0; }
 .can-list ul { grid-column: 2; margin: 2px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
 .device { color: var(--muted); font-size: 14.5px; }
+
+/* Kestrel's answer to something done away from Home. */
+.dock {
+  position: fixed; z-index: 20; right: 28px; bottom: 24px; width: min(440px, calc(100vw - 32px)); max-height: 62vh;
+  display: flex; flex-direction: column;
+  border-radius: 16px; background: var(--card); border: 1px solid var(--card-line);
+  box-shadow: 0 20px 50px rgba(10, 24, 54, .18), 0 2px 6px rgba(10, 24, 54, .08);
+}
+.dock[hidden] { display: none; }
+.dock header { display: flex; align-items: center; gap: 12px; padding: 14px 14px 12px 18px; border-bottom: 1px solid var(--rule); }
+.dock header svg { width: 28px; height: 28px; color: var(--accent); flex: none; }
+.dock header b { flex: 1; min-width: 0; font-size: 15px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dock header button { width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 20px; line-height: 1; }
+.dock header button:hover { background: var(--chip); }
+.dock .detail { padding: 14px 18px 16px; overflow: auto; }
+
+/* The first open: who you are, your notes, this device. */
+.welcome { position: fixed; z-index: 30; inset: 0; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--bg) 55%, transparent); backdrop-filter: blur(10px); }
+.welcome[hidden] { display: none; }
+.welcome-card { position: relative; width: min(660px, 100%); max-height: calc(100vh - 40px); overflow: auto; border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: 0 30px 80px rgba(10, 24, 54, .22); }
+.welcome-art { position: relative; height: 150px; overflow: hidden; border-radius: 20px 20px 0 0; background: linear-gradient(180deg, color-mix(in srgb, var(--art-glow) 55%, var(--card)), var(--card)); }
+.welcome-art svg { position: absolute; inset: auto 0 0 0; width: 100%; height: 150px; }
+.welcome-art .kestrel { position: absolute; left: 34px; top: 26px; width: 46px; height: 46px; color: var(--accent); }
+.welcome-body { padding: 8px 40px 32px; }
+.steps { display: flex; gap: 8px; list-style: none; margin: 0 0 18px; padding: 0; }
+.steps li { width: 28px; height: 4px; border-radius: 2px; background: var(--rule); }
+.steps li.on { background: var(--accent); }
+.w-step h2 { margin: 6px 0 8px; font: 600 34px/1.15 var(--serif); color: var(--ink); }
+.w-step .greet { font-size: 17px; }
+.w-step p { margin: 8px 0 0; font-size: 16px; line-height: 1.6; color: var(--text); }
+.w-step form { display: flex; gap: 12px; margin-top: 20px; }
+.w-step .go { margin-top: 22px; }
+.w-step .can-list { max-height: 240px; overflow: auto; }
+.w-skip { position: absolute; right: 18px; top: 16px; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--card) 70%, transparent); color: var(--muted); font-size: 14px; }
+.w-skip:hover { color: var(--ink); }
 
 /* Narrower windows: the bar keeps its icons, then the columns stack. */
 @media (max-width: 1500px) {
@@ -422,11 +572,16 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
   .quote { left: 50%; }
 }
 @media (max-width: 1080px) {
+  .cal-layout, .notes-layout, .settings-grid { grid-template-columns: 1fr; }
   .quote { display: none; }
   .work { grid-template-columns: 1fr; }
   .events { max-width: 70%; }
 }
 @media (max-width: 720px) {
+  .page-head { flex-direction: column; align-items: flex-start; }
+  .statbox { display: none; }
+  .cal-day { min-height: 58px; }
+  .pill, .more-day { display: none; }
   .app { grid-template-columns: 1fr; }
   .side { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--side-line); }
   .brand svg { width: 34px; height: 34px; }
@@ -562,7 +717,7 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
           </section>
         </div>
 
-        <section class="card tasks" id="tasks-card" aria-labelledby="tasks-h" style="position: relative">
+        <section class="card tasks" id="tasks-card" aria-labelledby="tasks-h">
           <div class="card-head">
             <span class="boxmark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9"/></svg></span>
             <h2 id="tasks-h">Tasks</h2>
@@ -577,25 +732,152 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
       </div>
     </section>
 
+    <section class="view" id="view-tasks" aria-labelledby="tasks-page-h" hidden>
+      <div class="page-head">
+        <div><h1 id="tasks-page-h">Tasks</h1><p>Everything you asked Kestrel to keep, in one place.</p></div>
+        <div class="statbox"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12.2 2.7 2.7L16.2 9"/></svg><b id="tp-open">0 open</b><i></i><span id="tp-counts"></span></div>
+      </div>
+      <form class="card addbar" id="add-task">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>
+        <label class="sr" for="new-task">New task</label>
+        <input class="field" id="new-task" autocomplete="off" spellcheck="false" placeholder="Add a task… e.g. call mom tomorrow at 5 pm">
+        <button class="send" type="submit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+      </form>
+      <div class="tabs" id="task-tabs" role="group" aria-label="Show">
+        <button type="button" data-f="all">All<span></span></button>
+        <button type="button" data-f="today">Today<span></span></button>
+        <button type="button" data-f="upcoming">Upcoming<span></span></button>
+        <button type="button" data-f="nodate">No date<span></span></button>
+        <button type="button" data-f="overdue">Overdue<span></span></button>
+      </div>
+      <section class="card tasks tasks-full" aria-label="Tasks"><div id="tasks-all"><p class="empty">Loading your tasks</p></div></section>
+    </section>
+
+    <section class="view" id="view-calendar" aria-labelledby="cal-h" hidden>
+      <div class="page-head">
+        <div><h1 id="cal-h">Calendar</h1><p>Your tasks by day. Choose a day to see it.</p></div>
+        <div class="cal-nav">
+          <button class="btn" type="button" id="cal-prev" aria-label="Previous month">‹</button>
+          <button class="btn" type="button" id="cal-today">Today</button>
+          <button class="btn" type="button" id="cal-next" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="cal-layout">
+        <section class="card cal" aria-label="The month">
+          <div class="cal-dow" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </section>
+        <section class="card tasks cal-side" aria-labelledby="cal-day-h">
+          <div class="card-head"><span class="boxmark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><h2 id="cal-day-h">Today</h2></div>
+          <div id="cal-day"></div>
+        </section>
+      </div>
+      <section class="card timeline cal-day-strip" aria-label="The chosen day, hour by hour"><div class="strip" id="cal-strip"></div></section>
+    </section>
+
     <section class="view" id="view-notes" aria-labelledby="notes-h" hidden>
-      <div class="card plain">
-        <div class="card-head"><h2 id="notes-h">Notes</h2></div>
-        <p>Ask about your notes in Talk to Kestrel, in English or Hinglish:</p>
-        <p class="try" id="notes-try"><span>Try:</span><span class="chips">
-          <button type="button">summarize my latest note</button>
-          <button type="button">search my notes for budget</button>
-          <button type="button">meri notes mein meeting ke baare mein kya likha hai</button>
-        </span></p>
+      <div class="page-head">
+        <div><h1 id="notes-h">Notes</h1><p id="notes-sub">Your notes folder, read here. Nothing leaves this device.</p></div>
+        <button class="btn primary" type="button" id="new-note-open"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New note</button>
+      </div>
+      <form class="card new-note" id="new-note" hidden>
+        <label class="sr" for="new-note-text">New note</label>
+        <textarea class="field" id="new-note-text" placeholder="Write it here; Kestrel saves it as a new file in your notes folder, after you say yes."></textarea>
+        <div class="row-acts"><button class="btn primary" type="submit">Save note</button><button class="btn" type="button" id="new-note-cancel">Cancel</button></div>
+      </form>
+      <div class="notes-layout">
+        <section class="card notes-list" aria-label="Your notes">
+          <label class="search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span class="sr">Search your notes</span><input id="notes-filter" autocomplete="off" spellcheck="false" placeholder="Search your notes"></label>
+          <ol class="rows" id="notes-rows"><li class="empty">Loading your notes</li></ol>
+        </section>
+        <section class="card reader" id="reader" aria-live="polite">
+          <div class="reader-empty"><div><svg viewBox="0 0 56 34" aria-hidden="true"><path d="M2 32 20 6l8 11 6-7 20 22Z" fill="currentColor"/></svg><p>Choose a note to read it here.</p></div></div>
+        </section>
       </div>
     </section>
 
     <section class="view" id="view-settings" aria-labelledby="settings-h" hidden>
-      <div class="card plain">
-        <div class="card-head"><h2 id="settings-h">On this device</h2><span class="device" id="can-count"></span></div>
-        <p class="device" id="device">Loading what Kestrel can do here</p>
-        <ul class="can-list" id="cards"></ul>
+      <div class="page-head"><div><h1 id="settings-h">Settings</h1><p>Kestrel runs on this device. What it knows about you, and about it.</p></div></div>
+      <div class="settings-grid">
+        <section class="card set" aria-labelledby="you-h">
+          <h2 id="you-h">You</h2>
+          <p>The name Kestrel greets you by.</p>
+          <form id="name-form"><label class="sr" for="name-input">Your name</label><input class="field" id="name-input" maxlength="40" autocomplete="off" placeholder="Your name"><button class="btn primary" type="submit">Save</button></form>
+          <p class="hint" id="name-hint" aria-live="polite"></p>
+        </section>
+        <section class="card set" aria-labelledby="look-h">
+          <h2 id="look-h">Appearance</h2>
+          <p>Light like the morning, dark like the night, or as this device is set.</p>
+          <div class="tabs" id="theme-tabs" role="group" aria-label="Theme"><button type="button" data-t="light">Light</button><button type="button" data-t="dark">Dark</button><button type="button" data-t="system">System</button></div>
+        </section>
+        <section class="card set" aria-labelledby="folder-h">
+          <h2 id="folder-h">Notes folder</h2>
+          <p class="path" id="notes-path">…</p>
+          <p class="hint">Another folder: <code>kestrel settings notes DIR</code>, then start Kestrel again.</p>
+        </section>
+        <section class="card set" aria-labelledby="model-h">
+          <h2 id="model-h">Model</h2>
+          <p id="model-line">…</p>
+          <p class="hint">A model from a file (a USB stick, a download made elsewhere): <code>kestrel model import FILE.gguf</code></p>
+        </section>
+        <section class="card set wide" aria-labelledby="can-h">
+          <div class="card-head"><h2 id="can-h">On this device</h2><span class="device" id="can-count"></span></div>
+          <p class="device" id="device">Loading what Kestrel can do here</p>
+          <ul class="can-list" id="cards"></ul>
+        </section>
       </div>
     </section>
+  </div>
+</div>
+
+<aside class="dock" id="dock" hidden aria-live="polite" aria-label="Kestrel's answer">
+  <header><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg><b id="dock-text"></b><button type="button" id="dock-close" aria-label="Close">×</button></header>
+  <div id="dock-body"></div>
+</aside>
+
+<div class="welcome" id="welcome-box" role="dialog" aria-modal="true" aria-labelledby="w-title" hidden>
+  <div class="welcome-card">
+    <div class="welcome-art" aria-hidden="true">
+      <svg viewBox="0 0 660 150" preserveAspectRatio="xMidYMax slice">
+        <circle cx="430" cy="98" r="36" fill="url(#orb)"/>
+        <path d="M0 150v-26l70-12 80 4 90-22 80 6 70-30 70 18 80-10 70 16 50-8v64Z" fill="var(--m-far)"/>
+        <path d="M250 150 340 104l60-34 70 40 80 22 50 18Z" fill="url(#tall)"/>
+        <path d="M60 150 160 126l70-26 52-22 50 28 64 30 40 14Z" fill="url(#front)"/>
+        <path d="M380 150 460 132l80 4 70-10 50 6v18Z" fill="var(--m-low)"/>
+      </svg>
+      <svg class="kestrel" viewBox="0 0 32 32"><use href="#kestrel"/></svg>
+    </div>
+    <div class="welcome-body">
+      <ol class="steps" aria-hidden="true"><li></li><li></li><li></li><li></li></ol>
+      <div class="w-step" data-step="1">
+        <p class="greet">Welcome to Kestrel</p>
+        <h2 id="w-title">What should Kestrel call you?</h2>
+        <p>It greets you by name each day. Like everything here, it stays on this device.</p>
+        <form id="w-name"><label class="sr" for="w-name-input">Your name</label><input class="field" id="w-name-input" maxlength="40" autocomplete="off" placeholder="Your name"><button class="btn primary" type="submit">Continue</button></form>
+        <p class="hint" id="w-name-hint" aria-live="polite"></p>
+      </div>
+      <div class="w-step" data-step="2" hidden>
+        <p class="greet" id="w-hello">Hello</p>
+        <h2>Your notes</h2>
+        <p>Kestrel reads your notes from <b id="w-notes">your notes folder</b><span id="w-count"></span>. It finds, opens and summarizes them, and answers questions from them. They never leave this device.</p>
+        <button class="btn primary go" type="button" data-next="3">Continue</button>
+      </div>
+      <div class="w-step" data-step="3" hidden>
+        <p class="greet">This device</p>
+        <h2>What Kestrel can do here</h2>
+        <p id="w-device">Looking at this device…</p>
+        <ul class="can-list" id="w-cards"></ul>
+        <p class="hint" id="w-model"></p>
+        <button class="btn primary go" type="button" data-next="4">Continue</button>
+      </div>
+      <div class="w-step" data-step="4" hidden>
+        <p class="greet">All set</p>
+        <h2 id="w-ready">You're ready</h2>
+        <p>Tell Kestrel what to keep, in English or Hinglish, e.g. “kal shaam 6 baje bill bharna yaad dila dena”. Your tasks, the calendar and your notes are on the left.</p>
+        <button class="btn primary go" type="button" id="w-done">Start</button>
+      </div>
+      <button class="w-skip" type="button" id="w-skip">Skip for now</button>
+    </div>
   </div>
 </div>
 
@@ -653,20 +935,6 @@ $("light").addEventListener("click", () => setTheme("light"));
 $("dark").addEventListener("click", () => setTheme("dark"));
 setTheme(document.documentElement.dataset.theme);
 
-// Home, Notes and Settings are views; Tasks and Calendar are parts of Home.
-function show(view) {
-  const page = view === "notes" || view === "settings" ? view : "home";
-  for (const v of ["home", "notes", "settings"]) $("view-" + v).hidden = v !== page;
-  document.querySelectorAll(".nav button").forEach((b) => {
-    if (b.dataset.view === view) b.setAttribute("aria-current", "page");
-    else b.removeAttribute("aria-current");
-  });
-  if (view === "tasks") $("tasks-card").scrollIntoView({ behavior: "smooth", block: "start" });
-  if (view === "calendar") $("calendar").scrollIntoView({ behavior: "smooth", block: "center" });
-  if (view === "home") window.scrollTo({ top: 0, behavior: "smooth" });
-}
-document.querySelectorAll(".nav button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
-
 // --- The day -------------------------------------------------------------------------------
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
 const minutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -692,8 +960,9 @@ function drawHero(data) {
 
 const EVENT_COLORS = [["--ev1", "--ev1-dot"], ["--ev2", "--ev2-dot"], ["--ev3", "--ev3-dot"], ["--ev4", "--ev4-dot"]];
 
-function drawTimeline(data) {
-  const strip = $("strip");
+// A day's strip: `strip` (Home's, or the Calendar's chosen day), with the kestrel over now when
+// `now` (today).
+function drawTimeline(data, strip = $("strip"), now = true) {
   strip.replaceChildren();
   strip.append(el("div", "axis"));
   const past = el("div", "past");
@@ -723,12 +992,14 @@ function drawTimeline(data) {
     if (t.m > data.minute) dot.append(el("span", "", t.time));
     strip.append(dot);
   }
-  const now = el("div", "now");
-  now.style.left = pct(data.minute);
-  now.innerHTML = '<svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>';
-  now.append(el("b", "", hhmm(data.minute)));
-  if (data.minute > 1440 - 90) now.querySelector("b").style.left = "-4.4rem";
-  strip.append(now);
+  if (now) {
+    const k = el("div", "now");
+    k.style.left = pct(data.minute);
+    k.innerHTML = '<svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>';
+    k.append(el("b", "", hhmm(data.minute)));
+    if (data.minute > 1440 - 90) k.querySelector("b").style.left = "-4.4rem";
+    strip.append(k);
+  }
   // The cards: what is still to come today, the next ones first.
   const later = timed.filter((t) => t.m > data.minute);
   if (later.length) {
@@ -744,9 +1015,9 @@ function drawTimeline(data) {
     });
     strip.append(box);
   } else {
-    strip.append(el("p", "quiet", timed.length ? "Nothing else timed today." : "Nothing timed today. Say a time and it shows up here."));
+    strip.append(el("p", "quiet", !now ? "Nothing timed this day." : timed.length ? "Nothing else timed today." : "Nothing timed today. Say a time and it shows up here."));
   }
-  $("day-summary").textContent = later.length
+  if (strip === $("strip")) $("day-summary").textContent = later.length
     ? `Still today: ${later.map((t) => t.time + " " + t.title).join(", ")}.`
     : "Nothing else timed today.";
 }
@@ -754,17 +1025,22 @@ function drawTimeline(data) {
 // --- Tasks ---------------------------------------------------------------------------------
 const shortDay = (iso) => asDate(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
-function finish(t, li) {
+function finish(t, li, full) {
   li.classList.add("finishing");
-  send(`task ${t.id} done`);
+  send(`task ${t.id} done`, { stay: full });
 }
 
 function drawTasks(data) {
-  const box = $("tasks");
+  drawTaskGroups($("tasks"), data, false);
+}
+
+// The task list in `box`, by group (or `only` these groups); `full`: the Tasks page's ⋯ menus, and
+// answers in the dock.
+function drawTaskGroups(box, data, full, only) {
   box.replaceChildren();
   const byTime = (a, b) => (a.due || "").localeCompare(b.due || "") || (a.time ? 0 : 1) - (b.time ? 0 : 1)
     || (a.time || "").localeCompare(b.time || "") || a.id - b.id;
-  const groups = [
+  const groups = only || [
     ["Overdue", data.tasks.filter((t) => t.due && t.due < data.today), (t) => "since " + shortDay(t.due) + (t.time ? ", " + t.time : ""), true],
     ["Today", data.tasks.filter((t) => t.due === data.today), (t) => t.time || "any time", false],
     ["Coming up", data.tasks.filter((t) => t.due && t.due > data.today), (t) => shortDay(t.due) + (t.time ? ", " + t.time : ""), false],
@@ -775,15 +1051,18 @@ function drawTasks(data) {
     if (!tasks.length) continue;
     any = true;
     const g = el("section", "group");
-    const h = el("h3", "", name);
-    h.append(el("span", "", String(tasks.length)));
     const ul = el("ul");
+    if (name) {
+      const h = el("h3", "", name);
+      h.append(el("span", "", String(tasks.length)));
+      g.append(h);
+    }
     for (const t of tasks.sort(byTime)) {
       const li = el("li", "task" + (late ? " late" : ""));
       const ring = el("button", "ring");
       ring.type = "button";
       ring.setAttribute("aria-label", `Mark “${t.title}” done`);
-      ring.addEventListener("click", () => finish(t, li));
+      ring.addEventListener("click", () => finish(t, li, full));
       const what = el("div");
       what.append(el("span", "what", t.title));
       const w = when(t);
@@ -791,11 +1070,20 @@ function drawTasks(data) {
       const done = el("button", "done", "Done");
       done.type = "button";
       done.setAttribute("aria-label", `Mark “${t.title}” done`);
-      done.addEventListener("click", () => finish(t, li));
-      li.append(ring, what, done);
+      done.addEventListener("click", () => finish(t, li, full));
+      const acts = el("div", "acts");
+      acts.append(done);
+      if (full) {
+        const more = el("button", "more", "⋯");
+        more.type = "button";
+        more.setAttribute("aria-label", `More for “${t.title}”`);
+        more.addEventListener("click", (e) => { e.stopPropagation(); taskMenu(t, li, more); });
+        acts.append(more);
+      }
+      li.append(ring, what, acts);
       ul.append(li);
     }
-    g.append(h, ul);
+    g.append(ul);
     box.append(g);
   }
   if (!any) box.append(el("p", "empty", "No tasks. Say “remind me to …” and it lands here."));
@@ -837,6 +1125,8 @@ const STATES = {
 };
 function drawCapabilities(data) {
   if (!data || !Array.isArray(data.cards)) return;
+  lastCaps = data;
+  $("model-line").textContent = modelLine(data);
   const d = data.device;
   const gpus = d.gpus.length
     ? d.gpus.map((g) => g.kind === "integrated" ? `GPU ${g.name} (shares the RAM)` : `GPU ${g.name} (${g.memory})`).join(", ")
@@ -880,6 +1170,8 @@ async function refresh() {
     drawHero(last);
     drawTimeline(last);
     drawTasks(last);
+    if (shownView() === "tasks") drawTasksPage(last);
+    if (shownView() === "calendar") drawCalendar(last);
     drawRecent();
     if (last.skills) showSkills();
   } catch (e) { /* the conversation reports a stopped service */ }
@@ -1037,12 +1329,16 @@ function codeBoxes(p) {
   p.replaceWith(out);
 }
 
-async function send(text) {
+// `opts.stay`: asked away from Home; the page stays and the answer shows in the dock.
+// `opts.then`: runs once the answer is in.
+async function send(text, opts = {}) {
   if (busy || !text.trim()) return;
   busy = true;
   $("send").disabled = true;
-  show("home");
+  undock();
+  if (!opts.stay) show("home");
   const t = turn(text);
+  if (opts.stay) dock(t);
   const wait = el("p", "wait", "Thinking");
   t.detail.append(wait);
   const t0 = Date.now();
@@ -1091,16 +1387,427 @@ async function send(text) {
     wait.remove();
     t.done = true;
     // A one-line answer needs no opening: its line is under the request.
-    if (!t.written && t.lines.length <= 1 && !t.trouble && !t.detail.querySelector(".question")) {
-      t.row.querySelector(".row-main").click();
-    }
+    t.oneLine = !t.written && t.lines.length <= 1 && !t.trouble && !t.detail.querySelector(".question");
+    if (t.oneLine && docked !== t) t.row.querySelector(".row-main").click();
     drawRow(t);
     busy = false;
     $("send").disabled = false;
     refresh();
-    $("say").focus({ preventScroll: true });
+    if (opts.then) opts.then();
+    if (!opts.stay) $("say").focus({ preventScroll: true });
   }
 }
+
+// --- Pages: Home is the human's design; the others are Claude's in its language (2026-10-31) --
+const VIEWS = ["home", "tasks", "calendar", "notes", "settings"];
+function show(view) {
+  for (const v of VIEWS) $("view-" + v).hidden = v !== view;
+  document.querySelectorAll(".nav button").forEach((b) => {
+    if (b.dataset.view === view) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  });
+  window.scrollTo({ top: 0 });
+  if (view === "notes") loadNotes();
+  if (view === "settings") loadSettings();
+  if (last && view === "tasks") drawTasksPage(last);
+  if (last && view === "calendar") drawCalendar(last);
+}
+document.querySelectorAll(".nav button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+const shownView = () => VIEWS.find((v) => !$("view-" + v).hidden);
+
+// Kestrel's answer to something done away from Home: the request's own answer (its row's detail)
+// shows in the dock, and goes back to its row in Recent when the dock closes.
+let docked = null;
+function dock(t) {
+  undock();
+  docked = t;
+  $("dock-text").textContent = t.text;
+  $("dock-body").append(t.detail);
+  t.detail.hidden = false;
+  $("dock").hidden = false;
+}
+function undock() {
+  if (!docked) return;
+  const t = docked;
+  docked = null;
+  t.row.append(t.detail);
+  if (t.done && t.oneLine) {
+    t.row.dataset.open = "false";
+    t.row.querySelector(".row-main").setAttribute("aria-expanded", "false");
+  }
+  t.detail.hidden = t.row.dataset.open !== "true";
+  $("dock").hidden = true;
+}
+$("dock-close").addEventListener("click", undock);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") undock(); });
+
+// --- Tasks page ------------------------------------------------------------------------------
+let taskFilter = "all";
+const FILTERS = {
+  all: () => true,
+  today: (t, d) => t.due === d.today,
+  upcoming: (t, d) => !!t.due && t.due > d.today,
+  nodate: (t) => !t.due,
+  overdue: (t, d) => !!t.due && t.due < d.today,
+};
+
+function drawTasksPage(data) {
+  const count = (f) => data.tasks.filter((t) => FILTERS[f](t, data)).length;
+  $("tp-open").textContent = `${data.tasks.length} open`;
+  $("tp-counts").textContent = `${count("today")} today · ${count("overdue")} overdue`;
+  document.querySelectorAll("#task-tabs button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.f === taskFilter));
+    b.querySelector("span").textContent = count(b.dataset.f);
+  });
+  const shown = { ...data, tasks: data.tasks.filter((t) => FILTERS[taskFilter](t, data)) };
+  drawTaskGroups($("tasks-all"), shown, true);
+}
+document.querySelectorAll("#task-tabs button").forEach((b) => b.addEventListener("click", () => {
+  taskFilter = b.dataset.f;
+  if (last) drawTasksPage(last);
+}));
+
+// What the Add box sends: a request as typed when it already asks for a task, else "add task …".
+const asTask = (text) => (/^(remind|add\b|task\b)/i.test(text) || /\byaad\b/i.test(text) ? text : `add task ${text}`);
+$("add-task").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = $("new-task").value.trim();
+  if (!text) return;
+  $("new-task").value = "";
+  send(asTask(text), { stay: true });
+});
+
+// The ⋯ menu of a task on the Tasks page: each change is a request Kestrel already understands.
+const EDITS = [
+  ["Rename", "New name", (t, v) => `rename task ${t.id} to ${v}`],
+  ["Change date", "e.g. friday, kal, 3 november", (t, v) => `move task ${t.id} to ${v}`],
+  ["Set time", "e.g. 5 pm, 17:30", (t, v) => `task ${t.id} at ${v}`],
+];
+let openMenu = null;
+function closeMenu() { if (openMenu) { openMenu.remove(); openMenu = null; } }
+document.addEventListener("click", (e) => { if (openMenu && !e.target.closest(".row-menu, .task .more")) closeMenu(); });
+
+function taskMenu(t, li, button) {
+  closeMenu();
+  const m = el("div", "row-menu");
+  m.setAttribute("role", "menu");
+  for (const [name, hint, cmd] of EDITS) {
+    const b = el("button", "", name);
+    b.type = "button";
+    b.addEventListener("click", () => { closeMenu(); editTask(t, li, hint, cmd); });
+    m.append(b);
+  }
+  if (t.due) {
+    const b = el("button", "", "Remove date");
+    b.type = "button";
+    b.addEventListener("click", () => { closeMenu(); send(`task ${t.id} ki date hata do`, { stay: true }); });
+    m.append(b);
+  }
+  const del = el("button", "danger", "Delete…");
+  del.type = "button";
+  del.addEventListener("click", () => { closeMenu(); send(`delete task ${t.id}`, { stay: true }); });
+  m.append(del);
+  const card = button.closest(".card");
+  card.append(m);
+  const r = button.getBoundingClientRect();
+  const c = card.getBoundingClientRect();
+  m.style.top = `${r.bottom - c.top + 4}px`;
+  m.style.right = `${c.right - r.right}px`;
+  openMenu = m;
+  m.querySelector("button").focus();
+}
+
+function editTask(t, li, hint, cmd) {
+  li.querySelector(".edit")?.remove();
+  const f = el("form", "edit");
+  const input = el("input", "field");
+  input.placeholder = hint;
+  input.setAttribute("aria-label", hint);
+  const save = el("button", "btn primary", "Save");
+  const cancel = el("button", "btn", "Cancel");
+  cancel.type = "button";
+  cancel.addEventListener("click", () => f.remove());
+  f.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = input.value.trim();
+    if (!v) return;
+    f.remove();
+    send(cmd(t, v), { stay: true });
+  });
+  f.append(input, save, cancel);
+  li.append(f);
+  input.focus();
+}
+
+// --- Calendar ------------------------------------------------------------------------------
+let calMonth = null; // the first of the month shown
+let calSel = null; // the chosen day, YYYY-MM-DD
+const pad2 = (n) => String(n).padStart(2, "0");
+const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+function drawCalendar(data) {
+  if (!calMonth) {
+    const d = asDate(data.today);
+    calMonth = new Date(d.getFullYear(), d.getMonth(), 1, 12);
+    calSel = data.today;
+  }
+  $("cal-h").textContent = calMonth.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const byDay = new Map();
+  for (const t of data.tasks) if (t.due) (byDay.get(t.due) || byDay.set(t.due, []).get(t.due)).push(t);
+  for (const list of byDay.values()) list.sort((a, b) => (a.time ? 0 : 1) - (b.time ? 0 : 1) || (a.time || "").localeCompare(b.time || "") || a.id - b.id);
+  const grid = $("cal-grid");
+  grid.replaceChildren();
+  const start = new Date(calMonth);
+  start.setDate(1 - ((calMonth.getDay() + 6) % 7)); // weeks start on Monday
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (i === 35 && d.getMonth() !== calMonth.getMonth()) break;
+    const iso = isoOf(d);
+    const cell = el("button", "cal-day");
+    cell.type = "button";
+    if (d.getMonth() !== calMonth.getMonth()) cell.classList.add("out");
+    if (iso === data.today) cell.classList.add("today");
+    if (iso === calSel) cell.classList.add("sel");
+    const tasks = byDay.get(iso) || [];
+    cell.setAttribute("aria-label", `${d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}, ${tasks.length} task${tasks.length === 1 ? "" : "s"}`);
+    cell.append(el("span", "num", String(d.getDate())));
+    tasks.slice(0, 3).forEach((t, k) => {
+      const p = el("span", "pill" + (iso < data.today ? " late" : ""));
+      p.style.background = `var(${EVENT_COLORS[k % EVENT_COLORS.length][0]})`;
+      if (t.time) p.append(el("b", "", t.time));
+      p.append(t.title);
+      cell.append(p);
+    });
+    if (tasks.length > 3) cell.append(el("span", "more-day", `+${tasks.length - 3} more`));
+    cell.addEventListener("click", () => { calSel = iso; drawCalendar(data); });
+    grid.append(cell);
+  }
+  // The chosen day: its tasks and its hours.
+  const sel = asDate(calSel);
+  $("cal-day-h").textContent = sel.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const day = { ...data, tasks: byDay.get(calSel) || [] };
+  const box = $("cal-day");
+  if (day.tasks.length) drawTaskGroups(box, day, true, [["", day.tasks, (t) => t.time || "any time", calSel < data.today]]);
+  else box.replaceChildren(el("p", "empty", calSel === data.today ? "Nothing for today." : "Nothing on this day. Ask Kestrel: “remind me to … on " + sel.toLocaleDateString("en-GB", { weekday: "long" }).toLowerCase() + "”."));
+  const minute = calSel === data.today ? data.minute : calSel < data.today ? 1440 : 0;
+  drawTimeline({ today: calSel, minute, tasks: data.tasks }, $("cal-strip"), calSel === data.today);
+}
+$("cal-prev").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() - 1); drawCalendar(last); });
+$("cal-next").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() + 1); drawCalendar(last); });
+$("cal-today").addEventListener("click", () => { calMonth = null; drawCalendar(last); });
+
+// --- Notes ---------------------------------------------------------------------------------
+let notesData = null;
+let noteOpen = null;
+const DOC = '<path d="M7 3.5h7.5l4 4V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M14 3.5V8h4.5M8.5 12h7M8.5 15.5h5"/>';
+
+async function loadNotes() {
+  if (!token) return;
+  try {
+    const r = await api("/api/notes");
+    if (!r.ok) throw new Error(await r.text());
+    notesData = await r.json();
+  } catch (e) {
+    $("notes-rows").replaceChildren(el("li", "empty", "Your notes could not be read: " + e.message));
+    return;
+  }
+  drawNotes();
+}
+
+function drawNotes() {
+  if (!notesData) return;
+  const n = notesData.notes.length;
+  // The folder by its last two names (Settings shows it whole).
+  const parts = notesData.folder.split(/[\\/]/).filter(Boolean);
+  const where = parts.length > 2 ? "…/" + parts.slice(-2).join("/") : notesData.folder;
+  $("notes-sub").textContent = `${n} note${n === 1 ? "" : "s"} in ${where}. Read here; nothing leaves this device.`;
+  const q = $("notes-filter").value.trim().toLowerCase();
+  const shown = notesData.notes.filter((x) => !q || `${x.title} ${x.preview} ${x.name}`.toLowerCase().includes(q));
+  const rows = $("notes-rows");
+  rows.replaceChildren();
+  if (!shown.length) rows.append(el("li", "empty", n ? "No note matches." : "No notes yet. Write one with New note."));
+  for (const x of shown) {
+    const li = el("li", "row note-row");
+    if (noteOpen && noteOpen.name === x.name) li.setAttribute("aria-current", "true");
+    const b = el("button", "row-main");
+    b.type = "button";
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("class", "i");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = DOC;
+    const text = el("div", "row-text");
+    text.append(el("b", "", x.title), el("span", "", [x.date, x.preview].filter(Boolean).join(" · ")));
+    b.append(icon, text);
+    b.addEventListener("click", () => openNote(x.name));
+    li.append(b);
+    rows.append(li);
+  }
+}
+$("notes-filter").addEventListener("input", drawNotes);
+
+async function openNote(name) {
+  try {
+    const r = await api("/api/notes/read", { name });
+    if (!r.ok) throw new Error(await r.text());
+    noteOpen = await r.json();
+  } catch (e) {
+    $("reader").replaceChildren(el("p", "trouble", "This note could not be read: " + e.message));
+    return;
+  }
+  drawNotes();
+  const n = noteOpen;
+  const box = $("reader");
+  box.replaceChildren();
+  box.append(el("h2", "", n.title), el("p", "meta", [n.date, n.name].filter(Boolean).join(" · ")));
+  const acts = el("div", "acts");
+  const sum = el("button", "btn primary", "Summarize");
+  sum.type = "button";
+  sum.addEventListener("click", () => send(`summarize my notes about ${n.title}`, { stay: true }));
+  acts.append(sum);
+  // The heading is the title above; the text goes on from after it.
+  const lines = n.text.trimStart().split("\n");
+  const body = lines[0].replace(/^#+\s*/, "").trim() === n.title && lines[0].startsWith("#") ? lines.slice(1).join("\n").trimStart() : n.text;
+  box.append(acts, el("div", "text", body));
+  const ask = el("form", "ask-note");
+  const q = el("input", "field");
+  q.placeholder = "Ask a question about your notes";
+  q.setAttribute("aria-label", "Ask a question about your notes");
+  const go = el("button", "btn", "Ask");
+  ask.append(q, go);
+  ask.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!q.value.trim()) return;
+    send(q.value.trim(), { stay: true });
+    q.value = "";
+  });
+  box.append(ask);
+}
+
+$("new-note-open").addEventListener("click", () => { $("new-note").hidden = false; $("new-note-text").focus(); });
+$("new-note-cancel").addEventListener("click", () => { $("new-note").hidden = true; });
+$("new-note").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = $("new-note-text").value.trim();
+  if (!text) return;
+  $("new-note-text").value = "";
+  $("new-note").hidden = true;
+  send(`add to notes: ${text}`, { stay: true, then: loadNotes });
+});
+
+// --- Settings ------------------------------------------------------------------------------
+let lastCaps = null;
+function storedTheme() {
+  try { return localStorage.getItem("kestrel-theme"); } catch (e) { return null; }
+}
+function markTheme() {
+  const t = storedTheme() || "system";
+  document.querySelectorAll("#theme-tabs button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.t === t)));
+}
+document.querySelectorAll("#theme-tabs button").forEach((b) => b.addEventListener("click", () => {
+  if (b.dataset.t === "system") {
+    try { localStorage.removeItem("kestrel-theme"); } catch (e) { /* this visit only */ }
+    document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } else {
+    setTheme(b.dataset.t);
+  }
+  markTheme();
+}));
+
+function modelLine(caps) {
+  if (!caps || !caps.device) return "What this device can run shows once Kestrel has looked.";
+  const d = caps.device;
+  return d.writer
+    ? `Kestrel writes with ${d.writer}${d.service_writer && d.service_writer !== d.writer ? ` (for now ${d.service_writer}, until kestrel calibrate)` : ""}. A model may use ${d.budget} here.`
+    : `No model chosen yet. A model may use ${d.budget} here; Gemma 4 E2B (2.6 GB) suits most laptops.`;
+}
+
+async function loadSettings() {
+  markTheme();
+  $("model-line").textContent = modelLine(lastCaps);
+  if (!token) return;
+  try {
+    const r = await api("/api/settings");
+    if (!r.ok) return;
+    const s = await r.json();
+    $("name-input").value = s.name || "";
+    $("notes-path").textContent = s.notes || "not chosen yet";
+  } catch (e) { /* the page reports a stopped service elsewhere */ }
+}
+
+async function saveName(name, hint) {
+  try {
+    const r = await api("/api/settings", { name });
+    if (!r.ok) throw new Error(await r.text());
+    const s = await r.json();
+    hint.textContent = `Saved. Kestrel greets you as ${s.name}.`;
+    hint.classList.remove("bad");
+    refresh();
+    return s;
+  } catch (e) {
+    hint.textContent = e.message;
+    hint.classList.add("bad");
+    return null;
+  }
+}
+$("name-form").addEventListener("submit", (e) => { e.preventDefault(); saveName($("name-input").value, $("name-hint")); });
+
+// --- The first open ------------------------------------------------------------------------
+const SKIP = "kestrel-welcome-skipped";
+function welcomeStep(n) {
+  document.querySelectorAll(".w-step").forEach((s) => { s.hidden = s.dataset.step !== String(n); });
+  document.querySelectorAll(".steps li").forEach((li, i) => li.classList.toggle("on", i < n));
+  const first = document.querySelector(`.w-step[data-step="${n}"] input, .w-step[data-step="${n}"] button`);
+  if (first) first.focus();
+}
+async function maybeWelcome() {
+  if (!token) return;
+  try { if (sessionStorage.getItem(SKIP)) return; } catch (e) { /* ask each time */ }
+  let s;
+  try {
+    const r = await api("/api/settings");
+    if (!r.ok) return;
+    s = await r.json();
+  } catch (e) { return; }
+  if (s.name) return;
+  $("w-notes").textContent = s.notes || "your notes folder";
+  $("welcome-box").hidden = false;
+  welcomeStep(1);
+}
+$("w-name").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const s = await saveName($("w-name-input").value, $("w-name-hint"));
+  if (!s) return;
+  $("w-hello").textContent = `Hello, ${s.name}`;
+  $("w-ready").textContent = `You're ready, ${s.name}`;
+  try {
+    const r = await api("/api/notes");
+    if (r.ok) {
+      const n = (await r.json()).notes.length;
+      $("w-count").textContent = ` (${n} note${n === 1 ? "" : "s"} there now)`;
+    }
+  } catch (e2) { /* the count is only a nicety */ }
+  welcomeStep(2);
+});
+document.querySelectorAll(".w-step [data-next]").forEach((b) => b.addEventListener("click", () => {
+  const n = Number(b.dataset.next);
+  if (n === 3) {
+    $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
+    const list = $("w-cards");
+    list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));
+    $("w-model").textContent = lastCaps && !lastCaps.device.writer
+      ? "Chat, writing and code need a model. Bring one in from a file with: kestrel model import FILE.gguf"
+      : "";
+  }
+  welcomeStep(n);
+}));
+const closeWelcome = () => { $("welcome-box").hidden = true; $("say").focus({ preventScroll: true }); };
+$("w-done").addEventListener("click", closeWelcome);
+$("w-skip").addEventListener("click", () => {
+  try { sessionStorage.setItem(SKIP, "1"); } catch (e) { /* asked again next time */ }
+  closeWelcome();
+});
 
 $("ask").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -1109,7 +1816,6 @@ $("ask").addEventListener("submit", (e) => {
   send(text);
 });
 $("try").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
-$("notes-try").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
 
 function localDay() {
   const d = new Date();
@@ -1134,6 +1840,7 @@ if (!token) {
 }
 drawRecent();
 refresh();
+maybeWelcome();
 setInterval(refresh, 60 * 1000);
 $("say").focus({ preventScroll: true });
 </script>
