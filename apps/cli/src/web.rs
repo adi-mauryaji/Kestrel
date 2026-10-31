@@ -25,6 +25,7 @@ use std::path::Path;
 
 use kestrel_memory::TaskRow;
 use kestrel_tools::date::Date;
+use kestrel_tools::tools::Note;
 use serde_json::{Value, json};
 
 use crate::service::Streamer;
@@ -310,7 +311,37 @@ pub struct Web {
     tasks: Box<dyn Fn() -> Value>,
     capabilities: Box<dyn Fn() -> Value>,
     events: Box<dyn Fn(u64) -> Value>,
+    settings: Box<Settings>,
+    notes: Box<NotesReader>,
     lan: Option<std::net::Ipv4Addr>,
+}
+
+/// Reads the settings (None) or changes them (Some(change)); the settings after, or why not.
+pub type Settings = dyn Fn(Option<&Value>) -> Result<Value, String>;
+/// Lists the notes (None) or reads one by its listed name; or why not (none such: 404).
+pub type NotesReader = dyn Fn(Option<&str>) -> Result<Value, String>;
+
+/// What the API reads and changes beside the requests themselves.
+pub struct Api<'a> {
+    pub tasks: &'a dyn Fn() -> Value,
+    pub capabilities: &'a dyn Fn() -> Value,
+    pub events: &'a dyn Fn(u64) -> Value,
+    pub settings: &'a Settings,
+    pub notes: &'a NotesReader,
+}
+
+#[cfg(test)]
+impl Api<'static> {
+    /// Answers null for each read and refuses each change (a page without a service behind it).
+    pub fn none() -> Self {
+        Api {
+            tasks: &|| Value::Null,
+            capabilities: &|| Value::Null,
+            events: &|_| Value::Null,
+            settings: &|_| Err("no settings here".into()),
+            notes: &|_| Err("no notes here".into()),
+        }
+    }
 }
 
 impl Web {
@@ -337,8 +368,32 @@ impl Web {
             tasks,
             capabilities: Box::new(|| Value::Null),
             events: Box::new(|_| Value::Null),
+            settings: Box::new(|_| Err("no settings here".into())),
+            notes: Box::new(|_| Err("no notes here".into())),
             lan,
         })
+    }
+
+    /// `settings` answers `GET` / `POST /api/settings` (v4).
+    pub fn with_settings(mut self, settings: Box<Settings>) -> Self {
+        self.settings = settings;
+        self
+    }
+
+    /// `notes` answers `GET /api/notes` and `POST /api/notes/read` (v4).
+    pub fn with_notes(mut self, notes: Box<NotesReader>) -> Self {
+        self.notes = notes;
+        self
+    }
+
+    fn api(&self) -> Api<'_> {
+        Api {
+            tasks: &*self.tasks,
+            capabilities: &*self.capabilities,
+            events: &*self.events,
+            settings: &*self.settings,
+            notes: &*self.notes,
+        }
     }
 
     /// `capabilities` answers `GET /api/capabilities` (v4 A2); without it the answer is null.
@@ -376,15 +431,7 @@ impl Web {
             return Ok(());
         };
         let mut answer = || self.wait_for_answer();
-        respond(
-            &req,
-            &mut out,
-            &*self.tasks,
-            &*self.capabilities,
-            &*self.events,
-            say,
-            &mut answer,
-        )
+        respond(&req, &mut out, &self.api(), say, &mut answer)
     }
 
     /// The request on `stream` if it is allowed (else it is refused here), and the stream to
@@ -452,9 +499,7 @@ impl Web {
                     let _ = respond(
                         &req,
                         &mut out,
-                        &*self.tasks,
-                        &*self.capabilities,
-                        &*self.events,
+                        &self.api(),
                         &mut |_, _, _| vec![],
                         &mut || None,
                     );
@@ -465,35 +510,56 @@ impl Web {
     }
 }
 
-/// Answers one allowed request. `tasks` reads the task list, `capabilities` what Kestrel can do on
-/// this device, `events` the app's events after a number, `say` handles a request (its y/N
-/// questions and written parts go to the page), `answer` waits for the page's answer to one.
+/// Answers one allowed request. `api` reads the task list, what Kestrel can do on this device, the
+/// app's events, the settings and the notes; `say` handles a request (its y/N questions and
+/// written parts go to the page), `answer` waits for the page's answer to one.
 pub fn respond(
     req: &HttpRequest,
     out: &mut dyn Write,
-    tasks: &dyn Fn() -> Value,
-    capabilities: &dyn Fn() -> Value,
-    events: &dyn Fn(u64) -> Value,
+    api: &Api,
     say: &mut Streamer<'_>,
     answer: &mut dyn FnMut() -> Option<bool>,
 ) -> io::Result<()> {
     let (path, query) = req.path.split_once('?').unwrap_or((&req.path, ""));
     match (req.method.as_str(), path) {
         ("GET", "/") => reply(out, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes()),
-        ("GET", "/api/tasks") => reply(out, "200 OK", JSON, tasks().to_string().as_bytes()),
+        ("GET", "/api/tasks") => reply(out, "200 OK", JSON, (api.tasks)().to_string().as_bytes()),
         ("GET", font) if font.starts_with("/fonts/") => {
             match FONTS.iter().find(|(p, _)| *p == font) {
                 Some((_, bytes)) => reply(out, "200 OK", "font/woff2", bytes),
                 None => reply(out, "404 Not Found", TEXT, b"not found"),
             }
         }
-        ("GET", "/api/capabilities") => {
-            reply(out, "200 OK", JSON, capabilities().to_string().as_bytes())
-        }
+        ("GET", "/api/capabilities") => reply(
+            out,
+            "200 OK",
+            JSON,
+            (api.capabilities)().to_string().as_bytes(),
+        ),
         ("GET", "/api/events") => match crate::events::after_in(query) {
-            Some(after) => reply(out, "200 OK", JSON, events(after).to_string().as_bytes()),
+            Some(after) => reply(
+                out,
+                "200 OK",
+                JSON,
+                (api.events)(after).to_string().as_bytes(),
+            ),
             None => reply(out, "400 Bad Request", TEXT, b"after=N, N a number"),
         },
+        ("GET", "/api/settings") => {
+            answered(out, (api.settings)(None), "500 Internal Server Error")
+        }
+        ("POST", "/api/settings") => match serde_json::from_slice::<Value>(&req.body) {
+            Ok(change) => answered(out, (api.settings)(Some(&change)), "400 Bad Request"),
+            Err(_) => reply(out, "400 Bad Request", TEXT, b"send {\"name\": \"...\"}"),
+        },
+        ("GET", "/api/notes") => answered(out, (api.notes)(None), "500 Internal Server Error"),
+        ("POST", "/api/notes/read") => {
+            let body = serde_json::from_slice::<Value>(&req.body).ok();
+            match body.as_ref().and_then(|v| v["name"].as_str()) {
+                Some(name) => answered(out, (api.notes)(Some(name)), "404 Not Found"),
+                None => reply(out, "400 Bad Request", TEXT, b"send {\"name\": \"...\"}"),
+            }
+        }
         ("POST", "/api/say") => {
             let text = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -529,10 +595,72 @@ pub fn respond(
         ("POST", "/api/answer") => reply(out, "409 Conflict", TEXT, b"no question is waiting"),
         (
             _,
-            "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/say" | "/api/answer",
+            "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
+            | "/api/notes" | "/api/notes/read" | "/api/say" | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
+}
+
+/// A JSON answer, or the reason it could not be given with `refused` as the status.
+fn answered(out: &mut dyn Write, got: Result<Value, String>, refused: &str) -> io::Result<()> {
+    match got {
+        Ok(v) => reply(out, "200 OK", JSON, v.to_string().as_bytes()),
+        Err(why) => reply(out, refused, TEXT, why.as_bytes()),
+    }
+}
+
+/// What `GET /api/notes` answers: each note's name in the folder, a title (a first `# heading`, else
+/// the file name without its date and extension), its date (from a `YYYY-MM-DD-` name) and the
+/// start of its text.
+pub fn notes_json(folder: &Path, notes: &[Note]) -> Value {
+    let rows: Vec<Value> = notes
+        .iter()
+        .map(|n| {
+            let (title, rest) = title_of(n);
+            let mut preview = rest.split_whitespace().collect::<Vec<_>>().join(" ");
+            if preview.chars().count() > PREVIEW {
+                preview = preview.chars().take(PREVIEW).collect::<String>() + "…";
+            }
+            json!({"name": n.name, "title": title, "date": date_of(&n.name), "preview": preview})
+        })
+        .collect();
+    json!({"folder": folder.display().to_string(), "notes": rows})
+}
+
+/// What `POST /api/notes/read` answers: the note's name, title, date and whole text.
+pub fn note_json(n: &Note) -> Value {
+    let (title, _) = title_of(n);
+    json!({"name": n.name, "title": title, "date": date_of(&n.name), "text": n.text})
+}
+
+/// The longest preview of a note in the list, in characters.
+const PREVIEW: usize = 180;
+
+/// (title, the text after it).
+fn title_of(n: &Note) -> (String, &str) {
+    let text = n.text.trim_start();
+    if let Some(h) = text.strip_prefix('#') {
+        let (line, rest) = h.split_once('\n').unwrap_or((h, ""));
+        let line = line.trim_start_matches('#').trim();
+        if !line.is_empty() {
+            return (line.to_string(), rest);
+        }
+    }
+    let file = n.name.rsplit('/').next().unwrap_or(&n.name);
+    let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
+    let stem = match date_of(&n.name) {
+        Some(_) => stem.get(11..).unwrap_or(stem),
+        None => stem,
+    };
+    (stem.replace(['-', '_'], " ").trim().to_string(), text)
+}
+
+/// The date in a `YYYY-MM-DD-...` file name.
+fn date_of(name: &str) -> Option<String> {
+    let file = name.rsplit('/').next().unwrap_or(name);
+    let d = file.get(..10)?;
+    (Date::parse(d).is_some() && file.get(10..11) == Some("-")).then(|| d.to_string())
 }
 
 /// The status line and headers; with `len`, a Content-Length (else the body ends at close).
@@ -808,17 +936,69 @@ mod tests {
             }
             vec!["no tasks".into()]
         };
-        respond(
-            r,
-            &mut out,
-            &|| json!({"tasks": []}),
-            &|| json!({"cards": ["x"]}),
-            &|after| json!({"after": after}),
-            &mut say,
-            &mut || page_says,
-        )
-        .unwrap();
+        let settings = |change: Option<&Value>| match change {
+            None => Ok(json!({"name": "Aditya"})),
+            Some(c) if c["name"] == "" => Err("a name of 1 to 40 letters".to_string()),
+            Some(c) => Ok(json!({"name": c["name"]})),
+        };
+        let notes = |name: Option<&str>| match name {
+            None => Ok(json!({"notes": []})),
+            Some("a.md") => Ok(json!({"name": "a.md"})),
+            Some(n) => Err(format!("no note named {n}")),
+        };
+        let api = Api {
+            tasks: &|| json!({"tasks": []}),
+            capabilities: &|| json!({"cards": ["x"]}),
+            events: &|after| json!({"after": after}),
+            settings: &settings,
+            notes: &notes,
+        };
+        respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
+    }
+
+    #[test]
+    fn notes_are_listed_with_a_title_a_date_and_a_preview() {
+        let notes = [
+            Note {
+                name: "2026-10-05-budget-plan.md".into(),
+                text: "# Budget plan\n\nMeeting on   Friday.\nRavi shares the plan.".into(),
+            },
+            Note {
+                name: "ideas/desk.txt".into(),
+                text: "buy a desk".into(),
+            },
+        ];
+        assert_eq!(
+            notes_json(std::path::Path::new("/home/me/notes"), &notes),
+            json!({"folder": "/home/me/notes", "notes": [
+                {"name": "2026-10-05-budget-plan.md", "title": "Budget plan", "date": "2026-10-05",
+                 "preview": "Meeting on Friday. Ravi shares the plan."},
+                {"name": "ideas/desk.txt", "title": "desk", "date": null, "preview": "buy a desk"}
+            ]})
+        );
+        let one = note_json(&notes[0]);
+        assert_eq!(one["title"], "Budget plan");
+        assert_eq!(one["text"], notes[0].text);
+    }
+
+    #[test]
+    fn settings_and_notes_have_their_routes() {
+        let (out, _) = answer_to(&get("/api/settings"), None);
+        assert!(out.ends_with("{\"name\":\"Aditya\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/settings", r#"{"name":"Asha"}"#), None);
+        assert!(out.starts_with("HTTP/1.1 200 OK"), "{out:.80}");
+        assert!(out.ends_with("{\"name\":\"Asha\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/settings", r#"{"name":""}"#), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let (out, _) = answer_to(&get("/api/notes"), None);
+        assert!(out.ends_with("{\"notes\":[]}"), "{out}");
+        let (out, _) = answer_to(&post("/api/notes/read", r#"{"name":"a.md"}"#), None);
+        assert!(out.ends_with("{\"name\":\"a.md\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/notes/read", r#"{"name":"nope.md"}"#), None);
+        assert!(out.starts_with("HTTP/1.1 404"), "{out:.80}");
+        let (out, _) = answer_to(&post("/api/notes", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 
     #[test]
@@ -874,9 +1054,7 @@ mod tests {
             respond(
                 &req,
                 &mut out,
-                &|| json!({}),
-                &|| json!({}),
-                &|_| json!({}),
+                &Api::none(),
                 &mut |_, _, _| vec![],
                 &mut || None,
             )

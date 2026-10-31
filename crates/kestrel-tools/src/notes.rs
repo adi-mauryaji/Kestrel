@@ -110,6 +110,29 @@ impl Notes {
             .collect()
     }
 
+    /// Every note, for the page's Notes view: dated ones newest first, then the rest by name.
+    pub fn all(&self) -> Vec<Note> {
+        let dated = |e: &Entry| {
+            let f = e.file_name.as_str();
+            f.get(..10).is_some_and(|d| iso_date(d).is_ok()) && f.get(10..11) == Some("-")
+        };
+        let (mut with_date, mut rest): (Vec<Entry>, Vec<Entry>) =
+            self.notes().into_iter().partition(|e| dated(e));
+        with_date.sort_by(|a, b| b.newest_first_key().cmp(&a.newest_first_key()));
+        rest.sort_by(|a, b| a.note.name.cmp(&b.note.name));
+        with_date.into_iter().chain(rest).map(|e| e.note).collect()
+    }
+
+    /// The note listed under `name` (a path inside the notes folder, as `all` names it); nothing
+    /// outside the list is read.
+    pub fn by_name(&self, name: &str) -> Result<Note, KestrelError> {
+        self.notes()
+            .into_iter()
+            .find(|e| e.note.name == name)
+            .map(|e| e.note)
+            .ok_or_else(|| KestrelError::Invalid(format!("no note named {name}")))
+    }
+
     /// One document by its validated path (read_document).
     pub fn read(&self, path: &Path) -> Result<Note, KestrelError> {
         let root = self.sandbox.roots().iter().find(|r| path.starts_with(r));
@@ -188,5 +211,59 @@ fn split_tags(text: &str) -> (Vec<String>, String) {
             rest.to_string(),
         ),
         None => (Vec::new(), text.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn folder(name: &str, files: &[(&str, &str)]) -> (PathBuf, Notes) {
+        let d = std::env::temp_dir().join(format!("kestrel_notes_{name}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        for (f, text) in files {
+            let p = d.join(f);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, text).unwrap();
+        }
+        let notes = Notes::new(Sandbox::new(std::slice::from_ref(&d)).unwrap());
+        (d, notes)
+    }
+
+    #[test]
+    fn all_notes_dated_newest_first_then_the_rest_by_name() {
+        let (d, notes) = folder(
+            "all",
+            &[
+                ("2026-10-01-a.md", "a"),
+                ("2026-10-05-b.md", "tags: work\nb"),
+                ("plan.txt", "p"),
+                ("sub/2026-09-01-c.md", "c"),
+                ("about.md", "x"),
+                ("photo.png", "not a note"),
+            ],
+        );
+        let names: Vec<String> = notes.all().into_iter().map(|n| n.name).collect();
+        assert_eq!(
+            names,
+            [
+                "2026-10-05-b.md",
+                "2026-10-01-a.md",
+                "sub/2026-09-01-c.md",
+                "about.md",
+                "plan.txt"
+            ]
+        );
+        assert_eq!(notes.all()[0].text, "b", "the tags line is not text");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_note_is_read_by_its_listed_name_only() {
+        let (d, notes) = folder("byname", &[("sub/2026-09-01-c.md", "c"), ("plan.txt", "p")]);
+        assert_eq!(notes.by_name("sub/2026-09-01-c.md").unwrap().text, "c");
+        assert!(notes.by_name("../../etc/passwd").is_err());
+        assert!(notes.by_name("missing.md").is_err());
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

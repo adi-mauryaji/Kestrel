@@ -62,6 +62,30 @@ pub fn name(data: Option<&Path>) -> Option<String> {
     load(&path(data?)).ok()?.name
 }
 
+/// What `GET /api/settings` answers: the name the page greets and the notes folder.
+pub fn page_json(data: Option<&Path>) -> serde_json::Value {
+    let s = data.and_then(|d| load(&path(d)).ok()).unwrap_or_default();
+    serde_json::json!({"name": s.name, "notes": s.notes})
+}
+
+/// `POST /api/settings`: the page changes the name only (the notes folder needs a new start);
+/// the settings after, or why not.
+pub fn change(
+    data: Option<&Path>,
+    change: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let name = change
+        .as_object()
+        .filter(|o| o.len() == 1)
+        .and_then(|o| o.get("name"))
+        .and_then(|n| n.as_str())
+        .ok_or("only the name can be changed here")?;
+    let data = data.ok_or("no data folder for Kestrel's settings")?;
+    let mut out = Vec::new();
+    run(&["name".into(), name.into()], Some(data), &mut out).map_err(|e| e.to_string())?;
+    Ok(page_json(Some(data)))
+}
+
 /// `kestrel settings [notes DIR | name NAME]` with Kestrel's data folder `data`.
 pub fn run(
     args: &[String],
@@ -214,6 +238,34 @@ mod tests {
         assert!(run(&args(&["name", "  "]), Some(&d), &mut out).is_err());
         assert!(run(&args(&["name", &"x".repeat(41)]), Some(&d), &mut out).is_err());
         assert_eq!(name(Some(&d)).as_deref(), Some("Aditya"));
+    }
+
+    #[test]
+    fn the_page_reads_the_settings_and_changes_the_name() {
+        let d = dir("page");
+        let notes_dir = d.join("notes");
+        std::fs::create_dir_all(&notes_dir).unwrap();
+        let mut out = Vec::new();
+        run(
+            &args(&["notes", notes_dir.to_str().unwrap()]),
+            Some(&d),
+            &mut out,
+        )
+        .unwrap();
+        let v = page_json(Some(&d));
+        assert_eq!(v["name"], serde_json::Value::Null);
+        assert_eq!(
+            v["notes"],
+            notes_dir.canonicalize().unwrap().to_str().unwrap()
+        );
+        let v = change(Some(&d), &serde_json::json!({"name": "  Asha "})).unwrap();
+        assert_eq!(v["name"], "Asha");
+        assert_eq!(name(Some(&d)).as_deref(), Some("Asha"));
+        // Only the name changes from the page; a bad one changes nothing.
+        assert!(change(Some(&d), &serde_json::json!({"name": ""})).is_err());
+        assert!(change(Some(&d), &serde_json::json!({"notes": "/tmp"})).is_err());
+        assert!(change(None, &serde_json::json!({"name": "Asha"})).is_err());
+        assert_eq!(name(Some(&d)).as_deref(), Some("Asha"));
     }
 
     #[test]

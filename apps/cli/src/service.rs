@@ -555,6 +555,7 @@ fn open_web(
     skills: bool,
     lan: Option<std::net::Ipv4Addr>,
     events: crate::events::Shared,
+    notes: &std::path::Path,
 ) -> Result<crate::web::Web, Box<dyn std::error::Error>> {
     let dir = memory.parent().unwrap_or(std::path::Path::new("."));
     let token = crate::web::token(&dir.join("web-token"))?;
@@ -590,9 +591,30 @@ fn open_web(
             .lock()
             .map_or(serde_json::Value::Null, |e| e.after(after, now))
     };
+    // The settings the page shows and changes (the name), and the notes it lists and reads: only
+    // those inside the notes folder (kestrel-tools' sandbox).
+    let settings_data =
+        kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let settings = move |change: Option<&serde_json::Value>| match change {
+        None => Ok(crate::settings::page_json(settings_data.as_deref())),
+        Some(c) => crate::settings::change(settings_data.as_deref(), c),
+    };
+    let folder = notes.to_path_buf();
+    let reader = kestrel_tools::notes::Notes::new(kestrel_tools::sandbox::Sandbox::new(
+        std::slice::from_ref(&folder),
+    )?);
+    let notes = move |name: Option<&str>| match name {
+        None => Ok(crate::web::notes_json(&folder, &reader.all())),
+        Some(n) => reader
+            .by_name(n)
+            .map(|note| crate::web::note_json(&note))
+            .map_err(|e| e.to_string()),
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
-        .with_events(Box::new(events));
+        .with_events(Box::new(events))
+        .with_settings(Box::new(settings))
+        .with_notes(Box::new(notes));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
@@ -781,7 +803,7 @@ pub fn serve(
     let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db, &ring_events, desktop));
     // The browser page; without it the service still answers on the socket.
-    let page = |port| open_web(port, config, memory, skills, web_lan, events);
+    let page = |port| open_web(port, config, memory, skills, web_lan, events, notes);
     let mut web = web_port.and_then(|port| match page(port) {
         Ok(w) => {
             eprintln!(
