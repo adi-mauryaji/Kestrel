@@ -6,7 +6,7 @@ A v4 `kestrel serve` runs from this repository with its own folders under ~/.cac
 (memory, settings, socket), a few demo tasks and the name you give; Ctrl-C stops it.
 
     cargo build -p kestrel-cli --features llama     # the service, once
-    python3 scripts/preview_page.py [--name Aditya] [--no-open]
+    python3 scripts/preview_page.py [--name Aditya | --welcome] [--no-open]
 """
 import argparse
 import os
@@ -24,6 +24,7 @@ HOME = pathlib.Path.home() / ".cache" / "kestrel-preview"
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--name", default="Aditya", help="the name the page greets")
+    ap.add_argument("--welcome", action="store_true", help="no name saved: the first-open steps show")
     ap.add_argument("--no-open", action="store_true", help="print the address instead of opening it")
     args = ap.parse_args()
 
@@ -40,7 +41,8 @@ def main() -> int:
     run.mkdir(mode=0o700)
     for d in ("data", "cache", "notes"):
         (HOME / d).mkdir(parents=True, mode=0o700)
-    (HOME / "notes" / "plan.md").write_text("Budget meeting on Friday. Ravi shares the project plan.\n")
+    (HOME / "notes" / "2026-10-30-budget-plan.md").write_text("# Budget plan\nMeeting on Friday. Ravi shares the project plan for Q4.\n")
+    (HOME / "notes" / "ideas.txt").write_text("A small desk lamp for the study.\n")
     env = dict(os.environ, XDG_RUNTIME_DIR=str(run), XDG_DATA_HOME=str(HOME / "data"),
                XDG_CACHE_HOME=str(HOME / "cache"))
     for k in ("KESTREL_NOTES", "KESTREL_MEMORY", "KESTREL_TELEMETRY", "KESTREL_WEB_LAN", "KESTREL_SLM"):
@@ -50,7 +52,8 @@ def main() -> int:
         return subprocess.run([str(kestrel), *a], env=env, capture_output=True, text=True, timeout=60)
 
     kestrel_says("settings", "notes", str(HOME / "notes"))
-    kestrel_says("settings", "name", args.name)
+    if not args.welcome:
+        kestrel_says("settings", "name", args.name)
     log = open(HOME / "serve.log", "w")
     service = subprocess.Popen([str(kestrel), "serve", "--web-port", "0", "--app",
                                 "experiments/configs/router_intents_v0.json"],

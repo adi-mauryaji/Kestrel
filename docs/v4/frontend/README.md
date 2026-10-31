@@ -49,6 +49,7 @@ goes into Recent on Home. The API behind them: `GET`/`POST /api/settings` (the n
 ```
 cargo build -p kestrel-cli --features llama
 python3 scripts/preview_page.py        # demo data, own folders; your service and memory untouched
+python3 scripts/preview_page.py --welcome   # the same, with the first-open steps
 ```
 
 Checked by driving the page in headless Chrome over the DevTools protocol against a scratch
