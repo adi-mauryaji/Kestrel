@@ -25,6 +25,13 @@ const TIER4_TIMEOUT: Duration = Duration::from_secs(60);
 /// One thread per physical core on the target laptop (ADR-011).
 const ENCODER_THREADS: i32 = 6;
 
+/// A model file: in Kestrel's data folder when imported there, else under ./models
+/// (crate::slot::model_path).
+fn model(file: &str) -> std::path::PathBuf {
+    let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    crate::slot::model_path(Path::new("."), data.as_deref(), file)
+}
+
 /// The loaded models, both views of the config and its label list; tiers borrow from it.
 pub struct Models {
     pub router: RouterConfig,
@@ -80,7 +87,7 @@ impl Models {
         if let Some(dir) = cache {
             std::fs::create_dir_all(dir)?;
             let t4 = &models.cfg.models.tier4;
-            let meta = std::fs::metadata(Path::new("models").join(&t4.model_file))?;
+            let meta = std::fs::metadata(model(&t4.model_file))?;
             let mtime = meta.modified()?.duration_since(std::time::UNIX_EPOCH)?;
             let stem = config_path
                 .file_stem()
@@ -109,15 +116,12 @@ impl Models {
         let labels = labels::parse_list(&std::fs::read_to_string(
             Path::new("datasets/contracts").join(&cfg.models.tier4.labels),
         )?);
-        let encoder = tiers.contains(&3).then(|| {
-            LlamaEncoder::load(
-                &Path::new("models").join(&cfg.models.tier3.encoder_file),
-                ENCODER_THREADS,
-            )
-        });
+        let encoder = tiers
+            .contains(&3)
+            .then(|| LlamaEncoder::load(&model(&cfg.models.tier3.encoder_file), ENCODER_THREADS));
         let slm = tiers.contains(&4).then(|| {
             LlamaSlm::load(
-                &Path::new("models").join(&cfg.models.tier4.model_file),
+                &model(&cfg.models.tier4.model_file),
                 LlamaConfig {
                     n_ctx: cfg.models.tier4.n_ctx,
                     mmap,
@@ -193,7 +197,7 @@ impl Models {
             .encoder
             .as_ref()
             .ok_or("notes by meaning need the Tier-3 encoder")?;
-        let size = std::fs::metadata(Path::new("models").join(&t3.encoder_file))?.len();
+        let size = std::fs::metadata(model(&t3.encoder_file))?.len();
         let sandbox = kestrel_tools::sandbox::Sandbox::new(&[notes.to_path_buf()])?;
         let index = MeaningIndex::new(
             Box::new(encoder.session()?),

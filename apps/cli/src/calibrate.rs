@@ -342,8 +342,7 @@ fn run_in(
     let model = (ctx.catalog.models.iter())
         .find(|m| m.id == id)
         .ok_or("the writer is not in the catalog")?;
-    // An absolute path (the user's own file) stays as it is under join.
-    let path = root.join("models").join(&model.file);
+    let path = crate::slot::model_path(root, Some(data), &model.file);
     let file = crate::capabilities::file_id(&path)
         .ok_or_else(|| format!("{} is missing: download it first", path.display()))?;
     writeln!(

@@ -247,13 +247,12 @@ pub fn context(
         writer_file: writer.as_deref(),
     };
     let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
-    // An absolute path (the user's own file) stays as it is under join.
-    let have_file = |f: &str| root.join("models").join(f).is_file();
+    let have_file = |f: &str| crate::slot::model_path(root, data, f).is_file();
     let mut device = device(found, &cards, &catalog, &on_path, &have_file);
     let config_writer = device.writer.take();
     let model_file = |id: &str| {
         let m = catalog.models.iter().find(|m| m.id == id)?;
-        file_id(&root.join("models").join(&m.file))
+        file_id(&crate::slot::model_path(root, data, &m.file))
     };
     let (profile, binary) = (load_profile(data), this_binary());
     let measured = profile.measured(&model_file, binary);
@@ -485,7 +484,7 @@ fn measure_and_keep(
         .iter()
         .find(|m| m.file == file_name)
         .ok_or("the config's writer is not in the catalog")?;
-    let path = root.join("models").join(&model.file);
+    let path = crate::slot::model_path(root, data, &model.file);
     let file = file_id(&path).ok_or_else(|| format!("{} is missing", path.display()))?;
     let id = model.id.clone();
     writeln!(out, "measuring {id} (about a minute)...")?;

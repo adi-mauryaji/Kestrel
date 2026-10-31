@@ -35,6 +35,17 @@ pub enum Writer {
     },
 }
 
+/// Where model `file` is: as given when it is a full path (the user's own file); else in Kestrel's
+/// data folder when it is there (imported, v4 A3: the app's bundled files cannot be written), else
+/// under `root`/models (the repository, or the app's bundled files).
+pub fn model_path(root: &Path, data: Option<&Path>, file: &str) -> std::path::PathBuf {
+    // A full path stays as it is under join.
+    let imported = data.map(|d| d.join("models").join(file));
+    imported
+        .filter(|p| p.is_file())
+        .unwrap_or_else(|| root.join("models").join(file))
+}
+
 /// settings.json in `data`; none or unreadable: the defaults.
 pub fn load(data: Option<&Path>) -> Settings {
     data.and_then(|d| std::fs::read_to_string(d.join("settings.json")).ok())
@@ -198,7 +209,7 @@ pub fn run_in(
             if m.memory_mib > budget {
                 return Err(too_big(m));
             }
-            if !root.join("models").join(&m.file).is_file() {
+            if !model_path(root, data, &m.file).is_file() {
                 return Err(format!(
                     "{id} is not downloaded: put {} in models/ (downloads come with the app, \
                      v4 phase A3)",
@@ -259,6 +270,32 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert_eq!(v["notes"], "/home/me/notes");
         assert_eq!(v["writer"]["id"], "gemma-4-E2B-it-Q4_0");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_model_is_found_in_the_data_folder_first_then_under_root() {
+        let d = temp("where");
+        let (root, data) = (d.join("repo"), d.join("data"));
+        for f in [
+            "repo/models/a.gguf",
+            "repo/models/b.gguf",
+            "data/models/b.gguf",
+        ] {
+            std::fs::create_dir_all(d.join(f).parent().unwrap()).unwrap();
+            std::fs::write(d.join(f), b"GGUF").unwrap();
+        }
+        let at = |file| model_path(&root, Some(&data), file);
+        assert_eq!(at("a.gguf"), root.join("models/a.gguf"));
+        assert_eq!(at("b.gguf"), data.join("models/b.gguf"));
+        assert_eq!(
+            model_path(&root, None, "b.gguf"),
+            root.join("models/b.gguf")
+        );
+        // Nowhere: where the repository would have it, so an error names that place.
+        assert_eq!(at("c.gguf"), root.join("models/c.gguf"));
+        let own = d.join("elsewhere/mine.gguf");
+        assert_eq!(at(own.to_str().unwrap()), own);
         let _ = std::fs::remove_dir_all(&d);
     }
 
