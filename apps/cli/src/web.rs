@@ -316,6 +316,7 @@ pub struct Web {
     events: Box<dyn Fn(u64) -> Value>,
     settings: Box<Settings>,
     notes: Box<NotesReader>,
+    import: Box<ModelImport>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -323,6 +324,8 @@ pub struct Web {
 pub type Settings = dyn Fn(Option<&Value>) -> Result<Value, String>;
 /// Lists the notes (None) or reads one by its listed name; or why not (none such: 404).
 pub type NotesReader = dyn Fn(Option<&str>) -> Result<Value, String>;
+/// How far the page's model import is (None), or starts one from a file (Some); or why not.
+pub type ModelImport = dyn Fn(Option<&str>) -> Result<Value, String>;
 
 /// What the API reads and changes beside the requests themselves.
 pub struct Api<'a> {
@@ -331,6 +334,7 @@ pub struct Api<'a> {
     pub events: &'a dyn Fn(u64) -> Value,
     pub settings: &'a Settings,
     pub notes: &'a NotesReader,
+    pub import: &'a ModelImport,
 }
 
 #[cfg(test)]
@@ -343,6 +347,7 @@ impl Api<'static> {
             events: &|_| Value::Null,
             settings: &|_| Err("no settings here".into()),
             notes: &|_| Err("no notes here".into()),
+            import: &|_| Err("no import here".into()),
         }
     }
 }
@@ -373,6 +378,7 @@ impl Web {
             events: Box::new(|_| Value::Null),
             settings: Box::new(|_| Err("no settings here".into())),
             notes: Box::new(|_| Err("no notes here".into())),
+            import: Box::new(|_| Err("no import here".into())),
             lan,
         })
     }
@@ -389,6 +395,12 @@ impl Web {
         self
     }
 
+    /// `import` answers `GET`/`POST /api/model/import` (v4 A3); without it each start is refused.
+    pub fn with_import(mut self, import: Box<ModelImport>) -> Self {
+        self.import = import;
+        self
+    }
+
     fn api(&self) -> Api<'_> {
         Api {
             tasks: &*self.tasks,
@@ -396,6 +408,7 @@ impl Web {
             events: &*self.events,
             settings: &*self.settings,
             notes: &*self.notes,
+            import: &*self.import,
         }
     }
 
@@ -566,6 +579,21 @@ pub fn respond(
                 None => reply(out, "400 Bad Request", TEXT, b"send {\"name\": \"...\"}"),
             }
         }
+        ("GET", "/api/model/import") => {
+            answered(out, (api.import)(None), "500 Internal Server Error")
+        }
+        // It reads and copies a file of this device: never for the page shared on the wifi.
+        ("POST", "/api/model/import") if !from_this_device(req) => {
+            let why = b"a model is imported on this device, not from the wifi";
+            reply(out, "403 Forbidden", TEXT, why)
+        }
+        ("POST", "/api/model/import") => {
+            let body = serde_json::from_slice::<Value>(&req.body).ok();
+            match body.as_ref().and_then(|v| v["file"].as_str()) {
+                Some(file) => answered(out, (api.import)(Some(file)), "400 Bad Request"),
+                None => reply(out, "400 Bad Request", TEXT, b"send {\"file\": \"...\"}"),
+            }
+        }
         ("POST", "/api/say") => {
             let text = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -602,10 +630,17 @@ pub fn respond(
         (
             _,
             "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
-            | "/api/notes" | "/api/notes/read" | "/api/say" | "/api/answer",
+            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/say" | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
+}
+
+/// Asked on this device (127.0.0.1 or localhost), not through the wifi address; `allowed` has
+/// already checked that the Host is this server's.
+fn from_this_device(req: &HttpRequest) -> bool {
+    let host = req.header("host").unwrap_or("");
+    host.starts_with("127.0.0.1:") || host.starts_with("localhost:")
 }
 
 /// A JSON answer, or the reason it could not be given with `refused` as the status.
@@ -970,12 +1005,18 @@ mod tests {
             Some("a.md") => Ok(json!({"name": "a.md"})),
             Some(n) => Err(format!("no note named {n}")),
         };
+        let import = |file: Option<&str>| match file {
+            None => Ok(json!({"state": "idle"})),
+            Some(f) if f.ends_with(".gguf") => Ok(json!({"state": "copying", "done": 0, "all": 0})),
+            Some(_) => Err("Kestrel's models are .gguf files".to_string()),
+        };
         let api = Api {
             tasks: &|| json!({"tasks": []}),
             capabilities: &|| json!({"cards": ["x"]}),
             events: &|after| json!({"after": after}),
             settings: &settings,
             notes: &notes,
+            import: &import,
         };
         respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
@@ -1022,6 +1063,37 @@ mod tests {
         let (out, _) = answer_to(&post("/api/notes/read", r#"{"name":"nope.md"}"#), None);
         assert!(out.starts_with("HTTP/1.1 404"), "{out:.80}");
         let (out, _) = answer_to(&post("/api/notes", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
+    }
+
+    #[test]
+    fn a_model_is_imported_from_this_device_only() {
+        let (out, _) = answer_to(&get("/api/model/import"), None);
+        assert!(out.ends_with("{\"state\":\"idle\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/model/import", r#"{"file":"/m/g.gguf"}"#), None);
+        assert!(out.starts_with("HTTP/1.1 200 OK"), "{out:.80}");
+        assert!(out.contains("\"state\":\"copying\""), "{out}");
+        let (out, _) = answer_to(
+            &post("/api/model/import", r#"{"file":"/m/movie.mkv"}"#),
+            None,
+        );
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        assert!(out.ends_with("Kestrel's models are .gguf files"), "{out}");
+        let (out, _) = answer_to(&post("/api/model/import", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        // Shared on the wifi, the page may not have this device read and copy its files.
+        let body = r#"{"file":"/m/g.gguf"}"#;
+        let from_phone = req(&format!(
+            "POST /api/model/import HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
+             X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        ));
+        let (out, _) = answer_to(&from_phone, None);
+        assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+        let (out, _) = answer_to(
+            &req("DELETE /api/model/import HTTP/1.1\r\nHost: 127.0.0.1:7811\r\n\r\n"),
+            None,
+        );
         assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 

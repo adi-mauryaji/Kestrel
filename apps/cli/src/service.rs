@@ -610,11 +610,31 @@ fn open_web(
             .map(|note| crate::web::note_json(&note))
             .map_err(|e| e.to_string()),
     };
+    // A catalog model from a file, imported for the page on its own thread (src/import.rs); the
+    // writer finds it in the data folder the next time it loads.
+    let job = crate::import::Job::default();
+    let import_data =
+        kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(std::path::PathBuf::from);
+    let import = move |file: Option<&str>| match file {
+        None => Ok(job.json()),
+        Some(f) => {
+            let data = (import_data.clone()).ok_or("no data folder to import into")?;
+            let src = crate::import::typed_file(f, home.as_deref())?;
+            let catalog =
+                kestrel_capability::load_catalog(std::path::Path::new("models/catalog.json"))?;
+            job.start(src, data, catalog)?;
+            Ok(job.json())
+        }
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
         .with_events(Box::new(events))
         .with_settings(Box::new(settings))
-        .with_notes(Box::new(notes));
+        .with_notes(Box::new(notes))
+        .with_import(Box::new(import));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),

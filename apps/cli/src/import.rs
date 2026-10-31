@@ -1,13 +1,15 @@
 //! `kestrel model import FILE.gguf` (v4 A3, blueprint §4.3): a catalog model from a file (a USB
 //! stick, a download made elsewhere) copied into Kestrel's data folder, where `slot::model_path`
-//! finds it first, and kept only when its SHA-256 is the catalog's. The app's onboarding imports
-//! the same way.
+//! finds it first, and kept only when its SHA-256 is the catalog's. The page imports the same way
+//! (`Job`, `POST /api/model/import`), on its own thread so the service keeps answering.
 
 use std::error::Error;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use kestrel_capability::Catalog;
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, PartialEq)]
@@ -69,6 +71,100 @@ pub fn import(
         path,
         bytes,
     })
+}
+
+/// The model file typed on the page, as a full path: `~` is the home folder, quotes around a pasted
+/// path are dropped. Only a .gguf file (Kestrel's models), so no other big file is copied for
+/// nothing.
+// The service's page (a llama build) uses this and `Job`; the tests use them everywhere.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+pub fn typed_file(text: &str, home: Option<&Path>) -> Result<PathBuf, String> {
+    let text = text.trim();
+    let text = ['"', '\'']
+        .iter()
+        .find_map(|q| text.strip_prefix(*q).and_then(|t| t.strip_suffix(*q)))
+        .unwrap_or(text);
+    let file = match text.strip_prefix('~') {
+        // "~/…"; "~bob/…" (someone else's home) stays relative and is refused below.
+        Some(rest) if rest.starts_with(std::path::is_separator) => {
+            let home = home.ok_or("no home folder here: type the full path")?;
+            home.join(rest.trim_start_matches(std::path::is_separator))
+        }
+        _ => PathBuf::from(text),
+    };
+    if !file.is_absolute() {
+        return Err("the model file's full path, e.g. ~/Downloads/gemma-4-E2B-it-Q4_0.gguf".into());
+    }
+    let gguf = file
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("gguf"));
+    if !gguf {
+        return Err("Kestrel's models are .gguf files".into());
+    }
+    Ok(file)
+}
+
+/// Where the page's import is: none yet, copying (bytes done of all), done, or failed and why.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+#[derive(Clone, Debug, PartialEq)]
+enum State {
+    Idle,
+    Copying { done: u64, all: u64 },
+    Done { id: String, bytes: u64 },
+    Failed(String),
+}
+
+/// The page's import (one at a time), run on its own thread; the page asks how far it is.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+#[derive(Clone)]
+pub struct Job(Arc<Mutex<State>>);
+
+impl Default for Job {
+    fn default() -> Self {
+        Job(Arc::new(Mutex::new(State::Idle)))
+    }
+}
+
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+impl Job {
+    /// Starts importing `src` into `data`/models; refused while another import runs.
+    pub fn start(&self, src: PathBuf, data: PathBuf, catalog: Catalog) -> Result<(), String> {
+        let mut now = self.0.lock().map_err(|_| "the import's state was lost")?;
+        if matches!(*now, State::Copying { .. }) {
+            return Err("a model is being imported already".into());
+        }
+        *now = State::Copying { done: 0, all: 0 };
+        let state = self.0.clone();
+        let set = move |s: State| {
+            if let Ok(mut now) = state.lock() {
+                *now = s;
+            }
+        };
+        std::thread::spawn(move || {
+            let got = import(&src, &data, &catalog, &mut |done, all| {
+                set(State::Copying { done, all })
+            });
+            set(match got {
+                Ok(m) => State::Done {
+                    id: m.id,
+                    bytes: m.bytes,
+                },
+                Err(e) => State::Failed(e.to_string()),
+            });
+        });
+        Ok(())
+    }
+
+    /// What `GET /api/model/import` answers.
+    pub fn json(&self) -> Value {
+        let now = self.0.lock().map(|s| s.clone());
+        match now.unwrap_or(State::Failed("the import's state was lost".into())) {
+            State::Idle => json!({"state": "idle"}),
+            State::Copying { done, all } => json!({"state": "copying", "done": done, "all": all}),
+            State::Done { id, bytes } => json!({"state": "done", "model": id, "bytes": bytes}),
+            State::Failed(why) => json!({"state": "failed", "why": why}),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -143,6 +239,95 @@ mod tests {
             &mut |_, _| {},
         );
         assert!(e.unwrap_err().to_string().contains("nowhere.gguf"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// A full path on this OS (the tests run on Linux, macOS and Windows CI).
+    fn root() -> PathBuf {
+        PathBuf::from(if cfg!(windows) { r"C:\" } else { "/" })
+    }
+
+    #[test]
+    fn the_page_names_a_gguf_file_by_its_full_path() {
+        let home = root().join("home").join("a");
+        let file = root().join("media").join("usb").join("gemma.gguf");
+        assert_eq!(
+            typed_file("~/Downloads/gemma.gguf", Some(&home)),
+            Ok(home.join("Downloads").join("gemma.gguf"))
+        );
+        for pasted in [
+            format!("  {}  ", file.display()),
+            format!("'{}'", file.display()),
+        ] {
+            assert_eq!(typed_file(&pasted, None), Ok(file.clone()), "{pasted}");
+        }
+        let upper = root().join("m").join("GEMMA.GGUF");
+        assert_eq!(
+            typed_file(&format!("\"{}\"", upper.display()), None),
+            Ok(upper)
+        );
+        let movie = root().join("m").join("movie.mkv");
+        for bad in [
+            "gemma.gguf".to_string(),
+            String::new(),
+            movie.display().to_string(),
+        ] {
+            assert!(typed_file(&bad, Some(&home)).is_err(), "{bad:?}");
+        }
+        assert!(
+            typed_file("~/gemma.gguf", None).is_err(),
+            "no home folder known"
+        );
+    }
+
+    /// Waits until the job has ended (or 10 s).
+    fn ended(job: &Job) -> Value {
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while job.json()["state"] == "copying" && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        job.json()
+    }
+
+    #[test]
+    fn the_page_import_runs_beside_the_service_and_says_how_it_ended() {
+        let d = dir("job");
+        let job = Job::default();
+        assert_eq!(job.json(), json!({"state": "idle"}));
+        std::fs::write(d.join("a.gguf"), "abc").unwrap();
+        job.start(d.join("a.gguf"), d.join("data"), catalog())
+            .unwrap();
+        assert_eq!(
+            ended(&job),
+            json!({"state": "done", "model": "tiny-writer", "bytes": 3})
+        );
+        assert!(d.join("data/models/tiny-writer.gguf").is_file());
+        std::fs::write(d.join("b.gguf"), "abd").unwrap();
+        job.start(d.join("b.gguf"), d.join("data"), catalog())
+            .unwrap();
+        let failed = ended(&job);
+        assert_eq!(failed["state"], "failed");
+        assert!(
+            failed["why"].as_str().unwrap().contains("SHA-256"),
+            "{failed}"
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn one_import_at_a_time_and_its_progress_is_shown() {
+        let d = dir("busy");
+        let job = Job::default();
+        *job.0.lock().unwrap() = State::Copying {
+            done: 1 << 20,
+            all: 4 << 20,
+        };
+        assert_eq!(
+            job.json(),
+            json!({"state": "copying", "done": 1 << 20, "all": 4 << 20})
+        );
+        let e = job.start(d.join("a.gguf"), d.join("data"), catalog());
+        assert!(e.unwrap_err().contains("already"));
         let _ = std::fs::remove_dir_all(&d);
     }
 }

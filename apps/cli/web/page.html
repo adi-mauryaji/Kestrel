@@ -554,6 +554,9 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .w-step .greet { font-size: 17px; }
 .w-step p { margin: 8px 0 0; font-size: 16px; line-height: 1.6; color: var(--text); }
 .w-step form { display: flex; gap: 12px; margin-top: 20px; }
+.w-step form[hidden] { display: none; }
+.import-form .field { flex: 1; min-width: 0; font: 14.5px/1.4 ui-monospace, "Hack", monospace; }
+.btn:disabled { opacity: .6; cursor: progress; }
 .w-step .go { margin-top: 22px; }
 .w-step .can-list { max-height: 240px; overflow: auto; }
 .w-skip { position: absolute; right: 18px; top: 16px; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--card) 70%, transparent); color: var(--muted); font-size: 14px; }
@@ -818,7 +821,8 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <section class="card set" aria-labelledby="model-h">
           <h2 id="model-h">Model</h2>
           <p id="model-line">…</p>
-          <p class="hint">A model from a file (a USB stick, a download made elsewhere): <code>kestrel model import FILE.gguf</code></p>
+          <form class="import-form" id="import-form"><label class="sr" for="import-file">The model file</label><input class="field" id="import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
+          <p class="hint" id="import-hint" aria-live="polite">A model from a file (a USB stick, a download made elsewhere): its full path. Kestrel copies it in and checks it is one of its models.</p>
         </section>
         <section class="card set wide" aria-labelledby="can-h">
           <div class="card-head"><h2 id="can-h">On this device</h2><span class="device" id="can-count"></span></div>
@@ -868,6 +872,8 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <p id="w-device">Looking at this device…</p>
         <ul class="can-list" id="w-cards"></ul>
         <p class="hint" id="w-model"></p>
+        <form class="import-form" id="w-import-form" hidden><label class="sr" for="w-import-file">The model file</label><input class="field" id="w-import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
+        <p class="hint" id="w-import-hint" aria-live="polite"></p>
         <button class="btn primary go" type="button" data-next="4">Continue</button>
       </div>
       <div class="w-step" data-step="4" hidden>
@@ -917,6 +923,7 @@ const el = (tag, cls, text) => {
 };
 let busy = false;
 let last = null; // the latest /api/tasks answer
+let importing = null; // the hint a running model import reports to
 
 function api(path, body) {
   const headers = { "X-Kestrel-Token": token || "" };
@@ -1733,6 +1740,9 @@ async function loadSettings() {
     const s = await r.json();
     $("name-input").value = s.name || "";
     $("notes-path").textContent = s.notes || "not chosen yet";
+    // An import started elsewhere (the first open) reports here too.
+    const i = await api("/api/model/import");
+    if (i.ok && (await i.json()).state === "copying" && !importing) watchImport($("import-hint"));
   } catch (e) { /* the page reports a stopped service elsewhere */ }
 }
 
@@ -1752,6 +1762,62 @@ async function saveName(name, hint) {
   }
 }
 $("name-form").addEventListener("submit", (e) => { e.preventDefault(); saveName($("name-input").value, $("name-hint")); });
+
+// A model from a file (POST /api/model/import, v4 A3): the service copies it in on its own thread
+// and checks its SHA-256; the page asks how far it is each second until it ends.
+const gb = (bytes) => `${(bytes / 2 ** 30).toFixed(1)} GB`;
+function importButtons(on) {
+  document.querySelectorAll(".import-form button").forEach((b) => { b.disabled = !on; });
+}
+async function watchImport(hint) {
+  importing = hint;
+  importButtons(false);
+  for (;;) {
+    let s;
+    try {
+      const r = await api("/api/model/import");
+      if (!r.ok) throw new Error(await r.text());
+      s = await r.json();
+    } catch (e) {
+      hint.textContent = "Kestrel stopped answering during the import.";
+      hint.classList.add("bad");
+      break;
+    }
+    if (s.state === "copying") {
+      const pct = s.all ? Math.floor((s.done * 100) / s.all) : 0;
+      hint.textContent = `Importing… ${pct}% (${gb(s.done)} of ${gb(s.all)})`;
+      await new Promise((ok) => setTimeout(ok, 1000));
+      continue;
+    }
+    if (s.state === "done") {
+      hint.textContent = `Imported ${s.model} (${gb(s.bytes)}, SHA-256 checked). Kestrel writes with it from your next request.`;
+      hint.classList.remove("bad");
+      refresh();
+    } else if (s.state === "failed") {
+      hint.textContent = s.why;
+      hint.classList.add("bad");
+    }
+    break;
+  }
+  importing = null;
+  importButtons(true);
+}
+async function startImport(file, hint) {
+  if (importing) return;
+  hint.classList.remove("bad");
+  hint.textContent = "Starting the import…";
+  try {
+    const r = await api("/api/model/import", { file });
+    if (!r.ok) throw new Error(await r.text());
+  } catch (e) {
+    hint.textContent = e.message;
+    hint.classList.add("bad");
+    return;
+  }
+  watchImport(hint);
+}
+$("import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("import-file").value, $("import-hint")); });
+$("w-import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("w-import-file").value, $("w-import-hint")); });
 
 // --- The first open ------------------------------------------------------------------------
 const SKIP = "kestrel-welcome-skipped";
@@ -1796,9 +1862,11 @@ document.querySelectorAll(".w-step [data-next]").forEach((b) => b.addEventListen
     $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
     const list = $("w-cards");
     list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));
-    $("w-model").textContent = lastCaps && !lastCaps.device.writer
-      ? "Chat, writing and code need a model. Bring one in from a file with: kestrel model import FILE.gguf"
+    const noWriter = Boolean(lastCaps && !lastCaps.device.writer);
+    $("w-model").textContent = noWriter
+      ? "Chat, writing and code need a model. Have Gemma 4 E2B as a .gguf file (a USB stick, a download made elsewhere)? Type where it is:"
       : "";
+    $("w-import-form").hidden = !noWriter;
   }
   welcomeStep(n);
 }));
