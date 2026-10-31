@@ -2,7 +2,8 @@
 //! standard library only, from the same `Assistant` as `kestrel chat`. `kestrel open` opens it.
 //!
 //! - `GET /` is the page (apps/cli/web/page.html, one file, nothing fetched from elsewhere: its
-//!   Content-Security-Policy allows only this server).
+//!   Content-Security-Policy allows only this server), built to the human's design (2026-10-31);
+//!   `GET /fonts/*.woff2` its three fonts (apps/cli/web/fonts, OFL), without the key.
 //! - `GET /api/capabilities` (v4 A2): what Kestrel can do on this device, card by card
 //!   (src/capabilities.rs).
 //! - `GET /api/events?after=N` (v4 A3): reminders that rang, for the Kestrel app, answered at once

@@ -5,384 +5,598 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Kestrel</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23A0441C'%3E%3Ccircle cx='16' cy='8.4' r='2.5'/%3E%3Cellipse cx='16' cy='14.8' rx='2.8' ry='5.4'/%3E%3Cpath d='M14 12.6C10.4 9.9 5.5 6.7.8 5.8c2 3.6 5.5 7 9.4 9.2 1.4.8 2.6 1.8 3.5 3.1Z'/%3E%3Cpath d='M18 12.6c3.6-2.7 8.5-5.9 13.2-6.8-2 3.6-5.5 7-9.4 9.2-1.4.8-2.6 1.8-3.5 3.1Z'/%3E%3Cpath d='M14.5 18.9 11.2 27.6c2.9 1.5 6.7 1.5 9.6 0L17.5 18.9Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23F07A2A'%3E%3Ccircle cx='16' cy='8.4' r='2.5'/%3E%3Cellipse cx='16' cy='14.8' rx='2.8' ry='5.4'/%3E%3Cpath d='M14 12.6C10.4 9.9 5.5 6.7.8 5.8c2 3.6 5.5 7 9.4 9.2 1.4.8 2.6 1.8 3.5 3.1Z'/%3E%3Cpath d='M18 12.6c3.6-2.7 8.5-5.9 13.2-6.8-2 3.6-5.5 7-9.4 9.2-1.4.8-2.6 1.8-3.5 3.1Z'/%3E%3Cpath d='M14.5 18.9 11.2 27.6c2.9 1.5 6.7 1.5 9.6 0L17.5 18.9Z'/%3E%3C/g%3E%3C/svg%3E">
 <style>
-/* Kestrel: the bird that hovers in one place and watches the ground. The palette is its plumage
-   on an overcast sky; the one bold thing is the day strip, where it hovers over now. */
+/* Kestrel's page, built to the human's design (2026-10-31): a light morning and a dark night of the
+   same day. Fonts come from this server (/fonts, OFL); nothing is fetched from elsewhere. */
+@font-face { font-family: "Source Serif 4"; src: url("/fonts/source-serif-4.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
+@font-face { font-family: "Caveat"; src: url("/fonts/caveat.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("/fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
 :root {
-  --sky: #E6ECEF;
-  --paper: #F4F7F8;
-  --ink: #22303A;
-  --deep: #141B20;
-  --wing: #56666F;
-  --line: #C3CED4;
-  --rufous: #A0441C;
-  --sans: "Noto Sans", "Adwaita Sans", "Open Sans", system-ui, sans-serif;
+  --serif: "Source Serif 4", "Noto Serif", Georgia, serif;
+  --hand: "Caveat", "Segoe Print", cursive;
+  --sans: "Inter", "Noto Sans", system-ui, sans-serif;
+
+  --bg: #FBFAF8;
+  --glow: rgba(253, 222, 192, .62);
+  --side: #FFFFFF;
+  --side-line: #EEF0F4;
+  --card: #FFFFFF;
+  --card-line: #EDF0F5;
+  --shadow: 0 12px 32px rgba(28, 46, 84, .06), 0 1px 2px rgba(28, 46, 84, .05);
+  --ink: #132A4E;
+  --text: #1C3157;
+  --muted: #4E6189;
+  --faint: #7E90B0;
+  --rule: #EDF0F4;
+  --accent: #EE6522;
+  --accent-soft: #FDEDE2;
+  --input: #FFFFFF;
+  --input-line: #D8DFE9;
+  --placeholder: #6E82A6;
+  --send: #FDCFA7;
+  --send-hover: #FCC08D;
+  --send-ink: #1B1E36;
+  --chip: #F0F5FC;
+  --chip-line: #DBE5F3;
+  --chip-ink: #33507F;
+  --ev1: #E3EEFD; --ev1-dot: #4F9BF6;
+  --ev2: #EDEBF9; --ev2-dot: #8B5CF6;
+  --ev3: #FDEEE3; --ev3-dot: #F07A2A;
+  --ev4: #E4F5EE; --ev4-dot: #2FAF84;
+  --axis: #D3DAE4;
+  --axis-past: #22355C;
+  --now: #F07A2A;
+  --next-dot: #1A2B52;
+  --later-dot: #E87449;
+  --badge: #DCEBFF;
+  --badge-ink: #2A79D9;
+  --ring: #4C649C;
+  --check: #5BBFA6;
+  --done-bg: #FFFFFF;
+  --done-line: #C7D4E6;
+  --done-ink: #3B5B90;
+  --quote: #1B3361;
+  --chipbox: rgba(255, 255, 255, .78);
+  --chipbox-line: #E7EBF1;
+  --green: #6BC46A;
+  --box-icon: #5E7194;
+  --trouble: #B4452A;
+  /* the morning */
+  --art-glow: #FCE1C6;
+  --orb-a: #FDD3AE;
+  --orb-b: #FBB47C;
+  --m-far: #DCE6F2;
+  --m-tall-a: #C2D6EE;
+  --m-tall-b: #9DBADF;
+  --m-right: #A9C3E3;
+  --m-front-a: #6992C2;
+  --m-front-b: #4F78AA;
+  --m-low: #86A9D2;
+  --cloud: rgba(255, 255, 255, .85);
+  --bird-a: #7088A6;
+  --bird-b: #4B6386;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --sky: #182128;
-    --paper: #202B33;
-    --ink: #D8E0E4;
-    --deep: #F1F4F6;
-    --wing: #93A3AC;
-    --line: #34434D;
-    --rufous: #E58C5C;
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  --bg: #03132C;
+  --glow: rgba(28, 74, 156, .38);
+  --side: #021029;
+  --side-line: #13264A;
+  --card: #071B38;
+  --card-line: #10284B;
+  --shadow: 0 12px 32px rgba(0, 4, 16, .28);
+  --ink: #F2F7FF;
+  --text: #DDE9F9;
+  --muted: #A8BEDD;
+  --faint: #7C96BD;
+  --rule: #13294A;
+  --accent: #F8A250;
+  --accent-soft: #0B2852;
+  --input: #062146;
+  --input-line: #12305C;
+  --placeholder: #92AACF;
+  --send: #FFA154;
+  --send-hover: #FFB06F;
+  --send-ink: #1D1206;
+  --chip: #08254D;
+  --chip-line: #10345F;
+  --chip-ink: #D3E5F8;
+  --ev1: #0F2E5C; --ev1-dot: #4A9BFF;
+  --ev2: #201F56; --ev2-dot: #8B6CF6;
+  --ev3: #3A2414; --ev3-dot: #F59A45;
+  --ev4: #0C3A3A; --ev4-dot: #36C399;
+  --axis: #1C467D;
+  --axis-past: #7EA6D3;
+  --now: #F2A04E;
+  --next-dot: #6FB2FF;
+  --later-dot: #F59A45;
+  --badge: #0F2D5C;
+  --badge-ink: #6CB9FF;
+  --ring: #7DB4F5;
+  --check: #2FA585;
+  --done-bg: #0D2A55;
+  --done-line: #1F4176;
+  --done-ink: #E0EDFF;
+  --quote: #8DC6FF;
+  --chipbox: rgba(6, 26, 56, .72);
+  --chipbox-line: #1B355E;
+  --green: #4CD07D;
+  --box-icon: #46679E;
+  --trouble: #FF9A7A;
+  /* the night: the same hills, a moon */
+  --art-glow: #1E52A8;
+  --orb-a: #B9917A;
+  --orb-b: #6E5C58;
+  --m-far: #1A4A8F;
+  --m-tall-a: #4E90E0;
+  --m-tall-b: #21569F;
+  --m-right: #245A9C;
+  --m-front-a: #2A62B4;
+  --m-front-b: #12397A;
+  --m-low: #1F4C8E;
+  --cloud: rgba(40, 84, 150, .55);
+  --bird-a: #7BA3DA;
+  --bird-b: #4A77B3;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-html { background: var(--sky); }
+html { background: var(--bg); }
 body {
   margin: 0;
-  background: var(--sky);
-  color: var(--ink);
-  font: 400 1rem/1.55 var(--sans);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 15px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
 }
 button, input { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.narrow { font-stretch: 75%; font-variant-numeric: tabular-nums; }
+svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-.page {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: clamp(1rem, 3.5vw, 2.75rem) clamp(1rem, 4vw, 3rem) 3rem;
+/* --- The frame: the side bar and the day ------------------------------------------------------ */
+.app { display: grid; grid-template-columns: 272px minmax(0, 1fr); min-height: 100vh; }
+.side {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column;
+  padding: 26px 20px 28px;
+  background: var(--side);
+  border-right: 1px solid var(--side-line);
 }
+.brand { display: flex; align-items: center; gap: 18px; padding-left: 20px; margin: 0; }
+.brand svg { width: 48px; height: 48px; color: var(--accent); }
+.brand span { font: 600 clamp(29px, 1.82vw, 35px)/1 var(--serif); color: var(--ink); letter-spacing: -.3px; }
+.nav { list-style: none; margin: 34px 0 0; padding: 0; display: grid; gap: 12px; }
+.nav button {
+  width: 100%; height: 52px;
+  display: flex; align-items: center; gap: 22px;
+  padding: 0 24px;
+  border: 0; border-radius: 12px;
+  background: none;
+  color: color-mix(in srgb, var(--text) 80%, #3A64A8);
+  font-size: 17px; font-weight: 400;
+  text-align: left;
+}
+.nav button svg { width: 26px; height: 26px; color: color-mix(in srgb, var(--text) 70%, #3A64A8); stroke-width: 1.7; }
+.nav button:hover { background: var(--chip); }
+.nav button[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 500; box-shadow: 0 6px 18px rgba(238, 101, 34, .08); }
+.nav button[aria-current="page"] svg { color: var(--accent); }
+.nav button[aria-current="page"] .fill { fill: currentColor; }
+.side-foot { margin-top: auto; display: grid; gap: 70px; }
+.motto {
+  padding: 26px 28px 30px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, var(--card), color-mix(in srgb, var(--accent-soft) 45%, var(--card)));
+  box-shadow: var(--shadow);
+  border: 1px solid var(--card-line);
+}
+.motto svg { width: 56px; height: 34px; color: var(--ink); }
+.motto p { margin: 14px 0 0; font-size: 17px; font-weight: 500; line-height: 1.5; color: var(--ink); }
+.motto i { display: block; width: 42px; height: 2px; margin-top: 22px; background: var(--accent); border-radius: 2px; }
+.local {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center;
+  padding: 13px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--card-line);
+  background: var(--card);
+}
+.local i { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent); }
+.local b { font-size: 14px; font-weight: 500; color: var(--ink); }
+.local span { grid-column: 2; font-size: 11.5px; color: var(--muted); }
 
-/* Masthead: the name, and what it promises. */
-.top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 1.5rem;
+.main { position: relative; padding: 0 42px 40px 48px; overflow: hidden; }
+.main::before {
+  content: ""; position: absolute; z-index: 0; pointer-events: none;
+  top: -220px; right: -160px; width: 980px; height: 620px;
+  background: radial-gradient(closest-side, var(--glow), transparent);
 }
-.name {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 600;
-  font-stretch: 75%;
-  letter-spacing: 0.01em;
-  color: var(--deep);
+.main > * { position: relative; z-index: 1; }
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  height: 70px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15.5px; color: var(--muted);
 }
-.name svg { width: 1.6rem; height: 1.6rem; color: var(--rufous); }
-.promise { margin: 0; color: var(--wing); font-size: 0.9rem; }
+.topbar .lock { width: 19px; height: 19px; color: var(--muted); }
+.topbar .today { margin-left: auto; color: var(--ink); }
+.theme { display: flex; gap: 6px; margin-left: 22px; }
+.theme button { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: none; }
+.theme button:hover { background: var(--chip); }
+.theme .sun svg { color: #F7A21B; fill: #F9B233; stroke: #F7A21B; }
+.theme .moon svg { color: var(--muted); }
 
-/* The day: a large date, and the strip the kestrel hovers over. */
-.day { margin-top: clamp(1.75rem, 4vw, 3rem); }
-.date {
-  margin: 0;
-  font-size: clamp(2.25rem, 6.5vw, 4.25rem);
-  line-height: 1;
-  font-weight: 600;
-  font-stretch: 75%;
-  letter-spacing: -0.015em;
-  color: var(--deep);
+/* --- The morning: greeting, date, the day's line and the hills -------------------------------- */
+.hero { position: relative; display: flex; align-items: flex-start; height: 204px; padding-top: 20px; }
+.hero-text { flex: none; }
+.greet { display: flex; align-items: center; gap: 12px; margin: 0; font-size: clamp(16.5px, 1.02vw, 19.5px); font-weight: 600; color: var(--ink); }
+.greet svg { width: 26px; height: 26px; color: #F7A21B; }
+.greet svg .fill { fill: #F9B233; }
+.date { margin: 10px 0 0; font: 600 clamp(45px, 3.45vw, 68px)/1.05 var(--serif); color: var(--ink); letter-spacing: -.6px; white-space: nowrap; }
+.tagline { margin: 12px 0 0; font-size: clamp(16.5px, 1.02vw, 19.5px); color: color-mix(in srgb, var(--muted) 70%, #2D63B5); }
+.quote {
+  flex: none;
+  margin: 36px 0 0 clamp(28px, 4.6vw, 90px); max-width: 7em;
+  font: 500 clamp(21px, 1.28vw, 24.5px)/1.2 var(--hand); color: var(--quote);
 }
-.strip {
-  position: relative;
-  height: 9.5rem;
-  margin-top: 1.25rem;
+.quote::after { content: ""; display: block; width: 28px; height: 1.5px; margin-top: 14px; background: color-mix(in srgb, var(--accent) 60%, transparent); }
+.art {
+  position: absolute; z-index: -1; left: 46.5%; right: -42px; top: -70px; height: 285px; pointer-events: none;
+  /* the hills fade in from the left and into the card below */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%), linear-gradient(180deg, #000 88%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 16%), linear-gradient(180deg, #000 88%, transparent);
+  mask-composite: intersect;
 }
-.axis {
-  position: absolute;
-  left: 0; right: 0; bottom: 1.6rem;
-  border-top: 2px solid var(--ink);
-}
-/* The part of the day already gone. */
-.axis.gone { right: auto; border-top-color: var(--line); }
-.hour {
-  position: absolute;
-  bottom: 0;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  color: var(--wing);
-}
-.hour::before {
-  content: "";
-  position: absolute;
-  left: 50%; bottom: 1.35rem;
-  height: 0.45rem;
-  border-left: 1px solid var(--wing);
-}
-.flag {
-  position: absolute;
-  z-index: 2;
-  bottom: 1.6rem;
-  display: flex;
-  align-items: flex-start;
-  max-width: 13rem;
-  padding: 0 0 0.15rem 0.45rem;
-  border-left: 1px solid var(--ink);
-  font-size: 0.85rem;
-  line-height: 1.3;
+.art svg { width: 100%; height: 100%; }
+.art .glow { fill: url(#artGlow); }
+.art .orb { fill: url(#orb); }
+.art .far { fill: var(--m-far); }
+.art .tall { fill: url(#tall); }
+.art .right { fill: var(--m-right); }
+.art .front { fill: url(#front); }
+.art .low { fill: var(--m-low); }
+.art .cloud { fill: var(--cloud); }
+.bird { position: absolute; right: calc(100% + 30px); top: -4px; width: 58px; height: 52px; pointer-events: none; }
+.bird path { fill: url(#birdFill); }
+.daybox {
+  position: absolute; right: 0; top: 32px;
+  display: flex; align-items: center; gap: 14px;
+  height: 52px; padding: 0 22px 0 26px;
+  border-radius: 12px;
+  background: var(--chipbox);
+  border: 1px solid var(--chipbox-line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+  font-size: 14.5px; color: var(--muted);
   white-space: nowrap;
 }
-.flag b { font-weight: 600; margin-right: 0.35em; }
-/* The label covers any line that crosses it. */
-.flag span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 0.25rem;
-  background: var(--sky);
-}
-.flag.flip span { padding: 0 0 0 0.25rem; }
-.flag.flip {
-  transform: translateX(-100%);
-  padding: 0 0.45rem 0.15rem 0;
-  border-left: 0;
-  border-right: 1px solid var(--ink);
-}
-.flag.rang { color: var(--wing); border-color: var(--wing); }
-.now {
-  position: absolute;
-  top: 0; bottom: 1.6rem;
-  border-left: 2px solid var(--rufous);
-  color: var(--rufous);
-}
-.now svg {
-  position: absolute;
-  top: -0.6rem; left: -1.4rem;
-  width: 2.8rem; height: 2.8rem;
-}
-.now span {
-  position: absolute;
-  top: 0.35rem; left: 1.55rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-.quiet-day {
-  position: absolute;
-  left: 0; bottom: 2.4rem;
-  margin: 0;
-  color: var(--wing);
-  font-size: 0.9rem;
-}
-/* While Kestrel thinks, it hovers: the page's one motion, and only then. */
-.thinking .now svg { animation: hover 1.1s ease-in-out infinite alternate; }
-@keyframes hover { from { transform: translateY(0); } to { transform: translateY(-5px); } }
-@media (prefers-reduced-motion: reduce) { .thinking .now svg { animation: none; } }
+.daybox > svg.i { width: 23px; height: 23px; color: var(--ink); }
+.daybox b { font-size: 17px; font-weight: 500; color: var(--ink); }
+.daybox i { width: 1px; height: 24px; margin: 0 6px; background: var(--chipbox-line); }
 
-/* Below the day: the conversation, and the tasks beside it. */
-.work {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
-  gap: clamp(1.5rem, 4vw, 3.5rem);
-  margin-top: clamp(1.5rem, 3vw, 2.25rem);
-  padding-top: clamp(1.25rem, 2.5vw, 2rem);
-  border-top: 1px solid var(--line);
-}
-h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  font-stretch: 75%;
-  color: var(--deep);
-}
+/* --- Cards ------------------------------------------------------------------------------------- */
+.card { background: var(--card); border: 1px solid var(--card-line); border-radius: 16px; box-shadow: var(--shadow); }
+.card-head { display: flex; align-items: center; gap: 16px; }
+.card-head h2 { margin: 0; font: 600 26px/1.15 var(--serif); color: var(--ink); letter-spacing: -.2px; }
 
-/* Newest first, under the box you type in, like a notebook's latest page. */
-.log {
-  list-style: none;
-  margin: 1.5rem 0 0;
-  padding: 0;
-}
-.turn { padding: 0 0 1.1rem; }
-.said { margin: 0; font-weight: 600; color: var(--deep); overflow-wrap: anywhere; }
-.reply {
-  margin: 0.3rem 0 0 0.1rem;
-  padding-left: 0.85rem;
-  border-left: 2px solid var(--line);
-}
-.reply p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.reply .wait { color: var(--wing); }
-/* A written answer's code (```fences```), shown as code with a copy button. */
-.codebox { position: relative; margin: 0.45rem 0; }
-.codebox pre {
-  margin: 0; padding: 0.65rem 0.8rem; overflow-x: auto;
-  background: var(--sky); border: 1px solid var(--line); border-radius: 6px;
-  font: 0.86rem/1.45 ui-monospace, "Noto Sans Mono", "DejaVu Sans Mono", monospace; color: var(--deep);
-  white-space: pre; tab-size: 4;
-}
-.codebox .copy { position: absolute; top: 0.35rem; right: 0.35rem; font-size: 0.8rem; padding: 0.15rem 0.55rem; }
-.reply .trouble { color: var(--rufous); }
-.question {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  margin: 0.4rem 0;
-}
-.question p { font-weight: 600; }
-.welcome { color: var(--wing); margin: 0 0 1rem; max-width: 34rem; }
+/* The day strip: a line from midnight to midnight, the kestrel over now, today's timed tasks. */
+.timeline { position: relative; height: 170px; padding: 0 28px; }
+.strip { position: relative; height: 100%; }
+.axis { position: absolute; left: 0; right: 0; top: 55px; height: 1.5px; background: var(--axis); }
+.past { position: absolute; left: 0; top: 54.5px; height: 2px; background: linear-gradient(90deg, var(--axis-past), var(--axis-past) 62%, var(--now)); border-radius: 2px; }
+.tick { position: absolute; top: 51px; width: 1px; height: 9px; background: var(--axis); }
+.hour { position: absolute; top: 70px; transform: translateX(-50%); font-size: 13.5px; color: color-mix(in srgb, var(--muted) 80%, #3D7BD0); font-variant-numeric: tabular-nums; }
+.now { position: absolute; top: -26px; width: 0; }
+.now svg { position: absolute; left: -19px; top: 0; width: 38px; height: 38px; color: var(--now); filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--now) 35%, transparent)); }
+.now::after { content: ""; position: absolute; left: -1px; top: 34px; width: 2px; height: 56px; background: var(--now); border-radius: 2px; }
+.now b { position: absolute; left: 25px; top: 6px; font-size: 16px; font-weight: 600; color: var(--now); font-variant-numeric: tabular-nums; }
+.dot { position: absolute; top: 51.5px; width: 9px; height: 9px; margin-left: -4.5px; border-radius: 50%; background: var(--later-dot); }
+.dot.next { background: var(--next-dot); }
+.dot.gone { background: var(--axis); }
+.dot span { position: absolute; left: 50%; transform: translateX(-50%); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dot.next span { top: 18px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.dot:not(.next) span { bottom: 14px; color: var(--faint); }
+.events { position: absolute; right: 0; bottom: 7px; display: flex; gap: 20px; max-width: 64%; }
+.event { width: 262px; min-height: 72px; padding: 10px 16px 10px 34px; border-radius: 10px; position: relative; font-size: 13.5px; line-height: 1.45; color: var(--text); }
+.event::before { content: ""; position: absolute; left: 16px; top: 17px; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); }
+.event b { display: block; font-size: 15px; font-weight: 500; color: var(--ink); }
+.event span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.quiet { position: absolute; right: 0; bottom: 28px; margin: 0; font-size: 14px; color: var(--faint); }
 
-.ask {
-  display: flex;
-  gap: 0.5rem;
-}
+.work { display: grid; grid-template-columns: minmax(0, 1.344fr) minmax(0, 1fr); gap: 28px; margin-top: 22px; align-items: start; }
+.col { display: grid; gap: 20px; }
+
+/* Talk to Kestrel. */
+.talk { padding: 18px 24px 18px 20px; }
+.talk .card-head svg { width: 42px; height: 42px; color: var(--accent); }
+.talk .card-head p { margin: 2px 0 0; font-size: 15px; color: var(--text); }
+.ask { display: flex; gap: 17px; margin-top: 18px; }
 .ask input {
-  flex: 1;
-  min-width: 0;
-  padding: 0.7rem 0.85rem;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
+  flex: 1; min-width: 0; height: 54px; padding: 0 20px;
+  border: 1px solid var(--input-line); border-radius: 8px;
+  background: var(--input); color: var(--ink);
+  font-size: 17px;
 }
-.ask input::placeholder { color: var(--wing); opacity: 1; }
-.ask input:focus-visible { outline-offset: 0; }
+.ask input::placeholder { color: var(--placeholder); }
+.ask input:focus { outline: none; border-color: color-mix(in srgb, var(--ink) 30%, var(--input-line)); }
 .send {
-  padding: 0.7rem 1.15rem;
-  border: 0;
-  border-radius: 0.5rem;
-  background: var(--ink);
-  color: var(--sky);
-  font-weight: 600;
-  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  height: 54px; padding: 0 26px 0 22px;
+  border: 0; border-radius: 8px;
+  background: var(--send); color: var(--send-ink);
+  font-size: 17px; font-weight: 500;
 }
-.send:disabled { opacity: 0.55; cursor: default; }
-.try {
-  margin: 0.6rem 0 0;
-  color: var(--wing);
-  font-size: 0.875rem;
-}
+.send:hover { background: var(--send-hover); }
+.send:disabled { opacity: .55; cursor: default; }
+.send svg { width: 21px; height: 21px; }
+.try { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: start; margin: 16px 0 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.try > span:first-child { padding-top: 4px; font-size: 16px; color: var(--muted); }
 .try button {
-  margin: 0.15rem 0.35rem 0 0;
-  padding: 0.1rem 0.5rem;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--ink);
-  cursor: pointer;
+  height: 32px; padding: 0 18px;
+  border: 1px solid var(--chip-line); border-radius: 16px;
+  background: var(--chip); color: var(--chip-ink);
+  font-size: 14.5px;
 }
-.try button:hover { border-color: var(--wing); }
-.answer {
-  padding: 0.3rem 0.9rem;
-  border-radius: 0.4rem;
-  border: 1px solid var(--ink);
-  background: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-.answer.yes { background: var(--ink); color: var(--sky); }
+.try button:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--chip-line)); }
+.hint { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
 
-/* Tasks: grouped by when, the soonest first. */
-.group { margin: 0 0 1.25rem; }
-.group h3 {
-  display: flex;
-  justify-content: space-between;
-  margin: 0 0 0.25rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--wing);
-}
+/* Recent: what was asked, and what Kestrel did. */
+.recent { padding: 18px 24px 4px 22px; }
+.recent .card-head svg { width: 26px; height: 26px; color: var(--muted); }
+.recent .card-head h2 { font-size: 24px; }
+.rows { list-style: none; margin: 10px 0 0; padding: 0; }
+.row { border-top: 1px solid var(--rule); }
+.row:first-child { border-top: 0; }
+.row-main { display: grid; grid-template-columns: 22px minmax(0, 1fr) 22px; gap: 18px; align-items: center; padding: 8px 6px 8px 14px; width: 100%; border: 0; background: none; text-align: left; }
+.row-main:hover .chev { color: var(--accent); }
+.ring { width: 22px; height: 22px; border-radius: 50%; border: 1.6px solid var(--ring); display: grid; place-items: center; }
+.ring.done { border: 0; background: var(--check); }
+.ring.done::after { content: ""; width: 9px; height: 5px; margin-top: -2px; border: 2px solid #fff; border-top: 0; border-right: 0; transform: rotate(-45deg); }
+.row-text b { display: block; font-size: 16px; font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-text span { display: block; font-size: 14.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-text span.trouble { color: var(--trouble); }
+.chev { width: 18px; height: 18px; color: var(--muted); transition: transform .15s; }
+.row[data-open="true"] .chev { transform: rotate(90deg); }
+.detail { padding: 0 20px 16px 54px; font-size: 15px; color: var(--text); }
+.detail p { margin: 0 0 8px; white-space: pre-wrap; }
+.detail .wait { color: var(--muted); }
+.detail .trouble { color: var(--trouble); }
+.question { margin: 6px 0 4px; padding: 12px 14px; border-radius: 10px; background: var(--chip); border: 1px solid var(--chip-line); }
+.question p { margin: 0 0 10px; color: var(--ink); }
+.answer { height: 34px; padding: 0 20px; margin-right: 8px; border-radius: 8px; border: 1px solid var(--done-line); background: var(--done-bg); color: var(--done-ink); }
+.answer.yes { background: var(--send); color: var(--send-ink); border-color: transparent; }
+.codebox { position: relative; margin: 6px 0 10px; }
+.codebox pre { margin: 0; padding: 14px 16px; overflow: auto; border-radius: 10px; background: var(--chip); border: 1px solid var(--chip-line); font: 13.5px/1.5 ui-monospace, "Hack", monospace; color: var(--ink); }
+.copy { position: absolute; top: 8px; right: 8px; height: 28px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--done-line); background: var(--done-bg); color: var(--done-ink); font-size: 12.5px; }
+.empty { margin: 14px 0 18px; font-size: 14.5px; color: var(--muted); }
+
+/* Tasks. */
+.tasks { padding: 18px 26px 10px 28px; }
+.tasks .card-head { padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+.boxmark { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; background: var(--box-icon); color: #fff; }
+.boxmark svg { width: 17px; height: 17px; stroke-width: 2.4; }
+.more { margin-left: auto; width: 34px; height: 30px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 20px; line-height: 1; letter-spacing: 1px; }
+.more:hover { background: var(--chip); }
+.menu { position: absolute; right: 22px; top: 62px; z-index: 5; min-width: 180px; padding: 6px; border-radius: 10px; background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--shadow); }
+.menu button { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 6px; background: none; text-align: left; color: var(--text); font-size: 14.5px; }
+.menu button:hover { background: var(--chip); }
+.group h3 { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 4px; font-size: 19px; font-weight: 600; color: var(--ink); }
+.group h3 span { display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--badge); color: var(--badge-ink); font-size: 13px; font-weight: 600; }
 .group ul { list-style: none; margin: 0; padding: 0; }
-.task {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.15rem 0.75rem;
-  align-items: baseline;
-  padding: 0.45rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.task:last-child { border-bottom: 0; }
-.task .what { overflow-wrap: anywhere; }
-.task .when { grid-column: 1; font-size: 0.85rem; color: var(--wing); }
-.task.late .when { color: var(--ink); font-weight: 600; }
-.done {
-  grid-column: 2; grid-row: 1 / span 2;
-  align-self: center;
-  padding: 0.2rem 0.6rem;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 0.3rem;
-  color: var(--ink);
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-.done:hover { border-color: var(--ink); }
-.task.finishing { opacity: 0.45; }
-.task.finishing .what { text-decoration: line-through; }
-.empty { color: var(--wing); margin: 0; }
+.task { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 14px 22px; align-items: center; padding: 9px 0 9px 4px; border-top: 1px solid var(--rule); }
+.task:first-child { border-top: 0; }
+.task .ring { width: 24px; height: 24px; border: 1.6px solid var(--ring); background: none; padding: 0; }
+.task .ring:hover { border-color: var(--accent); }
+.task .what { font-size: 16.5px; color: var(--ink); overflow-wrap: anywhere; }
+.task .when { display: block; margin-top: 1px; font-size: 14.5px; color: color-mix(in srgb, var(--muted) 75%, #2F6FD0); font-variant-numeric: tabular-nums; }
+.task.late .when { color: var(--trouble); }
+.task .done { height: 34px; padding: 0 22px; border-radius: 8px; border: 1px solid var(--done-line); background: var(--done-bg); color: var(--done-ink); font-size: 14.5px; }
+.task .done:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--done-line)); }
+.task.finishing { opacity: .45; }
 
-/* What Kestrel can do on this device (v4): ready, needs setting up, or not here, and why. */
-.can { margin-top: 2rem; }
-.can h2 { display: flex; justify-content: space-between; gap: 0.75rem; }
-.can h2 span { font-weight: 400; font-stretch: 100%; font-size: 0.85rem; color: var(--wing); }
-.device { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--wing); overflow-wrap: anywhere; }
-.cards { list-style: none; margin: 0; padding: 0; }
-.card {
-  display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr);
-  gap: 0.1rem 0.4rem;
-  align-items: baseline;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--line);
-}
-.card:last-child { border-bottom: 0; }
-.card .mark { grid-row: 1 / span 2; font-size: 0.9rem; }
-.card .cap { overflow-wrap: anywhere; }
-.card .slow { color: var(--wing); font-size: 0.85rem; }
-.card.locked .cap { color: var(--wing); }
-.notes { grid-column: 2; list-style: none; margin: 0; padding: 0; font-size: 0.85rem; color: var(--wing); }
-.card.setup .notes { color: var(--ink); }
+/* Views without a design yet: Settings shows what Kestrel can do here. */
+.view[hidden] { display: none; }
+.plain { margin-top: 28px; padding: 24px 28px; max-width: 760px; }
+.plain p { color: var(--text); }
+.can-list { list-style: none; margin: 16px 0 0; padding: 0; }
+.can-list > li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.can-list > li:first-child { border-top: 0; }
+.can-list ul { grid-column: 2; margin: 2px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+.device { color: var(--muted); font-size: 14.5px; }
 
-@media (max-width: 52rem) {
-  .work { grid-template-columns: minmax(0, 1fr); }
-  .strip { height: 10.5rem; }
-  .flag { max-width: 9.5rem; }
+/* Narrower windows: the bar keeps its icons, then the columns stack. */
+@media (max-width: 1500px) {
+  .bird { display: none; }
+}
+@media (max-width: 1240px) {
+  .app { grid-template-columns: 88px minmax(0, 1fr); }
+  .side { padding: 24px 14px; }
+  .brand { padding-left: 6px; }
+  .brand span, .nav button span, .side-foot { display: none; }
+  .nav button { justify-content: center; padding: 0; }
+  .quote { left: 50%; }
+}
+@media (max-width: 1080px) {
+  .quote { display: none; }
+  .work { grid-template-columns: 1fr; }
+  .events { max-width: 70%; }
+}
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; flex-direction: row; align-items: center; padding: 10px 14px; border-right: 0; border-bottom: 1px solid var(--side-line); }
+  .brand svg { width: 34px; height: 34px; }
+  .nav { margin: 0 0 0 auto; display: flex; gap: 2px; }
+  .nav button { width: 44px; height: 44px; }
+  .main { padding: 0 16px 32px; }
+  .topbar > span:first-of-type { display: none; }
+  .hero { height: auto; padding-bottom: 18px; }
+  .date { font-size: 42px; }
+  .art { width: 520px; height: 170px; top: -10px; opacity: .55; }
+  .daybox { position: static; margin-top: 16px; width: max-content; max-width: 100%; }
+  .timeline { height: auto; padding-bottom: 16px; }
+  .strip { height: 110px; }
+  .events { position: static; flex-direction: column; max-width: none; margin-top: 8px; }
+  .event { width: auto; }
+  .ask { flex-direction: column; }
 }
 </style>
+<script>
+// The theme before the page draws: the one chosen here, else the system's.
+(() => {
+  let t = null;
+  try { t = localStorage.getItem("kestrel-theme"); } catch (e) { /* no storage: the system's */ }
+  if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = t;
+})();
+</script>
 </head>
 <body>
-<div class="page">
-  <header class="top">
-    <h1 class="name">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>
-      Kestrel
-    </h1>
-    <p class="promise">Runs on this laptop. Nothing you type leaves it.</p>
-  </header>
+<div class="app">
+  <aside class="side" aria-label="Kestrel">
+    <p class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg><span>Kestrel</span></p>
+    <nav aria-label="Pages">
+      <ul class="nav">
+        <li><button type="button" data-view="home" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M3.5 10.2 12 3.5l8.5 6.7V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1Z"/><path d="M10 21v-5.5h4V21" stroke="var(--card)"/></svg><span>Home</span></button></li>
+        <li><button type="button" data-view="tasks"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8 12.2 2.7 2.7L16.2 9"/></svg><span>Tasks</span></button></li>
+        <li><button type="button" data-view="calendar"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01"/></svg><span>Calendar</span></button></li>
+        <li><button type="button" data-view="notes"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11a2 2 0 0 1 2 2V15l-5.5 5.5H6.5a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h3.5M14 20.5V17a2 2 0 0 1 2-2h3.5"/></svg><span>Notes</span></button></li>
+        <li><button type="button" data-view="settings"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg><span>Settings</span></button></li>
+      </ul>
+    </nav>
+    <div class="side-foot">
+      <div class="motto">
+        <svg viewBox="0 0 56 34" aria-hidden="true"><path d="M2 32 20 6l8 11 6-7 20 22Z" fill="currentColor"/><path d="m16.5 11 3.5-5 4.5 6.3-2.6 1.6-1.9-2.6-1.6 2Z" fill="var(--card)" opacity=".85"/></svg>
+        <p>Small steps today, big progress tomorrow.</p>
+        <i></i>
+      </div>
+      <div class="local"><i></i><b>Local First</b><span>Your data stays on your device.</span></div>
+    </div>
+  </aside>
 
-  <section class="day" aria-labelledby="date">
-    <h2 class="date" id="date">Today</h2>
-    <div class="strip narrow" id="strip" aria-hidden="true"></div>
-    <p class="sr" id="day-summary" aria-live="polite"></p>
-  </section>
+  <div class="main">
+    <header class="topbar">
+      <svg class="i lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+      <span>Runs on this laptop. Nothing you type leaves it.</span>
+      <span class="today" id="today"></span>
+      <div class="theme" role="group" aria-label="Theme">
+        <button type="button" class="sun" id="light" aria-label="Light theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" fill="none"/></svg></button>
+        <button type="button" class="moon" id="dark" aria-label="Dark theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg></button>
+      </div>
+    </header>
 
-  <main class="work">
-    <section aria-labelledby="talk-h">
-      <h2 id="talk-h">Talk to Kestrel</h2>
-      <p class="welcome" id="welcome">Ask in English or Hinglish. It keeps your tasks, reminds you at the time you say, and finds, opens and summarizes your notes.</p>
-      <form class="ask" id="ask">
-        <label class="sr" for="say">Tell Kestrel</label>
-        <input id="say" name="say" autocomplete="off" spellcheck="false"
-               placeholder="kal shaam 6 baje bill bharna yaad dila dena">
-        <button class="send" id="send" type="submit">Send</button>
-      </form>
-      <p class="try" id="try">Try
-        <button type="button">mere tasks btao</button>
-        <button type="button">remind me to call Asha at 5 pm</button>
-        <button type="button">summarize my latest note</button>
-      </p>
-      <ol class="log" id="log" aria-live="polite" aria-label="Conversation, newest first"></ol>
+    <section class="view" id="view-home" aria-label="Home">
+      <div class="hero">
+        <div class="hero-text">
+          <p class="greet"><svg class="i" id="greet-icon" viewBox="0 0 24 24" aria-hidden="true"></svg><span id="greeting">Good morning</span></p>
+          <h1 class="date" id="date">Today</h1>
+          <p class="tagline">Small steps. Big progress.</p>
+        </div>
+        <p class="quote">“Discipline today builds the freedom you want tomorrow.</p>
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 900 285" preserveAspectRatio="xMinYMax slice">
+            <defs>
+              <radialGradient id="artGlow" cx="0.33" cy="0.68" r="0.55"><stop offset="0" stop-color="var(--art-glow)" stop-opacity=".95"/><stop offset="1" stop-color="var(--art-glow)" stop-opacity="0"/></radialGradient>
+              <linearGradient id="orb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--orb-a)"/><stop offset="1" stop-color="var(--orb-b)"/></linearGradient>
+              <linearGradient id="tall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m-tall-a)"/><stop offset="1" stop-color="var(--m-tall-b)"/></linearGradient>
+              <linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m-front-a)"/><stop offset="1" stop-color="var(--m-front-b)"/></linearGradient>
+            </defs>
+            <ellipse class="glow" cx="300" cy="200" rx="320" ry="170"/>
+            <circle class="orb" cx="286" cy="193" r="52"/>
+            <ellipse class="cloud" cx="214" cy="216" rx="40" ry="7"/><ellipse class="cloud" cx="228" cy="210" rx="18" ry="8"/>
+            <ellipse class="cloud" cx="618" cy="206" rx="78" ry="10"/><ellipse class="cloud" cx="640" cy="196" rx="34" ry="12"/>
+            <path class="far" d="M0 285V262l60-14 70-8 60 6 80-16 70-12 60-14 60 14 60 6 70-6 60 8 60-12 60 8 40 4v109Z"/>
+            <path class="tall" d="M330 285 410 224l54-38 60 30 64 26 60 12 40 31Z"/>
+            <path class="tall" d="M640 285 720 244l62-29 58 22 60 10v38Z" opacity=".85"/>
+            <path class="right" d="M520 285 600 258l70-14 60 14 70 10 70-6 30 4v19Z"/>
+            <path class="front" d="M110 285 190 264l60-26 57-33 45 22 52 22 66 20 50 16Z"/>
+            <path class="low" d="M420 285 500 266l70 2 70-12 74 8 80-8 86 6v23Z"/>
+            <path d="m307 205 13 9 11-2 21 15-30-11-15 3Z" fill="#fff" opacity=".16"/>
+            <path d="m464 186 22 13 14-1 24 17-30-9-18 5Z" fill="#fff" opacity=".35"/>
+          </svg>
+        </div>
+        <div class="daybox">
+          <svg class="bird" viewBox="0 0 60 52" aria-hidden="true">
+            <defs><linearGradient id="birdFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--bird-a)"/><stop offset="1" stop-color="var(--bird-b)"/></linearGradient></defs>
+            <path d="M24 32C19 22 11 10 2 3c3 12 9 22 18 31Z"/>
+            <path d="M30 29c6-10 15-19 28-26-3 13-11 23-23 30Z"/>
+            <path d="M12 38c8-6 20-9 32-7l7-3 3 3-6 3c-5 5-15 9-27 9l-9 6 2-7Z"/>
+          </svg>
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h.01M12 14h.01"/></svg><b>Today</b><i></i><span id="counts"></span></div>
+      </div>
+
+      <section class="card timeline" id="calendar" aria-labelledby="date">
+        <div class="strip" id="strip"></div>
+        <p class="sr" id="day-summary" aria-live="polite"></p>
+      </section>
+
+      <div class="work">
+        <div class="col">
+          <section class="card talk" aria-labelledby="talk-h">
+            <div class="card-head">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>
+              <div><h2 id="talk-h">Talk to Kestrel</h2><p id="welcome">Turn your thoughts into tasks, notes or plans.</p></div>
+            </div>
+            <form class="ask" id="ask">
+              <label class="sr" for="say">Tell Kestrel</label>
+              <input id="say" name="say" autocomplete="off" spellcheck="false" placeholder="e.g. kal shaam 6 baje bill bharna yaad dila dena">
+              <button class="send" id="send" type="submit"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5Z"/></svg>Send</button>
+            </form>
+            <p class="try" id="try"><span>Try:</span><span class="chips">
+              <button type="button">mere tasks btao</button>
+              <button type="button">remind me to call Asha at 5 pm</button>
+              <button type="button">summarize my latest note</button>
+            </span></p>
+          </section>
+
+          <section class="card recent" aria-labelledby="recent-h">
+            <div class="card-head">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7.5l4 4V19a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M14 3.5V8h4.5M8.5 12h7M8.5 15.5h5"/></svg>
+              <h2 id="recent-h">Recent Tasks / Suggestions</h2>
+            </div>
+            <ol class="rows" id="rows" aria-live="polite" aria-label="What you asked, newest first"></ol>
+          </section>
+        </div>
+
+        <section class="card tasks" id="tasks-card" aria-labelledby="tasks-h" style="position: relative">
+          <div class="card-head">
+            <span class="boxmark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9"/></svg></span>
+            <h2 id="tasks-h">Tasks</h2>
+            <button class="more" id="more" type="button" aria-label="More" aria-expanded="false">⋯</button>
+          </div>
+          <div class="menu" id="menu" hidden>
+            <button type="button" id="menu-new">New task…</button>
+            <button type="button" id="menu-refresh">Refresh</button>
+          </div>
+          <div id="tasks"><p class="empty">Loading your tasks</p></div>
+        </section>
+      </div>
     </section>
 
-    <aside aria-labelledby="tasks-h">
-      <h2 id="tasks-h">Tasks</h2>
-      <div id="tasks"><p class="empty">Loading your tasks</p></div>
-      <section class="can" id="can" aria-labelledby="can-h" hidden>
-        <h2 id="can-h">On this device <span id="can-count"></span></h2>
-        <p class="device" id="device"></p>
-        <ul class="cards" id="cards"></ul>
-      </section>
-    </aside>
-  </main>
+    <section class="view" id="view-notes" aria-labelledby="notes-h" hidden>
+      <div class="card plain">
+        <div class="card-head"><h2 id="notes-h">Notes</h2></div>
+        <p>Ask about your notes in Talk to Kestrel, in English or Hinglish:</p>
+        <p class="try" id="notes-try"><span>Try:</span><span class="chips">
+          <button type="button">summarize my latest note</button>
+          <button type="button">search my notes for budget</button>
+          <button type="button">meri notes mein meeting ke baare mein kya likha hai</button>
+        </span></p>
+      </div>
+    </section>
+
+    <section class="view" id="view-settings" aria-labelledby="settings-h" hidden>
+      <div class="card plain">
+        <div class="card-head"><h2 id="settings-h">On this device</h2><span class="device" id="can-count"></span></div>
+        <p class="device" id="device">Loading what Kestrel can do here</p>
+        <ul class="can-list" id="cards"></ul>
+      </div>
+    </section>
+  </div>
 </div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -420,6 +634,7 @@ const el = (tag, cls, text) => {
   return e;
 };
 let busy = false;
+let last = null; // the latest /api/tasks answer
 
 function api(path, body) {
   const headers = { "X-Kestrel-Token": token || "" };
@@ -427,95 +642,110 @@ function api(path, body) {
   return fetch(path, { method: body ? "POST" : "GET", headers, body: body && JSON.stringify(body) });
 }
 
+// --- Theme and pages -----------------------------------------------------------------------
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("kestrel-theme", t); } catch (e) { /* this visit only */ }
+  $("light").setAttribute("aria-pressed", String(t === "light"));
+  $("dark").setAttribute("aria-pressed", String(t === "dark"));
+}
+$("light").addEventListener("click", () => setTheme("light"));
+$("dark").addEventListener("click", () => setTheme("dark"));
+setTheme(document.documentElement.dataset.theme);
+
+// Home, Notes and Settings are views; Tasks and Calendar are parts of Home.
+function show(view) {
+  const page = view === "notes" || view === "settings" ? view : "home";
+  for (const v of ["home", "notes", "settings"]) $("view-" + v).hidden = v !== page;
+  document.querySelectorAll(".nav button").forEach((b) => {
+    if (b.dataset.view === view) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
+  });
+  if (view === "tasks") $("tasks-card").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (view === "calendar") $("calendar").scrollIntoView({ behavior: "smooth", block: "center" });
+  if (view === "home") window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.querySelectorAll(".nav button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+
 // --- The day -------------------------------------------------------------------------------
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
 const minutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const asDate = (iso) => new Date(iso + "T12:00:00");
 const pct = (m) => (m / 1440 * 100).toFixed(3) + "%";
+const SUN = '<circle cx="12" cy="12" r="4.4" class="fill"/><path d="M12 2.2v2.4M12 19.4v2.4M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M2.2 12h2.4M19.4 12h2.4M4.9 19.1l1.7-1.7M17.4 6.6l1.7-1.7"/>';
+const MOON = '<path class="fill" d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/>';
 
-function drawDay(data) {
-  $("date").textContent = asDate(data.today).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+function drawHero(data) {
+  const d = asDate(data.today);
+  $("date").textContent = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const wd = d.toLocaleDateString("en-GB", { weekday: "short" });
+  const mon = d.toLocaleDateString("en-GB", { month: "short" });
+  $("today").textContent = `${wd}, ${d.getDate()} ${mon} ${d.getFullYear()}`;
+  const h = Math.floor(data.minute / 60);
+  const part = h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Good night";
+  $("greeting").textContent = data.name ? `${part}, ${data.name}` : part;
+  $("greet-icon").innerHTML = h >= 5 && h < 18 ? SUN : MOON;
+  const scheduled = data.tasks.filter((t) => t.due === data.today).length;
+  const unscheduled = data.tasks.filter((t) => !t.due).length;
+  $("counts").textContent = `${scheduled} scheduled · ${unscheduled} unscheduled`;
+}
+
+const EVENT_COLORS = [["--ev1", "--ev1-dot"], ["--ev2", "--ev2-dot"], ["--ev3", "--ev3-dot"], ["--ev4", "--ev4-dot"]];
+
+function drawTimeline(data) {
   const strip = $("strip");
   strip.replaceChildren();
-  const gone = el("div", "axis gone");
-  gone.style.width = pct(data.minute);
-  strip.append(el("div", "axis"), gone);
+  strip.append(el("div", "axis"));
+  const past = el("div", "past");
+  past.style.width = pct(data.minute);
+  strip.append(past);
+  const timed = data.tasks
+    .filter((t) => t.due === data.today && t.time)
+    .map((t) => ({ ...t, m: minutes(t.time) }))
+    .sort((a, b) => a.m - b.m || a.id - b.id);
+  const next = timed.find((t) => t.m > data.minute);
+  // Hour marks every three hours; one under the next task's dot gives way to its time.
   for (let h = 0; h <= 24; h += 3) {
+    const tick = el("div", "tick");
+    tick.style.left = pct(h * 60);
+    strip.append(tick);
+    if (next && Math.abs(next.m - h * 60) < 50) continue;
     const t = el("span", "hour", String(h).padStart(2, "0"));
     t.style.left = pct(h * 60);
     if (h === 0) t.style.transform = "none";
     if (h === 24) t.style.transform = "translateX(-100%)";
     strip.append(t);
   }
-  const timed = data.tasks
-    .filter((t) => t.due === data.today && t.time)
-    .map((t) => ({ ...t, m: minutes(t.time) }))
-    .sort((a, b) => a.m - b.m || a.id - b.id);
-  // Two passes. First each flag picks its side of the stem (where more of the strip is free up to
-  // the now line or the edge) and the lowest of three rows where its label overlaps no other.
-  // Then each label is cut just before whatever lies on its side: the now line, a taller stem
-  // (it rises through this row), the next label, the edge; the time always shows. On a narrow
-  // screen flags show only their time (the task list has the titles).
-  const width = strip.clientWidth || 1;
-  const nowX = data.minute / 1440 * width;
-  const narrow = width < 560;
-  const flags = [];
   for (const t of timed) {
-    const f = el("div", "flag" + (t.m <= data.minute ? " rang" : ""));
-    const label = el("span");
-    const time = el("b", "", t.time);
-    label.append(time);
-    if (!narrow) label.append(document.createTextNode(t.title));
-    f.append(label);
-    f.title = t.time + " " + t.title;
-    f.style.left = pct(t.m);
-    strip.append(f);
-    const x = t.m / 1440 * width;
-    const right = (nowX > x ? nowX : width) - x;
-    const left = x - (nowX < x ? nowX : 0);
-    const w = f.offsetWidth;
-    const flip = right < w && left > right;
-    flags.push({ f, x, w, flip, min: time.offsetWidth + 26, span: flip ? [x - w, x] : [x, x + w] });
+    const dot = el("div", "dot" + (t === next ? " next" : t.m <= data.minute ? " gone" : ""));
+    dot.style.left = pct(t.m);
+    dot.title = `${t.time} ${t.title}`;
+    if (t.m > data.minute) dot.append(el("span", "", t.time));
+    strip.append(dot);
   }
-  const rows = [[], [], []];
-  for (const g of flags) {
-    const overlaps = (row) => row.filter((o) => g.span[0] < o.span[1] + 6 && g.span[1] + 6 > o.span[0]).length;
-    g.r = rows.findIndex((row) => overlaps(row) === 0);
-    if (g.r < 0) g.r = [0, 1, 2].reduce((a, b) => (overlaps(rows[b]) < overlaps(rows[a]) ? b : a));
-    rows[g.r].push(g);
-  }
-  for (const g of flags) {
-    let limit = g.flip ? 0 : width;
-    const block = (v) => {
-      if (!g.flip && v > g.x + 1 && v < limit) limit = v;
-      if (g.flip && v < g.x - 1 && v > limit) limit = v;
-    };
-    block(nowX);
-    for (const o of flags) {
-      if (o === g) continue;
-      if (o.r > g.r) block(o.x);
-      if (o.r === g.r) block(g.flip ? o.span[1] : o.span[0]);
-    }
-    const room = Math.max(Math.abs(limit - g.x) - 6, g.min);
-    const label = g.f.querySelector("span");
-    if (room < g.min + 28) {
-      // Too little room for any of the title: the time alone, without a cut mark.
-      if (label.lastChild.nodeType === Node.TEXT_NODE) label.lastChild.remove();
-    } else if (room < g.w) {
-      g.f.style.maxWidth = `${room}px`;
-    }
-    if (g.flip) g.f.classList.add("flip");
-    // Each row up is a longer stem from the axis.
-    g.f.style.height = `${1.5 + g.r * 1.55}rem`;
-  }
-  if (!timed.length) strip.append(el("p", "quiet-day", "Nothing timed today. Say a time and it shows up here."));
   const now = el("div", "now");
   now.style.left = pct(data.minute);
-  now.innerHTML = '<svg viewBox="0 0 32 32"><use href="#kestrel"/></svg>';
-  now.append(el("span", "", hhmm(data.minute)));
-  if (data.minute > 1440 - 120) now.querySelector("span").style.left = "-4.3rem";
+  now.innerHTML = '<svg viewBox="0 0 32 32" aria-hidden="true"><use href="#kestrel"/></svg>';
+  now.append(el("b", "", hhmm(data.minute)));
+  if (data.minute > 1440 - 90) now.querySelector("b").style.left = "-4.4rem";
   strip.append(now);
+  // The cards: what is still to come today, the next ones first.
   const later = timed.filter((t) => t.m > data.minute);
+  if (later.length) {
+    const box = el("div", "events");
+    later.slice(0, 2).forEach((t, i) => {
+      const [bg, dotc] = EVENT_COLORS[i % EVENT_COLORS.length];
+      const c = el("div", "event");
+      c.style.background = `var(${bg})`;
+      c.style.setProperty("--dot", `var(${dotc})`);
+      c.append(el("b", "", t.time), el("span", "", t.title));
+      c.title = `${t.time} ${t.title}`;
+      box.append(c);
+    });
+    strip.append(box);
+  } else {
+    strip.append(el("p", "quiet", timed.length ? "Nothing else timed today." : "Nothing timed today. Say a time and it shows up here."));
+  }
   $("day-summary").textContent = later.length
     ? `Still today: ${later.map((t) => t.time + " " + t.title).join(", ")}.`
     : "Nothing else timed today.";
@@ -523,6 +753,11 @@ function drawDay(data) {
 
 // --- Tasks ---------------------------------------------------------------------------------
 const shortDay = (iso) => asDate(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+
+function finish(t, li) {
+  li.classList.add("finishing");
+  send(`task ${t.id} done`);
+}
 
 function drawTasks(data) {
   const box = $("tasks");
@@ -545,17 +780,19 @@ function drawTasks(data) {
     const ul = el("ul");
     for (const t of tasks.sort(byTime)) {
       const li = el("li", "task" + (late ? " late" : ""));
-      li.append(el("span", "what", t.title));
+      const ring = el("button", "ring");
+      ring.type = "button";
+      ring.setAttribute("aria-label", `Mark “${t.title}” done`);
+      ring.addEventListener("click", () => finish(t, li));
+      const what = el("div");
+      what.append(el("span", "what", t.title));
       const w = when(t);
-      if (w) li.append(el("span", "when", w));
+      if (w) what.append(el("span", "when", w));
       const done = el("button", "done", "Done");
       done.type = "button";
       done.setAttribute("aria-label", `Mark “${t.title}” done`);
-      done.addEventListener("click", () => {
-        li.classList.add("finishing");
-        send(`task ${t.id} done`);
-      });
-      li.append(done);
+      done.addEventListener("click", () => finish(t, li));
+      li.append(ring, what, done);
       ul.append(li);
     }
     g.append(h, ul);
@@ -564,16 +801,31 @@ function drawTasks(data) {
   if (!any) box.append(el("p", "empty", "No tasks. Say “remind me to …” and it lands here."));
 }
 
+$("more").addEventListener("click", () => {
+  const m = $("menu");
+  m.hidden = !m.hidden;
+  $("more").setAttribute("aria-expanded", String(!m.hidden));
+});
+$("menu-refresh").addEventListener("click", () => { $("menu").hidden = true; refresh(); });
+$("menu-new").addEventListener("click", () => {
+  $("menu").hidden = true;
+  $("say").value = "remind me to ";
+  $("say").focus();
+});
+document.addEventListener("click", (e) => {
+  if (!$("menu").hidden && !e.target.closest("#menu, #more")) $("menu").hidden = true;
+});
+
 // v3's skills are on (the service has its kind head): say so, and offer one to try.
 let skillsShown = false;
 function showSkills() {
   if (skillsShown) return;
   skillsShown = true;
-  $("welcome").textContent = "Ask in English or Hinglish. It keeps your tasks, reminds you at the time you say, finds, opens and summarizes your notes and answers questions from them, and drafts emails, rewrites, translates, writes small Python code and chats.";
   const b = el("button", "", "manager ko friday ki chutti ke liye mail likh do");
   b.type = "button";
   b.addEventListener("click", () => send(b.textContent));
-  $("try").append(b);
+  $("try").querySelector(".chips").append(b);
+  drawRecent();
 }
 
 // What Kestrel can do here (GET /api/capabilities, v4): a line per card, its steps or reasons below.
@@ -599,21 +851,20 @@ function drawCapabilities(data) {
   list.replaceChildren();
   for (const c of data.cards) {
     const [mark, said] = STATES[c.state] || ["", c.state];
-    const li = el("li", "card " + c.state);
-    const m = el("span", "mark", mark);
+    const li = el("li");
+    const m = el("span", "", mark);
     m.setAttribute("aria-hidden", "true");
-    const name = el("span", "cap"); // not "name": that is the header's brand
+    const name = el("span");
     name.append(el("span", "sr", said + ": "), c.name.en);
-    if (c.state === "slow") name.append(" ", el("span", "slow", "(slow)"));
+    if (c.state === "slow") name.append(" (slow)");
     li.append(m, name);
     if (c.notes.length) {
-      const notes = el("ul", "notes");
+      const notes = el("ul");
       for (const t of c.notes) notes.append(el("li", "", t.en));
       li.append(notes);
     }
     list.append(li);
   }
-  $("can").hidden = false;
 }
 
 async function refresh() {
@@ -625,37 +876,123 @@ async function refresh() {
   try {
     const r = await api("/api/tasks");
     if (!r.ok) return;
-    const data = await r.json();
-    drawDay(data);
-    drawTasks(data);
-    if (data.skills) showSkills();
+    last = await r.json();
+    drawHero(last);
+    drawTimeline(last);
+    drawTasks(last);
+    drawRecent();
+    if (last.skills) showSkills();
   } catch (e) { /* the conversation reports a stopped service */ }
 }
 
-// --- The conversation ----------------------------------------------------------------------
+// --- Recent: each request and what Kestrel said, newest first ---------------------------------
 const KEEP_TURNS = 40;
+const turns = []; // { text, row, detail, lines[], written, trouble, done }
 
-function turn(text) {
-  $("welcome").hidden = true;
-  const li = el("li", "turn");
-  li.append(el("p", "said", text));
-  const reply = el("div", "reply");
-  li.append(reply);
-  const log = $("log");
-  log.prepend(li);
-  while (log.children.length > KEEP_TURNS) log.lastElementChild.remove();
-  return reply;
+// The line under a request: what Kestrel did, in one line.
+function summary(t) {
+  if (t.trouble) return t.trouble;
+  if (!t.done) return t.asking ? "Waiting for your answer" : "Thinking…";
+  // Lines trimmed; a heading line ("today:") runs into the next.
+  const said = t.lines.map((l) => l.trim()).filter(Boolean);
+  if (said.length) return said.reduce((a, l) => (!a ? l : a.endsWith(":") ? `${a} ${l}` : `${a} · ${l}`), "");
+  if (t.written) return t.written.replace(/```[\s\S]*?(```|$)/g, "[code]").replace(/\s+/g, " ").trim();
+  return "done";
 }
 
-function ask(reply, q) {
+// A request about one task (#N) is ticked once that task is no longer open: done.
+function ticked(t) {
+  if (!t.done || !last) return false;
+  const ids = new Set([...summary(t).matchAll(/#(\d+)/g)].map((m) => Number(m[1])));
+  if (ids.size !== 1) return false;
+  const [id] = ids;
+  return !last.tasks.some((task) => task.id === id);
+}
+
+function drawRow(t) {
+  const row = t.row;
+  const ring = row.querySelector(".ring");
+  ring.classList.toggle("done", ticked(t));
+  const sub = row.querySelector(".row-text span");
+  sub.textContent = summary(t);
+  sub.classList.toggle("trouble", !!t.trouble);
+}
+
+const SUGGEST = () => [...$("try").querySelectorAll("button")].map((b) => b.textContent);
+
+function drawRecent() {
+  const rows = $("rows");
+  if (turns.length) {
+    for (const t of turns) drawRow(t);
+    return;
+  }
+  // Nothing asked yet: the suggestions, to try with one click.
+  rows.replaceChildren();
+  for (const s of SUGGEST().slice(0, 4)) {
+    const li = el("li", "row");
+    const b = el("button", "row-main");
+    b.type = "button";
+    const text = el("div", "row-text");
+    text.append(el("b", "", s), el("span", "", "A suggestion: try it"));
+    b.append(el("span", "ring"), text, chevron());
+    b.addEventListener("click", () => send(s));
+    li.append(b);
+    rows.append(li);
+  }
+}
+
+function chevron() {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("class", "i chev");
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.setAttribute("aria-hidden", "true");
+  s.innerHTML = '<path d="m9 6 6 6-6 6"/>';
+  return s;
+}
+
+function turn(text) {
+  const rows = $("rows");
+  if (!turns.length) rows.replaceChildren();
+  const li = el("li", "row");
+  li.dataset.open = "true";
+  const b = el("button", "row-main");
+  b.type = "button";
+  b.setAttribute("aria-expanded", "true");
+  const words = el("div", "row-text");
+  words.append(el("b", "", text), el("span", "", "Thinking…"));
+  b.append(el("span", "ring"), words, chevron());
+  const detail = el("div", "detail");
+  b.addEventListener("click", () => {
+    const open = li.dataset.open !== "true";
+    li.dataset.open = String(open);
+    b.setAttribute("aria-expanded", String(open));
+    detail.hidden = !open;
+  });
+  li.append(b, detail);
+  rows.prepend(li);
+  const t = { text, row: li, detail, lines: [], written: "", trouble: null, done: false, asking: false };
+  turns.unshift(t);
+  while (turns.length > KEEP_TURNS) turns.pop().row.remove();
+  // Older answers fold away; this one stays open until it is in.
+  for (const o of turns.slice(1)) {
+    if (o.row.dataset.open === "true") o.row.querySelector(".row-main").click();
+  }
+  return t;
+}
+
+function ask(t, q) {
+  t.asking = true;
+  drawRow(t);
   const box = el("div", "question");
   box.append(el("p", "", q));
   let answered = false;
   const answer = async (yes) => {
     if (answered) return;
     answered = true;
+    t.asking = false;
     box.querySelectorAll("button").forEach((b) => b.remove());
     box.append(el("span", "wait", yes ? "You said yes" : "You said no"));
+    drawRow(t);
     try { await api("/api/answer", { answer: yes }); } catch (e) { /* the request below reports it */ }
   };
   const yes = el("button", "answer yes", "Yes");
@@ -664,7 +1001,7 @@ function ask(reply, q) {
   yes.addEventListener("click", () => answer(true));
   no.addEventListener("click", () => answer(false));
   box.append(yes, no);
-  reply.append(box);
+  t.detail.append(box);
   no.focus();
   box.addEventListener("keydown", (e) => {
     if (e.key === "y") answer(true);
@@ -704,10 +1041,10 @@ async function send(text) {
   if (busy || !text.trim()) return;
   busy = true;
   $("send").disabled = true;
-  document.body.classList.add("thinking");
-  const reply = turn(text);
+  show("home");
+  const t = turn(text);
   const wait = el("p", "wait", "Thinking");
-  reply.append(wait);
+  t.detail.append(wait);
   const t0 = Date.now();
   const tick = setInterval(() => {
     const s = Math.round((Date.now() - t0) / 1000);
@@ -716,7 +1053,7 @@ async function send(text) {
   try {
     const r = await api("/api/say", { text });
     if (r.status === 401) throw new Error("key");
-    if (r.status === 409) { reply.append(el("p", "trouble", "Kestrel is waiting for your answer to its question above.")); return; }
+    if (r.status === 409) { t.trouble = "Kestrel is waiting for your answer to its question above."; return; }
     if (!r.ok || !r.body) throw new Error("status " + r.status);
     const reader = r.body.getReader();
     const dec = new TextDecoder();
@@ -732,27 +1069,34 @@ async function send(text) {
         buf = buf.slice(nl + 1);
         if (msg.part !== undefined) {
           wait.hidden = true;
-          if (!written) reply.append(written = el("p", "", ""));
+          if (!written) t.detail.append(written = el("p", "", ""));
           written.textContent += msg.part;
+          t.written += msg.part;
           continue;
         }
         if (written) codeBoxes(written);
         written = null;
-        if (msg.line !== undefined) reply.append(el("p", "", msg.line));
-        if (msg.ask !== undefined) { wait.hidden = true; ask(reply, msg.ask); }
+        if (msg.line !== undefined) { t.detail.append(el("p", "", msg.line)); t.lines.push(msg.line); }
+        if (msg.ask !== undefined) { wait.hidden = true; ask(t, msg.ask); }
       }
     }
     if (written) codeBoxes(written);
   } catch (e) {
-    reply.append(el("p", "trouble", e.message === "key"
+    t.trouble = e.message === "key"
       ? "This page has no key. Open it with: kestrel open"
-      : "Kestrel is not answering. Start it with: systemctl --user start kestrel"));
+      : "Kestrel is not answering. Start it with: kestrel open";
+    t.detail.append(el("p", "trouble", t.trouble));
   } finally {
     clearInterval(tick);
     wait.remove();
+    t.done = true;
+    // A one-line answer needs no opening: its line is under the request.
+    if (!t.written && t.lines.length <= 1 && !t.trouble && !t.detail.querySelector(".question")) {
+      t.row.querySelector(".row-main").click();
+    }
+    drawRow(t);
     busy = false;
     $("send").disabled = false;
-    document.body.classList.remove("thinking");
     refresh();
     $("say").focus({ preventScroll: true });
   }
@@ -765,17 +1109,30 @@ $("ask").addEventListener("submit", (e) => {
   send(text);
 });
 $("try").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
+$("notes-try").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => send(b.textContent)));
+
+function localDay() {
+  const d = new Date();
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return { today: iso, minute: d.getHours() * 60 + d.getMinutes(), tasks: [], name: null };
+}
 
 if (!token) {
   // Without the key: today from this browser's clock, and how to get the key.
-  const d = new Date();
-  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  drawDay({ today: iso, minute: d.getHours() * 60 + d.getMinutes(), tasks: [] });
+  const day = localDay();
+  drawHero(day);
+  drawTimeline(day);
   $("welcome").textContent = "This page has no key yet. Open it from a terminal with: kestrel open";
   $("tasks").replaceChildren(el("p", "empty", "Your tasks show here once the page is opened with kestrel open."));
   $("say").disabled = $("send").disabled = true;
   $("try").hidden = true;
+} else {
+  // Until the service answers, the day from this clock (the page never shows a blank morning).
+  const day = localDay();
+  drawHero(day);
+  drawTimeline(day);
 }
+drawRecent();
 refresh();
 setInterval(refresh, 60 * 1000);
 $("say").focus({ preventScroll: true });

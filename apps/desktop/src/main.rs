@@ -216,7 +216,8 @@ fn show(app: &AppHandle) {
         };
         let built = WebviewWindowBuilder::new(&app, "main", url)
             .title("Kestrel")
-            .inner_size(1000.0, 760.0)
+            .inner_size(1440.0, 900.0)
+            .min_inner_size(900.0, 620.0)
             .on_navigation(move |u| {
                 let ok = link::may_open(u.as_str(), port);
                 if !ok {
