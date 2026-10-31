@@ -915,6 +915,7 @@ mod tests {
         let e4b = "gemma-4-E4B-it-Q4_0";
         let chosen = Settings {
             writer: Writer::Catalog { id: e4b.into() },
+            ..Settings::default()
         };
         save(&data, &chosen).unwrap();
         let c = context(&root, Some(&data), None).unwrap();
@@ -1042,6 +1043,7 @@ mod tests {
             writer: Writer::File {
                 path: gguf.to_string_lossy().into_owned(),
             },
+            ..Settings::default()
         };
         save(&data, &chosen).unwrap();
         let c = context(&root, Some(&data), None).unwrap();

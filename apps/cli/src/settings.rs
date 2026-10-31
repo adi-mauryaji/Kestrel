@@ -10,10 +10,14 @@ use serde::{Deserialize, Serialize};
 
 pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none";
 
+/// settings.json's notes folder; the rest of the file (the model slot's writer, src/slot.rs) is kept
+/// as it is.
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Settings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<PathBuf>,
+    #[serde(flatten)]
+    pub rest: serde_json::Map<String, serde_json::Value>,
 }
 
 /// settings.json in Kestrel's data folder.
@@ -100,6 +104,7 @@ mod tests {
         assert_eq!(load(&p).unwrap(), Settings::default());
         let s = Settings {
             notes: Some("/home/me/notes".into()),
+            ..Settings::default()
         };
         save(&p, &s).unwrap();
         assert_eq!(load(&p).unwrap(), s);
@@ -148,6 +153,27 @@ mod tests {
         run(&[], Some(&data), &mut shown).unwrap();
         let shown: serde_json::Value = serde_json::from_slice(&shown).unwrap();
         assert_eq!(shown["notes"], saved.to_str().unwrap());
+    }
+
+    #[test]
+    fn saving_the_notes_folder_keeps_the_model_choice() {
+        // settings.json is shared: `kestrel model use` keeps the writer there (src/slot.rs).
+        let d = dir("keep");
+        let data = d.join("data");
+        std::fs::create_dir_all(&data).unwrap();
+        let writer = r#"{"writer": {"kind": "catalog", "id": "gemma-4-E2B-it-Q4_0"}}"#;
+        std::fs::write(path(&data), writer).unwrap();
+        let mut out = Vec::new();
+        run(
+            &args(&["notes", d.to_str().unwrap()]),
+            Some(&data),
+            &mut out,
+        )
+        .unwrap();
+        let text = std::fs::read_to_string(path(&data)).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["writer"]["id"], "gemma-4-E2B-it-Q4_0");
+        assert!(v["notes"].is_string(), "{v}");
     }
 
     #[test]

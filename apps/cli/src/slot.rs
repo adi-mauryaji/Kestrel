@@ -12,10 +12,14 @@ use std::path::Path;
 use kestrel_capability::{Catalog, Choice, Device, Model};
 use serde::{Deserialize, Serialize};
 
+/// The model slot's part of settings.json; the rest of the file (the notes folder, src/settings.rs)
+/// is kept as it is.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
 pub struct Settings {
     #[serde(default)]
     pub writer: Writer,
+    #[serde(flatten)]
+    pub rest: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
@@ -241,6 +245,23 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
     }
 
+    #[test]
+    fn choosing_a_model_keeps_the_rest_of_the_settings() {
+        // settings.json is shared: `kestrel settings notes DIR` keeps the notes folder there.
+        let d = temp("keep");
+        std::fs::write(d.join("settings.json"), r#"{"notes": "/home/me/notes"}"#).unwrap();
+        let mut s = load(Some(&d));
+        s.writer = Writer::Catalog {
+            id: "gemma-4-E2B-it-Q4_0".into(),
+        };
+        save(&d, &s).unwrap();
+        let text = std::fs::read_to_string(d.join("settings.json")).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        assert_eq!(v["notes"], "/home/me/notes");
+        assert_eq!(v["writer"]["id"], "gemma-4-E2B-it-Q4_0");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
     fn temp(tag: &str) -> std::path::PathBuf {
         let d = std::env::temp_dir().join(format!("kestrel_slot_{tag}_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
@@ -262,7 +283,11 @@ mod tests {
             },
             Writer::Auto,
         ] {
-            save(&d, &Settings { writer: w.clone() }).unwrap();
+            let s = Settings {
+                writer: w.clone(),
+                ..Settings::default()
+            };
+            save(&d, &s).unwrap();
             assert_eq!(load(Some(&d)).writer, w);
         }
         std::fs::write(d.join("settings.json"), "not json").unwrap();
@@ -327,12 +352,14 @@ mod tests {
         assert_eq!(effective(&auto, &c), Some(("e2b".into(), "automatic")));
         let named = Settings {
             writer: Writer::Catalog { id: "e4b".into() },
+            ..Settings::default()
         };
         assert_eq!(effective(&named, &c), Some(("e4b".into(), "your choice")));
         let file = Settings {
             writer: Writer::File {
                 path: "/m/Mistral-7B-Q4.gguf".into(),
             },
+            ..Settings::default()
         };
         assert_eq!(
             effective(&file, &c),
