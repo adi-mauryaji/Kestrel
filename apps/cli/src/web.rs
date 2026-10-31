@@ -17,7 +17,8 @@
 //!   reach it by DNS rebinding); the API also needs `X-Kestrel-Token`, a secret kept in a 0600
 //!   file that `kestrel open` passes in the URL fragment (never sent to a server). The page itself
 //!   holds no secret.
-//! - One request at a time, like the Unix socket; a read stalls at most `READ_TIMEOUT`.
+//! - One request at a time, like the Unix socket; a read stalls at most `READ_TIMEOUT`. Each
+//!   connection ends gently (`finish`), so the browser never loses the end of an answer.
 
 use std::cell::RefCell;
 use std::io::{self, BufRead, Read, Write};
@@ -59,6 +60,8 @@ const FONTS: [(&str, &[u8]); 3] = [
 const JSON: &str = "application/json";
 /// A browser that stops sending holds the service at most this long.
 const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+/// How long an answered connection waits for the browser to close before it is closed anyway.
+const LINGER: std::time::Duration = std::time::Duration::from_millis(100);
 /// How long a y/N question waits for the page's answer.
 const ANSWER_WAIT: std::time::Duration = std::time::Duration::from_secs(120);
 const TEXT: &str = "text/plain; charset=utf-8";
@@ -431,33 +434,34 @@ impl Web {
             return Ok(());
         };
         let mut answer = || self.wait_for_answer();
-        respond(&req, &mut out, &self.api(), say, &mut answer)
+        let done = respond(&req, &mut out, &self.api(), say, &mut answer);
+        finish(out);
+        done
     }
 
     /// The request on `stream` if it is allowed (else it is refused here), and the stream to
     /// answer on.
     fn read(
         &self,
-        stream: std::net::TcpStream,
+        mut stream: std::net::TcpStream,
     ) -> io::Result<Option<(HttpRequest, std::net::TcpStream)>> {
         stream.set_nonblocking(false)?;
         stream.set_read_timeout(Some(READ_TIMEOUT))?;
-        let mut out = stream.try_clone()?;
-        let req = match read_request(&mut io::BufReader::new(stream)) {
-            Ok(r) => r,
-            Err(_) => {
-                reply(&mut out, "400 Bad Request", TEXT, b"bad request")?;
-                return Ok(None);
-            }
+        // Read through a borrow: one socket handle, closed once (no clone closed early).
+        let req = read_request(&mut io::BufReader::new(&stream));
+        let refused = match req {
+            Err(_) => reply(&mut stream, "400 Bad Request", TEXT, b"bad request"),
+            Ok(req) => match allowed(&req, self.port, &self.token, self.lan) {
+                Ok(()) => return Ok(Some((req, stream))),
+                Err(403) => reply(&mut stream, "403 Forbidden", TEXT, b"wrong host"),
+                Err(_) => {
+                    let why = b"open the page with `kestrel open`";
+                    reply(&mut stream, "401 Unauthorized", TEXT, why)
+                }
+            },
         };
-        match allowed(&req, self.port, &self.token, self.lan) {
-            Ok(()) => Ok(Some((req, out))),
-            Err(403) => reply(&mut out, "403 Forbidden", TEXT, b"wrong host").map(|()| None),
-            Err(_) => {
-                let why = b"open the page with `kestrel open`";
-                reply(&mut out, "401 Unauthorized", TEXT, why).map(|()| None)
-            }
-        }
+        finish(stream);
+        refused.map(|()| None)
     }
 
     /// While a question waits: its answer (Some), the page and the task list as usual, a new
@@ -476,20 +480,18 @@ impl Web {
             let Ok(Some((req, mut out))) = self.read(stream) else {
                 continue;
             };
+            let mut answered = None;
             match (req.method.as_str(), req.path.as_str()) {
                 ("POST", "/api/answer") => {
-                    let a = serde_json::from_slice::<Value>(&req.body)
+                    answered = serde_json::from_slice::<Value>(&req.body)
                         .ok()
                         .and_then(|v| v["answer"].as_bool());
-                    let status = if a.is_some() {
+                    let status = if answered.is_some() {
                         "204 No Content"
                     } else {
                         "400 Bad Request"
                     };
                     let _ = reply(&mut out, status, TEXT, b"");
-                    if a.is_some() {
-                        return a;
-                    }
                 }
                 ("POST", "/api/say") => {
                     let why = b"Kestrel is waiting for your answer to its question";
@@ -504,6 +506,10 @@ impl Web {
                         &mut || None,
                     );
                 }
+            }
+            finish(out);
+            if answered.is_some() {
+                return answered;
             }
         }
         None
@@ -675,6 +681,24 @@ fn head(out: &mut dyn Write, status: &str, kind: &str, len: Option<usize>) -> io
         write!(out, "Content-Length: {n}\r\n")?;
     }
     write!(out, "\r\n")
+}
+
+/// Ends an answered connection gently: the end of the answer is sent first, then what the browser
+/// still sends is read away until it closes or `LINGER` passes. A socket closed with bytes unread
+/// is reset instead, and the browser can lose the end of the answer (seen on Windows CI).
+fn finish(mut stream: std::net::TcpStream) {
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+    let until = std::time::Instant::now() + LINGER;
+    let mut sink = [0u8; 4096];
+    loop {
+        let left = until.saturating_duration_since(std::time::Instant::now());
+        if left.is_zero() || stream.set_read_timeout(Some(left)).is_err() {
+            return;
+        }
+        if matches!(stream.read(&mut sink), Ok(0) | Err(_)) {
+            return;
+        }
+    }
 }
 
 /// A whole response.
@@ -1186,6 +1210,35 @@ mod tests {
         assert!(busy.starts_with("HTTP/1.1 409"), "{busy:.60}");
         assert!(answered.starts_with("HTTP/1.1 204"), "{answered:.60}");
         assert_eq!(rest, "{\"line\":\"deleted task #2\"}\n{\"done\":true}\n");
+    }
+
+    #[test]
+    fn the_whole_answer_arrives_when_the_browser_sent_more_than_its_request() {
+        // A connection closed with bytes unread is reset (Linux, Windows), and the browser can lose
+        // the end of the answer. More than the request's read buffer, so some stay in the socket.
+        use std::io::{Read, Write};
+        use std::net::TcpStream;
+        let mut web =
+            Web::bind(0, "s3cret".into(), Box::new(|| json!({"tasks": []})), None).unwrap();
+        let port = web.port();
+        let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        write!(
+            s,
+            "GET /api/tasks HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n"
+        )
+        .unwrap();
+        s.write_all(&[b'x'; 64 * 1024]).unwrap();
+        // The service answers (401: no token) and is done with the connection before the read.
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        web.poll(&mut |_, _, _| vec![]).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let mut answer = String::new();
+        s.read_to_string(&mut answer).unwrap();
+        assert!(answer.starts_with("HTTP/1.1 401"), "{answer:.60}");
+        assert!(
+            answer.ends_with("open the page with `kestrel open`"),
+            "{answer}"
+        );
     }
 
     /// An environment whose runtime folder (on any of the three systems) is `dir`, created.
