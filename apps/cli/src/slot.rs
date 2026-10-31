@@ -164,7 +164,7 @@ pub fn run_in(
     args: &[String],
     out: &mut dyn Write,
 ) -> Result<(), Box<dyn Error>> {
-    const USE: &str = "usage: kestrel model [use ID|FILE.gguf | auto]";
+    const USE: &str = "usage: kestrel model [use ID|FILE.gguf | auto | import FILE.gguf]";
     let mut settings = load(data);
     let now = crate::capabilities::context(root, data, None)?;
     let budget = kestrel_capability::memory_budget_mib(&now.device);
@@ -211,14 +211,34 @@ pub fn run_in(
             }
             if !model_path(root, data, &m.file).is_file() {
                 return Err(format!(
-                    "{id} is not downloaded: put {} in models/ (downloads come with the app, \
-                     v4 phase A3)",
+                    "{id} is not here: `kestrel model import {}` brings it in from a file",
                     m.file
                 )
                 .into());
             }
             settings.writer = Writer::Catalog { id: id.clone() };
             true
+        }
+        // A catalog model brought in from a file; the choice stays (automatic finds it).
+        [i, file] if i == "import" => {
+            let data = data.ok_or("no data folder to import into")?;
+            let mut shown = 0;
+            let got =
+                crate::import::import(Path::new(file), data, &now.catalog, &mut |done, all| {
+                    let pct = (done * 100).checked_div(all).unwrap_or(100);
+                    if pct >= shown + 10 {
+                        shown = pct - pct % 10;
+                        let _ = writeln!(out, "  {shown}%");
+                    }
+                })?;
+            writeln!(
+                out,
+                "imported {} ({}, SHA-256 checked) to {}",
+                got.id,
+                kestrel_capability::size(got.bytes >> 20),
+                got.path.display()
+            )?;
+            false
         }
         _ => return Err(USE.into()),
     };
@@ -465,6 +485,19 @@ mod tests {
                             the notes do not answer; code 17 of 18 pass\n"
             )
         );
+    }
+
+    #[test]
+    fn import_takes_only_a_catalog_model_and_leaves_the_choice_alone() {
+        let data = temp("import");
+        let file = data.join("not-a-model.gguf");
+        std::fs::write(&file, "abc").unwrap();
+        let mut out = Vec::new();
+        let args = ["import".into(), file.to_string_lossy().into_owned()];
+        let e = run_in(&repo(), Some(&data), &args, &mut out).unwrap_err();
+        assert!(e.to_string().contains("SHA-256"), "{e}");
+        assert!(!data.join("settings.json").exists());
+        let _ = std::fs::remove_dir_all(&data);
     }
 
     #[test]
