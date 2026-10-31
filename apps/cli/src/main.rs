@@ -85,6 +85,9 @@ mod route_items;
 mod sandbox;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod service;
+// Without llama nothing serves, so the notes folder is only saved and shown.
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod settings;
 mod slot;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod stream;
@@ -99,7 +102,7 @@ mod web;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print] [--lan] the assistant's page in your browser (--lan: its wifi link)\n       kestrel stop                  stops it and frees its memory; open, chat or say start it again\n       kestrel capabilities [--measure] [--hi]  what Kestrel can do on this device, and why not the rest\n       kestrel calibrate [CONFIG]    measure the writer's kind fallback on the dev splits (about 10 min)\n       kestrel model [use ID|FILE.gguf | auto]  the writer model for this device, and what else fits\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] [--app] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print] [--lan] [--no-start]  the assistant's page in your browser (--lan: its wifi link)\n       kestrel stop                  stops it and frees its memory; open, chat or say start it again\n       kestrel capabilities [--measure] [--hi]  what Kestrel can do on this device, and why not the rest\n       kestrel calibrate [CONFIG]    measure the writer's kind fallback on the dev splits (about 10 min)\n       kestrel model [use ID|FILE.gguf | auto]  the writer model for this device, and what else fits\n       kestrel settings [notes DIR]  what Kestrel keeps between starts: the notes folder\n       kestrel serve [--notes DIR] [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] [--app] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -113,10 +116,17 @@ fn main() -> ExitCode {
         Some("capabilities") => capabilities::run(&args[1..], &mut std::io::stdout()),
         Some("calibrate") => calibrate::run(&args[1..], &mut std::io::stdout()),
         Some("model") => slot::run(&args[1..], &mut std::io::stdout()),
+        Some("settings") => {
+            settings::run(&args[1..], data_dir().as_deref(), &mut std::io::stdout())
+        }
         // A stopped service starts again for the commands that talk to it (src/control.rs).
         Some("chat") => control::wake_here(false).and_then(|()| service::chat(None)),
-        Some("open") => control::wake_here(true)
-            .and_then(|()| web::open(&args[1..], &|k| std::env::var_os(k), &mut std::io::stdout())),
+        Some("open") => (if open_starts(&args[1..]) {
+            control::wake_here(true)
+        } else {
+            Ok(())
+        })
+        .and_then(|()| web::open(&args[1..], &|k| std::env::var_os(k), &mut std::io::stdout())),
         Some("say") => match &args[1..] {
             [] => Err(
                 "say what? e.g. kestrel say \"show my tasks\" (kestrel chat for a conversation)"
@@ -137,6 +147,16 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// `kestrel open` starts a stopped Kestrel first, except with `--no-start` (the app's checks).
+fn open_starts(args: &[String]) -> bool {
+    !args.iter().any(|a| a == "--no-start")
+}
+
+/// Kestrel's data folder on this machine (memory file, settings, model slot).
+fn data_dir() -> Option<std::path::PathBuf> {
+    kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env)
 }
 
 fn e4_eval(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
@@ -326,7 +346,12 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let [config] = args else {
         return Err(USAGE.into());
     };
-    let notes = notes.ok_or("kestrel serve needs --notes DIR (or KESTREL_NOTES)")?;
+    // Else the folder saved by `kestrel settings notes DIR` or the app's onboarding.
+    let notes = notes
+        .or_else(|| settings::notes(data_dir().as_deref()))
+        .ok_or(
+            "kestrel serve needs --notes DIR (or KESTREL_NOTES, or kestrel settings notes DIR)",
+        )?;
     let memory = memory::default_db(kestrel_platform::Os::current(), &kestrel_platform::env)?;
     service::serve(
         config.as_ref(),
@@ -392,8 +417,17 @@ mod tests {
             "memory",
             "e4-eval",
             "calibrate",
+            "settings",
         ] {
             assert!(USAGE.contains(&format!("kestrel {c}")), "{c}");
         }
+    }
+
+    #[test]
+    fn open_starts_a_stopped_kestrel_unless_told_not_to() {
+        let args = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(open_starts(&args(&["--print"])));
+        // The app asks every few seconds; a `kestrel stop` must stay stopped.
+        assert!(!open_starts(&args(&["--print", "--no-start"])));
     }
 }
