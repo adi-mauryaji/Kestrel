@@ -304,7 +304,7 @@ pub fn calibrated(
 /// and val, kept in the device profile. About ten minutes of full CPU with the 2B writer.
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
     let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
-    run_in(Path::new("."), data.as_deref(), args, out)
+    run_in(&crate::root(), data.as_deref(), args, out)
 }
 
 #[cfg(not(feature = "llama"))]

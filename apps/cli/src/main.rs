@@ -150,6 +150,34 @@ fn main() -> ExitCode {
     }
 }
 
+/// Kestrel's own files (configs, contracts, models/catalog.json): `here` when they are there (the
+/// repository, or the service the app starts among them), else KESTREL_HOME, else where an
+/// installed Kestrel keeps them (kestrel_platform::installed_files); else `here`, whose errors
+/// then name what is missing.
+fn pick_root(
+    here: &std::path::Path,
+    home: Option<std::path::PathBuf>,
+    installed: Option<std::path::PathBuf>,
+) -> std::path::PathBuf {
+    let has_files = |d: &std::path::Path| d.join("models/catalog.json").is_file();
+    if has_files(here) {
+        return here.into();
+    }
+    home.or(installed.filter(|d| has_files(d)))
+        .unwrap_or_else(|| here.into())
+}
+
+/// Kestrel's own files on this machine (`pick_root`).
+fn root() -> std::path::PathBuf {
+    let home = std::env::var_os("KESTREL_HOME")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from);
+    let installed = std::env::current_exe()
+        .ok()
+        .and_then(|e| kestrel_platform::installed_files(kestrel_platform::Os::current(), &e));
+    pick_root(std::path::Path::new("."), home, installed)
+}
+
 /// `kestrel open` starts a stopped Kestrel first, except with `--no-start` (the app's checks).
 fn open_starts(args: &[String]) -> bool {
     !args.iter().any(|a| a == "--no-start")
@@ -354,6 +382,10 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             "kestrel serve needs --notes DIR (or KESTREL_NOTES, or kestrel settings notes DIR)",
         )?;
     let memory = memory::default_db(kestrel_platform::Os::current(), &kestrel_platform::env)?;
+    // The service reads Kestrel's files where they are (the repository, or an installed Kestrel's):
+    // the paths given here are made full before it goes there. CONFIG is among those files.
+    let (notes, memory) = (std::path::absolute(notes)?, std::path::absolute(memory)?);
+    std::env::set_current_dir(root())?;
     service::serve(
         config.as_ref(),
         &notes,
@@ -422,6 +454,29 @@ mod tests {
         ] {
             assert!(USAGE.contains(&format!("kestrel {c}")), "{c}");
         }
+    }
+
+    #[test]
+    fn kestrels_files_are_here_else_kestrel_home_else_where_it_is_installed() {
+        let d = std::env::temp_dir().join(format!("kestrel_root_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let with_files = |p: &std::path::Path| {
+            std::fs::create_dir_all(p.join("models")).unwrap();
+            std::fs::write(p.join("models/catalog.json"), "{}").unwrap();
+        };
+        let (here, home, installed) = (d.join("here"), d.join("home"), d.join("installed"));
+        std::fs::create_dir_all(&here).unwrap();
+        with_files(&installed);
+        assert_eq!(pick_root(&here, None, Some(installed.clone())), installed);
+        assert_eq!(
+            pick_root(&here, Some(home.clone()), Some(installed.clone())),
+            home
+        );
+        with_files(&here);
+        assert_eq!(pick_root(&here, Some(home), Some(installed)), here);
+        let empty = d.join("empty");
+        assert_eq!(pick_root(&empty, None, Some(d.join("nowhere"))), empty);
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]

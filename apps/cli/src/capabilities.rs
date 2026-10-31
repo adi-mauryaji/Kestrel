@@ -169,7 +169,7 @@ pub fn render(d: &Device, verdicts: &[Verdict], hi: bool) -> String {
 
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
     let data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
-    run_in(Path::new("."), data.as_deref(), args, out)
+    run_in(&crate::root(), data.as_deref(), args, out)
 }
 
 /// (bytes, modified as s since 1970) of a file.

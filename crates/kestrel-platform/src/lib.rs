@@ -5,7 +5,7 @@
 //! the machine. Linux keeps v3's paths and commands exactly.
 
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// An environment lookup: `env` for the process, a closure in tests.
@@ -342,10 +342,50 @@ pub fn parse_memory_total(out: &str) -> Option<u64> {
     (bytes > 0).then_some(bytes >> 20)
 }
 
+/// Where an installed Kestrel keeps its own files (configs, contracts, models/catalog.json), from
+/// its program's path, as the desktop app's installers lay them out (v4 A3): Linux packages
+/// /usr/bin/kestrel → /usr/lib/Kestrel; macOS Kestrel.app/Contents/MacOS → Contents/Resources;
+/// Windows beside the program.
+pub fn installed_files(os: Os, exe: &Path) -> Option<PathBuf> {
+    let dir = exe.parent().filter(|d| !d.as_os_str().is_empty())?;
+    match os {
+        Os::Linux => Some(dir.parent()?.join("lib/Kestrel")),
+        Os::MacOs => Some(dir.parent()?.join("Resources")),
+        Os::Windows => Some(dir.to_path_buf()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::ffi::OsStr;
+
+    #[test]
+    fn an_installed_kestrel_finds_its_files_by_its_programs_path() {
+        assert_eq!(
+            installed_files(Os::Linux, Path::new("/usr/bin/kestrel")),
+            Some(PathBuf::from("/usr/lib/Kestrel"))
+        );
+        assert_eq!(
+            installed_files(
+                Os::MacOs,
+                Path::new("/Applications/Kestrel.app/Contents/MacOS/kestrel")
+            ),
+            Some(PathBuf::from(
+                "/Applications/Kestrel.app/Contents/Resources"
+            ))
+        );
+        assert_eq!(
+            // Forward slashes: a separator on every host the tests run on.
+            installed_files(
+                Os::Windows,
+                Path::new("C:/Program Files/Kestrel/kestrel.exe")
+            ),
+            Some(PathBuf::from("C:/Program Files/Kestrel"))
+        );
+        assert_eq!(installed_files(Os::Linux, Path::new("kestrel")), None);
+        assert_eq!(installed_files(Os::Windows, Path::new("kestrel.exe")), None);
+    }
 
     /// An environment holding exactly `pairs`.
     fn env_of(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<OsString> {

@@ -155,7 +155,7 @@ pub fn render(
 
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), Box<dyn Error>> {
     let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
-    run_in(Path::new("."), data.as_deref(), args, out)
+    run_in(&crate::root(), data.as_deref(), args, out)
 }
 
 pub fn run_in(
