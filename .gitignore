@@ -3,6 +3,8 @@
 /apps/desktop/target/
 # Made by tauri-build
 /apps/desktop/gen/
+# The sidecar copy scripts/build_desktop.sh makes
+/apps/desktop/binaries/
 
 # Python
 .venv/

@@ -1,0 +1,24 @@
+{
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "rpm"],
+    "category": "Productivity",
+    "shortDescription": "Your assistant that runs on this device",
+    "longDescription": "Kestrel keeps your tasks and reminders, finds and answers from your notes, and drafts, rewrites and translates text, in English and Hinglish. It runs on this device; nothing you type leaves it.",
+    "license": "MIT OR Apache-2.0",
+    "externalBin": ["binaries/kestrel"],
+    "resources": {
+      "../../capabilities/": "capabilities/",
+      "../../datasets/contracts/": "datasets/contracts/",
+      "../../experiments/configs/": "experiments/configs/",
+      "../../experiments/artifacts/tier3/": "experiments/artifacts/tier3/",
+      "../../models/catalog.json": "models/catalog.json",
+      "../../models/multilingual-e5-small-q8_0.gguf": "models/multilingual-e5-small-q8_0.gguf",
+      "../../datasets/kestrel_kinds_v2/splits/cal.jsonl": "datasets/kestrel_kinds_v2/splits/cal.jsonl",
+      "../../datasets/kestrel_kinds_v2/splits/val.jsonl": "datasets/kestrel_kinds_v2/splits/val.jsonl",
+      "../../datasets/kestrel_notesqa_v0/splits/dev.jsonl": "datasets/kestrel_notesqa_v0/splits/dev.jsonl",
+      "../../datasets/kestrel_codetasks_v0/splits/dev.jsonl": "datasets/kestrel_codetasks_v0/splits/dev.jsonl",
+      "../../datasets/kestrel_notesq_v0/notes/": "datasets/kestrel_notesq_v0/notes/"
+    }
+  }
+}
