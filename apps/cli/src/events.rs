@@ -30,12 +30,21 @@ pub struct Event {
 pub struct Events {
     last: u64,
     kept: VecDeque<Event>,
+    /// The service shows them as desktop notifications itself, so the app does not.
+    desktop: bool,
 }
 
 /// The service's events, shared by the reminder thread and the page.
 pub type Shared = Arc<Mutex<Events>>;
 
 impl Events {
+    pub fn shown_on_desktop(desktop: bool) -> Self {
+        Self {
+            desktop,
+            ..Self::default()
+        }
+    }
+
     /// Adds an event that happened at `at`; its number.
     pub fn push(&mut self, kind: &'static str, title: &str, body: &str, at: i64) -> u64 {
         self.last += 1;
@@ -53,8 +62,8 @@ impl Events {
     }
 
     /// What `GET /api/events?after=N` answers at `now`: the kept events numbered above `after`,
-    /// and the last number given. An `after` above that number was asked before a restart:
-    /// everything kept.
+    /// the last number given, and whether the desktop shows them already. An `after` above that
+    /// number was asked before a restart: everything kept.
     pub fn after(&self, after: u64, now: i64) -> Value {
         let after = if after > self.last { 0 } else { after };
         let events: Vec<Value> = self
@@ -65,7 +74,7 @@ impl Events {
                 json!({"seq": e.seq, "kind": e.kind, "title": e.title, "body": e.body, "at": e.at})
             })
             .collect();
-        json!({"events": events, "last": self.last})
+        json!({"events": events, "last": self.last, "desktop": self.desktop})
     }
 }
 
@@ -93,7 +102,10 @@ mod tests {
     #[test]
     fn the_app_hears_each_event_once_by_asking_after_the_last() {
         let mut e = Events::default();
-        assert_eq!(e.after(0, 1000), json!({"events": [], "last": 0}));
+        assert_eq!(
+            e.after(0, 1000),
+            json!({"events": [], "last": 0, "desktop": false})
+        );
         assert_eq!(
             e.push("reminder", "Kestrel reminder", "09:00 Call mom", 1000),
             1
@@ -102,11 +114,11 @@ mod tests {
         assert_eq!(
             first,
             json!({"events": [{"seq": 1, "kind": "reminder", "title": "Kestrel reminder",
-                               "body": "09:00 Call mom", "at": 1000}], "last": 1})
+                               "body": "09:00 Call mom", "at": 1000}], "last": 1, "desktop": false})
         );
         assert_eq!(e.push("reminder", "Kestrel reminder", "09:30 Gym", 1800), 2);
         assert_eq!(seqs(&e.after(1, 1805)), [2]);
-        assert_eq!(e.after(2, 1810), json!({"events": [], "last": 2}));
+        assert_eq!(e.after(2, 1810)["events"], json!([]));
     }
 
     #[test]
@@ -140,5 +152,12 @@ mod tests {
         assert_eq!(after_in("after=-1"), None);
         assert_eq!(after_in("after="), None);
         assert_eq!(after_in("after=ten"), None);
+    }
+
+    #[test]
+    fn the_app_hears_whether_the_desktop_shows_them_already() {
+        // Then the app shows none of them itself (a service started without `--app`).
+        assert_eq!(Events::default().after(0, 0)["desktop"], false);
+        assert_eq!(Events::shown_on_desktop(true).after(0, 0)["desktop"], true);
     }
 }

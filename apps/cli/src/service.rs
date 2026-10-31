@@ -772,9 +772,10 @@ pub fn serve(
     );
     // Tasks with a time ring from their own thread, so a long `kestrel chat` does not hold them up;
     // the app hears them from the page's events, and under the app nothing else shows them.
-    let events = crate::events::Shared::default();
-    let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
     let desktop = !app && crate::remind::desktop_shows(Os::current());
+    let events =
+        crate::events::Shared::new(crate::events::Events::shown_on_desktop(desktop).into());
+    let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db, &ring_events, desktop));
     // The browser page; without it the service still answers on the socket.
     let page = |port| open_web(port, config, memory, skills, web_lan, events);
