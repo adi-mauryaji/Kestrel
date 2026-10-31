@@ -47,8 +47,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "$ASSETS_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ASSETS_FILE"
-          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
-          echo "$ASSETS_SHA256  $ASSETS_FILE" | $sum -c
+          # Compared as text: macOS's sha256sum is BSD's (no -c from stdin, its own output format);
+          # shasum prints "HASH  FILE" on macOS and Linux, Git Bash's sha256sum the same.
+          got=$( (shasum -a 256 "$ASSETS_FILE" 2>/dev/null || sha256sum "$ASSETS_FILE") | cut -d' ' -f1)
+          if [ "$got" != "$ASSETS_SHA256" ]; then
+            echo "$ASSETS_FILE: SHA-256 $got, expected $ASSETS_SHA256"
+            exit 1
+          fi
           tar -xzf "$ASSETS_FILE"
           rm "$ASSETS_FILE"
       # rustup on the runner reads rust-toolchain.toml and installs the pinned toolchain
