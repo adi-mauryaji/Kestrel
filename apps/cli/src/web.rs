@@ -37,7 +37,23 @@ const MAX_LINE: u64 = 8 * 1024;
 const MAX_HEADERS: usize = 100;
 /// The page may run its own inline script and style and talk to this server; nothing else.
 const CSP: &str = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; \
-img-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+img-src data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; \
+frame-ancestors 'none'";
+/// The page's fonts (OFL, apps/cli/web/fonts with their licences): headings, the day's line, text.
+const FONTS: [(&str, &[u8]); 3] = [
+    (
+        "/fonts/source-serif-4.woff2",
+        include_bytes!("../web/fonts/source-serif-4.woff2"),
+    ),
+    (
+        "/fonts/caveat.woff2",
+        include_bytes!("../web/fonts/caveat.woff2"),
+    ),
+    (
+        "/fonts/inter.woff2",
+        include_bytes!("../web/fonts/inter.woff2"),
+    ),
+];
 const JSON: &str = "application/json";
 /// A browser that stops sending holds the service at most this long.
 const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
@@ -270,12 +286,18 @@ pub fn token(path: &Path) -> io::Result<String> {
 }
 
 /// What `GET /api/tasks` answers.
-pub fn tasks_json(tasks: &[TaskRow], today: Date, minute: u32, skills: bool) -> Value {
+pub fn tasks_json(
+    tasks: &[TaskRow],
+    today: Date,
+    minute: u32,
+    skills: bool,
+    name: Option<&str>,
+) -> Value {
     let rows: Vec<Value> = tasks
         .iter()
         .map(|t| json!({"id": t.id, "title": t.title, "due": t.due, "time": t.due_time}))
         .collect();
-    json!({"today": today.to_string(), "minute": minute, "skills": skills, "tasks": rows})
+    json!({"today": today.to_string(), "minute": minute, "skills": skills, "name": name, "tasks": rows})
 }
 
 /// The browser side of `kestrel serve`: a listener on 127.0.0.1 polled from the service loop; shared
@@ -458,6 +480,12 @@ pub fn respond(
     match (req.method.as_str(), path) {
         ("GET", "/") => reply(out, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes()),
         ("GET", "/api/tasks") => reply(out, "200 OK", JSON, tasks().to_string().as_bytes()),
+        ("GET", font) if font.starts_with("/fonts/") => {
+            match FONTS.iter().find(|(p, _)| *p == font) {
+                Some((_, bytes)) => reply(out, "200 OK", "font/woff2", bytes),
+                None => reply(out, "404 Not Found", TEXT, b"not found"),
+            }
+        }
         ("GET", "/api/capabilities") => {
             reply(out, "200 OK", JSON, capabilities().to_string().as_bytes())
         }
@@ -731,6 +759,7 @@ mod tests {
             today,
             1180,
             false,
+            Some("Aditya"),
         );
         assert_eq!(
             v,
@@ -738,6 +767,7 @@ mod tests {
                 "today": "2026-10-25",
                 "minute": 1180,
                 "skills": false,
+                "name": "Aditya",
                 "tasks": [
                     {"id": 6, "title": "bill bharna", "due": "2026-10-25", "time": "18:00"},
                     {"id": 1, "title": "fix the flaky build", "due": null, "time": null}
@@ -745,7 +775,9 @@ mod tests {
             })
         );
         // With v3's skills on, the page says so (and offers one to try).
-        assert_eq!(tasks_json(&[], today, 0, true)["skills"], true);
+        assert_eq!(tasks_json(&[], today, 0, true, None)["skills"], true);
+        // No name saved (`kestrel settings name NAME`): the page greets without one.
+        assert_eq!(tasks_json(&[], today, 0, true, None)["name"], Value::Null);
     }
 
     /// Runs `respond` with a stand-in assistant; the response as text.
@@ -823,7 +855,39 @@ mod tests {
             csp.contains("default-src 'none'") && csp.contains("connect-src 'self'"),
             "{csp}"
         );
+        // Its fonts come from this server only (apps/cli/web/fonts, nothing fetched elsewhere).
+        assert!(csp.contains("font-src 'self'"), "{csp}");
         assert!(out.contains("<title>Kestrel</title>"));
+    }
+
+    #[test]
+    fn the_pages_fonts_are_served_without_the_key_and_only_these() {
+        let r = read_request(&mut io::BufReader::new(
+            "GET /fonts/inter.woff2 HTTP/1.1\r\nHost: 127.0.0.1:7811\r\n\r\n".as_bytes(),
+        ))
+        .unwrap();
+        assert_eq!(allowed(&r, 7811, "k", None), Ok(()));
+        for f in ["source-serif-4", "inter", "caveat"] {
+            let mut out = Vec::new();
+            let req = get(&format!("/fonts/{f}.woff2"));
+            respond(
+                &req,
+                &mut out,
+                &|| json!({}),
+                &|| json!({}),
+                &|_| json!({}),
+                &mut |_, _, _| vec![],
+                &mut || None,
+            )
+            .unwrap();
+            let head = String::from_utf8_lossy(&out[..out.len().min(400)]).into_owned();
+            assert!(head.starts_with("HTTP/1.1 200 OK\r\n"), "{f}: {head:.80}");
+            assert!(head.contains("Content-Type: font/woff2"), "{f}");
+            let body = out.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
+            assert_eq!(&out[body..body + 4], b"wOF2", "{f}");
+        }
+        let (out, _) = answer_to(&get("/fonts/other.woff2"), None);
+        assert!(out.starts_with("HTTP/1.1 404"), "{out:.80}");
     }
 
     #[test]

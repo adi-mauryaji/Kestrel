@@ -8,7 +8,9 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none";
+pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by";
+/// The longest name the page greets.
+const NAME_MAX: usize = 40;
 
 /// settings.json's notes folder; the rest of the file (the model slot's writer, src/slot.rs) is kept
 /// as it is.
@@ -16,6 +18,9 @@ pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps
 pub struct Settings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<PathBuf>,
+    /// The name the page greets ("Good morning, Aditya").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(flatten)]
     pub rest: serde_json::Map<String, serde_json::Value>,
 }
@@ -52,7 +57,12 @@ pub fn notes(data: Option<&Path>) -> Option<PathBuf> {
     load(&path(data?)).ok()?.notes
 }
 
-/// `kestrel settings [notes DIR]` with Kestrel's data folder `data`.
+/// The name saved in Kestrel's data folder `data`, if any.
+pub fn name(data: Option<&Path>) -> Option<String> {
+    load(&path(data?)).ok()?.name
+}
+
+/// `kestrel settings [notes DIR | name NAME]` with Kestrel's data folder `data`.
 pub fn run(
     args: &[String],
     data: Option<&Path>,
@@ -75,6 +85,23 @@ pub fn run(
             settings.notes = Some(dir.clone());
             save(&at, &settings)?;
             writeln!(out, "notes folder: {}", dir.display())?;
+        }
+        [key, name] if key == "name" => {
+            let name = name.trim();
+            if name.is_empty()
+                || name.chars().count() > NAME_MAX
+                || name.chars().any(char::is_control)
+            {
+                return Err(format!(
+                    "a name of 1 to {NAME_MAX} letters, e.g. kestrel settings name Aditya"
+                )
+                .into());
+            }
+            let at = path(data()?);
+            let mut settings = load(&at)?;
+            settings.name = Some(name.into());
+            save(&at, &settings)?;
+            writeln!(out, "the page greets you as {name}")?;
         }
         _ => return Err(USAGE.into()),
     }
@@ -174,6 +201,19 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert_eq!(v["writer"]["id"], "gemma-4-E2B-it-Q4_0");
         assert!(v["notes"].is_string(), "{v}");
+    }
+
+    #[test]
+    fn the_name_the_page_greets_is_saved_and_read_back() {
+        let d = dir("name");
+        let mut out = Vec::new();
+        run(&args(&["name", "Aditya"]), Some(&d), &mut out).unwrap();
+        assert_eq!(name(Some(&d)).as_deref(), Some("Aditya"));
+        assert_eq!(name(None), None);
+        // Only a short, plain name.
+        assert!(run(&args(&["name", "  "]), Some(&d), &mut out).is_err());
+        assert!(run(&args(&["name", &"x".repeat(41)]), Some(&d), &mut out).is_err());
+        assert_eq!(name(Some(&d)).as_deref(), Some("Aditya"));
     }
 
     #[test]

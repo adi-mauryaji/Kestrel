@@ -560,6 +560,8 @@ fn open_web(
     let token = crate::web::token(&dir.join("web-token"))?;
     let tasks_db = crate::memory::open(memory)?;
     let offset = crate::clock::utc_offset();
+    // The name the page greets, read at each ask (`kestrel settings name NAME` may set it since).
+    let named = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
     let tasks = move || {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -569,6 +571,7 @@ fn open_web(
             crate::clock::local_date(now, offset),
             crate::clock::local_minute(now, offset),
             skills,
+            crate::settings::name(named.as_deref()).as_deref(),
         )
     };
     // What Kestrel can do here, probed again at each ask (a speed test may have run since).
