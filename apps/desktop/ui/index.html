@@ -3,23 +3,158 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Kestrel</title>
 <style>
-  :root { color-scheme: light dark; --bg: #f6f7f5; --fg: #1d2421; --muted: #5b6661; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #161b19; --fg: #e8ece9; --muted: #9aa5a0; } }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg);
-         color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
-  main { max-width: 32rem; padding: 1rem; }
-  h1 { font-size: 1.4rem; margin: 0 0 .5rem; }
-  p { color: var(--muted); margin: .5rem 0; }
-  code { font-size: .95em; }
+/* The shell's own page, shown while Kestrel's service is not running: on a first start it asks for
+   the notes folder. The first-open card of Kestrel's page (apps/cli/web/page.html), same fonts and
+   colours; light or dark as this device is set. */
+@font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+
+:root {
+  --serif: "Source Serif 4", "Noto Serif", Georgia, serif;
+  --sans: "Inter", "Noto Sans", system-ui, sans-serif;
+  --bg: #FBFAF8;
+  --glow: rgba(253, 222, 192, .62);
+  --card: #FFFFFF;
+  --card-line: #EDF0F5;
+  --ink: #132A4E;
+  --text: #1C3157;
+  --muted: #4E6189;
+  --accent: #EE6522;
+  --input: #FFFFFF;
+  --input-line: #D8DFE9;
+  --placeholder: #6E82A6;
+  --send: #FDCFA7;
+  --send-hover: #FCC08D;
+  --send-ink: #1B1E36;
+  --chip: #F0F5FC;
+  --chip-line: #DBE5F3;
+  --trouble: #B4452A;
+  --art-glow: #FCE1C6;
+  --orb-a: #FDD3AE;
+  --orb-b: #FBB47C;
+  --m-far: #DCE6F2;
+  --m-tall-a: #C2D6EE;
+  --m-tall-b: #9DBADF;
+  --m-front-a: #6992C2;
+  --m-front-b: #4F78AA;
+  --m-low: #86A9D2;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #03132C;
+    --glow: rgba(28, 74, 156, .38);
+    --card: #071B38;
+    --card-line: #10284B;
+    --ink: #F2F7FF;
+    --text: #DDE9F9;
+    --muted: #A8BEDD;
+    --accent: #F8A250;
+    --input: #062146;
+    --input-line: #12305C;
+    --placeholder: #92AACF;
+    --send: #FFA154;
+    --send-hover: #FFB06F;
+    --send-ink: #1D1206;
+    --chip: #08254D;
+    --chip-line: #10345F;
+    --trouble: #FF9A7A;
+    --art-glow: #1E52A8;
+    --orb-a: #B9917A;
+    --orb-b: #6E5C58;
+    --m-far: #1A4A8F;
+    --m-tall-a: #4E90E0;
+    --m-tall-b: #21569F;
+    --m-front-a: #2A62B4;
+    --m-front-b: #12397A;
+    --m-low: #1F4C8E;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; min-height: 100vh;
+  display: grid; place-items: center; padding: 20px;
+  background: radial-gradient(980px 620px at 85% -10%, var(--glow), transparent 70%), var(--bg);
+  color: var(--text);
+  font: 400 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.card { width: min(660px, 100%); border-radius: 20px; background: var(--card); border: 1px solid var(--card-line); box-shadow: 0 30px 80px rgba(10, 24, 54, .22); }
+.art { position: relative; height: 150px; overflow: hidden; border-radius: 20px 20px 0 0; background: linear-gradient(180deg, color-mix(in srgb, var(--art-glow) 55%, var(--card)), var(--card)); }
+.art svg { position: absolute; inset: auto 0 0 0; width: 100%; height: 150px; }
+.art .kestrel { position: absolute; left: 34px; top: 26px; width: 46px; height: 46px; color: var(--accent); }
+.body { padding: 8px 40px 32px; }
+.greet { margin: 0; font-size: 17px; font-weight: 600; color: var(--ink); }
+h1 { margin: 6px 0 8px; font: 600 34px/1.15 var(--serif); color: var(--ink); }
+p { margin: 8px 0 0; font-size: 16px; line-height: 1.6; color: var(--text); }
+form { display: flex; gap: 12px; margin-top: 20px; }
+form[hidden] { display: none; }
+.field {
+  flex: 1; min-width: 0; height: 48px; padding: 0 16px;
+  border: 1px solid var(--input-line); border-radius: 8px; background: var(--input); color: var(--ink); font-size: 16px;
+}
+.field::placeholder { color: var(--placeholder); }
+.field:focus { outline: none; border-color: color-mix(in srgb, var(--ink) 30%, var(--input-line)); }
+.btn {
+  height: 48px; padding: 0 22px; border: 0; border-radius: 8px;
+  background: var(--send); color: var(--send-ink); font-size: 15px; font-weight: 500; white-space: nowrap;
+}
+.btn:hover { background: var(--send-hover); }
+.btn:disabled { cursor: progress; opacity: .7; }
+.hint { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.hint.bad { color: var(--trouble); }
+code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1px solid var(--chip-line); font: 13.5px/1.6 ui-monospace, "Hack", monospace; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 560px) { .body { padding: 8px 22px 26px; } h1 { font-size: 28px; } form { flex-direction: column; } }
 </style>
+<script src="start.js" defer></script>
 </head>
 <body>
-<main>
-  <h1>Kestrel is not running</h1>
-  <p>On a first start, choose your notes folder: <code>kestrel settings notes ~/notes</code> in a terminal, then <b>Open Kestrel</b> from the tray icon.</p>
-  <p>Otherwise, why it stopped is in <code>service.log</code> in Kestrel's log folder.</p>
+<main class="card" aria-labelledby="title">
+  <div class="art" aria-hidden="true">
+    <svg viewBox="0 0 660 150" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="orb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--orb-a)"/><stop offset="1" stop-color="var(--orb-b)"/></linearGradient>
+        <linearGradient id="tall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m-tall-a)"/><stop offset="1" stop-color="var(--m-tall-b)"/></linearGradient>
+        <linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m-front-a)"/><stop offset="1" stop-color="var(--m-front-b)"/></linearGradient>
+      </defs>
+      <circle cx="430" cy="98" r="36" fill="url(#orb)"/>
+      <path d="M0 150v-26l70-12 80 4 90-22 80 6 70-30 70 18 80-10 70 16 50-8v64Z" fill="var(--m-far)"/>
+      <path d="M250 150 340 104l60-34 70 40 80 22 50 18Z" fill="url(#tall)"/>
+      <path d="M60 150 160 126l70-26 52-22 50 28 64 30 40 14Z" fill="url(#front)"/>
+      <path d="M380 150 460 132l80 4 70-10 50 6v18Z" fill="var(--m-low)"/>
+    </svg>
+    <svg class="kestrel" viewBox="0 0 32 32">
+      <g fill="currentColor">
+        <circle cx="16" cy="8.4" r="2.5"/>
+        <ellipse cx="16" cy="14.8" rx="2.8" ry="5.4"/>
+        <path d="M14 12.6C10.4 9.9 5.5 6.7.8 5.8c2 3.6 5.5 7 9.4 9.2 1.4.8 2.6 1.8 3.5 3.1Z"/>
+        <path d="M18 12.6c3.6-2.7 8.5-5.9 13.2-6.8-2 3.6-5.5 7-9.4 9.2-1.4.8-2.6 1.8-3.5 3.1Z"/>
+        <path d="M14.5 18.9 11.2 27.6c2.9 1.5 6.7 1.5 9.6 0L17.5 18.9Z"/>
+      </g>
+    </svg>
+  </div>
+  <div class="body">
+    <p class="greet" id="greet">Welcome to Kestrel</p>
+    <h1 id="title">Where do you keep your notes?</h1>
+    <p id="about">Kestrel finds, opens and summarizes the notes in this folder, answers questions from them, and saves new ones there when you ask. They never leave this device.</p>
+    <form id="choose" hidden>
+      <label class="sr" for="folder">Notes folder</label>
+      <input class="field" id="folder" autocomplete="off" spellcheck="false" placeholder="~/Documents/Notes">
+      <button class="btn" type="submit" id="use">Use this folder</button>
+    </form>
+    <p class="hint" id="hint" aria-live="polite"></p>
+  </div>
 </main>
 </body>
 </html>

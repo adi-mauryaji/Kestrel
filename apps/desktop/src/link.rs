@@ -70,6 +70,13 @@ pub fn may_open(url: &str, port: u16) -> bool {
         || own("http://tauri.localhost")
 }
 
+/// Why the service stopped, from the end of its log: its last line when that is Kestrel's error
+/// ("kestrel: no notes folder at …"), without the prefix.
+pub fn stopped_because(log: &str) -> Option<&str> {
+    let last = log.lines().rev().find(|l| !l.trim().is_empty())?;
+    last.strip_prefix("kestrel: ").map(str::trim)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,5 +161,18 @@ mod tests {
         assert!(!may_open("http://127.0.0.1:7812/", 7811));
         assert!(!may_open("http://127.0.0.1:7811@evil.example/", 7811));
         assert!(!may_open("https://example.com/", 7811));
+    }
+
+    #[test]
+    fn why_the_service_stopped_is_its_last_line() {
+        let log = "Kestrel ready in 0.8 s on /run/kestrel.sock\nthe page is at http://127.0.0.1:1/\n\
+                   kestrel: no notes folder at /a/notes\n\n";
+        assert_eq!(stopped_because(log), Some("no notes folder at /a/notes"));
+        // Started again since, and running or ended without an error: nothing to say.
+        assert_eq!(
+            stopped_because(&format!("{log}Kestrel ready in 0.7 s\n")),
+            None
+        );
+        assert_eq!(stopped_because(""), None);
     }
 }

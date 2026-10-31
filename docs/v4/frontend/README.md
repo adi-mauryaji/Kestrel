@@ -34,6 +34,7 @@ photo from the human for any page still wins.
 
 | Page | What it does | Screenshot |
 |---|---|---|
+| First start (the app's own page, `apps/desktop/ui`) | before Kestrel can run: where your notes are (Documents/Notes offered; a full path; the folder is made if missing), then Kestrel starts and the window goes to its page, where the first open follows. If a saved folder no longer works: why Kestrel stopped (the last line of its log), Start Kestrel or another folder | `built-first-start.jpg`, `built-first-start-dark.jpg`, `built-not-running.jpg` |
 | First open | name → notes folder → this device → start; shown while no name is saved | `built-welcome-1.jpg` |
 | Tasks | add a task (plain words become "add task …"), filter All · Today · Upcoming · No date · Overdue, Done, and ⋯: Rename, Change date, Set time, Remove date, Delete (y/N) | `built-tasks.jpg` |
 | Calendar | the month with each day's tasks, the chosen day's list and its hours | `built-calendar.jpg`, `built-calendar-dark.jpg` |
@@ -55,3 +56,10 @@ Checked by driving the page in headless Chrome over the DevTools protocol agains
 service: Home (21 checks: tasks, name, counts, fonts, a chip, a typed reminder, Done and its tick, a
 delete's y/N, both themes) and the other pages (33 checks: the first open, add / filter / rename /
 delete, the month and a chosen day, notes list / read / search / new / summarize, name and theme).
+
+The first start was checked in the real app (debug build, WebKitGTK) with scratch folders, driven
+through WebKit's remote inspector (`WEBKIT_INSPECTOR_HTTP_SERVER=127.0.0.1:PORT`): a relative path
+and a folder that cannot be made are refused on the page; a new folder is made, saved, Kestrel
+starts and the same window shows its page with the first open (about 1 s); with the saved folder
+deleted, the page says why and Start Kestrel makes it again; from Kestrel's page (127.0.0.1) both
+app commands are refused by the app's capability (local pages only).

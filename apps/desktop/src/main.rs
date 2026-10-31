@@ -5,14 +5,20 @@
 //! one); else the app starts its own, `kestrel serve --app`, from Kestrel's files (`KESTREL_HOME`,
 //! else the app's resources) with the notes folder saved by `kestrel settings notes DIR`, and
 //! stops it when the app quits. A service it did not start is never stopped.
+//!
+//! On a first start (no notes folder saved) the shell's own page (ui/) asks for the folder through
+//! the app's two commands, which only local pages may call (capabilities/shell-page.json); Kestrel
+//! then starts and the same window goes to its page.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod link;
+mod notes;
 
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tauri::menu::{CheckMenuItem, Menu, MenuItem};
@@ -35,6 +41,11 @@ const CONFIG: &str = "experiments/configs/router_intents_v0.json";
 /// The service this app started, if any.
 #[derive(Default)]
 struct Own(Mutex<Option<Child>>);
+
+/// The port of the service's page the window may show (0: none yet). It changes when a service
+/// starts after the window opened.
+#[derive(Default)]
+struct Port(Arc<AtomicU16>);
 
 /// The `kestrel` program: beside this app (where the installers put it), else on PATH.
 fn kestrel() -> Command {
@@ -106,17 +117,29 @@ fn service_page(app: &AppHandle) -> Option<link::Page> {
     None
 }
 
+/// The app's own service writes here: why it stopped, when it did.
+fn service_log(app: &AppHandle) -> Option<PathBuf> {
+    Some(app.path().app_log_dir().ok()?.join("service.log"))
+}
+
+/// Why the app's own service stopped, from the end of its log (it only grows).
+fn why_stopped(app: &AppHandle) -> Option<String> {
+    let log = std::fs::read(service_log(app)?).ok()?;
+    let end = String::from_utf8_lossy(&log[log.len().saturating_sub(4096)..]).into_owned();
+    link::stopped_because(&end).map(str::to_owned)
+}
+
 /// `kestrel serve --app` from Kestrel's files, its output in the app's log folder.
 fn start_service(app: &AppHandle) -> Option<Child> {
     let home = std::env::var_os("KESTREL_HOME")
         .map(PathBuf::from)
         .or_else(|| app.path().resource_dir().ok())?;
-    let logs = app.path().app_log_dir().ok()?;
-    std::fs::create_dir_all(&logs).ok()?;
+    let at = service_log(app)?;
+    std::fs::create_dir_all(at.parent()?).ok()?;
     let log = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(logs.join("service.log"))
+        .open(at)
         .ok()?;
     let started = kestrel()
         // Any free port: 7811 may be another program's (or another Kestrel's).
@@ -133,6 +156,64 @@ fn start_service(app: &AppHandle) -> Option<Child> {
             None
         }
     }
+}
+
+/// For the shell's own page (the service is not running): whether a notes folder is saved, the
+/// folder to offer (the saved one, else Documents/Notes), the service's log and why it stopped.
+#[tauri::command(async)]
+fn first_start(app: AppHandle) -> serde_json::Value {
+    let saved = kestrel()
+        .arg("settings")
+        .stderr(Stdio::null())
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| notes::saved(&String::from_utf8_lossy(&o.stdout)));
+    let offer = saved.clone().or_else(|| {
+        let p = app.path();
+        Some(
+            p.document_dir()
+                .or_else(|_| p.home_dir())
+                .ok()?
+                .join("Notes"),
+        )
+    });
+    serde_json::json!({
+        "saved": saved.is_some(),
+        "folder": offer,
+        "log": service_log(&app),
+        "why": why_stopped(&app),
+    })
+}
+
+/// The shell's page chose the notes folder: made when it is not there yet, saved with
+/// `kestrel settings notes`, then Kestrel starts and the window shows its page. Err: why not, in
+/// words for the page.
+#[tauri::command(async)]
+fn use_notes(app: AppHandle, folder: String) -> Result<(), String> {
+    let dir = notes::typed(&folder, app.path().home_dir().ok().as_deref())?;
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("{} could not be made: {e}", dir.display()))?;
+    let out = kestrel()
+        .args(["settings", "notes"])
+        .arg(&dir)
+        .output()
+        .map_err(|e| format!("Kestrel could not be run: {e}"))?;
+    if !out.status.success() {
+        let why = String::from_utf8_lossy(&out.stderr);
+        return Err(why.trim().trim_start_matches("kestrel: ").into());
+    }
+    if service_page(&app).is_none() {
+        let why = why_stopped(&app).unwrap_or_else(|| {
+            let log = service_log(&app).unwrap_or_default();
+            format!("its log says why: {}", log.display())
+        });
+        return Err(format!(
+            "The folder is saved, but Kestrel did not start: {why}"
+        ));
+    }
+    show(&app);
+    Ok(())
 }
 
 /// Stops the service this app started: asked to end first (Unix), ended after 5 s.
@@ -198,28 +279,33 @@ fn show(app: &AppHandle) {
     let app = app.clone();
     std::thread::spawn(move || {
         let page = service_page(&app);
-        if let Some(w) = app.get_webview_window("main") {
-            let on_page = w.url().is_ok_and(|u| u.host_str() == Some("127.0.0.1"));
-            if on_page || page.is_none() {
-                let _ = w.unminimize();
-                let _ = w.show();
-                let _ = w.set_focus();
-                return;
-            }
-            // The service started since: a new window, allowed to go to its page.
-            let _ = w.destroy();
+        let port = app.state::<Port>().0.clone();
+        if let Some(p) = &page {
+            port.store(p.port, Ordering::Relaxed);
         }
-        let port = page.as_ref().map_or(0, |p| p.port);
-        let url = match page.map(|p| p.url().parse()) {
-            Some(Ok(u)) => WebviewUrl::External(u),
-            _ => WebviewUrl::App("index.html".into()),
-        };
+        let url = page.as_ref().and_then(|p| p.url().parse().ok());
+        if let Some(w) = app.get_webview_window("main") {
+            // The service started (or moved) since: the same window goes to its page. A new one
+            // under the same label would fail while the old one is still being closed.
+            let here = w.url().ok().and_then(|u| u.port());
+            if let Some(u) = url.filter(|_| here != page.as_ref().map(|p| p.port)) {
+                let _ = w.navigate(u);
+            }
+            let _ = w.unminimize();
+            let _ = w.show();
+            let _ = w.set_focus();
+            return;
+        }
+        let url = url.map_or_else(
+            || WebviewUrl::App("index.html".into()),
+            WebviewUrl::External,
+        );
         let built = WebviewWindowBuilder::new(&app, "main", url)
             .title("Kestrel")
             .inner_size(1440.0, 900.0)
             .min_inner_size(900.0, 620.0)
             .on_navigation(move |u| {
-                let ok = link::may_open(u.as_str(), port);
+                let ok = link::may_open(u.as_str(), port.load(Ordering::Relaxed));
                 if !ok {
                     eprintln!("the window may not go to {u}");
                 }
@@ -293,7 +379,11 @@ fn main() {
             Some(vec![HIDDEN]),
         ))
         .plugin(tauri_plugin_notification::init())
+        // For the shell's own page only (capabilities/shell-page.json); the service's page is a
+        // remote origin and gets none.
+        .invoke_handler(tauri::generate_handler![first_start, use_notes])
         .manage(Own::default())
+        .manage(Port::default())
         .setup(move |app| {
             tray(app)?;
             if hidden {

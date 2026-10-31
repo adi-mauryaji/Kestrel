@@ -7,9 +7,10 @@
     "frontendDist": "ui"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [],
     "security": {
-      "csp": "default-src 'none'; style-src 'unsafe-inline'"
+      "csp": "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
