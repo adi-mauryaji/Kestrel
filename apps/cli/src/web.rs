@@ -5,6 +5,8 @@
 //!   Content-Security-Policy allows only this server).
 //! - `GET /api/capabilities` (v4 A2): what Kestrel can do on this device, card by card
 //!   (src/capabilities.rs).
+//! - `GET /api/events?after=N` (v4 A3): reminders that rang, for the Kestrel app, answered at once
+//!   (src/events.rs).
 //! - `GET /api/tasks`: the tasks, today's date, the minute now and whether v3's skills are on
 //!   (the page then names them). `POST /api/say {"text"}`: the
 //!   answer as JSON lines, `{"part"}` ... while a skill's text is written (v3), `{"line"}` ...,
@@ -284,6 +286,7 @@ pub struct Web {
     token: String,
     tasks: Box<dyn Fn() -> Value>,
     capabilities: Box<dyn Fn() -> Value>,
+    events: Box<dyn Fn(u64) -> Value>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -310,6 +313,7 @@ impl Web {
             token,
             tasks,
             capabilities: Box::new(|| Value::Null),
+            events: Box::new(|_| Value::Null),
             lan,
         })
     }
@@ -317,6 +321,12 @@ impl Web {
     /// `capabilities` answers `GET /api/capabilities` (v4 A2); without it the answer is null.
     pub fn with_capabilities(mut self, capabilities: Box<dyn Fn() -> Value>) -> Self {
         self.capabilities = capabilities;
+        self
+    }
+
+    /// `events` answers `GET /api/events?after=N` (v4 A3); without it the answer is null.
+    pub fn with_events(mut self, events: Box<dyn Fn(u64) -> Value>) -> Self {
+        self.events = events;
         self
     }
 
@@ -348,6 +358,7 @@ impl Web {
             &mut out,
             &*self.tasks,
             &*self.capabilities,
+            &*self.events,
             say,
             &mut answer,
         )
@@ -420,6 +431,7 @@ impl Web {
                         &mut out,
                         &*self.tasks,
                         &*self.capabilities,
+                        &*self.events,
                         &mut |_, _, _| vec![],
                         &mut || None,
                     );
@@ -431,22 +443,28 @@ impl Web {
 }
 
 /// Answers one allowed request. `tasks` reads the task list, `capabilities` what Kestrel can do on
-/// this device, `say` handles a request (its y/N questions and written parts go to the page),
-/// `answer` waits for the page's answer to one.
+/// this device, `events` the app's events after a number, `say` handles a request (its y/N
+/// questions and written parts go to the page), `answer` waits for the page's answer to one.
 pub fn respond(
     req: &HttpRequest,
     out: &mut dyn Write,
     tasks: &dyn Fn() -> Value,
     capabilities: &dyn Fn() -> Value,
+    events: &dyn Fn(u64) -> Value,
     say: &mut Streamer<'_>,
     answer: &mut dyn FnMut() -> Option<bool>,
 ) -> io::Result<()> {
-    match (req.method.as_str(), req.path.as_str()) {
+    let (path, query) = req.path.split_once('?').unwrap_or((&req.path, ""));
+    match (req.method.as_str(), path) {
         ("GET", "/") => reply(out, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes()),
         ("GET", "/api/tasks") => reply(out, "200 OK", JSON, tasks().to_string().as_bytes()),
         ("GET", "/api/capabilities") => {
             reply(out, "200 OK", JSON, capabilities().to_string().as_bytes())
         }
+        ("GET", "/api/events") => match crate::events::after_in(query) {
+            Some(after) => reply(out, "200 OK", JSON, events(after).to_string().as_bytes()),
+            None => reply(out, "400 Bad Request", TEXT, b"after=N, N a number"),
+        },
         ("POST", "/api/say") => {
             let text = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -480,9 +498,10 @@ pub fn respond(
             out.flush()
         }
         ("POST", "/api/answer") => reply(out, "409 Conflict", TEXT, b"no question is waiting"),
-        (_, "/" | "/api/tasks" | "/api/capabilities" | "/api/say" | "/api/answer") => {
-            reply(out, "405 Method Not Allowed", TEXT, b"method not allowed")
-        }
+        (
+            _,
+            "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/say" | "/api/answer",
+        ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
 }
@@ -761,11 +780,25 @@ mod tests {
             &mut out,
             &|| json!({"tasks": []}),
             &|| json!({"cards": ["x"]}),
+            &|after| json!({"after": after}),
             &mut say,
             &mut || page_says,
         )
         .unwrap();
         (String::from_utf8(out).unwrap(), heard)
+    }
+
+    #[test]
+    fn the_events_come_after_the_number_asked_and_only_by_get() {
+        let (out, _) = answer_to(&get("/api/events?after=4"), None);
+        assert!(out.starts_with("HTTP/1.1 200 OK\r\n"), "{out:.80}");
+        assert!(out.ends_with("{\"after\":4}"), "{out}");
+        let (out, _) = answer_to(&get("/api/events"), None);
+        assert!(out.ends_with("{\"after\":0}"), "{out}");
+        let (out, _) = answer_to(&get("/api/events?after=soon"), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let (out, _) = answer_to(&post("/api/events", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 
     #[test]

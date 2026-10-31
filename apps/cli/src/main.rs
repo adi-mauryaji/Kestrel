@@ -53,6 +53,8 @@ mod config;
 mod control;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod events;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod grounding;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod hinglish;
@@ -97,7 +99,7 @@ mod web;
 
 use std::process::ExitCode;
 
-const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print] [--lan] the assistant's page in your browser (--lan: its wifi link)\n       kestrel stop                  stops it and frees its memory; open, chat or say start it again\n       kestrel capabilities [--measure] [--hi]  what Kestrel can do on this device, and why not the rest\n       kestrel calibrate [CONFIG]    measure the writer's kind fallback on the dev splits (about 10 min)\n       kestrel model [use ID|FILE.gguf | auto]  the writer model for this device, and what else fits\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
+const USAGE: &str = "usage: kestrel chat                  talk to the running assistant (kestrel serve)\n       kestrel say TEXT...           one request to it, e.g. kestrel say \"show my tasks\"\n       kestrel remind [--notify] [--db PATH]\n       kestrel open [--print] [--lan] the assistant's page in your browser (--lan: its wifi link)\n       kestrel stop                  stops it and frees its memory; open, chat or say start it again\n       kestrel capabilities [--measure] [--hi]  what Kestrel can do on this device, and why not the rest\n       kestrel calibrate [CONFIG]    measure the writer's kind fallback on the dev splits (about 10 min)\n       kestrel model [use ID|FILE.gguf | auto]  the writer model for this device, and what else fits\n       kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] [--app] CONFIG.json\n       kestrel route-items CONFIG.json ITEMS.jsonl OUT.jsonl\n       kestrel ask [--no-memory] [--notes DIR] [--brief] CONFIG.json [TEXT...]\n       kestrel bench-items ITEMS.jsonl OUT.jsonl CONFIG.json...\n       kestrel plan-eval [--check-grammar | --hybrid] [OUT.json]\n       kestrel memory [--db PATH] list | pending | tasks | approve ID | delete ID | export | purge | vacuum\n       kestrel e4-eval [--split dev|test] [--cascade CONFIG] [OUT.json]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -279,8 +281,9 @@ fn plan_eval(_: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     route(&[])
 }
 
-/// `kestrel serve [--notes DIR] [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] CONFIG`
-/// (ADR-034; `--web-lan`: the page shared on the wifi at this laptop's address, plain HTTP).
+/// `kestrel serve [--notes DIR] [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] [--app]
+/// CONFIG` (ADR-034; `--web-lan`: the page shared on the wifi at this laptop's address, plain HTTP;
+/// `--app`: started by the Kestrel app, which shows the reminders, v4 A3).
 #[cfg(feature = "llama")]
 fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let mut notes = std::env::var_os("KESTREL_NOTES")
@@ -289,6 +292,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let mut idle = 10u64;
     let mut web_port = Some(web::DEFAULT_PORT);
     let mut web_lan: Option<std::net::Ipv4Addr> = None;
+    let mut app = false;
     let mut args = args;
     loop {
         match args.split_first() {
@@ -305,6 +309,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 (web_port, args) = (Some(n.parse()?), rest);
             }
             Some((f, rest)) if f == "--no-web" => (web_port, args) = (None, rest),
+            Some((f, rest)) if f == "--app" => (app, args) = (true, rest),
             Some((f, rest)) if f == "--web-lan" => {
                 let (ip, rest) = rest.split_first().ok_or(USAGE)?;
                 let ip: std::net::Ipv4Addr = ip.parse()?;
@@ -330,6 +335,7 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         std::time::Duration::from_secs(idle * 60),
         web_port,
         web_lan,
+        app,
     )
 }
 

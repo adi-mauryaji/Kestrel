@@ -260,7 +260,7 @@ Before it replaces v3's sandbox, it must reach the same result as bubblewrap on 
 **New:**
 - `GET /api/device`
 - `GET /api/capabilities` and `POST /api/capabilities/refresh`
-- `GET /api/events` (long poll: due reminders, expiries, downloads)
+- `GET /api/events?after=N` (due reminders now; expiries and downloads later): answered at once, asked every few seconds by the app; each event kept 10 min. Not a long poll: the service answers one request at a time (built 2026-10-31, `apps/cli/src/events.rs`)
 - `GET /api/conversations`, `GET /api/documents`, `GET /api/outbound`
 - `GET` / `POST /api/settings`
 

@@ -545,7 +545,8 @@ fn answer<'m>(
 
 /// The page on 127.0.0.1:`port` (and on the wifi at `lan` when shared there): its token beside the
 /// memory file (kept across restarts, so a bookmark keeps working), its addresses with the token for
-/// `kestrel open [--lan]`, and its own connection to the memory file for the task list.
+/// `kestrel open [--lan]`, its own connection to the memory file for the task list, and the app's
+/// `events`.
 #[cfg(feature = "llama")]
 fn open_web(
     port: u16,
@@ -553,6 +554,7 @@ fn open_web(
     memory: &std::path::Path,
     skills: bool,
     lan: Option<std::net::Ipv4Addr>,
+    events: crate::events::Shared,
 ) -> Result<crate::web::Web, Box<dyn std::error::Error>> {
     let dir = memory.parent().unwrap_or(std::path::Path::new("."));
     let token = crate::web::token(&dir.join("web-token"))?;
@@ -577,8 +579,17 @@ fn open_web(
             .map(|a| crate::capabilities::to_json(&a))
             .unwrap_or(serde_json::Value::Null)
     };
+    let events = move |after| {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        events
+            .lock()
+            .map_or(serde_json::Value::Null, |e| e.after(after, now))
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
-        .with_capabilities(Box::new(capabilities));
+        .with_capabilities(Box::new(capabilities))
+        .with_events(Box::new(events));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
@@ -597,7 +608,8 @@ fn open_web(
     Ok(web)
 }
 
-/// `kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] CONFIG`.
+/// `kestrel serve --notes DIR [--idle-minutes N] [--web-port N | --no-web] [--web-lan IP] [--app]
+/// CONFIG`; `app`: started by the Kestrel app, which shows the reminders.
 #[cfg(feature = "llama")]
 pub fn serve(
     config: &std::path::Path,
@@ -606,6 +618,7 @@ pub fn serve(
     idle: std::time::Duration,
     web_port: Option<u16>,
     web_lan: Option<std::net::Ipv4Addr>,
+    app: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::rc::Rc;
     use std::time::Instant;
@@ -757,11 +770,15 @@ pub fn serve(
         notes.display(),
         memory.display()
     );
-    // Tasks with a time ring from their own thread, so a long `kestrel chat` does not hold them up.
-    let ring_db = memory.to_path_buf();
-    std::thread::spawn(move || crate::remind::ring_forever(&ring_db));
+    // Tasks with a time ring from their own thread, so a long `kestrel chat` does not hold them up;
+    // the app hears them from the page's events, and under the app nothing else shows them.
+    let events = crate::events::Shared::default();
+    let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
+    let desktop = !app && crate::remind::desktop_shows(Os::current());
+    std::thread::spawn(move || crate::remind::ring_forever(&ring_db, &ring_events, desktop));
     // The browser page; without it the service still answers on the socket.
-    let mut web = web_port.and_then(|port| match open_web(port, config, memory, skills, web_lan) {
+    let page = |port| open_web(port, config, memory, skills, web_lan, events);
+    let mut web = web_port.and_then(|port| match page(port) {
         Ok(w) => {
             eprintln!(
                 "the page is at http://127.0.0.1:{}/ (kestrel open)",

@@ -5,7 +5,9 @@
 //!
 //! A task with a time of day rings at that time from `kestrel serve`: `ring_forever` checks every
 //! half minute on its own connection to the memory file, so a long `kestrel chat` does not hold it
-//! up, and each task rings once (`notified_at`).
+//! up, and each task rings once (`notified_at`). It rings as a desktop notification and to the
+//! Kestrel app's events (`GET /api/events`); under the app (`serve --app`) and on Windows, to the
+//! app alone.
 
 use std::error::Error;
 use std::io::Write;
@@ -147,9 +149,33 @@ pub fn ring(
     Ok(ringing.iter().map(|t| t.id).collect())
 }
 
-/// The service's reminder thread: `ring` every `RING_EVERY` until the process ends. Its log has
-/// task ids, never titles.
-pub fn ring_forever(db: &Path) {
+/// Where a reminder goes: the desktop notification first when there is one, then the app's events
+/// (src/events.rs), only once shown, so a failed notification rings again without a second event.
+pub fn deliver(
+    events: &crate::events::Shared,
+    desktop: Option<&mut Notify<'_>>,
+    now: i64,
+    title: &str,
+    body: &str,
+) -> Result<(), Box<dyn Error>> {
+    if let Some(show) = desktop {
+        show(title, body)?;
+    }
+    events
+        .lock()
+        .map_err(|_| "the events were dropped by a panic")?
+        .push("reminder", title, body, now);
+    Ok(())
+}
+
+/// Kestrel calls a desktop notifier here (`send`); on Windows only the app shows reminders.
+pub fn desktop_shows(os: kestrel_platform::Os) -> bool {
+    kestrel_platform::notify(os, "", "").is_some()
+}
+
+/// The service's reminder thread: `ring` every `RING_EVERY` until the process ends, to the app's
+/// `events` and, with `desktop`, as a desktop notification too. Its log has task ids, never titles.
+pub fn ring_forever(db: &Path, events: &crate::events::Shared, desktop: bool) {
     let mut memory = match crate::memory::open(db) {
         Ok(m) => m,
         Err(e) => {
@@ -164,7 +190,11 @@ pub fn ring_forever(db: &Path) {
             .map_or(0, |d| d.as_secs() as i64);
         let today = crate::clock::local_date(now, offset);
         let minute = crate::clock::local_minute(now, offset);
-        match ring(&mut memory, today, minute, now, &mut send) {
+        let mut to = |title: &str, body: &str| {
+            let mut show = send;
+            deliver(events, desktop.then_some(&mut show), now, title, body)
+        };
+        match ring(&mut memory, today, minute, now, &mut to) {
             Ok(ids) if !ids.is_empty() => eprintln!("reminded: task {ids:?}"),
             Ok(_) => {}
             Err(e) => eprintln!("a reminder could not be shown (trying again): {e}"),
@@ -367,5 +397,55 @@ mod tests {
         assert_eq!(title, "Kestrel: 9 due today");
         assert_eq!(body.lines().count(), NOTIFY_MAX + 1);
         assert!(body.ends_with("and 3 more"), "{body}");
+    }
+
+    #[test]
+    fn a_reminder_reaches_the_app_once_the_desktop_has_shown_it() {
+        let events = crate::events::Shared::default();
+        // A desktop that fails: no event either, so the next ring tries again without a second one.
+        let mut fails =
+            |_: &str, _: &str| -> Result<(), Box<dyn Error>> { Err("no notify-send".into()) };
+        assert!(
+            deliver(
+                &events,
+                Some(&mut fails),
+                1000,
+                "Kestrel reminder",
+                "09:00 Call mom"
+            )
+            .is_err()
+        );
+        assert_eq!(events.lock().unwrap().after(0, 1000)["last"], 0);
+        let mut shown = Vec::new();
+        let mut desktop = |t: &str, b: &str| -> Result<(), Box<dyn Error>> {
+            shown.push(format!("{t} | {b}"));
+            Ok(())
+        };
+        deliver(
+            &events,
+            Some(&mut desktop),
+            1000,
+            "Kestrel reminder",
+            "09:00 Call mom",
+        )
+        .unwrap();
+        // Under the app, or where Kestrel calls no notifier: the app alone.
+        deliver(&events, None, 1060, "Kestrel reminder", "09:01 Gym").unwrap();
+        assert_eq!(shown, ["Kestrel reminder | 09:00 Call mom"]);
+        let heard = events.lock().unwrap().after(0, 1060);
+        let bodies: Vec<&str> = heard["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["body"].as_str().unwrap())
+            .collect();
+        assert_eq!(bodies, ["09:00 Call mom", "09:01 Gym"]);
+    }
+
+    #[test]
+    fn the_desktop_shows_reminders_on_linux_and_macos_and_the_app_on_windows() {
+        use kestrel_platform::Os;
+        assert!(desktop_shows(Os::Linux) && desktop_shows(Os::MacOs));
+        assert!(!desktop_shows(Os::Windows));
     }
 }
