@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Kestrel
+Comment=Your assistant that runs on this device
+Exec=kestrel-desktop
+Icon=kestrel-desktop
+Categories=Office;
+StartupWMClass=kestrel-desktop
+Terminal=false

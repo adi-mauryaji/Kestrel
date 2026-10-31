@@ -19,6 +19,20 @@
       "../../datasets/kestrel_notesqa_v0/splits/dev.jsonl": "datasets/kestrel_notesqa_v0/splits/dev.jsonl",
       "../../datasets/kestrel_codetasks_v0/splits/dev.jsonl": "datasets/kestrel_codetasks_v0/splits/dev.jsonl",
       "../../datasets/kestrel_notesq_v0/notes/": "datasets/kestrel_notesq_v0/notes/"
+    },
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/Kestrel.desktop",
+        "files": {
+          "/usr/share/applications/kestrel-desktop.desktop": "linux/kestrel-desktop.desktop"
+        }
+      },
+      "rpm": {
+        "desktopTemplate": "linux/Kestrel.desktop",
+        "files": {
+          "/usr/share/applications/kestrel-desktop.desktop": "linux/kestrel-desktop.desktop"
+        }
+      }
     }
   }
 }

@@ -1,0 +1,10 @@
+# The bundler always installs <productName>.desktop. Wayland compositors (and notification servers)
+# match a window by its app id, kestrel-desktop, so the menu entry is kestrel-desktop.desktop and
+# this one stays out of menus.
+[Desktop Entry]
+Type=Application
+Name={{name}}
+Exec={{exec}}
+Icon={{icon}}
+NoDisplay=true
+Terminal=false
