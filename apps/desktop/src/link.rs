@@ -63,9 +63,11 @@ pub fn notifications(answer: &str) -> Option<(Vec<(String, String)>, u64)> {
 
 /// The window may show the service's page and the shell's own page, nothing else.
 pub fn may_open(url: &str, port: u16) -> bool {
+    // The shell's own page: tauri://localhost (Linux, macOS), http://tauri.localhost (Windows).
+    let own = |base: &str| url == base || url.starts_with(&format!("{base}/"));
     url.starts_with(&format!("http://127.0.0.1:{port}/"))
-        || url.starts_with("tauri://localhost/")
-        || url.starts_with("http://tauri.localhost/")
+        || own("tauri://localhost")
+        || own("http://tauri.localhost")
 }
 
 #[cfg(test)]
@@ -143,6 +145,11 @@ mod tests {
         assert!(may_open("http://127.0.0.1:7811/", 7811));
         assert!(may_open("http://127.0.0.1:7811/#t=x", 7811));
         assert!(may_open("tauri://localhost/index.html", 7811));
+        // How Tauri first opens its own page on Linux: no path at all.
+        assert!(may_open("tauri://localhost", 7811));
+        assert!(may_open("http://tauri.localhost", 7811));
+        assert!(!may_open("tauri://localhost.evil.example/", 7811));
+        assert!(!may_open("http://tauri.localhostx/", 7811));
         assert!(may_open("http://tauri.localhost/index.html", 7811));
         assert!(!may_open("http://127.0.0.1:7812/", 7811));
         assert!(!may_open("http://127.0.0.1:7811@evil.example/", 7811));
