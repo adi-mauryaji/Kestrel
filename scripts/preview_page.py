@@ -3,9 +3,9 @@
 without touching the installed service or your memory file.
 
 A v4 `kestrel serve` runs from this repository with its own folders under ~/.cache/kestrel-preview
-(memory, settings, socket), a few demo tasks and the name you give; Ctrl-C stops it.
+(memory, settings, socket), a few demo tasks and the name you give; Ctrl-C stops it. It builds the
+service first (with the llama feature: `cargo test` builds target/debug/kestrel without it).
 
-    cargo build -p kestrel-cli --features llama     # the service, once
     python3 scripts/preview_page.py [--name Aditya | --welcome] [--no-open]
 """
 import argparse
@@ -28,11 +28,11 @@ def main() -> int:
     ap.add_argument("--no-open", action="store_true", help="print the address instead of opening it")
     args = ap.parse_args()
 
-    builds = [REPO / "target" / b / "kestrel" for b in ("release", "debug")]
-    builds = [b for b in builds if b.is_file()]
-    if not builds:
-        sys.exit("no kestrel build: cargo build -p kestrel-cli --features llama")
-    kestrel = max(builds, key=lambda b: b.stat().st_mtime)
+    print("building the v4 service (seconds once built; the first time, minutes)...", file=sys.stderr)
+    built = subprocess.run(["cargo", "build", "-p", "kestrel-cli", "--features", "llama"], cwd=REPO)
+    if built.returncode:
+        sys.exit("the build failed (above)")
+    kestrel = REPO / "target" / "debug" / "kestrel"
 
     shutil.rmtree(HOME, ignore_errors=True)
     # A Unix socket path must stay short: the runtime folder sits in this user's runtime dir.
