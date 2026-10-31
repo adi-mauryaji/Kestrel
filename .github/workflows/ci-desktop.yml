@@ -1,0 +1,38 @@
+name: ci-desktop
+
+# The desktop app (apps/desktop, Tauri; v4 A3) on Linux, macOS and Windows. Its own workspace, so
+# the core's jobs need no webview packages. The repo is public: standard runners cost nothing.
+on:
+  push:
+    branches: [main, "feat/**"]
+    tags: ["v*"]
+    paths: ["apps/desktop/**", "rust-toolchain.toml", ".github/workflows/ci-desktop.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["apps/desktop/**", "rust-toolchain.toml", ".github/workflows/ci-desktop.yml"]
+  workflow_dispatch:
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - run: git config --global core.autocrlf false
+        working-directory: .
+      - uses: actions/checkout@v5
+      # Tauri's Linux prerequisites (WebKitGTK 4.1, tray, SVG icons); macOS and Windows have theirs.
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+      # rustup on the runner reads the repo's rust-toolchain.toml and installs the pinned toolchain
+      - run: rustc -V && cargo -V
+      - run: cargo fmt -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
