@@ -61,10 +61,13 @@ mod hinglish;
 mod import;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod kinds;
+// The page's speed test: the service (a llama build) runs it; the tests run it everywhere.
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod labels;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod meaning;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod measure;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod notes_qa;

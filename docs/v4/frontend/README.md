@@ -35,16 +35,17 @@ photo from the human for any page still wins.
 | Page | What it does | Screenshot |
 |---|---|---|
 | First start (the app's own page, `apps/desktop/ui`) | before Kestrel can run: where your notes are (Documents/Notes offered; a full path; the folder is made if missing), then Kestrel starts and the window goes to its page, where the first open follows. If a saved folder no longer works: why Kestrel stopped (the last line of its log), Start Kestrel or another folder | `built-first-start.jpg`, `built-first-start-dark.jpg`, `built-not-running.jpg` |
-| First open | name → notes folder → this device → start; shown while no name is saved. With no model on the device, "this device" offers the import (below) | `built-welcome-1.jpg`, `built-import-progress.jpg` |
+| First open | name → notes folder → this device → start; shown while no name is saved. With no model on the device, "this device" offers the import (below); with one, the speed test | `built-welcome-1.jpg`, `built-import-progress.jpg`, `built-speed-step3.jpg` |
 | Tasks | add a task (plain words become "add task …"), filter All · Today · Upcoming · No date · Overdue, Done, and ⋯: Rename, Change date, Set time, Remove date, Delete (y/N) | `built-tasks.jpg` |
 | Calendar | the month with each day's tasks, the chosen day's list and its hours | `built-calendar.jpg`, `built-calendar-dark.jpg` |
 | Notes | the folder's notes with search, one read beside them, Summarize, a question about your notes, New note (y/N) | `built-notes.jpg`, `built-notes-dark.jpg` |
-| Settings | your name, Light / Dark / System, the notes folder, the model and its import from a file, what Kestrel can do here | `built-settings.jpg`, `built-settings-model.jpg` |
+| Settings | your name, Light / Dark / System, the notes folder, the model and its import from a file, what Kestrel can do here and its speed test | `built-settings.jpg`, `built-settings-model.jpg`, `built-settings-speed.jpg` |
 | Model import (Settings, first open) | a .gguf file's full path (`~` = home); the service copies it in on its own thread and checks its SHA-256 against the catalog, the page shows "Importing… N% (x of y GB)" each second; refused from the wifi | — |
+| Speed test (Settings, first open) | Measure speed: `kestrel capabilities --measure` in its own process (the writer unloaded first), "Measuring… N s", then the speeds and the cards drawn again; one at a time, refused from the wifi | — |
 
 Away from Home, Kestrel's answer (and any y/N question) shows in a card at the bottom right; it also
 goes into Recent on Home. The API behind them: `GET`/`POST /api/settings` (the name),
-`GET /api/notes`, `POST /api/notes/read`, `GET`/`POST /api/model/import`.
+`GET /api/notes`, `POST /api/notes/read`, `GET`/`POST /api/model/import`, `GET`/`POST /api/speed`.
 
 ## See it
 
@@ -70,3 +71,7 @@ files (no model there, as on a fresh install), own data folder on disk: 13 check
 it; a non-.gguf, a relative path and a non-catalog .gguf refused; Gemma 4 E2B imported with
 progress in 80 s on this laptop's btrfs with zstd, the page's other requests answered meanwhile in
 under 500 ms; then a writer, Settings' line, and a writing request answered by the imported model).
+The speed test, same set-up with Gemma in the data folder and no speeds yet: 17 checks (step 3
+follows the model going and coming back; the loaded writer unloaded for the test, which runs in
+its own process, 12 s here; a second test refused; other requests answered meanwhile; 3 → 9 of 9
+ready, on step 3's list and in Settings).

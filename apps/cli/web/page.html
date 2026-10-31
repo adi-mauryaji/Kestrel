@@ -557,6 +557,9 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .w-step form[hidden] { display: none; }
 .import-form .field { flex: 1; min-width: 0; font: 14.5px/1.4 ui-monospace, "Hack", monospace; }
 .btn:disabled { opacity: .6; cursor: progress; }
+.speed { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 14px 0 4px; }
+.speed[hidden] { display: none; }
+.speed .hint { flex: 1; min-width: 220px; margin: 0; }
 .w-step .go { margin-top: 22px; }
 .w-step .can-list { max-height: 240px; overflow: auto; }
 .w-skip { position: absolute; right: 18px; top: 16px; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: color-mix(in srgb, var(--card) 70%, transparent); color: var(--muted); font-size: 14px; }
@@ -827,6 +830,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <section class="card set wide" aria-labelledby="can-h">
           <div class="card-head"><h2 id="can-h">On this device</h2><span class="device" id="can-count"></span></div>
           <p class="device" id="device">Loading what Kestrel can do here</p>
+          <div class="speed" id="speed" hidden><button class="btn" type="button" id="speed-go">Measure speed</button><p class="hint" id="speed-hint" aria-live="polite">How fast this device writes with its model, so Kestrel knows what it can take on here. About a minute.</p></div>
           <ul class="can-list" id="cards"></ul>
         </section>
       </div>
@@ -874,6 +878,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <p class="hint" id="w-model"></p>
         <form class="import-form" id="w-import-form" hidden><label class="sr" for="w-import-file">The model file</label><input class="field" id="w-import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
         <p class="hint" id="w-import-hint" aria-live="polite"></p>
+        <div class="speed" id="w-speed" hidden><button class="btn" type="button" id="w-speed-go">Measure speed</button><p class="hint" id="w-speed-hint" aria-live="polite">How fast this device writes with the model. About a minute.</p></div>
         <button class="btn primary go" type="button" data-next="4">Continue</button>
       </div>
       <div class="w-step" data-step="4" hidden>
@@ -924,6 +929,7 @@ const el = (tag, cls, text) => {
 let busy = false;
 let last = null; // the latest /api/tasks answer
 let importing = null; // the hint a running model import reports to
+let measuring = null; // the hint a running speed test reports to
 
 function api(path, body) {
   const headers = { "X-Kestrel-Token": token || "" };
@@ -1135,6 +1141,8 @@ function drawCapabilities(data) {
   lastCaps = data;
   $("model-line").textContent = modelLine(data);
   const d = data.device;
+  // The speed test needs a model to measure.
+  $("speed").hidden = $("w-speed").hidden = !d.writer;
   const gpus = d.gpus.length
     ? d.gpus.map((g) => g.kind === "integrated" ? `GPU ${g.name} (shares the RAM)` : `GPU ${g.name} (${g.memory})`).join(", ")
     : "no GPU";
@@ -1162,6 +1170,7 @@ function drawCapabilities(data) {
     }
     list.append(li);
   }
+  if (!$("welcome-box").hidden) drawWelcomeDevice();
 }
 
 async function refresh() {
@@ -1743,6 +1752,8 @@ async function loadSettings() {
     // An import started elsewhere (the first open) reports here too.
     const i = await api("/api/model/import");
     if (i.ok && (await i.json()).state === "copying" && !importing) watchImport($("import-hint"));
+    const m = await api("/api/speed");
+    if (m.ok && (await m.json()).state === "measuring" && !measuring) watchSpeed($("speed-hint"));
   } catch (e) { /* the page reports a stopped service elsewhere */ }
 }
 
@@ -1819,6 +1830,60 @@ async function startImport(file, hint) {
 $("import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("import-file").value, $("import-hint")); });
 $("w-import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("w-import-file").value, $("w-import-hint")); });
 
+// The speed test (POST /api/speed, v4 A3): `kestrel capabilities --measure` in its own process; the
+// page asks how far it is each second, then shows what this device can do with the speeds.
+function speedButtons(on) {
+  document.querySelectorAll(".speed button").forEach((b) => { b.disabled = !on; });
+}
+async function watchSpeed(hint) {
+  measuring = hint;
+  speedButtons(false);
+  for (;;) {
+    let s;
+    try {
+      const r = await api("/api/speed");
+      if (!r.ok) throw new Error(await r.text());
+      s = await r.json();
+    } catch (e) {
+      hint.textContent = "Kestrel stopped answering during the speed test.";
+      hint.classList.add("bad");
+      break;
+    }
+    if (s.state === "measuring") {
+      hint.textContent = `Measuring… ${s.seconds} s. The model loads, then reads and writes a little.`;
+      await new Promise((ok) => setTimeout(ok, 1000));
+      continue;
+    }
+    if (s.state === "done") {
+      hint.textContent = `Measured: ${s.said}.`;
+      hint.classList.remove("bad");
+      refresh();
+    } else if (s.state === "failed") {
+      hint.textContent = s.why;
+      hint.classList.add("bad");
+    }
+    break;
+  }
+  measuring = null;
+  speedButtons(true);
+}
+async function startSpeed(hint) {
+  if (measuring) return;
+  hint.classList.remove("bad");
+  hint.textContent = "Starting the speed test…";
+  try {
+    const r = await api("/api/speed", {});
+    if (!r.ok) throw new Error(await r.text());
+  } catch (e) {
+    hint.textContent = e.message;
+    hint.classList.add("bad");
+    return;
+  }
+  watchSpeed(hint);
+}
+$("speed-go").addEventListener("click", () => startSpeed($("speed-hint")));
+$("w-speed-go").addEventListener("click", () => startSpeed($("w-speed-hint")));
+
 // --- The first open ------------------------------------------------------------------------
 const SKIP = "kestrel-welcome-skipped";
 function welcomeStep(n) {
@@ -1856,18 +1921,20 @@ $("w-name").addEventListener("submit", async (e) => {
   } catch (e2) { /* the count is only a nicety */ }
   welcomeStep(2);
 });
+// Step 3 shows what Settings shows; drawn again when an import or a speed test changes it.
+function drawWelcomeDevice() {
+  $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
+  const list = $("w-cards");
+  list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));
+  const noWriter = Boolean(lastCaps && !lastCaps.device.writer);
+  $("w-model").textContent = noWriter
+    ? "Chat, writing and code need a model. Have Gemma 4 E2B as a .gguf file (a USB stick, a download made elsewhere)? Type where it is:"
+    : "";
+  $("w-import-form").hidden = !noWriter;
+}
 document.querySelectorAll(".w-step [data-next]").forEach((b) => b.addEventListener("click", () => {
   const n = Number(b.dataset.next);
-  if (n === 3) {
-    $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
-    const list = $("w-cards");
-    list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));
-    const noWriter = Boolean(lastCaps && !lastCaps.device.writer);
-    $("w-model").textContent = noWriter
-      ? "Chat, writing and code need a model. Have Gemma 4 E2B as a .gguf file (a USB stick, a download made elsewhere)? Type where it is:"
-      : "";
-    $("w-import-form").hidden = !noWriter;
-  }
+  if (n === 3) drawWelcomeDevice();
   welcomeStep(n);
 }));
 const closeWelcome = () => { $("welcome-box").hidden = true; $("say").focus({ preventScroll: true }); };

@@ -823,7 +823,12 @@ pub fn serve(
     let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db, &ring_events, desktop));
     // The browser page; without it the service still answers on the socket.
-    let page = |port| open_web(port, config, memory, skills, web_lan, events, notes);
+    let page = |port| {
+        let web = open_web(port, config, memory, skills, web_lan, events, notes)?;
+        Ok::<_, Box<dyn std::error::Error>>(
+            web.with_speed(Box::new(speed_test(config, remote.clone()))),
+        )
+    };
     let mut web = web_port.and_then(|port| match page(port) {
         Ok(w) => {
             eprintln!(
@@ -861,6 +866,27 @@ pub fn serve(
             eprintln!("the SLM was idle for {} min: unloaded", idle.as_secs() / 60);
         }
         std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+}
+
+/// The page's speed test (src/measure.rs): `kestrel capabilities --measure CONFIG` in its own process,
+/// with this service's folders. The writer is unloaded first, so the test has the memory and CPU to
+/// itself; the next request loads it again.
+#[cfg(feature = "llama")]
+fn speed_test(
+    config: &std::path::Path,
+    remote: std::rc::Rc<crate::remote::RemoteTier>,
+) -> impl Fn(bool) -> Result<Value, String> + use<> {
+    let (test, config) = (crate::measure::Job::default(), config.to_path_buf());
+    move |start| {
+        if start {
+            remote.unload();
+            let me = std::env::current_exe().map_err(|e| e.to_string())?;
+            let mut run = std::process::Command::new(me);
+            run.args(["capabilities", "--measure"]).arg(&config);
+            test.start(run)?;
+        }
+        Ok(test.json())
     }
 }
 

@@ -317,6 +317,7 @@ pub struct Web {
     settings: Box<Settings>,
     notes: Box<NotesReader>,
     import: Box<ModelImport>,
+    speed: Box<SpeedTest>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -326,6 +327,8 @@ pub type Settings = dyn Fn(Option<&Value>) -> Result<Value, String>;
 pub type NotesReader = dyn Fn(Option<&str>) -> Result<Value, String>;
 /// How far the page's model import is (None), or starts one from a file (Some); or why not.
 pub type ModelImport = dyn Fn(Option<&str>) -> Result<Value, String>;
+/// Starts the speed test (true) or says how far it is (false); or why not.
+pub type SpeedTest = dyn Fn(bool) -> Result<Value, String>;
 
 /// What the API reads and changes beside the requests themselves.
 pub struct Api<'a> {
@@ -335,6 +338,7 @@ pub struct Api<'a> {
     pub settings: &'a Settings,
     pub notes: &'a NotesReader,
     pub import: &'a ModelImport,
+    pub speed: &'a SpeedTest,
 }
 
 #[cfg(test)]
@@ -348,6 +352,7 @@ impl Api<'static> {
             settings: &|_| Err("no settings here".into()),
             notes: &|_| Err("no notes here".into()),
             import: &|_| Err("no import here".into()),
+            speed: &|_| Err("no speed test here".into()),
         }
     }
 }
@@ -379,6 +384,7 @@ impl Web {
             settings: Box::new(|_| Err("no settings here".into())),
             notes: Box::new(|_| Err("no notes here".into())),
             import: Box::new(|_| Err("no import here".into())),
+            speed: Box::new(|_| Err("no speed test here".into())),
             lan,
         })
     }
@@ -401,6 +407,12 @@ impl Web {
         self
     }
 
+    /// `speed` answers `GET`/`POST /api/speed` (v4 A3); without it each start is refused.
+    pub fn with_speed(mut self, speed: Box<SpeedTest>) -> Self {
+        self.speed = speed;
+        self
+    }
+
     fn api(&self) -> Api<'_> {
         Api {
             tasks: &*self.tasks,
@@ -409,6 +421,7 @@ impl Web {
             settings: &*self.settings,
             notes: &*self.notes,
             import: &*self.import,
+            speed: &*self.speed,
         }
     }
 
@@ -594,6 +607,13 @@ pub fn respond(
                 None => reply(out, "400 Bad Request", TEXT, b"send {\"file\": \"...\"}"),
             }
         }
+        ("GET", "/api/speed") => answered(out, (api.speed)(false), "500 Internal Server Error"),
+        // A minute of this device's CPU and memory: never for the page shared on the wifi.
+        ("POST", "/api/speed") if !from_this_device(req) => {
+            let why = b"the speed test runs on this device, not from the wifi";
+            reply(out, "403 Forbidden", TEXT, why)
+        }
+        ("POST", "/api/speed") => answered(out, (api.speed)(true), "409 Conflict"),
         ("POST", "/api/say") => {
             let text = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -630,7 +650,8 @@ pub fn respond(
         (
             _,
             "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
-            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/say" | "/api/answer",
+            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/speed" | "/api/say"
+            | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
@@ -1010,6 +1031,13 @@ mod tests {
             Some(f) if f.ends_with(".gguf") => Ok(json!({"state": "copying", "done": 0, "all": 0})),
             Some(_) => Err("Kestrel's models are .gguf files".to_string()),
         };
+        let speed = |start: bool| {
+            Ok(if start {
+                json!({"state": "measuring", "seconds": 0})
+            } else {
+                json!({"state": "idle"})
+            })
+        };
         let api = Api {
             tasks: &|| json!({"tasks": []}),
             capabilities: &|| json!({"cards": ["x"]}),
@@ -1017,6 +1045,7 @@ mod tests {
             settings: &settings,
             notes: &notes,
             import: &import,
+            speed: &speed,
         };
         respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
@@ -1092,6 +1121,27 @@ mod tests {
         assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
         let (out, _) = answer_to(
             &req("DELETE /api/model/import HTTP/1.1\r\nHost: 127.0.0.1:7811\r\n\r\n"),
+            None,
+        );
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
+    }
+
+    #[test]
+    fn the_speed_test_is_started_on_this_device_and_says_how_far_it_is() {
+        let (out, _) = answer_to(&get("/api/speed"), None);
+        assert!(out.ends_with("{\"state\":\"idle\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/speed", "{}"), None);
+        assert!(out.starts_with("HTTP/1.1 200 OK"), "{out:.80}");
+        assert!(out.contains("\"state\":\"measuring\""), "{out}");
+        // A minute of this device's CPU and memory: not for the page shared on the wifi.
+        let from_phone = req(
+            "POST /api/speed HTTP/1.1\r\nHost: 192.168.1.5:7811\r\nX-Kestrel-Token: s3cret\r\n\
+             Content-Length: 2\r\n\r\n{}",
+        );
+        let (out, _) = answer_to(&from_phone, None);
+        assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+        let (out, _) = answer_to(
+            &req("PUT /api/speed HTTP/1.1\r\nHost: 127.0.0.1:7811\r\n\r\n"),
             None,
         );
         assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");

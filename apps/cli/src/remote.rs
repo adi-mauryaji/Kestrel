@@ -98,6 +98,14 @@ impl RemoteTier {
         }
         false
     }
+
+    /// Stops the worker now, so the page's speed test has this device's memory and CPU to itself;
+    /// true if one ran. A worker in the middle of a request is left alone. The next request starts
+    /// a new one.
+    pub fn unload(&self) -> bool {
+        // Drop kills and waits for the process.
+        (self.worker.try_borrow_mut()).is_ok_and(|mut w| w.take().is_some())
+    }
 }
 
 impl RemoteTier {
@@ -335,6 +343,18 @@ mod tests {
         let later = Instant::now() + Duration::from_secs(601);
         assert!(t.reap_if_idle(later) && !t.is_loaded());
         assert!(!t.reap_if_idle(later), "nothing left to stop");
+        assert_eq!(
+            t.classify(&req("find y")).unwrap(),
+            [(Intent::SearchNotes, 1.0)]
+        );
+    }
+
+    #[test]
+    fn the_worker_is_unloaded_for_a_speed_test_and_starts_again_after() {
+        let t = fake(r#"{"probs": [["search_notes", 1.0]]}"#);
+        assert!(!t.unload(), "nothing to stop yet");
+        t.classify(&req("find x")).unwrap();
+        assert!(t.unload() && !t.is_loaded());
         assert_eq!(
             t.classify(&req("find y")).unwrap(),
             [(Intent::SearchNotes, 1.0)]
