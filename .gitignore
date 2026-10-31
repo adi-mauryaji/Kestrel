@@ -1,5 +1,8 @@
 # Rust
 /target/
+/apps/desktop/target/
+# Made by tauri-build
+/apps/desktop/gen/
 
 # Python
 .venv/

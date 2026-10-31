@@ -1,0 +1,28 @@
+[package]
+name = "kestrel-desktop"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+publish = false
+description = "Kestrel's desktop shell (v4 A3): the page in a window, tray, reminders as notifications"
+
+# Its own workspace, so the core's builds and CI need no webview packages. Exact pins: the
+# CAPABILITY_REGISTRY entry `tauri` (approved 2026-10-31).
+[workspace]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.3", features = [] }
+
+[dependencies]
+serde_json = "1"
+tauri = { version = "=2.12.4", features = ["tray-icon"] }
+tauri-plugin-autostart = "=2.7.0"
+tauri-plugin-notification = "=2.7.0"
+tauri-plugin-single-instance = "=2.5.4"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

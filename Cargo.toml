@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-capability", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-learning", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-platform", "crates/kestrel-router", "crates/kestrel-tools"]
+# The desktop shell is its own workspace (Tauri, registry `tauri`): core builds need no webview.
+exclude = ["apps/desktop"]
 
 [workspace.package]
 version = "0.1.0"
