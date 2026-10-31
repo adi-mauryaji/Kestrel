@@ -8,10 +8,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-triple=$(rustc -vV | sed -n 's/^host: //p')
+triple=$(rustc -vV | sed -n 's/^host: //p' | tr -d '\r')
+exe=""
+if [[ $triple == *windows* ]]; then exe=.exe; fi
 cargo build --release -p kestrel-cli --features llama
 mkdir -p apps/desktop/binaries
-cp target/release/kestrel "apps/desktop/binaries/kestrel-$triple"
+cp "target/release/kestrel$exe" "apps/desktop/binaries/kestrel-$triple$exe"
 cd apps/desktop
 cargo tauri build --config tauri.bundle.json "$@"
 ls -l target/release/bundle/*/

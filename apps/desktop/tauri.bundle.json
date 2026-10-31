@@ -20,6 +20,10 @@
       "../../datasets/kestrel_codetasks_v0/splits/dev.jsonl": "datasets/kestrel_codetasks_v0/splits/dev.jsonl",
       "../../datasets/kestrel_notesq_v0/notes/": "datasets/kestrel_notesq_v0/notes/"
     },
+    "macOS": {
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    },
     "linux": {
       "deb": {
         "desktopTemplate": "linux/Kestrel.desktop",

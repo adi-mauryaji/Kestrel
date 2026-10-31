@@ -1,0 +1,68 @@
+name: release-desktop
+
+# The desktop installers (v4 A3, ADR-056) on a version tag: .deb and .rpm (Linux), .dmg (macOS,
+# ad-hoc signed), the NSIS setup .exe (Windows). They are kept as this run's artifacts; nothing is
+# published. Kestrel's files that are not in git (the e5 encoder, the tier-3 heads) come from the
+# release asset scripts/pack_ci_assets.sh makes, checked against the SHA-256 below. On Windows the
+# bundler downloads NSIS, hash-checked by tauri-bundler itself.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ASSETS_TAG: models-v1
+  ASSETS_FILE: kestrel-ci-assets-v1.tar.gz
+  ASSETS_SHA256: 938cfffb9c04073a13a4eb725776fd6fc815720c43cb0620e3ac307390a8c1cf
+
+jobs:
+  installers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest supported Ubuntu, so the .deb runs on more systems (glibc).
+          - os: ubuntu-22.04
+            bundles: deb,rpm
+          - os: macos-latest
+            bundles: dmg
+          - os: windows-latest
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+      - name: Kestrel's files that are not in git
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$ASSETS_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$ASSETS_FILE"
+          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
+          echo "$ASSETS_SHA256  $ASSETS_FILE" | $sum -c
+          tar -xzf "$ASSETS_FILE"
+          rm "$ASSETS_FILE"
+      # rustup on the runner reads rust-toolchain.toml and installs the pinned toolchain
+      - run: rustc -V && cargo -V
+      # The registry's pin (entry `tauri`)
+      - run: cargo install tauri-cli --version =2.12.3 --locked
+      # The service with llama.cpp (cmake, ~10-20 min), then the app and its installer
+      - run: scripts/build_desktop.sh --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kestrel-${{ github.ref_name }}-${{ runner.os }}
+          path: |
+            apps/desktop/target/release/bundle/deb/*.deb
+            apps/desktop/target/release/bundle/rpm/*.rpm
+            apps/desktop/target/release/bundle/dmg/*.dmg
+            apps/desktop/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
