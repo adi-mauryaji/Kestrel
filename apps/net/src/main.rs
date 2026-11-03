@@ -5,7 +5,11 @@
 mod download;
 mod fetch;
 mod mail;
+mod plain;
+mod rss;
+mod search;
 mod secrets;
+mod weather;
 mod worker;
 
 use std::io::{BufRead, Write};

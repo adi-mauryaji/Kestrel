@@ -11,6 +11,10 @@ pub trait Outside {
     fn fetch(&self, url: &str) -> Result<Value, String>;
     fn send(&self, mail: &Mail, password: &str) -> Result<(), String>;
     fn download(&self, url: &str, to: &str) -> Result<Value, String>;
+    fn search(&self, provider: &str, query: &str) -> Result<Value, String>;
+    fn weather(&self, lat: &str, lon: &str) -> Result<Value, String>;
+    fn place(&self, name: &str) -> Result<Value, String>;
+    fn rss(&self, url: &str) -> Result<Value, String>;
     fn password(&self) -> Result<Option<String>, String>;
     fn set_password(&self, value: &str) -> Result<(), String>;
     fn delete_password(&self) -> Result<(), String>;
@@ -28,6 +32,18 @@ impl Outside for Real {
     }
     fn download(&self, url: &str, to: &str) -> Result<Value, String> {
         crate::download::download(&crate::fetch::Internet, url, std::path::Path::new(to))
+    }
+    fn search(&self, provider: &str, query: &str) -> Result<Value, String> {
+        crate::search::search(provider, query)
+    }
+    fn weather(&self, lat: &str, lon: &str) -> Result<Value, String> {
+        crate::weather::weather(lat, lon)
+    }
+    fn place(&self, name: &str) -> Result<Value, String> {
+        crate::weather::place(name)
+    }
+    fn rss(&self, url: &str) -> Result<Value, String> {
+        crate::rss::rss(url)
     }
     fn password(&self) -> Result<Option<String>, String> {
         crate::secrets::get()
@@ -97,6 +113,10 @@ impl<O: Outside> Worker<O> {
                 self.outside.set_password(&value)?;
                 Ok(json!({"saved": true}))
             }
+            Op::Search { provider, query } => self.outside.search(&provider, &query),
+            Op::Weather { lat, lon } => self.outside.weather(&lat, &lon),
+            Op::Place { name } => self.outside.place(&name),
+            Op::Rss { url } => self.outside.rss(&url),
             Op::Download { url, to } => self.outside.download(&url, &to),
             Op::SecretHas => Ok(json!({"has": self.outside.password()?.is_some()})),
             Op::SecretDelete => {
@@ -133,6 +153,18 @@ mod tests {
         }
         fn download(&self, url: &str, to: &str) -> Result<Value, String> {
             Ok(json!({"bytes": url.len() + to.len()}))
+        }
+        fn search(&self, provider: &str, query: &str) -> Result<Value, String> {
+            Ok(json!({"results": [provider, query]}))
+        }
+        fn weather(&self, lat: &str, lon: &str) -> Result<Value, String> {
+            Ok(json!({"at": [lat, lon]}))
+        }
+        fn place(&self, name: &str) -> Result<Value, String> {
+            Ok(json!({"places": [name]}))
+        }
+        fn rss(&self, url: &str) -> Result<Value, String> {
+            Ok(json!({"items": [url]}))
         }
         fn password(&self) -> Result<Option<String>, String> {
             Ok(self.0.borrow().password.clone())

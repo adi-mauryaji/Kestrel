@@ -662,14 +662,14 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <p>Small steps today, big progress tomorrow.</p>
         <i></i>
       </div>
-      <div class="local"><i></i><b>Local First</b><span>Your data stays on your device.</span></div>
+      <div class="local"><i></i><b>Local First</b><span id="local-line">Your data stays on your device.</span></div>
     </div>
   </aside>
 
   <div class="main">
     <header class="topbar">
       <svg class="i lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
-      <span>Runs on this laptop. Nothing you type leaves it.</span>
+      <span id="promise-line">Runs on this laptop. Nothing you type leaves it.</span>
       <span class="today" id="today"></span>
       <div class="theme" role="group" aria-label="Theme">
         <button type="button" class="sun" id="light" aria-label="Light theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" fill="none"/></svg></button>
@@ -1232,6 +1232,9 @@ async function refresh() {
   try {
     const r = await api("/api/capabilities");
     if (r.ok) drawCapabilities(await r.json());
+    // What Home promises follows the internet switch (the human, 2026-11-03).
+    const o = await api("/api/outbound");
+    if (o.ok) drawPromise((await o.json()).internet);
   } catch (e) { /* the conversation reports a stopped service */ }
   try {
     const r = await api("/api/tasks");
@@ -1890,7 +1893,12 @@ $("kept-forget").addEventListener("click", () => changeRemembered({ forget_conve
 // The internet, mail and what left (/api/outbound, v4 C). The password field is emptied at once and
 // never filled again: the page cannot read it back.
 const OUT_LINE = $("out-line").textContent;
+function drawPromise(internet) {
+  $("promise-line").textContent = internet ? "Runs on this laptop. Nothing leaves without your yes." : "Runs on this laptop. Nothing you type leaves it.";
+  $("local-line").textContent = internet ? "Your data leaves only with your yes." : "Your data stays on your device.";
+}
 function drawOutbound(o) {
+  drawPromise(o.internet);
   $("out-internet").checked = o.internet;
   $("w-internet").checked = o.internet;
   loadDownload();

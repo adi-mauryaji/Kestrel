@@ -45,6 +45,9 @@ export default async ({ js, shot, wait, check, log }) => {
   await view("settings");
   await until(() => js(`document.getElementById("out-state").textContent === "Off"`), 8);
   check("the internet is off at first", await js(`!document.getElementById("out-internet").checked`), null);
+  const promise = () => js(`[document.getElementById("promise-line").textContent, document.getElementById("local-line").textContent]`);
+  let said = await promise();
+  check("off: Home's lines are the human's design", said[0] === "Runs on this laptop. Nothing you type leaves it." && said[1] === "Your data stays on your device.", said);
   check("nothing has left", await js(`!document.getElementById("out-empty").hidden`), null);
   check("the mail card names its two steps", await until(async () => (await text()).includes("add your Gmail address and app password"), 8), null);
 
@@ -65,6 +68,8 @@ export default async ({ js, shot, wait, check, log }) => {
   await view("settings");
   await js(`document.getElementById("out-internet").click(); true`);
   check("the switch turns the internet on", await until(() => js(`document.getElementById("out-state").textContent === "On"`), 8), null);
+  said = await promise();
+  check("on: the lines say what is true now", said[0] === "Runs on this laptop. Nothing leaves without your yes." && said[1] === "Your data leaves only with your yes.", said);
   await view("home");
   await saying("send it to Ravi", "Mail is not set up");
 

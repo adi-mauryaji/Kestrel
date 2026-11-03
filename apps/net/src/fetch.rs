@@ -75,7 +75,7 @@ pub fn next_url(current: &str, location: &str) -> Option<String> {
 }
 
 /// May this address be asked at all: its name, and every address the name stands for?
-fn check(url: &str) -> Result<(), String> {
+pub fn check(url: &str) -> Result<(), String> {
     let host = https_host(url).ok_or("only https addresses")?;
     if let Some(why) = refused_name(&host) {
         return Err(why);
@@ -87,6 +87,38 @@ fn check(url: &str) -> Result<(), String> {
         Some(_) => Err(format!("{host} is not on the public internet")),
         None => Ok(()),
     }
+}
+
+/// A JSON answer from an address already checked, capped like a page; its status with it. No redirects.
+pub fn get_json(url: &str, params: &[(&str, &str)]) -> Result<(u16, Value), String> {
+    let agent: ureq::Agent = ureq::Agent::config_builder()
+        .max_redirects(0)
+        .http_status_as_error(false)
+        .timeout_global(Some(TIME_LIMIT))
+        .build()
+        .into();
+    let mut request = agent
+        .get(url)
+        .header("User-Agent", "Kestrel")
+        .header("Accept", "application/json");
+    for (key, value) in params {
+        request = request.query(*key, *value);
+    }
+    let mut response = request
+        .call()
+        .map_err(|e| format!("the request failed: {e}"))?;
+    let status = response.status().as_u16();
+    let mut bytes = Vec::new();
+    response
+        .body_mut()
+        .as_reader()
+        .take(MAX_BYTES)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("the answer could not be read: {e}"))?;
+    Ok((
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    ))
 }
 
 /// The internet, for a download (src/download.rs).

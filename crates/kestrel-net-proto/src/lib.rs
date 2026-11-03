@@ -30,6 +30,14 @@ pub enum Op {
         nonce: String,
         approval: String,
     },
+    /// A web search through the search provider the person chose.
+    Search { provider: String, query: String },
+    /// The forecast at a place, from Open-Meteo. Coordinates as text, exactly as logged.
+    Weather { lat: String, lon: String },
+    /// A place's coordinates from its name, from Open-Meteo.
+    Place { name: String },
+    /// A news feed's headlines.
+    Rss { url: String },
     /// A model file into `to`, its `.part` file, continuing what is there.
     Download { url: String, to: String },
     /// Keeps the mail password in the OS keyring. It goes no further.
