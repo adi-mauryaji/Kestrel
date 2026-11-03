@@ -386,7 +386,7 @@ fn the_shipped_cards_and_catalog_load_and_agree() {
     let (cards, catalog) = shipped();
     check(&cards, &catalog).unwrap();
     assert_eq!(cards[0].id, "tasks", "file-name order");
-    assert_eq!(cards.last().unwrap().id, "web.search");
+    assert_eq!(cards.last().unwrap().id, "morning.brief");
     assert!(
         cards
             .iter()
@@ -421,6 +421,11 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
             "weather" => "add your place (Settings)",
             "news" => "add a news feed (Settings)",
             "web.search" => "add a SearXNG address (Settings)",
+            "morning.brief" => {
+                // It works with no internet: only the time is the person's.
+                assert_eq!(en(&v.state), ["choose a time for the brief (Settings)"]);
+                continue;
+            }
             _ => {
                 assert_eq!(v.state, ready(false), "{}", v.id);
                 continue;
@@ -440,6 +445,7 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
             "weather.place",
             "news.feed",
             "search.provider",
+            "brief.time",
         ]),
         ..here
     };

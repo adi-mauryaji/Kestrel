@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by\n       kestrel settings internet on|off   may Kestrel use the internet (off at install)";
+pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by\n       kestrel settings internet on|off   may Kestrel use the internet (off at install)\n       kestrel settings brief HH:MM|off   when the morning brief comes (off at first)";
 /// The longest name the page greets.
 const NAME_MAX: usize = 40;
 
@@ -36,6 +36,9 @@ pub struct Settings {
     /// The SearXNG web searches go through.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub search_provider: Option<String>,
+    /// "HH:MM", when the morning brief comes; none at first.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brief_at: Option<String>,
     #[serde(flatten)]
     pub rest: serde_json::Map<String, serde_json::Value>,
 }
@@ -148,6 +151,20 @@ pub fn run(
             settings.internet = on == "on";
             save(&at, &settings)?;
             writeln!(out, "the internet for Kestrel: {on}")?;
+        }
+        [key, at] if key == "brief" && at == "off" => {
+            let path = path(data()?);
+            let mut settings = load(&path)?;
+            settings.brief_at = None;
+            save(&path, &settings)?;
+            writeln!(out, "no morning brief")?;
+        }
+        [key, at] if key == "brief" && crate::times::minutes(at).is_some() => {
+            let path = path(data()?);
+            let mut settings = load(&path)?;
+            settings.brief_at = Some(at.clone());
+            save(&path, &settings)?;
+            writeln!(out, "the morning brief comes at {at}")?;
         }
         _ => return Err(USAGE.into()),
     }
@@ -305,6 +322,22 @@ mod tests {
         assert!(!load(&path(&d)).unwrap().internet);
         let e = run(&args(&["internet", "maybe"]), Some(&d), &mut out).unwrap_err();
         assert_eq!(e.to_string(), USAGE);
+    }
+
+    #[test]
+    fn the_brief_has_a_time_or_none() {
+        let d = dir("brief");
+        let mut out = Vec::new();
+        run(&args(&["brief", "08:00"]), Some(&d), &mut out).unwrap();
+        assert_eq!(load(&path(&d)).unwrap().brief_at.as_deref(), Some("08:00"));
+        assert_eq!(
+            run(&args(&["brief", "25:00"]), Some(&d), &mut out)
+                .unwrap_err()
+                .to_string(),
+            USAGE
+        );
+        run(&args(&["brief", "off"]), Some(&d), &mut out).unwrap();
+        assert_eq!(load(&path(&d)).unwrap().brief_at, None);
     }
 
     #[test]

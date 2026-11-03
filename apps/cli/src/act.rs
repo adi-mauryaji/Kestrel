@@ -115,6 +115,12 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// The morning brief, on asking (src/brief.rs).
+    pub fn brief(&mut self, online: &crate::online::Online, now: i64) -> Vec<String> {
+        let today = self.today(now);
+        online.brief(self.backend.memory_mut(), today, now)
+    }
+
     /// A web search (src/web_search.rs).
     pub fn web_search(
         &mut self,

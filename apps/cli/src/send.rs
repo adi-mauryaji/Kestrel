@@ -373,6 +373,7 @@ pub fn page_json(memory: &Memory, data: Option<&Path>) -> Result<Value, KestrelE
         "place": s.place,
         "feeds": s.feeds,
         "search_provider": s.search_provider,
+        "brief_at": s.brief_at,
         "contacts": memory.contacts()?,
         "log": memory.outbound(LOG_SHOWN)?,
     }))
@@ -456,6 +457,13 @@ pub fn change(
             settings(&|s| s.search_provider = Some(url.to_string()))?;
         }
         ("search_provider", Value::Null) => settings(&|s| s.search_provider = None)?,
+        ("brief_at", Value::Null) => settings(&|s| s.brief_at = None)?,
+        ("brief_at", Value::String(at)) => {
+            if crate::times::minutes(at).is_none() {
+                return Err("a time, like 08:00".into());
+            }
+            settings(&|s| s.brief_at = Some(at.clone()))?;
+        }
         _ => return Err(NOT_A_CHANGE.into()),
     }
     page_json(memory, Some(data)).map_err(|e| e.to_string())
@@ -968,6 +976,11 @@ mod tests {
         );
         let v = go(&mut m, serde_json::json!({"search_provider": null})).unwrap();
         assert_eq!(v["search_provider"], Value::Null);
+        let v = go(&mut m, serde_json::json!({"brief_at": "07:30"})).unwrap();
+        assert_eq!(v["brief_at"], "07:30");
+        assert!(go(&mut m, serde_json::json!({"brief_at": "soon"})).is_err());
+        let v = go(&mut m, serde_json::json!({"brief_at": null})).unwrap();
+        assert_eq!(v["brief_at"], Value::Null);
         let e = go(&mut m, serde_json::json!({"place": "Delhi"})).unwrap_err();
         assert!(e.contains("internet"), "{e}");
         assert!(

@@ -143,6 +143,12 @@ impl<'a> Assistant<'a> {
         {
             return act.online(online, asked, now);
         }
+        // v4: the morning brief, on asking.
+        if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
+            && crate::brief::parse(text)
+        {
+            return act.brief(online, now);
+        }
         // v4: a web search: the person's words go out, and the answer is only shown.
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(query) = crate::web_search::parse(text)

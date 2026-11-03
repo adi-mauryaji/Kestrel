@@ -40,6 +40,8 @@ mod assistant;
 mod bench_items;
 // The run needs the models; without llama the measuring code is only tested.
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod brief;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod calibrate;
 mod capabilities;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]

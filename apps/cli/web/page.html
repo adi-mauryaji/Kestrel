@@ -885,6 +885,9 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <h3>Web search</h3>
           <p class="hint" id="search-state">No search provider yet. Web search goes through a SearXNG you choose, best one on this device: public ones mostly refuse programs. It sees what you search.</p>
           <form id="search-form"><label class="sr" for="search-url">The SearXNG address</label><input class="field" id="search-url" autocomplete="off" spellcheck="false" placeholder="https://searx.example.org"><button class="btn" type="submit">Save</button><button class="btn" type="button" id="search-forget" hidden>Remove</button></form>
+          <h3>Morning brief</h3>
+          <p class="hint" id="brief-state">Off. At a time you choose: your tasks, documents about to expire, and, with the internet on, the weather and your feeds.</p>
+          <form id="brief-form"><label class="sr" for="brief-time">The time</label><input class="field" id="brief-time" type="time" value="08:00"><button class="btn" type="submit">Save</button><button class="btn" type="button" id="brief-off" hidden>Turn off</button></form>
           <h3>What left this device</h3>
           <p class="hint" id="out-empty">Nothing yet.</p>
           <ul class="kept-rows" id="out-rows"></ul>
@@ -1934,6 +1937,8 @@ function drawOutbound(o) {
   }));
   $("search-state").textContent = o.search_provider ? `Web search goes through ${o.search_provider}. It sees what you search.` : "No search provider yet. Web search goes through a SearXNG you choose, best one on this device: public ones mostly refuse programs. It sees what you search.";
   $("search-forget").hidden = !o.search_provider;
+  $("brief-state").textContent = o.brief_at ? `It comes at ${o.brief_at}, with a reminder when the weather calls for one.` : "Off. At a time you choose: your tasks, documents about to expire, and, with the internet on, the weather and your feeds.";
+  $("brief-off").hidden = !o.brief_at;
   $("out-empty").hidden = o.log.length > 0;
   $("out-rows").replaceChildren(...o.log.map((row) => {
     const li = el("li", "kept-row out-row");
@@ -1970,6 +1975,8 @@ $("mail-form").addEventListener("submit", async (e) => {
 });
 $("mail-forget").addEventListener("click", () => changeOutbound({ forget_mail: true }));
 $("search-forget").addEventListener("click", () => changeOutbound({ search_provider: null }));
+$("brief-off").addEventListener("click", () => changeOutbound({ brief_at: null }));
+$("brief-form").addEventListener("submit", (e) => { e.preventDefault(); changeOutbound({ brief_at: $("brief-time").value }); });
 for (const [form, field, key] of [["place-form", "place-name", "place"], ["feed-form", "feed-url", "add_feed"], ["search-form", "search-url", "search_provider"]]) {
   $(form).addEventListener("submit", async (e) => {
     e.preventDefault();

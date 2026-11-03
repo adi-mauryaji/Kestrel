@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS outbound(
 CREATE TABLE IF NOT EXISTS contacts(
   name TEXT PRIMARY KEY,
   email TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS briefs(
+  day TEXT PRIMARY KEY,
+  at INTEGER NOT NULL
 );";
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
@@ -93,6 +97,26 @@ impl Memory {
         })
         .and_then(Iterator::collect)
         .map_err(storage)
+    }
+
+    /// Has the morning brief been given on `day`?
+    pub fn brief_given(&self, day: &str) -> Result<bool, KestrelError> {
+        self.conn
+            .query_row("SELECT 1 FROM briefs WHERE day = ?1", [day], |_| Ok(()))
+            .optional()
+            .map(|found| found.is_some())
+            .map_err(storage)
+    }
+
+    /// The morning brief is given on `day`.
+    pub fn mark_brief(&mut self, day: &str, now: i64) -> Result<(), KestrelError> {
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO briefs(day, at) VALUES(?1, ?2)",
+                params![day, now],
+            )
+            .map(|_| ())
+            .map_err(storage)
     }
 
     /// A contact, by name in any case; a new address replaces the old.
@@ -186,6 +210,15 @@ mod tests {
         assert_eq!(m.contact("asha").unwrap(), None);
         assert!(m.remove_contact("Ravi").unwrap());
         assert!(!m.remove_contact("Ravi").unwrap());
+    }
+
+    #[test]
+    fn a_brief_is_marked_by_its_day() {
+        let mut m = Memory::in_memory().unwrap();
+        assert!(!m.brief_given("2026-11-04").unwrap());
+        m.mark_brief("2026-11-04", 5).unwrap();
+        assert!(m.brief_given("2026-11-04").unwrap());
+        assert!(!m.brief_given("2026-11-05").unwrap());
     }
 
     #[test]

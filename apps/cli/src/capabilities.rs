@@ -265,6 +265,7 @@ pub fn context(
         (kept.place.is_some(), "weather.place"),
         (!kept.feeds.is_empty(), "news.feed"),
         (kept.search_provider.is_some(), "search.provider"),
+        (kept.brief_at.is_some(), "brief.time"),
     ] {
         if done {
             device.setup_done.push(step.into());

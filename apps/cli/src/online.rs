@@ -225,6 +225,23 @@ impl Online {
         crate::web_search::search(self.link.as_ref(), memory, now, &provider, query, writer)
     }
 
+    /// The brief, on asking (src/brief.rs).
+    pub fn brief(
+        &self,
+        memory: &mut Memory,
+        today: kestrel_tools::date::Date,
+        now: i64,
+    ) -> Vec<String> {
+        match crate::brief::compose(memory, self.link.as_ref(), self.data.as_deref(), today, now) {
+            Ok(b) => {
+                let mut lines = b.lines;
+                lines.extend(b.alert);
+                lines
+            }
+            Err(e) => vec![format!("I could not put the brief together: {e}")],
+        }
+    }
+
     /// Answers what was asked.
     pub fn answer(&self, asked: Asked, memory: &mut Memory, now: i64) -> Vec<String> {
         let data = self.data.as_deref();
@@ -346,6 +363,17 @@ pub fn news(link: &dyn Link, memory: &mut Memory, now: i64, feeds: &[String]) ->
     if feeds.is_empty() {
         return vec!["No news feeds yet. Say: add feed https://… Or add one in Settings.".into()];
     }
+    news_up_to(link, memory, now, feeds, HEADLINES)
+}
+
+/// `news`, with at most `each` headlines from a feed.
+pub fn news_up_to(
+    link: &dyn Link,
+    memory: &mut Memory,
+    now: i64,
+    feeds: &[String],
+    each: usize,
+) -> Vec<String> {
     let mut out = Vec::new();
     for url in feeds {
         let host = kestrel_net_proto::https_host(url).unwrap_or_else(|| url.clone());
@@ -357,7 +385,7 @@ pub fn news(link: &dyn Link, memory: &mut Memory, now: i64, feeds: &[String]) ->
                 let titles: Vec<&str> = (items.iter())
                     .filter_map(|i| i["title"].as_str())
                     .filter(|t| !crate::web_search::tells_to_act(t))
-                    .take(HEADLINES)
+                    .take(each)
                     .collect();
                 if titles.is_empty() {
                     out.push(format!("{host}: no headlines there."));

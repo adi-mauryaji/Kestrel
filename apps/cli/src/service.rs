@@ -983,6 +983,12 @@ pub fn serve(
         crate::events::Shared::new(crate::events::Events::shown_on_desktop(desktop).into());
     let (ring_db, ring_events) = (memory.to_path_buf(), events.clone());
     std::thread::spawn(move || crate::remind::ring_forever(&ring_db, &ring_events, desktop));
+    // The morning brief and the weather reminder, on a thread of their own: they may wait on the network.
+    let (brief_db, brief_events) = (memory.to_path_buf(), events.clone());
+    let brief_data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
+    std::thread::spawn(move || {
+        crate::brief::ring_forever(&brief_db, &brief_events, desktop, brief_data)
+    });
     // The browser page; without it the service still answers on the socket.
     let page = |port| {
         let web = open_web(port, config, memory, skills, web_lan, events, notes)?;

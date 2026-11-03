@@ -1,0 +1,18 @@
+{
+  "id": "morning.brief",
+  "name": {
+    "en": "A morning brief, and a reminder when the weather calls for one",
+    "hi": "Subah ka brief, aur mausam ke hisaab se reminder"
+  },
+  "needs": {
+    "setup": [
+      {
+        "id": "brief.time",
+        "step": {
+          "en": "choose a time for the brief (Settings)",
+          "hi": "Settings mein brief ka time chuno"
+        }
+      }
+    ]
+  }
+}
