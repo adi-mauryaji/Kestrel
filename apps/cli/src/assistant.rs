@@ -108,6 +108,12 @@ impl<'a> Assistant<'a> {
         {
             return act.save_note(asked, now, confirm);
         }
+        // v4: "mera PAN kahan hai": rules over the notes folder, nothing for the model.
+        if let Some(act) = self.act.as_mut()
+            && let Some(asked) = crate::documents::parse(text)
+        {
+            return act.about_documents(asked, now, confirm);
+        }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
             Before::Correction(lines) => return lines,

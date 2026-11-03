@@ -484,6 +484,17 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .cal-day-strip { margin-top: 24px; }
 
 /* Notes: the folder's notes, one read beside them. */
+.doc-card { padding: 18px 22px; margin-bottom: 22px; }
+.doc-card[hidden] { display: none; }
+.doc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.doc-head .btn[hidden] { display: none; }
+.doc-head h2 { margin: 0; font: 600 20px/1.3 var(--serif); color: var(--ink); }
+.doc-rows { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; }
+.doc-rows button { width: 100%; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 8px 10px; border: 0; border-radius: 8px; background: none; text-align: left; }
+.doc-rows button:hover { background: var(--chip); }
+.doc-rows b { font-weight: 500; color: var(--ink); }
+.doc-rows span { font-size: 14px; color: var(--muted); }
+.doc-rows .soon { color: var(--trouble); }
 .notes-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); gap: 28px; align-items: start; }
 .notes-list { padding: 16px 16px 6px; }
 .search { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid var(--input-line); border-radius: 8px; background: var(--input); }
@@ -791,6 +802,10 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <textarea class="field" id="new-note-text" placeholder="Write it here; Kestrel saves it as a new file in your notes folder, after you say yes."></textarea>
         <div class="row-acts"><button class="btn primary" type="submit">Save note</button><button class="btn" type="button" id="new-note-cancel">Cancel</button></div>
       </form>
+      <section class="card doc-card" id="doc-card" aria-labelledby="doc-h" hidden>
+        <div class="doc-head"><h2 id="doc-h">Documents</h2><button class="btn" type="button" id="doc-check">Check documents</button></div>
+        <ul class="doc-rows" id="doc-rows"></ul>
+      </section>
       <div class="notes-layout">
         <section class="card notes-list" aria-label="Your notes">
           <label class="search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span class="sr">Search your notes</span><input id="notes-filter" autocomplete="off" spellcheck="false" placeholder="Search your notes"></label>
@@ -1629,7 +1644,35 @@ async function loadNotes() {
     return;
   }
   drawNotes();
+  loadDocuments();
 }
+
+// The ID cards, policies and bills in the folder (GET /api/documents, v4 B): shown only when there
+// are some. A date counts once you have said yes to it; Check documents asks.
+async function loadDocuments() {
+  let docs = [];
+  try {
+    const r = await api("/api/documents");
+    if (r.ok) docs = (await r.json()).documents;
+  } catch (e) { /* the notes above report a stopped service */ }
+  $("doc-card").hidden = !docs.length;
+  $("doc-check").hidden = !docs.some((d) => d.expires && !d.confirmed);
+  $("doc-rows").replaceChildren(...docs.map((d) => {
+    const li = el("li");
+    const b = el("button");
+    b.type = "button";
+    b.append(el("b", "", d.kind), el("span", "", d.name));
+    if (d.expires) {
+      const soon = d.confirmed && d.days_left <= 30;
+      const left = d.days_left === null || d.days_left === undefined ? "" : d.days_left < 0 ? ", expired" : `, ${d.days_left} days left`;
+      b.append(el("span", soon ? "soon" : "", d.confirmed ? `expires ${d.expires}${left}` : `says it expires ${d.expires} (not confirmed)`));
+    }
+    b.addEventListener("click", () => openNote(d.name));
+    li.append(b);
+    return li;
+  }));
+}
+$("doc-check").addEventListener("click", () => send("check my documents", { stay: true, then: loadDocuments }));
 
 function drawNotes() {
   if (!notesData) return;

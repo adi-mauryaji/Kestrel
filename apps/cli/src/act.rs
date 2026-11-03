@@ -115,6 +115,19 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// "mera PAN kahan hai", "check my documents" (src/documents.rs), from the notes folder as it is.
+    pub fn about_documents(
+        &mut self,
+        asked: crate::documents::Asked,
+        now: i64,
+        confirm: &mut dyn FnMut(&str) -> bool,
+    ) -> Vec<String> {
+        let (today, notes) = (self.today(now), self.backend.notes().all());
+        let memory = self.backend.memory_mut();
+        crate::documents::answer(asked, memory, &notes, today, confirm)
+            .unwrap_or_else(|e| vec![format!("I could not look at your documents: {e}")])
+    }
+
     /// "add this to notes" (src/notes_save.rs): the text as a new note in the notes folder, after a yes.
     pub fn save_note(
         &self,
@@ -817,6 +830,32 @@ mod tests {
         fn closest(&mut self, _: &str, _: usize) -> Vec<kestrel_tools::tools::Note> {
             unreachable!("a notes search never asks for the closest notes")
         }
+    }
+
+    #[test]
+    fn a_question_about_a_document_is_answered_from_the_folder() {
+        let mut a = setup("documents");
+        let folder = a.notes.clone();
+        std::fs::write(
+            folder.join("passport.txt"),
+            "Passport No. Z1234567\nDate of Expiry 11/03/2029",
+        )
+        .unwrap();
+        use crate::documents::{Asked, Kind};
+        let now = 1_793_000_000;
+        let said = a.about_documents(Asked::Where(Kind::Passport), now, &mut |_| {
+            panic!("no question")
+        });
+        assert!(said[0].contains("passport.txt"), "{said:?}");
+        let said = a.about_documents(Asked::Check, now, &mut |q| q.contains("11 March 2029"));
+        assert!(said[0].contains("30 days"), "{said:?}");
+        let said = a.about_documents(Asked::Expiry(Kind::Passport), now, &mut |_| {
+            panic!("no question")
+        });
+        assert!(
+            said[0].contains("11 March 2029") && said[0].contains("days"),
+            "{said:?}"
+        );
     }
 
     #[test]

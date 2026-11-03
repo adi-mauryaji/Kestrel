@@ -51,6 +51,8 @@ mod commands;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod config;
 mod control;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod documents;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod events;

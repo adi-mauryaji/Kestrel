@@ -178,6 +178,10 @@ impl MemoryBackend {
         &self.memory
     }
 
+    pub fn notes(&self) -> &Notes {
+        &self.notes
+    }
+
     pub fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }

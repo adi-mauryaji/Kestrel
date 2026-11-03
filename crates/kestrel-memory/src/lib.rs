@@ -4,6 +4,7 @@
 //! items into provenance-tagged lines under a token budget. Tasks live in the same file.
 
 pub mod context;
+pub mod documents;
 pub mod eval;
 pub mod retrieval;
 pub mod secrets;
@@ -11,6 +12,7 @@ pub mod store;
 pub mod tasks;
 
 pub use context::Context;
+pub use documents::{DocumentRow, FoundDocument};
 pub use retrieval::{Scored, Weights};
 pub use store::{Draft, Event, Filter, Item, Kind, Memory, Proposed, Source};
 pub use tasks::TaskRow;

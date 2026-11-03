@@ -327,6 +327,7 @@ pub struct Web {
     notes: Box<NotesReader>,
     import: Box<ModelImport>,
     speed: Box<SpeedTest>,
+    documents: Box<Documents>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -338,6 +339,8 @@ pub type NotesReader = dyn Fn(Option<&str>) -> Result<Value, String>;
 pub type ModelImport = dyn Fn(Option<&str>) -> Result<Value, String>;
 /// Starts the speed test (true) or says how far it is (false); or why not.
 pub type SpeedTest = dyn Fn(bool) -> Result<Value, String>;
+/// The documents found in the notes folder, and their dates.
+pub type Documents = dyn Fn() -> Result<Value, String>;
 
 /// What the API reads and changes beside the requests themselves.
 pub struct Api<'a> {
@@ -348,6 +351,7 @@ pub struct Api<'a> {
     pub notes: &'a NotesReader,
     pub import: &'a ModelImport,
     pub speed: &'a SpeedTest,
+    pub documents: &'a Documents,
 }
 
 #[cfg(test)]
@@ -362,6 +366,7 @@ impl Api<'static> {
             notes: &|_| Err("no notes here".into()),
             import: &|_| Err("no import here".into()),
             speed: &|_| Err("no speed test here".into()),
+            documents: &|| Err("no documents here".into()),
         }
     }
 }
@@ -394,6 +399,7 @@ impl Web {
             notes: Box::new(|_| Err("no notes here".into())),
             import: Box::new(|_| Err("no import here".into())),
             speed: Box::new(|_| Err("no speed test here".into())),
+            documents: Box::new(|| Err("no documents here".into())),
             lan,
         })
     }
@@ -422,6 +428,12 @@ impl Web {
         self
     }
 
+    /// `documents` answers `GET /api/documents` (v4 B).
+    pub fn with_documents(mut self, documents: Box<Documents>) -> Self {
+        self.documents = documents;
+        self
+    }
+
     fn api(&self) -> Api<'_> {
         Api {
             tasks: &*self.tasks,
@@ -431,6 +443,7 @@ impl Web {
             notes: &*self.notes,
             import: &*self.import,
             speed: &*self.speed,
+            documents: &*self.documents,
         }
     }
 
@@ -616,6 +629,7 @@ pub fn respond(
                 None => reply(out, "400 Bad Request", TEXT, b"send {\"file\": \"...\"}"),
             }
         }
+        ("GET", "/api/documents") => answered(out, (api.documents)(), "500 Internal Server Error"),
         ("GET", "/api/speed") => answered(out, (api.speed)(false), "500 Internal Server Error"),
         // A minute of this device's CPU and memory: never for the page shared on the wifi.
         ("POST", "/api/speed") if !from_this_device(req) => {
@@ -659,8 +673,8 @@ pub fn respond(
         (
             _,
             "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
-            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/speed" | "/api/say"
-            | "/api/answer",
+            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/documents"
+            | "/api/speed" | "/api/say" | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
@@ -1055,6 +1069,7 @@ mod tests {
             notes: &notes,
             import: &import,
             speed: &speed,
+            documents: &|| Ok(json!({"documents": []})),
         };
         respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
@@ -1132,6 +1147,14 @@ mod tests {
             &req("DELETE /api/model/import HTTP/1.1\r\nHost: 127.0.0.1:7811\r\n\r\n"),
             None,
         );
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
+    }
+
+    #[test]
+    fn the_documents_are_listed_and_only_by_get() {
+        let (out, _) = answer_to(&get("/api/documents"), None);
+        assert!(out.ends_with("{\"documents\":[]}"), "{out}");
+        let (out, _) = answer_to(&post("/api/documents", "{}"), None);
         assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 

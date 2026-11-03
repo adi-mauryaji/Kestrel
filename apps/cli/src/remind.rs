@@ -199,6 +199,10 @@ pub fn ring_forever(db: &Path, events: &crate::events::Shared, desktop: bool) {
             Ok(_) => {}
             Err(e) => eprintln!("a reminder could not be shown (trying again): {e}"),
         }
+        // v4: documents about to expire (src/documents.rs).
+        if let Err(e) = crate::documents::ring(&mut memory, today, now, &mut to) {
+            eprintln!("a document reminder could not be shown (trying again): {e}");
+        }
         std::thread::sleep(RING_EVERY);
     }
 }

@@ -594,6 +594,7 @@ fn open_web(
         None => Ok(crate::settings::page_json(settings_data.as_deref())),
         Some(c) => crate::settings::change(settings_data.as_deref(), c),
     };
+    let notes_folder = notes.to_path_buf();
     let folder = notes.to_path_buf();
     let reader = kestrel_tools::notes::Notes::new(kestrel_tools::sandbox::Sandbox::new(
         std::slice::from_ref(&folder),
@@ -624,12 +625,28 @@ fn open_web(
             Ok(job.json())
         }
     };
+    // The documents in the notes folder (src/documents.rs), on a connection of their own.
+    let folder = notes_folder.clone();
+    let documents_db = std::cell::RefCell::new(crate::memory::open(memory)?);
+    let documents = move || {
+        let reader = kestrel_tools::notes::Notes::new(
+            kestrel_tools::sandbox::Sandbox::new(std::slice::from_ref(&folder))
+                .map_err(|e| e.to_string())?,
+        );
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        let mut db = documents_db.try_borrow_mut().map_err(|e| e.to_string())?;
+        let today = crate::clock::local_date(now, offset);
+        crate::documents::page_json(&mut db, &reader.all(), today).map_err(|e| e.to_string())
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
         .with_events(Box::new(events))
         .with_settings(Box::new(settings))
         .with_notes(Box::new(notes))
-        .with_import(Box::new(import));
+        .with_import(Box::new(import))
+        .with_documents(Box::new(documents));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
