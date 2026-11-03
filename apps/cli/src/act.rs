@@ -44,6 +44,9 @@ const SHOW_NOTES: usize = 10;
 /// A batch of more tasks than this asks once (as in the Ch. 8 scenario).
 const BATCH_CONFIRM_ABOVE: usize = 3;
 
+/// The most requests "why this answer" lists.
+const MOST_LEFT: u32 = 20;
+
 pub struct Act {
     backend: MemoryBackend,
     notes: PathBuf,
@@ -115,6 +118,22 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// What left this device since `at`, oldest first: kind, host, what (src/why.rs).
+    pub fn left_since(&self, at: i64) -> Vec<(String, String, String)> {
+        let rows = self
+            .backend
+            .memory()
+            .outbound(MOST_LEFT)
+            .unwrap_or_default();
+        let mut left: Vec<(String, String, String)> = rows
+            .into_iter()
+            .filter(|r| r.at >= at)
+            .map(|r| (r.kind, r.host, r.what))
+            .collect();
+        left.reverse();
+        left
+    }
+
     /// "file this ticket ~/Downloads/irctc.pdf" (src/ticket.rs).
     pub fn file_ticket(
         &mut self,
@@ -145,6 +164,17 @@ impl Act {
     pub fn brief(&mut self, online: &crate::online::Online, now: i64) -> Vec<String> {
         let today = self.today(now);
         online.brief(self.backend.memory_mut(), today, now)
+    }
+
+    /// Research on a topic (src/research.rs).
+    pub fn research(
+        &mut self,
+        online: &crate::online::Online,
+        topic: &str,
+        writer: Option<&dyn crate::kinds::Writer>,
+        now: i64,
+    ) -> crate::research::Findings {
+        online.research(topic, writer, self.backend.memory_mut(), now)
     }
 
     /// A web search (src/web_search.rs).

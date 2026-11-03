@@ -382,6 +382,8 @@ pub struct Kinds<'a> {
     conversation: Option<crate::conversation::Log>,
     /// The last email written whole, for "send it to Ravi" (v4 C, src/send.rs).
     draft: std::cell::RefCell<Option<String>>,
+    /// How the last request was decided, for "why this answer" (v4.1, src/why.rs).
+    why: std::cell::RefCell<Option<String>>,
 }
 
 impl<'a> Kinds<'a> {
@@ -397,7 +399,13 @@ impl<'a> Kinds<'a> {
             fallback: None,
             conversation: None,
             draft: Default::default(),
+            why: Default::default(),
         }
+    }
+
+    /// How the last request this answered was decided.
+    pub fn why(&self) -> Option<String> {
+        self.why.borrow().clone()
     }
 
     /// What writes, for an answer from the web (src/web_search.rs).
@@ -454,6 +462,16 @@ impl<'a> Kinds<'a> {
             Choice::Ask(k) if confirm(k.question()) => k,
             Choice::Ask(_) => return None,
         };
+        let sure = top(&probs).map_or(0.0, |(_, p)| p);
+        let made = match kind {
+            Kind::Notes => "answered by the model from your closest notes",
+            Kind::Code => "written by the model, then run in the sandbox",
+            _ => "written by the model",
+        };
+        *self.why.borrow_mut() = Some(format!(
+            "The kind head read this as {} ({sure:.2}), and it was {made}.",
+            kind.label()
+        ));
         if kind == Kind::Code {
             return Some(crate::code::write(
                 self.writer.as_ref(),

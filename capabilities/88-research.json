@@ -1,0 +1,30 @@
+{
+  "id": "research",
+  "name": {
+    "en": "Research: a few pages read, each point with its source (slow)",
+    "hi": "Research: kuch pages padhkar, har point ke source ke saath (dheema)"
+  },
+  "needs": {
+    "writer": true,
+    "internet": true,
+    "setup": [
+      {
+        "id": "search.provider",
+        "step": {
+          "en": "add a SearXNG address (Settings)",
+          "hi": "Settings mein SearXNG ka address daalo"
+        }
+      }
+    ]
+  },
+  "gates": [
+    {
+      "measure": "decode_tok_s",
+      "min": 7.0
+    },
+    {
+      "measure": "prefill_tok_s",
+      "min": 40.0
+    }
+  ]
+}

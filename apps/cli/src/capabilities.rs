@@ -266,6 +266,7 @@ pub fn context(
         (!kept.feeds.is_empty(), "news.feed"),
         (kept.search_provider.is_some(), "search.provider"),
         (kept.brief_at.is_some(), "brief.time"),
+        (kept.phone, "phone.on"),
     ] {
         if done {
             device.setup_done.push(step.into());

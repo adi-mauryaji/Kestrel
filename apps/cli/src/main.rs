@@ -94,11 +94,15 @@ mod pdf;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod phone;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod remind;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod remote;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod research;
 #[cfg(feature = "llama")]
 mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
@@ -125,6 +129,8 @@ mod times;
 mod web;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod web_search;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod why;
 
 use std::process::ExitCode;
 
@@ -413,6 +419,20 @@ fn serve(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     // the paths given here are made full before it goes there. CONFIG is among those files.
     let (notes, memory) = (std::path::absolute(notes)?, std::path::absolute(memory)?);
     std::env::set_current_dir(root())?;
+    // The phone page, when the person turned it on: on Tailscale's address and no other network.
+    if web_lan.is_none() {
+        let data =
+            kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+        let on = data
+            .and_then(|d| settings::load(&settings::path(&d)).ok())
+            .is_some_and(|s| s.phone);
+        web_lan = phone::address(on, &phone::ask_tailscale);
+        if on && web_lan.is_none() {
+            eprintln!(
+                "the phone page is off: Tailscale gave no address (installed and connected?)"
+            );
+        }
+    }
     service::serve(
         config.as_ref(),
         &notes,

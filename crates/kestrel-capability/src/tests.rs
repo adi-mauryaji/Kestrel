@@ -421,6 +421,17 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
             "weather" => "add your place (Settings)",
             "news" => "add a news feed (Settings)",
             "web.search" => "add a SearXNG address (Settings)",
+            "research" => "add a SearXNG address (Settings)",
+            "phone.tailscale" => {
+                assert_eq!(
+                    en(&v.state),
+                    [
+                        "install tailscale",
+                        "turn on the page for your phone (Settings)"
+                    ]
+                );
+                continue;
+            }
             "morning.brief" => {
                 // It works with no internet: only the time is the person's.
                 assert_eq!(en(&v.state), ["choose a time for the brief (Settings)"]);
@@ -439,6 +450,7 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
         );
     }
     let set_up = Device {
+        tools: strings(&["python-wasi", "tailscale"]),
         internet: true,
         setup_done: strings(&[
             "gmail.app_password",
@@ -446,6 +458,7 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
             "news.feed",
             "search.provider",
             "brief.time",
+            "phone.on",
         ]),
         ..here
     };

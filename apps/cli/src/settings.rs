@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by\n       kestrel settings internet on|off   may Kestrel use the internet (off at install)\n       kestrel settings brief HH:MM|off   when the morning brief comes (off at first)";
+pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by\n       kestrel settings internet on|off   may Kestrel use the internet (off at install)\n       kestrel settings brief HH:MM|off   when the morning brief comes (off at first)\n       kestrel settings phone on|off      the page on your phone through Tailscale (off at first)";
 /// The longest name the page greets.
 const NAME_MAX: usize = 40;
 
@@ -39,6 +39,9 @@ pub struct Settings {
     /// "HH:MM", when the morning brief comes; none at first.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub brief_at: Option<String>,
+    /// The page also on this device's Tailscale address (src/phone.rs).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub phone: bool,
     #[serde(flatten)]
     pub rest: serde_json::Map<String, serde_json::Value>,
 }
@@ -151,6 +154,13 @@ pub fn run(
             settings.internet = on == "on";
             save(&at, &settings)?;
             writeln!(out, "the internet for Kestrel: {on}")?;
+        }
+        [key, on] if key == "phone" && (on == "on" || on == "off") => {
+            let at = path(data()?);
+            let mut settings = load(&at)?;
+            settings.phone = on == "on";
+            save(&at, &settings)?;
+            writeln!(out, "the page on your phone: {on}, from the next start")?;
         }
         [key, at] if key == "brief" && at == "off" => {
             let path = path(data()?);

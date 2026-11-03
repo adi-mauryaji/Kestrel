@@ -770,7 +770,7 @@ fn open_web(
         &crate::web::url(web.port(), &token),
     )?;
     let lan_file = crate::web::lan_url_file(&var);
-    match lan {
+    match web.shared_on() {
         Some(ip) => {
             crate::web::write_private(&lan_file, &crate::web::lan_url(ip, web.port(), &token))?
         }
@@ -1002,9 +1002,9 @@ pub fn serve(
                 "the page is at http://127.0.0.1:{}/ (kestrel open)",
                 w.port()
             );
-            if let Some(ip) = web_lan {
+            if let Some(ip) = w.shared_on() {
                 eprintln!(
-                    "shared on the wifi at http://{ip}:{}/ (plain HTTP; kestrel open --print --lan)",
+                    "shared at http://{ip}:{}/ (plain HTTP; kestrel open --print --lan)",
                     w.port()
                 );
             }

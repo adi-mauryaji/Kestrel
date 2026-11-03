@@ -31,6 +31,10 @@ pub struct Assistant<'a> {
     meaning: Option<Box<dyn crate::meaning::Meaning + 'a>>,
     sender: Option<crate::send::Sender>,
     online: Option<crate::online::Online>,
+    /// How the last answer was made (src/why.rs).
+    why: Option<crate::why::Why>,
+    /// The last research, until "save research" keeps it (src/research.rs).
+    research: Option<String>,
 }
 
 impl<'a> Assistant<'a> {
@@ -55,6 +59,8 @@ impl<'a> Assistant<'a> {
             meaning: None,
             sender: None,
             online: None,
+            why: None,
+            research: None,
         }
     }
 
@@ -118,22 +124,43 @@ impl<'a> Assistant<'a> {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
         let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
+        // v4.1: "why this answer": told from what happened, and it leaves the last answer's story alone.
+        if crate::why::parse(text) {
+            let left = match (&self.why, &self.act) {
+                (Some(why), Some(act)) => act.left_since(why.at),
+                _ => Vec::new(),
+            };
+            return crate::why::lines(self.why.as_ref(), &left);
+        }
+        use crate::why::Why;
         // v3: "add this to notes" reads the text as typed, before anything takes it for a request.
         if let Some(act) = self.act.as_ref()
             && let Some(asked) = crate::notes_save::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "By rules: you asked to save text as a note, no model.",
+            ));
             return act.save_note(asked, now, confirm);
         }
         // v4: "mera PAN kahan hai": rules over the notes folder, nothing for the model.
         if let Some(act) = self.act.as_mut()
             && let Some(asked) = crate::documents::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "By rules, from the documents in your notes folder, no model.",
+            ));
             return act.about_documents(asked, now, confirm);
         }
         // v4: "file this ticket ~/Downloads/irctc.pdf": read by rules, filed after a yes.
         if let Some(act) = self.act.as_mut()
             && let Some(path) = crate::ticket::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "By rules: the journey was read from the PDF's text, no model.",
+            ));
             return act.file_ticket(&path, now, confirm);
         }
         // v4: "send it to Ravi": the last draft leaves after a yes, through kestrel-net (src/send.rs).
@@ -141,30 +168,73 @@ impl<'a> Assistant<'a> {
             && let Some(said) = crate::send::parse(text)
         {
             let draft = self.kinds.as_ref().and_then(|k| k.draft());
+            self.why = Some(Why::new(
+                now,
+                "By rules: your words named a draft and a contact, and it went only after your yes.",
+            ));
             return act.send_or_keep(sender, said, draft.as_deref(), now, confirm);
         }
         // v4: the weather and the news: rules, and what comes back is shown, never acted on.
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(asked) = crate::online::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "By rules: this came from the services you chose, shown as they said it, no model.",
+            ));
             return act.online(online, asked, now);
         }
         // v4: the morning brief, on asking.
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && crate::brief::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "By rules: your tasks and documents, and what you chose from the internet, no model.",
+            ));
             return act.brief(online, now);
+        }
+        // v4.1: research: the same rules as a web search, page by page; a note only on asking.
+        if let Some(act) = self.act.as_ref()
+            && crate::research::asks_to_save(text)
+        {
+            return match self.research.take() {
+                Some(note) => act.save_note(crate::notes_save::Asked::Save(note), now, confirm),
+                None => vec!["There is no research to save yet.".to_string()],
+            };
+        }
+        if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
+            && let Some(topic) = crate::research::parse(text)
+        {
+            self.why = Some(Why::new(
+                now,
+                "Your words went to your search provider, and the model read each page on its own, with nothing of yours beside it.",
+            ));
+            let writer = self.kinds.as_ref().map(|k| k.writer());
+            let found = act.research(online, &topic, writer, now);
+            self.research = found.note;
+            return found.lines;
         }
         // v4: a web search: the person's words go out, and the answer is only shown.
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(query) = crate::web_search::parse(text)
         {
+            self.why = Some(Why::new(
+                now,
+                "Your words went to your search provider, and the model answered only from what came back.",
+            ));
             let writer = self.kinds.as_ref().map(|k| k.writer());
             return act.web_search(online, &query, writer, now);
         }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
-            Before::Correction(lines) => return lines,
+            Before::Correction(lines) => {
+                self.why = Some(Why::new(
+                    now,
+                    "By rules: a correction or a word you taught, no model.",
+                ));
+                return lines;
+            }
             Before::Route { lines, text } => {
                 // --brief leaves out the memory context; alias resolutions and notices stay.
                 out.extend(
@@ -180,6 +250,7 @@ impl<'a> Assistant<'a> {
             && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
         {
             out.extend(act.command(&cmd, now));
+            self.why = Some(Why::new(now, "By rules: a task command, no model."));
             return out;
         }
         // v4: what the person says about themselves is kept, and asked back, without the model.
@@ -187,6 +258,10 @@ impl<'a> Assistant<'a> {
             && let Some(lines) = act.about_the_person(text, now)
         {
             out.extend(lines);
+            self.why = Some(Why::new(
+                now,
+                "By rules: what you told Kestrel to remember, word for word, no model.",
+            ));
             return out;
         }
         // v3 (ADR-037): a request for a skill is written now, from the text as typed.
@@ -195,16 +270,23 @@ impl<'a> Assistant<'a> {
             && let Some(lines) = kinds.handle(&req, text, confirm, part, meaning)
         {
             out.extend(lines);
+            let way = kinds
+                .why()
+                .unwrap_or_else(|| "It was written by the model.".to_string());
+            self.why = Some(Why::new(now, &way));
             return out;
         }
         let t0 = Instant::now();
         let (outcome, trace) = self.cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
+        let accept = self.cascade.config().accept;
+        let report = render(&req, &self.log.borrow(), &outcome, &trace, accept, ms);
         if !self.brief {
-            let accept = self.cascade.config().accept;
-            let report = render(&req, &self.log.borrow(), &outcome, &trace, accept, ms);
             out.extend(report.lines().map(String::from));
         }
+        let mut why = Why::new(now, "This was routed through the tiers:");
+        why.way.extend(report.lines().map(String::from));
+        self.why = Some(why);
         // Acting, the plan's update_preference step stores a stated preference; otherwise this does.
         if self.act.is_none() {
             out.extend(self.personal.after(&req, &outcome, now));
@@ -426,6 +508,59 @@ mod tests {
         assert!(
             !out.iter().any(|l| l.contains("internet is off")),
             "{out:?}"
+        );
+    }
+
+    #[test]
+    fn why_this_answer_tells_the_way_each_answer_took() {
+        let (a, _) = assistant("why", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        let why = |a: &mut Assistant<'_>| {
+            a.handle("why this answer", &mut |q| panic!("{q}"))
+                .join(" ")
+        };
+        assert!(why(&mut a).contains("no answer to explain"));
+        a.handle("remind me to call asha tomorrow", &mut yes());
+        let w = why(&mut a);
+        assert!(w.contains("routed") && w.contains("create_task"), "{w}");
+        assert!(w.contains("Nothing left this device"), "{w}");
+        a.handle("show my tasks", &mut yes());
+        assert!(why(&mut a).contains("rules"));
+        a.handle("draft a mail to Asha: Leave on Friday", &mut yes());
+        let w = why(&mut a);
+        assert!(
+            w.contains("email") && w.contains("0.90") && w.contains("written by the model"),
+            "{w}"
+        );
+        a.handle("my sister's name is Meera", &mut yes());
+        assert!(why(&mut a).contains("rules"), "kept by rules");
+        // Asking twice explains the same answer, not the asking.
+        let first = why(&mut a);
+        assert_eq!(why(&mut a), first);
+    }
+
+    #[test]
+    fn why_this_answer_lists_what_left_this_device() {
+        let (a, d) = assistant("why_left", true);
+        let notes = d.clone();
+        let settings = crate::settings::Settings {
+            internet: true,
+            place: Some(crate::online::Place {
+                name: "Delhi".into(),
+                region: String::new(),
+                lat: "28.6".into(),
+                lon: "77.2".into(),
+            }),
+            ..Default::default()
+        };
+        crate::settings::save(&crate::settings::path(&notes), &settings).unwrap();
+        let link = crate::online::tests::Answers::default();
+        let mut a = a.with_online(crate::online::Online::new(Box::new(link), Some(notes)));
+        a.handle("aaj ka mausam", &mut |q| panic!("{q}"));
+        let w = a.handle("ye jawab kyun", &mut |q| panic!("{q}")).join("\n");
+        assert!(
+            w.contains("weather · api.open-meteo.com · Delhi (28.6, 77.2)"),
+            "{w}"
         );
     }
 

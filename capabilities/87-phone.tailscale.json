@@ -1,0 +1,21 @@
+{
+  "id": "phone.tailscale",
+  "name": {
+    "en": "This page on your phone, through Tailscale",
+    "hi": "Ye page aapke phone par, Tailscale se"
+  },
+  "needs": {
+    "tools": [
+      "tailscale"
+    ],
+    "setup": [
+      {
+        "id": "phone.on",
+        "step": {
+          "en": "turn on the page for your phone (Settings)",
+          "hi": "Settings mein phone wala page on karo"
+        }
+      }
+    ]
+  }
+}

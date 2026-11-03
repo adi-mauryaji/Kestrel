@@ -225,6 +225,31 @@ impl Online {
         crate::web_search::search(self.link.as_ref(), memory, now, &provider, query, writer)
     }
 
+    /// Research on `topic` (src/research.rs).
+    pub fn research(
+        &self,
+        topic: &str,
+        writer: Option<&dyn crate::kinds::Writer>,
+        memory: &mut Memory,
+        now: i64,
+    ) -> crate::research::Findings {
+        let settings = kept(self.data.as_deref());
+        let only = |line: &str| crate::research::Findings {
+            lines: vec![line.to_string()],
+            note: None,
+        };
+        if !settings.internet {
+            return only(INTERNET_OFF);
+        }
+        let Some(provider) = settings.search_provider else {
+            return only("Research needs a search provider: add a SearXNG address in Settings.");
+        };
+        let Some(writer) = writer else {
+            return only("Research needs the writing model, and this device has none yet.");
+        };
+        crate::research::research(self.link.as_ref(), memory, now, &provider, topic, writer)
+    }
+
     /// The brief, on asking (src/brief.rs).
     pub fn brief(
         &self,

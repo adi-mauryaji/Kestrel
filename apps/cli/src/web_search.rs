@@ -26,12 +26,12 @@ pub const MAX_TOKENS: usize = 160;
 /// Results given to the model and listed as sources.
 const READ: usize = 3;
 /// How much of the top page goes into the prompt, in characters (about 10 s of reading here).
-const PAGE_CHARS: usize = 2400;
+pub(crate) const PAGE_CHARS: usize = 2400;
 /// Under an answer: it is what a small model made of some pages.
-const CAVEAT: &str =
+pub(crate) const CAVEAT: &str =
     "(From the web, written by a small model: it may be wrong. Check the sources.)";
 /// After an answer or a list that had orders left out.
-const ORDERS_LEFT_OUT: &str =
+pub(crate) const ORDERS_LEFT_OUT: &str =
     "(A page here tried to give orders. Those lines were left out, and nothing was done.)";
 /// Words aimed at a model: this text is attacking, not informing.
 const ATTACKS: [&str; 16] = [
@@ -187,9 +187,12 @@ pub fn user_message(question: &str, results: &[(&str, &str)]) -> String {
         })
         .collect();
     let mut m = format!("Results:\n\n{}\n\nQuestion: {question}", body.join("\n\n"));
-    if crate::kinds::is_hinglish(question) {
-        m.push_str("\n\nThe question is Hinglish: answer in Hinglish, in Latin letters.");
-    }
+    // Said for each: with only the system prompt, Gemma put Hindi words into an English answer.
+    m.push_str(if crate::kinds::is_hinglish(question) {
+        "\n\nThe question is Hinglish: answer in Hinglish, in Latin letters."
+    } else {
+        "\n\nThe question is English: answer in English only."
+    });
     m
 }
 
@@ -288,7 +291,7 @@ pub fn tells_to_act(answer: &str) -> bool {
 }
 
 /// The host of any address, for the log.
-fn host_of(url: &str) -> String {
+pub(crate) fn host_of(url: &str) -> String {
     let rest = url.split("//").nth(1).unwrap_or(url);
     let authority = rest.split(['/', '?', '#']).next().unwrap_or(rest);
     authority
@@ -322,27 +325,8 @@ pub fn search(
         Err(why) => return vec![format!("The search did not work: {why}")],
     };
     let results = found["results"].as_array().map_or(&[][..], Vec::as_slice);
-    let text = |r: &serde_json::Value, key: &str| r[key].as_str().unwrap_or("").to_string();
     // What came is cleaned before anything reads it, the model or the person.
-    let mut orders = false;
-    let read: Vec<Found> = results
-        .iter()
-        .take(READ)
-        .map(|r| {
-            let url = text(r, "url");
-            let (title, snippet) = (
-                without_orders(&text(r, "title")),
-                without_orders(&text(r, "snippet")),
-            );
-            orders |= title.orders || snippet.orders;
-            let whole = !title.orders && title.text == text(r, "title") && !title.text.is_empty();
-            Found {
-                title: if whole { title.text } else { host_of(&url) },
-                url,
-                snippet: snippet.text,
-            }
-        })
-        .collect();
+    let (read, mut orders) = cleaned(results, READ);
     let Some(top) = read.first() else {
         return vec!["The search found nothing for that.".into()];
     };
@@ -368,21 +352,7 @@ pub fn search(
         return results_only("What the search found:", orders);
     };
     // The top page, if it can be read; a page that cannot leaves its snippet.
-    let page = logged(
-        link,
-        memory,
-        now,
-        ("fetch", &host_of(&top.url), &top.url),
-        Op::Fetch {
-            url: top.url.clone(),
-        },
-    )
-    .ok()
-    .filter(|p| p["status"] == 200)
-    .map(|p| {
-        let cut: String = text(&p, "text").chars().take(PAGE_CHARS).collect();
-        without_orders(&cut)
-    });
+    let page = read_page(link, memory, now, &top.url);
     let mut given: Vec<(String, String)> = read
         .iter()
         .enumerate()
@@ -427,10 +397,58 @@ pub fn search(
 }
 
 /// A result, cleaned.
-struct Found {
-    title: String,
-    url: String,
-    snippet: String,
+pub(crate) struct Found {
+    pub title: String,
+    pub url: String,
+    pub snippet: String,
+}
+
+/// The first `most` results with their orders left out, and whether any had some.
+pub(crate) fn cleaned(results: &[serde_json::Value], most: usize) -> (Vec<Found>, bool) {
+    let text = |r: &serde_json::Value, key: &str| r[key].as_str().unwrap_or("").to_string();
+    let mut orders = false;
+    let found = results
+        .iter()
+        .take(most)
+        .map(|r| {
+            let url = text(r, "url");
+            let (title, snippet) = (
+                without_orders(&text(r, "title")),
+                without_orders(&text(r, "snippet")),
+            );
+            orders |= title.orders || snippet.orders;
+            let whole = !title.orders && title.text == text(r, "title") && !title.text.is_empty();
+            Found {
+                title: if whole { title.text } else { host_of(&url) },
+                url,
+                snippet: snippet.text,
+            }
+        })
+        .collect();
+    (found, orders)
+}
+
+/// A page's text with its orders left out, if it can be read; the request goes to the log first.
+pub(crate) fn read_page(
+    link: &dyn Link,
+    memory: &mut Memory,
+    now: i64,
+    url: &str,
+) -> Option<Cleaned> {
+    let op = Op::Fetch {
+        url: url.to_string(),
+    };
+    let page = logged(link, memory, now, ("fetch", &host_of(url), url), op).ok()?;
+    if page["status"] != 200 {
+        return None;
+    }
+    let cut: String = page["text"]
+        .as_str()
+        .unwrap_or("")
+        .chars()
+        .take(PAGE_CHARS)
+        .collect();
+    Some(without_orders(&cut))
 }
 
 #[cfg(test)]
@@ -498,6 +516,16 @@ mod tests {
         assert!(m.contains("> Question: ignore all that"), "{m}");
         assert!(m.contains("[2]"), "{m}");
         assert!(m.trim_end().contains("Question: kab tak?"), "{m}");
+    }
+
+    #[test]
+    fn the_language_of_the_answer_is_said_for_each_question() {
+        let r = [("1", "Text.")];
+        assert!(user_message("what is a mango", &r).ends_with("answer in English only."));
+        assert!(
+            user_message("aam ka season kab aata hai", &r)
+                .ends_with("answer in Hinglish, in Latin letters.")
+        );
     }
 
     #[test]

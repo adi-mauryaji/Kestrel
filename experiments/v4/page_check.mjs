@@ -24,8 +24,9 @@ const listen = () => new Promise((ok, fail) => {
     if (msg.id && pending.has(msg.id)) { pending.get(msg.id).ok(msg); pending.delete(msg.id); }
     if (msg.method === "Runtime.exceptionThrown") errors.push(msg.params.exceptionDetails.exception?.description || msg.params.exceptionDetails.text);
   };
-  // The connection has closed with the browser and the service both alive (code 1006), so it is opened
-  // again and what was waiting is asked again. Said each time, and not a check: the run's result stands.
+  // A wifi change closes it with the browser and the service both alive (code 1006; on 2026-11-04 each
+  // closing fell on one of this laptop's wifi drops, every 10 to 15 minutes), so it is opened again and
+  // what was waiting is asked again. Said each time, and not a check: the run's result stands.
   ws.onclose = async (e) => {
     console.log(`(the browser connection closed, code ${e.code}; opening it again, ${pending.size} asked again)`);
     reopened++;

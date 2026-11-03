@@ -374,6 +374,8 @@ pub fn page_json(memory: &Memory, data: Option<&Path>) -> Result<Value, KestrelE
         "feeds": s.feeds,
         "search_provider": s.search_provider,
         "brief_at": s.brief_at,
+        "phone": s.phone,
+        "phone_url": std::fs::read_to_string(crate::web::lan_url_file(&|k: &str| std::env::var_os(k))).ok(),
         "contacts": memory.contacts()?,
         "log": memory.outbound(LOG_SHOWN)?,
     }))
@@ -457,6 +459,7 @@ pub fn change(
             settings(&|s| s.search_provider = Some(url.to_string()))?;
         }
         ("search_provider", Value::Null) => settings(&|s| s.search_provider = None)?,
+        ("phone", Value::Bool(on)) => settings(&|s| s.phone = *on)?,
         ("brief_at", Value::Null) => settings(&|s| s.brief_at = None)?,
         ("brief_at", Value::String(at)) => {
             if crate::times::minutes(at).is_none() {

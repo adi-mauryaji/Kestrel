@@ -318,6 +318,8 @@ pub fn tasks_json(
 /// on the wifi (`lan`), on every address, answering to that one too.
 pub struct Web {
     listener: std::net::TcpListener,
+    /// The same page on the one address it is shared on, if any.
+    shared: Option<std::net::TcpListener>,
     port: u16,
     token: String,
     tasks: Box<dyn Fn() -> Value>,
@@ -397,16 +399,27 @@ impl Web {
         tasks: Box<dyn Fn() -> Value>,
         lan: Option<std::net::Ipv4Addr>,
     ) -> io::Result<Self> {
-        let host = if lan.is_some() {
-            "0.0.0.0"
-        } else {
-            "127.0.0.1"
-        };
-        let listener = std::net::TcpListener::bind((host, port))?;
+        let listener = std::net::TcpListener::bind(("127.0.0.1", port))?;
         listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
+        // Shared on that one address and no other network. If it is gone (the wifi changed, Tailscale
+        // stopped), the page stays on this device and says so.
+        let shared = lan.and_then(|ip| {
+            let bound = std::net::TcpListener::bind((ip, port))
+                .and_then(|l| l.set_nonblocking(true).map(|()| l));
+            match bound {
+                Ok(l) => Some((l, ip)),
+                Err(e) => {
+                    eprintln!("the page is not shared on {ip}: {e}");
+                    None
+                }
+            }
+        });
+        let lan = shared.as_ref().map(|(_, ip)| *ip);
+        let shared = shared.map(|(l, _)| l);
         Ok(Self {
             listener,
+            shared,
             port,
             token,
             tasks,
@@ -507,15 +520,27 @@ impl Web {
     /// Answers every browser request waiting now, through `say`; returns when none is left.
     pub fn poll(&mut self, say: &mut Streamer<'_>) -> io::Result<()> {
         loop {
-            match self.listener.accept() {
-                // One browser that goes away only ends its own request.
-                Ok((stream, _)) => {
-                    let _ = self.serve(stream, say);
+            let mut served = false;
+            for listener in std::iter::once(&self.listener).chain(self.shared.iter()) {
+                match listener.accept() {
+                    // One browser that goes away only ends its own request.
+                    Ok((stream, _)) => {
+                        let _ = self.serve(stream, say);
+                        served = true;
+                    }
+                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
+                    Err(e) => return Err(e),
                 }
-                Err(e) if e.kind() == io::ErrorKind::WouldBlock => return Ok(()),
-                Err(e) => return Err(e),
+            }
+            if !served {
+                return Ok(());
             }
         }
+    }
+
+    /// The address the page is shared on, if it is.
+    pub fn shared_on(&self) -> Option<std::net::Ipv4Addr> {
+        self.lan
     }
 
     fn serve(&self, stream: std::net::TcpStream, say: &mut Streamer<'_>) -> io::Result<()> {
@@ -1012,10 +1037,34 @@ mod tests {
     }
 
     #[test]
-    fn shared_on_the_wifi_the_page_listens_everywhere_and_open_gives_that_link() {
-        let lan = std::net::Ipv4Addr::new(192, 168, 251, 140);
+    #[cfg(target_os = "linux")]
+    fn shared_the_page_listens_on_that_address_and_no_other() {
+        // All of 127.0.0.0/8 is this machine on Linux: another address to share on, in a test.
+        let lan = std::net::Ipv4Addr::new(127, 0, 0, 2);
         let w = Web::bind(0, "t".into(), Box::new(|| Value::Null), Some(lan)).unwrap();
-        assert!(w.listener.local_addr().unwrap().ip().is_unspecified());
+        assert!(w.listener.local_addr().unwrap().ip().is_loopback());
+        assert_eq!(w.shared_on(), Some(lan));
+        let port = w.port();
+        assert!(std::net::TcpStream::connect((lan, port)).is_ok());
+        assert!(std::net::TcpStream::connect(("127.0.0.1", port)).is_ok());
+        assert!(
+            std::net::TcpStream::connect(("127.0.0.3", port)).is_err(),
+            "no other address"
+        );
+    }
+
+    #[test]
+    fn an_address_that_is_gone_leaves_the_page_on_this_device() {
+        // From the documentation range: on no machine.
+        let gone = std::net::Ipv4Addr::new(192, 0, 2, 1);
+        let w = Web::bind(0, "t".into(), Box::new(|| Value::Null), Some(gone)).unwrap();
+        assert_eq!(w.shared_on(), None);
+        assert!(w.listener.local_addr().unwrap().ip().is_loopback());
+    }
+
+    #[test]
+    fn open_gives_the_link_to_the_shared_address() {
+        let lan = std::net::Ipv4Addr::new(192, 168, 251, 140);
         let w = Web::bind(0, "t".into(), Box::new(|| Value::Null), None).unwrap();
         assert!(w.listener.local_addr().unwrap().ip().is_loopback());
         assert_eq!(
