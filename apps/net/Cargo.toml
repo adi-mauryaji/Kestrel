@@ -1,0 +1,22 @@
+[package]
+name = "kestrel-net"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Kestrel's only way to the internet: one process, a short list of operations (v4 C, blueprint rule 2)"
+
+[[bin]]
+name = "kestrel-net"
+path = "src/main.rs"
+
+[dependencies]
+kestrel-net-proto.workspace = true
+serde_json.workspace = true
+ureq = "=3.4.2"
+lettre = { version = "=0.11.23", default-features = false, features = ["builder", "hostname", "smtp-transport", "rustls-tls"] }
+keyring = "=4.2.0"
+
+[lints]
+workspace = true

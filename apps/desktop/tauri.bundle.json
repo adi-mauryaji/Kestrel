@@ -6,7 +6,7 @@
     "shortDescription": "Your assistant that runs on this device",
     "longDescription": "Kestrel keeps your tasks and reminders, finds and answers from your notes, and drafts, rewrites and translates text, in English and Hinglish. It runs on this device; nothing you type leaves it.",
     "license": "MIT OR Apache-2.0",
-    "externalBin": ["binaries/kestrel"],
+    "externalBin": ["binaries/kestrel", "binaries/kestrel-net"],
     "resources": {
       "../../capabilities/": "capabilities/",
       "../../third_party/python-wasi/": "python-wasi/",

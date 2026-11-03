@@ -13,8 +13,10 @@ scripts/fetch_python_wasi.sh
 exe=""
 if [[ $triple == *windows* ]]; then exe=.exe; fi
 cargo build --release -p kestrel-cli --features llama
+cargo build --release -p kestrel-net
 mkdir -p apps/desktop/binaries
 cp "target/release/kestrel$exe" "apps/desktop/binaries/kestrel-$triple$exe"
+cp "target/release/kestrel-net$exe" "apps/desktop/binaries/kestrel-net-$triple$exe"
 cd apps/desktop
 cargo tauri build --config tauri.bundle.json "$@"
 ls -l target/release/bundle/*/
