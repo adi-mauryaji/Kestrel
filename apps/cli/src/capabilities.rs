@@ -258,6 +258,18 @@ pub fn context(
     if account.from.is_some() {
         device.setup_done.push(crate::send::MAIL_SETUP.into());
     }
+    let kept = data
+        .and_then(|d| crate::settings::load(&crate::settings::path(d)).ok())
+        .unwrap_or_default();
+    for (done, step) in [
+        (kept.place.is_some(), "weather.place"),
+        (!kept.feeds.is_empty(), "news.feed"),
+        (kept.search_provider.is_some(), "search.provider"),
+    ] {
+        if done {
+            device.setup_done.push(step.into());
+        }
+    }
     let config_writer = device.writer.take();
     let model_file = |id: &str| {
         let m = catalog.models.iter().find(|m| m.id == id)?;

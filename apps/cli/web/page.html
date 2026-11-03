@@ -865,7 +865,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <ul class="kept-rows" id="kept-rows"></ul>
         </section>
         <section class="card set wide" aria-labelledby="out-h">
-          <div class="card-head"><h2 id="out-h">Internet and mail</h2><label class="switch"><input type="checkbox" id="out-internet"><span id="out-state">Off</span></label></div>
+          <div class="card-head"><h2 id="out-h">Internet</h2><label class="switch"><input type="checkbox" id="out-internet"><span id="out-state">Off</span></label></div>
           <p class="hint" id="out-line" aria-live="polite">Off until you turn it on. Nothing leaves without your yes, and everything that tries is listed below.</p>
           <h3>Your Gmail</h3>
           <p class="hint" id="mail-state">Mail is not set up.</p>
@@ -875,6 +875,16 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <p class="hint">Mail goes only to people here. You can also say “add contact Ravi ravi@example.com”.</p>
           <ul class="kept-rows" id="contact-rows"></ul>
           <form id="contact-form"><label class="sr" for="contact-name">Name</label><input class="field" id="contact-name" autocomplete="off" placeholder="Name"><label class="sr" for="contact-email">Address</label><input class="field" id="contact-email" autocomplete="off" spellcheck="false" placeholder="name@example.com"><button class="btn" type="submit">Add</button></form>
+          <h3>Weather</h3>
+          <p class="hint" id="place-state">No place yet. It is looked up on Open-Meteo, and the weather comes from there.</p>
+          <form id="place-form"><label class="sr" for="place-name">Your place</label><input class="field" id="place-name" autocomplete="off" placeholder="Your city"><button class="btn" type="submit">Save</button></form>
+          <h3>News feeds</h3>
+          <p class="hint">Kestrel reads only the feeds you add here, when you ask for the news.</p>
+          <ul class="kept-rows" id="feed-rows"></ul>
+          <form id="feed-form"><label class="sr" for="feed-url">A feed's address</label><input class="field" id="feed-url" autocomplete="off" spellcheck="false" placeholder="https://…/rss.xml"><button class="btn" type="submit">Add</button></form>
+          <h3>Web search</h3>
+          <p class="hint" id="search-state">No search provider yet. Web search goes through a SearXNG you choose: one on this device, or one you trust. It sees what you search.</p>
+          <form id="search-form"><label class="sr" for="search-url">The SearXNG address</label><input class="field" id="search-url" autocomplete="off" spellcheck="false" placeholder="https://searx.example.org"><button class="btn" type="submit">Save</button><button class="btn" type="button" id="search-forget" hidden>Remove</button></form>
           <h3>What left this device</h3>
           <p class="hint" id="out-empty">Nothing yet.</p>
           <ul class="kept-rows" id="out-rows"></ul>
@@ -1913,6 +1923,17 @@ function drawOutbound(o) {
     li.append(el("span", "", `${c.name} · ${c.email}`), remove);
     return li;
   }));
+  $("place-state").textContent = o.place ? `The weather is for ${o.place.name}${o.place.region ? ` (${o.place.region})` : ""}, from Open-Meteo.` : "No place yet. It is looked up on Open-Meteo, and the weather comes from there.";
+  $("feed-rows").replaceChildren(...o.feeds.map((url) => {
+    const li = el("li", "kept-row");
+    const remove = el("button", "btn", "Remove");
+    remove.type = "button";
+    remove.addEventListener("click", () => changeOutbound({ remove_feed: url }));
+    li.append(el("span", "", url), remove);
+    return li;
+  }));
+  $("search-state").textContent = o.search_provider ? `Web search goes through ${o.search_provider}. It sees what you search.` : "No search provider yet. Web search goes through a SearXNG you choose: one on this device, or one you trust. It sees what you search.";
+  $("search-forget").hidden = !o.search_provider;
   $("out-empty").hidden = o.log.length > 0;
   $("out-rows").replaceChildren(...o.log.map((row) => {
     const li = el("li", "kept-row out-row");
@@ -1948,6 +1969,13 @@ $("mail-form").addEventListener("submit", async (e) => {
   if (await changeOutbound({ mail: { from: $("mail-from").value, password } })) $("mail-from").value = "";
 });
 $("mail-forget").addEventListener("click", () => changeOutbound({ forget_mail: true }));
+$("search-forget").addEventListener("click", () => changeOutbound({ search_provider: null }));
+for (const [form, field, key] of [["place-form", "place-name", "place"], ["feed-form", "feed-url", "add_feed"], ["search-form", "search-url", "search_provider"]]) {
+  $(form).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (await changeOutbound({ [key]: $(field).value })) $(field).value = "";
+  });
+}
 $("contact-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (await changeOutbound({ contact: { name: $("contact-name").value, email: $("contact-email").value } })) {

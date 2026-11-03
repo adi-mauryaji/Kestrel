@@ -115,6 +115,16 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// The weather, the news (src/online.rs).
+    pub fn online(
+        &mut self,
+        online: &crate::online::Online,
+        asked: crate::online::Asked,
+        now: i64,
+    ) -> Vec<String> {
+        online.answer(asked, self.backend.memory_mut(), now)
+    }
+
     /// "send it to Ravi", "add contact ..." (src/send.rs).
     pub fn send_or_keep(
         &mut self,

@@ -817,6 +817,10 @@ pub fn serve(
         crate::assistant::Assistant::new(cascade, log, personal, Some(act), sink, true);
     // v4: a draft leaves after a yes, through kestrel-net; the settings are read at each send.
     let data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
+    assistant = assistant.with_online(crate::online::Online::new(
+        Box::new(crate::net::Net::beside_this_program()?),
+        data.clone(),
+    ));
     assistant = assistant.with_sender(crate::send::Sender::new(
         Box::new(crate::net::Net::beside_this_program()?),
         Box::new(move || crate::send::account(data.as_deref())),

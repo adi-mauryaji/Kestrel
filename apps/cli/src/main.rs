@@ -84,6 +84,8 @@ mod notes_qa;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod notes_save;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod online;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod pass_rates;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod pdf;

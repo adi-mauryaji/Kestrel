@@ -370,6 +370,9 @@ pub fn page_json(memory: &Memory, data: Option<&Path>) -> Result<Value, KestrelE
     Ok(serde_json::json!({
         "internet": s.internet,
         "mail": s.mail_from,
+        "place": s.place,
+        "feeds": s.feeds,
+        "search_provider": s.search_provider,
         "contacts": memory.contacts()?,
         "log": memory.outbound(LOG_SHOWN)?,
     }))
@@ -383,7 +386,7 @@ pub fn change(
     data: Option<&Path>,
     change: &Value,
 ) -> Result<Value, String> {
-    const NOT_A_CHANGE: &str = "not a change to the internet, mail or contacts";
+    const NOT_A_CHANGE: &str = "not a change to the internet, mail, contacts, news or search";
     let data = data.ok_or("no data folder for Kestrel's settings")?;
     let (key, value) = change
         .as_object()
@@ -434,6 +437,25 @@ pub fn change(
         ("remove_contact", Value::String(name)) => {
             memory.remove_contact(name).map_err(|e| e.to_string())?;
         }
+        ("place", Value::String(name)) => {
+            if !kept(Some(data)).internet {
+                return Err("Finding a place uses the internet: turn it on first.".into());
+            }
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs() as i64);
+            crate::online::set_place(link, memory, Some(data), name.trim(), now)?;
+        }
+        ("add_feed", Value::String(url)) => crate::online::add_feed(Some(data), url.trim())?,
+        ("remove_feed", Value::String(url)) => settings(&|s| s.feeds.retain(|f| f != url))?,
+        ("search_provider", Value::String(url)) => {
+            let url = url.trim().trim_end_matches('/');
+            if let Some(why) = crate::online::provider_refusal(url) {
+                return Err(why);
+            }
+            settings(&|s| s.search_provider = Some(url.to_string()))?;
+        }
+        ("search_provider", Value::Null) => settings(&|s| s.search_provider = None)?,
         _ => return Err(NOT_A_CHANGE.into()),
     }
     page_json(memory, Some(data)).map_err(|e| e.to_string())
@@ -905,6 +927,53 @@ mod tests {
         .unwrap();
         assert_eq!(v["contacts"], serde_json::json!([]));
         assert!(change(&mut m, &f, Some(&d), &serde_json::json!({"other": 1})).is_err());
+    }
+
+    #[test]
+    fn feeds_and_the_search_provider_are_kept_and_a_place_needs_the_internet() {
+        let d = folder("online");
+        let (mut m, f) = (Memory::in_memory().unwrap(), Fake::default());
+        let go = |m: &mut Memory, v: Value| change(m, &f, Some(&d), &v);
+        let v = go(
+            &mut m,
+            serde_json::json!({"add_feed": "https://news.example/rss"}),
+        )
+        .unwrap();
+        assert_eq!(v["feeds"][0], "https://news.example/rss");
+        assert!(
+            go(
+                &mut m,
+                serde_json::json!({"add_feed": "http://news.example/rss"})
+            )
+            .is_err()
+        );
+        let v = go(
+            &mut m,
+            serde_json::json!({"remove_feed": "https://news.example/rss"}),
+        )
+        .unwrap();
+        assert_eq!(v["feeds"], serde_json::json!([]));
+        let v = go(
+            &mut m,
+            serde_json::json!({"search_provider": "https://search.example.org/"}),
+        )
+        .unwrap();
+        assert_eq!(v["search_provider"], "https://search.example.org");
+        assert!(
+            go(
+                &mut m,
+                serde_json::json!({"search_provider": "http://search.example.org"})
+            )
+            .is_err()
+        );
+        let v = go(&mut m, serde_json::json!({"search_provider": null})).unwrap();
+        assert_eq!(v["search_provider"], Value::Null);
+        let e = go(&mut m, serde_json::json!({"place": "Delhi"})).unwrap_err();
+        assert!(e.contains("internet"), "{e}");
+        assert!(
+            f.asked.borrow().is_empty(),
+            "with the internet off nothing is asked"
+        );
     }
 
     #[test]

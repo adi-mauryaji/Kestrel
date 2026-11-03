@@ -30,6 +30,7 @@ pub struct Assistant<'a> {
     kinds: Option<crate::kinds::Kinds<'a>>,
     meaning: Option<Box<dyn crate::meaning::Meaning + 'a>>,
     sender: Option<crate::send::Sender>,
+    online: Option<crate::online::Online>,
 }
 
 impl<'a> Assistant<'a> {
@@ -53,7 +54,14 @@ impl<'a> Assistant<'a> {
             kinds: None,
             meaning: None,
             sender: None,
+            online: None,
         }
+    }
+
+    /// v4: the weather and the news, through `kestrel-net` (src/online.rs).
+    pub fn with_online(mut self, online: crate::online::Online) -> Self {
+        self.online = Some(online);
+        self
     }
 
     /// v4: a draft can leave, after a yes, through `kestrel-net` (src/send.rs).
@@ -128,6 +136,12 @@ impl<'a> Assistant<'a> {
         {
             let draft = self.kinds.as_ref().and_then(|k| k.draft());
             return act.send_or_keep(sender, said, draft.as_deref(), now, confirm);
+        }
+        // v4: the weather and the news: rules, and what comes back is shown, never acted on.
+        if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
+            && let Some(asked) = crate::online::parse(text)
+        {
+            return act.online(online, asked, now);
         }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
@@ -374,6 +388,26 @@ mod tests {
         assert_eq!(log.len(), 2);
         assert_eq!(log[0].result.as_deref(), Some("sent"));
         assert!(!log[1].approved);
+    }
+
+    #[test]
+    fn the_weather_is_answered_before_the_model_and_only_with_a_way_out() {
+        let d = std::env::temp_dir().join(format!("kestrel_assistant_w_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        let (a, _) = assistant("weather", true);
+        let mut a = a.with_online(crate::online::Online::new(
+            Box::new(crate::send::fake::Fake::default()),
+            Some(d),
+        ));
+        let out = a.handle("aaj ka mausam", &mut |q| panic!("{q}"));
+        assert!(out[0].contains("internet is off"), "{out:?}");
+        let (mut plain, _) = assistant("weather_plain", true);
+        let out = plain.handle("aaj ka mausam", &mut yes());
+        assert!(
+            !out.iter().any(|l| l.contains("internet is off")),
+            "{out:?}"
+        );
     }
 
     #[test]

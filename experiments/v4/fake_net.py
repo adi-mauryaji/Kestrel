@@ -18,6 +18,29 @@ def approval(key, nonce, mail):
     return h.hexdigest()
 
 
+def places(request):
+    if request["name"] == "Nowhere":
+        return {"places": []}
+    return {"places": [{"name": request["name"], "where": "A State, India", "lat": "28.65", "lon": "77.23"}]}
+
+
+def feed(request):
+    if "broken" in request["url"]:
+        return {"error": "the feed answered 500"}
+    return {"title": "Stand-in News", "items": [{"title": f"Headline {i}", "link": f"https://news.example/{i}", "date": None} for i in range(9)]}
+
+
+CANNED = {
+    "place": places,
+    "rss": feed,
+    "weather": lambda _: {
+        "now": {"temp": 20.4, "code": 0},
+        "today": {"date": "2026-11-04", "code": 63, "max": 28.4, "min": 18.2, "rain": 80},
+        "tomorrow": {"date": "2026-11-05", "code": 0, "max": 29.6, "min": 18.8, "rain": 0},
+    },
+}
+
+
 def main():
     key = sys.stdin.readline().strip()
     print('{"ready":true}', flush=True)
@@ -41,6 +64,9 @@ def main():
                     out.flush()
                     time.sleep(0.1)
                 reply["bytes"] = out.tell()
+        elif op in CANNED:
+            log.write(json.dumps({"op": op, **{k: v for k, v in request.items() if k not in ("id", "op")}}) + "\n")
+            reply.update(CANNED[op](request))
         elif op == "secret_set":
             log.write(json.dumps({"op": op, "value": request["value"]}) + "\n")
             reply["saved"] = True

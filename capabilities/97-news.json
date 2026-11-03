@@ -1,0 +1,19 @@
+{
+  "id": "news",
+  "name": {
+    "en": "Headlines from the feeds you choose",
+    "hi": "Aapki chuni feeds ki khabrein"
+  },
+  "needs": {
+    "internet": true,
+    "setup": [
+      {
+        "id": "news.feed",
+        "step": {
+          "en": "add a news feed (Settings)",
+          "hi": "Settings mein ek news feed daalo"
+        }
+      }
+    ]
+  }
+}

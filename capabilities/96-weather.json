@@ -1,0 +1,19 @@
+{
+  "id": "weather",
+  "name": {
+    "en": "The weather at your place",
+    "hi": "Aapki jagah ka mausam"
+  },
+  "needs": {
+    "internet": true,
+    "setup": [
+      {
+        "id": "weather.place",
+        "step": {
+          "en": "add your place (Settings)",
+          "hi": "Settings mein apni jagah daalo"
+        }
+      }
+    ]
+  }
+}

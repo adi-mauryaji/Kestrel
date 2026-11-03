@@ -27,6 +27,15 @@ pub struct Settings {
     /// The Gmail address mail leaves from; its app password is in the OS keyring, never here.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mail_from: Option<String>,
+    /// The place the weather is for.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place: Option<crate::online::Place>,
+    /// The news feeds the person chose; none at first, so nothing is fetched for them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub feeds: Vec<String>,
+    /// The SearXNG web searches go through.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub search_provider: Option<String>,
     #[serde(flatten)]
     pub rest: serde_json::Map<String, serde_json::Value>,
 }
