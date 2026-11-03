@@ -69,8 +69,8 @@ app commands are refused by the app's capability (local pages only).
 The model import was checked in headless Chrome against a service run from the installed rpm's
 files (no model there, as on a fresh install), own data folder on disk: 13 checks (step 3 offers
 it; a non-.gguf, a relative path and a non-catalog .gguf refused; Gemma 4 E2B imported with
-progress in 80 s on this laptop's btrfs with zstd, the page's other requests answered meanwhile in
-under 500 ms; then a writer, Settings' line, and a writing request answered by the imported model).
+progress in 80 s on a debug build, whose SHA-256 is slow (6.8 s on the release build), the page's
+other requests answered meanwhile in under 500 ms; then a writer, Settings' line, and a writing request answered by the imported model).
 The speed test, same set-up with Gemma in the data folder and no speeds yet: 17 checks (step 3
 follows the model going and coming back; the loaded writer unloaded for the test, which runs in
 its own process, 12 s here; a second test refused; other requests answered meanwhile; 3 → 9 of 9

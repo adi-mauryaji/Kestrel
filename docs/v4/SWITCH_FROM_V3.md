@@ -32,7 +32,7 @@ cp ~/.local/share/kestrel/memory.db ~/.local/share/kestrel/backup/v3-2026-11-03/
 ```
 
 4. Open **Kestrel** from the applications menu. The page asks your name. On **This device**, type
-   this path and press **Import** (about 80 s; `~/Kestrel/models` stays as it is):
+   this path and press **Import** (about 10 s; `~/Kestrel/models` stays as it is):
 
    ```
    ~/Kestrel/models/gemma-4-E2B-it-Q4_0.gguf
