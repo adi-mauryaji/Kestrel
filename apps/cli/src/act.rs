@@ -115,6 +115,32 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// "file this ticket ~/Downloads/irctc.pdf" (src/ticket.rs).
+    pub fn file_ticket(
+        &mut self,
+        path: &str,
+        now: i64,
+        confirm: &mut dyn FnMut(&str) -> bool,
+    ) -> Vec<String> {
+        let home = std::env::var_os("HOME")
+            .or_else(|| std::env::var_os("USERPROFILE"))
+            .map(PathBuf::from);
+        let today = self.today(now);
+        let minute = crate::clock::local_minute(now, self.utc_offset);
+        let notes = self.notes.clone();
+        crate::ticket::file(
+            path,
+            home.as_deref(),
+            &notes,
+            self.backend.memory_mut(),
+            today,
+            minute,
+            now,
+            &crate::pdf::read,
+            confirm,
+        )
+    }
+
     /// The morning brief, on asking (src/brief.rs).
     pub fn brief(&mut self, online: &crate::online::Online, now: i64) -> Vec<String> {
         let today = self.today(now);

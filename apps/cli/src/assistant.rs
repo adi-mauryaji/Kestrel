@@ -130,6 +130,12 @@ impl<'a> Assistant<'a> {
         {
             return act.about_documents(asked, now, confirm);
         }
+        // v4: "file this ticket ~/Downloads/irctc.pdf": read by rules, filed after a yes.
+        if let Some(act) = self.act.as_mut()
+            && let Some(path) = crate::ticket::parse(text)
+        {
+            return act.file_ticket(&path, now, confirm);
+        }
         // v4: "send it to Ravi": the last draft leaves after a yes, through kestrel-net (src/send.rs).
         if let (Some(sender), Some(act)) = (self.sender.as_ref(), self.act.as_mut())
             && let Some(said) = crate::send::parse(text)

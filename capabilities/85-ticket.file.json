@@ -1,0 +1,8 @@
+{
+  "id": "ticket.file",
+  "name": {
+    "en": "File a ticket's PDF and set a reminder for the journey",
+    "hi": "Ticket ka PDF file karna aur journey ka reminder"
+  },
+  "needs": {}
+}

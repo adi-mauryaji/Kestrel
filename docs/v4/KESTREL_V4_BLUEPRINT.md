@@ -285,7 +285,7 @@ All entries are estimates. The capability system replaces them with measurements
 | Weather reminders, news, morning brief | internet | 🔧 | 🔧 | 🔧 |
 | Web search + summary | internet + search provider | 🔧 (~1 min/page) | 🔧 | 🔧 (provider open) |
 | Code check (small scripts) | writer + python.wasm | ✅ | ✅ | ✅ |
-| Ticket "prepare + file" | writer + documents | ✅ | ✅ | ✅ |
+| Ticket "prepare + file" | none: rules read the PDF, so no model can invent a date (changed from "writer + documents", 2026-11-04) | ✅ | ✅ | ✅ |
 | Research assistant (v4.1) | web search + writer gates | ✅ slow | ✅ | ✅ slow? |
 | "Why this answer" (v4.1) | core | ✅ | ✅ | ✅ |
 | Phone via Tailscale (v4.1) | Tailscale installed | 🔧 | 🔧 | 🔧 |
