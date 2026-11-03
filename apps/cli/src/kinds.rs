@@ -367,6 +367,8 @@ pub struct Kinds<'a> {
     writer: Box<dyn Writer + 'a>,
     tau: f32,
     fallback: Option<(Box<dyn TierModel<Kind> + 'a>, f32)>,
+    /// What a chat remembers of the conversation so far (v4 B, src/conversation.rs).
+    conversation: Option<crate::conversation::Log>,
 }
 
 impl<'a> Kinds<'a> {
@@ -380,7 +382,14 @@ impl<'a> Kinds<'a> {
             writer,
             tau,
             fallback: None,
+            conversation: None,
         }
+    }
+
+    /// Chats carry the conversation so far.
+    pub fn with_conversation(mut self, log: crate::conversation::Log) -> Self {
+        self.conversation = Some(log);
+        self
     }
 
     /// Below τ, `fallback`'s kind at or above `tau_g` decides.
@@ -401,6 +410,12 @@ impl<'a> Kinds<'a> {
         mut stream: Option<&mut dyn FnMut(&str)>,
         meaning: Option<&mut dyn crate::meaning::Meaning>,
     ) -> Option<Vec<String>> {
+        // "start a new conversation": said to the conversation, not to the head.
+        if let Some(log) = self.conversation.as_ref()
+            && crate::conversation::is_new(typed)
+        {
+            return Some(log.start_new());
+        }
         // A head that fails leaves the request to the Stage 2 path.
         let probs = self.head.classify(req).ok()?;
         // Asked only when the head is unsure; a failed fallback leaves the head's answer.
@@ -431,13 +446,19 @@ impl<'a> Kinds<'a> {
             ));
         }
         let mut shown = String::new();
-        let written = self.writer.write(kind, typed.trim(), &mut |p| {
+        // A chat is written knowing the conversation so far, and joins it.
+        let chat = self.conversation.as_ref().filter(|_| kind == Kind::Chat);
+        let asked = chat.map_or(typed.trim().to_string(), |log| log.asked(typed.trim()));
+        let written = self.writer.write(kind, &asked, &mut |p| {
             if let Some(show) = stream.as_mut() {
                 shown.push_str(p);
                 show(p);
             }
         });
         let finished = written.is_ok();
+        if let (Some(log), Ok(text)) = (chat, &written) {
+            log.remember(typed.trim(), text);
+        }
         let mut lines = match (written, stream) {
             (Ok(text), Some(show)) => {
                 // What the writer did not stream is shown now.
@@ -1110,5 +1131,76 @@ mod tests {
             "no text to tell"
         );
         assert_eq!(language_note(Chat, "explain recursion: simply"), None);
+    }
+
+    /// A writer that keeps what it was asked.
+    struct Heard(Rc<RefCell<Vec<(Kind, String)>>>);
+
+    impl Writer for Heard {
+        fn write(
+            &self,
+            kind: Kind,
+            request: &str,
+            _: &mut dyn FnMut(&str),
+        ) -> Result<String, KestrelError> {
+            self.0.borrow_mut().push((kind, request.to_string()));
+            Ok("Okay.".into())
+        }
+    }
+
+    #[test]
+    fn a_chat_carries_the_conversation_and_other_kinds_do_not() {
+        let heard = Rc::new(RefCell::new(Vec::new()));
+        let log = crate::conversation::Log::new(
+            kestrel_memory::Memory::in_memory().unwrap(),
+            1740,
+            || 1000,
+        );
+        let kinds_of = |kind: Kind| {
+            Kinds::new(
+                Box::new(Fixed(Ok(vec![(kind, 0.95)]))),
+                Box::new(Heard(heard.clone())),
+                0.8,
+            )
+        };
+        let chat = kinds_of(Kind::Chat).with_conversation(log);
+        let ask = |k: &Kinds, text: &str| {
+            k.handle(&Request::new(1, text), text, &mut |_| false, None, None)
+        };
+        ask(&chat, "my sister's name is Meera");
+        ask(&chat, "what is my sister's name");
+        let said = heard.borrow().clone();
+        assert_eq!(
+            said[0].1, "my sister's name is Meera",
+            "nothing before the first turn"
+        );
+        assert!(
+            said[1].1.contains("Meera") && said[1].1.ends_with("what is my sister's name"),
+            "{said:?}"
+        );
+
+        let lines = ask(&chat, "start a new conversation").unwrap();
+        assert!(lines[0].contains("new conversation"), "{lines:?}");
+        assert_eq!(
+            heard.borrow().len(),
+            2,
+            "said to the conversation, not the writer"
+        );
+        ask(&chat, "what is my sister's name");
+        assert_eq!(heard.borrow()[2].1, "what is my sister's name");
+
+        let log = crate::conversation::Log::new(
+            kestrel_memory::Memory::in_memory().unwrap(),
+            1740,
+            || 1000,
+        );
+        log.remember("my sister's name is Meera", "Nice");
+        let mail = kinds_of(Kind::Email).with_conversation(log);
+        ask(&mail, "my sister's name in a mail");
+        assert_eq!(
+            heard.borrow()[3].1,
+            "my sister's name in a mail",
+            "only a chat"
+        );
     }
 }

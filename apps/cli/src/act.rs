@@ -115,6 +115,30 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// What the person says about themselves, and asks back (src/facts.rs); None: not that.
+    pub fn about_the_person(&mut self, text: &str, now: i64) -> Option<Vec<String>> {
+        use kestrel_memory::{Draft, Filter, Kind, Source};
+        match crate::facts::parse(text)? {
+            crate::facts::Said::Fact { key, sentence } => {
+                if let Some(why) = kestrel_memory::secrets::refusal(&key, &sentence) {
+                    return Some(vec![format!("I won't keep that: {why}.")]);
+                }
+                let draft = Draft::new(Kind::Fact, &key, &sentence);
+                let memory = self.backend.memory_mut();
+                Some(vec![
+                    match memory.propose(&draft, Source::UserExplicit, now) {
+                        Ok(_) => format!("Okay, I'll remember: {sentence}"),
+                        Err(e) => format!("I could not keep that: {e}"),
+                    },
+                ])
+            }
+            crate::facts::Said::Question { name } => {
+                let items = self.backend.memory().items(Filter::Approved).ok()?;
+                crate::facts::answer(&items, text, name.as_deref())
+            }
+        }
+    }
+
     /// "mera PAN kahan hai", "check my documents" (src/documents.rs), from the notes folder as it is.
     pub fn about_documents(
         &mut self,
@@ -830,6 +854,31 @@ mod tests {
         fn closest(&mut self, _: &str, _: usize) -> Vec<kestrel_tools::tools::Note> {
             unreachable!("a notes search never asks for the closest notes")
         }
+    }
+
+    #[test]
+    fn what_the_person_says_is_kept_replaced_when_it_changes_and_asked_back() {
+        let mut a = setup("facts");
+        let now = 1_793_000_000;
+        let say = a
+            .about_the_person("my sister's name is Meera", now)
+            .unwrap();
+        assert_eq!(say, ["Okay, I'll remember: my sister's name is Meera"]);
+        a.about_the_person("my sister's name is Asha", now + 1)
+            .unwrap();
+        let say = a
+            .about_the_person("what is my sister's name", now + 2)
+            .unwrap();
+        assert_eq!(say, ["You told me: my sister's name is Asha"]);
+        let say = a
+            .about_the_person("my bank password is hunter2", now + 3)
+            .unwrap();
+        assert!(say[0].starts_with("I won't keep that"), "{say:?}");
+        assert_eq!(
+            a.about_the_person("what is my bank password", now + 4),
+            None
+        );
+        assert_eq!(a.about_the_person("why is the sky blue", now + 5), None);
     }
 
     #[test]

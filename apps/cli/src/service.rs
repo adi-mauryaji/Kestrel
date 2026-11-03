@@ -788,6 +788,26 @@ pub fn serve(
                     crate::kinds::Kinds::new(Box::new(head), writer, crate::kinds::TAU)
                 }
             };
+            // A chat carries the conversation so far, within what this device reads in time.
+            let prefill = slot.as_ref().ok().and_then(|c| {
+                let writer = c.service.as_ref()?;
+                c.measured.get(&writer.model).map(|s| s.prefill_tok_s)
+            });
+            let kinds = match crate::memory::open(memory) {
+                Ok(db) => kinds.with_conversation(crate::conversation::Log::new(
+                    db,
+                    crate::conversation::budget(prefill),
+                    || {
+                        std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map_or(0, |d| d.as_secs() as i64)
+                    },
+                )),
+                Err(e) => {
+                    eprintln!("chats will not remember the conversation: {e}");
+                    kinds
+                }
+            };
             assistant = assistant.with_kinds(kinds);
             skills = true;
         }

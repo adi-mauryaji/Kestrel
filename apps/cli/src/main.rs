@@ -52,10 +52,14 @@ mod commands;
 mod config;
 mod control;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod conversation;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod documents;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod events;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod facts;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod grounding;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]

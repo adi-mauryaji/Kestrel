@@ -134,6 +134,13 @@ impl<'a> Assistant<'a> {
             out.extend(act.command(&cmd, now));
             return out;
         }
+        // v4: what the person says about themselves is kept, and asked back, without the model.
+        if let Some(act) = self.act.as_mut()
+            && let Some(lines) = act.about_the_person(text, now)
+        {
+            out.extend(lines);
+            return out;
+        }
         // v3 (ADR-037): a request for a skill is written now, from the text as typed.
         let meaning = (self.meaning.as_deref_mut()).map(|m| m as &mut dyn crate::meaning::Meaning);
         if let Some(kinds) = self.kinds.as_ref()
