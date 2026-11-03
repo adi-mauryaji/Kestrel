@@ -140,6 +140,7 @@ fn main() -> ExitCode {
         },
         Some("stop") => control::stop_here(&mut std::io::stdout()),
         Some("serve") => serve(&args[1..]),
+        Some("sandbox-python") => sandbox::child(&args[1..]),
         Some("tier4-worker") => tier4_worker(&args[1..]),
         Some("e4-eval") => e4_eval(&args[1..]),
         _ => Err(USAGE.into()),

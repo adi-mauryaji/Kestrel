@@ -5,16 +5,8 @@
     "hi": "Chhota Python code, chala ke check"
   },
   "needs": {
-    "os": [
-      "linux"
-    ],
-    "os_reason": {
-      "en": "the code sandbox runs on Linux only until v4 phase A4",
-      "hi": "code sandbox v4 phase A4 tak sirf Linux pe chalta hai"
-    },
     "tools": [
-      "bwrap",
-      "python3"
+      "python-wasi"
     ],
     "writer": true
   },

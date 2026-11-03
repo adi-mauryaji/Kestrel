@@ -1,0 +1,15 @@
+[package]
+name = "kestrel-sandbox"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Model-written Python in WebAssembly: one work folder, no network, memory and time limits, on every OS (v4 A4)"
+
+[dependencies]
+wasmtime.workspace = true
+wasmtime-wasi.workspace = true
+
+[lints]
+workspace = true

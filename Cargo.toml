@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-capability", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-learning", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-platform", "crates/kestrel-router", "crates/kestrel-tools"]
+members = ["apps/cli", "crates/kestrel-bench", "crates/kestrel-capability", "crates/kestrel-core", "crates/kestrel-inference", "crates/kestrel-learning", "crates/kestrel-memory", "crates/kestrel-nlu", "crates/kestrel-platform", "crates/kestrel-router", "crates/kestrel-sandbox", "crates/kestrel-tools"]
 # The desktop shell is its own workspace (Tauri, registry `tauri`): core builds need no webview.
 exclude = ["apps/desktop"]
 
@@ -21,11 +21,15 @@ kestrel-memory = { path = "crates/kestrel-memory" }
 kestrel-nlu = { path = "crates/kestrel-nlu" }
 kestrel-platform = { path = "crates/kestrel-platform" }
 kestrel-router = { path = "crates/kestrel-router" }
+kestrel-sandbox = { path = "crates/kestrel-sandbox" }
 kestrel-tools = { path = "crates/kestrel-tools" }
 # Both pinned: llama-cpp-2 asks for llama-cpp-sys-2 "^0.1.157", which alone resolves to the
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
 llama-cpp-2 = "=0.1.157"
 llama-cpp-sys-2 = "=0.1.157"
+# The code sandbox (registry `wasmtime`, ADR-058): 48.x is an LTS line; re-check RustSec at each bump.
+wasmtime = { version = "=48.0.8", default-features = false, features = ["runtime", "cranelift", "parallel-compilation", "cache", "std"] }
+wasmtime-wasi = { version = "=48.0.8", default-features = false, features = ["p1"] }
 # SQLite compiled in (bundled 3.53.2, FTS5); only kestrel-memory uses it (Ch. 24.4, ADR-026).
 # rusqlite asks for libsqlite3-sys "^0.38.2", so the sys crate is pinned too.
 libsqlite3-sys = "=0.38.2"

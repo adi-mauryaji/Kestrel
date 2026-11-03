@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn the_hidden_checks_judge_the_v3_dev_run_s_answers_as_it_did() {
         let tasks = read_code_tasks(&code_dev(&root())).unwrap();
         let log = json("experiments/logs/v3/code/dev_gemma-4-e2b_adr044.json");
@@ -523,7 +523,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn a_right_function_passes_and_a_wrong_one_or_a_wrong_script_fails() {
         let f = CodeTask {
             id: "f".into(),
@@ -664,7 +664,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn a_code_task_goes_through_the_service_s_loop_and_its_first_and_last_answers_are_judged() {
         let t = CodeTask {
             id: "f".into(),

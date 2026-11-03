@@ -230,8 +230,8 @@ CPython built for WASI (`python.wasm`, standard library only) runs inside wasmti
 - one preopened work folder
 - no sockets: WASI preview 1 has none, and the WASI build has no `socket` and no `subprocess`
 - 512 MiB of memory through a resource limiter
-- a 10 s CPU budget through fuel or epochs
-- capped output
+- a wall-clock limit: it runs as a process of its own (`kestrel sandbox-python`) that is killed at the limit, because a sleeping Python holds a host thread past any fuel or epoch
+- capped output, and a cap on what it writes to its folder
 
 Before it replaces v3's sandbox, it must reach the same result as bubblewrap on CodeTasks-v0 dev (eval). Pin a wasmtime version without known path-handling advisories (one was published for 49.0.0).
 

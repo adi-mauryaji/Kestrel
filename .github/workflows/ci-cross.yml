@@ -26,6 +26,11 @@ jobs:
       - run: rustc -V && cargo -V
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+      # The code sandbox on this OS: real Python in WebAssembly (v4 A4).
+      - run: scripts/fetch_python_wasi.sh
+        shell: bash
+      - run: cargo test -p kestrel-sandbox -- --include-ignored --test-threads=1
+      - run: cargo test -p kestrel-cli -- --include-ignored sandbox:: code::
 
   llama:
     strategy:

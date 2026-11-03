@@ -410,14 +410,17 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
     let here = Device {
         models: strings(&[E5, E2B]),
         writer: Some(E2B.into()),
+        tools: strings(&["python-wasi"]),
         ..laptop()
     };
     let m = Measured::from([(E2B.to_string(), speed(12.8, 58.5))]);
     for v in evaluate(&cards, &catalog, &here, &m) {
         assert_eq!(v.state, ready(false), "{}", v.id);
     }
+    // The installers bring the code sandbox's Python: code runs on every OS since A4.
     let fresh = Device {
         models: strings(&[E5]),
+        tools: strings(&["python-wasi"]),
         ..windows_8gb()
     };
     let v: BTreeMap<String, State> = evaluate(&cards, &catalog, &fresh, &Measured::new())
@@ -432,6 +435,7 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
         "rewrite.translate",
         "notes.qa",
         "notes.summary",
+        "code.check",
     ] {
         assert_eq!(
             en(&v[id]),
@@ -440,7 +444,6 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
         );
     }
     assert!(is_locked(&v["reminders.desktop"]));
-    assert!(is_locked(&v["code.check"]));
 }
 
 #[test]

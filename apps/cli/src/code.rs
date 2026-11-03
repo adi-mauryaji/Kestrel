@@ -241,7 +241,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn a_broken_answer_goes_back_once_and_the_fixed_one_is_checked() {
         let w = Replies(
             RefCell::new(vec![
@@ -272,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn input_only_under_the_main_guard_still_runs_the_check() {
         // The human's prime function, 2026-10-27: it was only compiled, "Not run, as it reads input".
         let prime = "```python\ndef is_prime(n):\n    return n > 1 and all(n % i for i in range(2, n))\n\n\
@@ -283,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "needs bubblewrap (Fedora: installed)"]
+    #[ignore = "needs scripts/fetch_python_wasi.sh"]
     fn code_that_waits_for_input_is_only_compiled_and_two_failures_end_the_loop() {
         let w = Replies(
             RefCell::new(vec!["```python\nprint(int(input()) * 2)\n```"]),

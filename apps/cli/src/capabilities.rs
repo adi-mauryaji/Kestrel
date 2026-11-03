@@ -246,7 +246,11 @@ pub fn context(
         os_memory_mib,
         writer_file: writer.as_deref(),
     };
-    let on_path = |t: &str| kestrel_platform::which(os, &kestrel_platform::env, t).is_some();
+    // What a card asks for: a program on PATH, or the code sandbox's Python among Kestrel's files.
+    let on_path = |t: &str| match t {
+        "python-wasi" => crate::sandbox::python_dir(root).is_some(),
+        _ => kestrel_platform::which(os, &kestrel_platform::env, t).is_some(),
+    };
     let have_file = |f: &str| crate::slot::model_path(root, data, f).is_file();
     let mut device = device(found, &cards, &catalog, &on_path, &have_file);
     let config_writer = device.writer.take();
@@ -717,7 +721,7 @@ mod tests {
             os_memory_mib: Some(1),
             writer_file: Some("gemma-4-E2B-it-Q4_0.gguf"),
         };
-        let d = device(found, &cards, &catalog, &|t| t == "bwrap", &|f| {
+        let d = device(found, &cards, &catalog, &|t| t == "python-wasi", &|f| {
             f == "gemma-4-E2B-it-Q4_0.gguf"
         });
         assert_eq!(d.os, Os::Linux);
@@ -725,7 +729,7 @@ mod tests {
             d.ram_total_mib, 15_308,
             "from /proc/meminfo without llama's devices"
         );
-        assert_eq!(d.tools, ["bwrap"], "the cards' programs that are on PATH");
+        assert_eq!(d.tools, ["python-wasi"], "what the cards need that is here");
         assert_eq!(d.models, ["gemma-4-E2B-it-Q4_0"]);
         assert_eq!(d.writer.as_deref(), Some("gemma-4-E2B-it-Q4_0"));
         assert!(!d.internet && d.setup_done.is_empty());

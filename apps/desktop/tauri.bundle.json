@@ -9,6 +9,7 @@
     "externalBin": ["binaries/kestrel"],
     "resources": {
       "../../capabilities/": "capabilities/",
+      "../../third_party/python-wasi/": "python-wasi/",
       "../../datasets/contracts/": "datasets/contracts/",
       "../../experiments/configs/": "experiments/configs/",
       "../../experiments/artifacts/tier3/": "experiments/artifacts/tier3/",
