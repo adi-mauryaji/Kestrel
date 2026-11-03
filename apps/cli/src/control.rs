@@ -26,7 +26,8 @@ pub fn stop(
     if !systemctl(&["is-active", "--quiet", UNIT]) {
         if answers() {
             return Err(
-                "this Kestrel was started by hand (kestrel serve): stop it with Ctrl-C in its terminal"
+                "this Kestrel was started by the app or by hand: quit the app from its tray icon, \
+                 or press Ctrl-C where `kestrel serve` runs"
                     .into(),
             );
         }
@@ -80,8 +81,8 @@ fn var(k: &str) -> Option<OsString> {
 }
 
 /// `systemctl --user ARGS...` with its output dropped; false when it fails or there is none.
-/// Only Linux has the unit: on macOS and Windows Kestrel is started by hand until the app (v4
-/// phase A3), so `stop` and `wake` see no service manager there.
+/// Only Linux can have the unit (scripts/install_service.sh); elsewhere, and without it, the app or
+/// a terminal runs Kestrel, so `stop` and `wake` see no service manager there.
 fn systemctl(args: &[&str]) -> bool {
     if kestrel_platform::Os::current() != kestrel_platform::Os::Linux {
         return false;
@@ -193,6 +194,8 @@ mod tests {
         let (_, mut systemctl) = fake(&[]);
         let e = stop(&mut systemctl, &mut || true, &[], &mut Vec::new()).unwrap_err();
         assert!(e.to_string().contains("Ctrl-C"), "{e}");
+        // Without the unit it is mostly the app's own service.
+        assert!(e.to_string().contains("tray icon"), "{e}");
     }
 
     #[test]

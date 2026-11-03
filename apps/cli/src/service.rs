@@ -31,14 +31,9 @@ pub fn cache_dir(var: &dyn Fn(&str) -> Option<OsString>) -> Option<PathBuf> {
     kestrel_platform::cache_dir(Os::current(), var)
 }
 
-/// What to do when Kestrel is not running, for this system.
+/// What to do when Kestrel is not running.
 pub fn start_hint() -> &'static str {
-    match Os::current() {
-        Os::Linux => {
-            "start it with scripts/install_service.sh (always on), or run `kestrel serve --notes DIR CONFIG`"
-        }
-        _ => "run `kestrel serve --notes DIR CONFIG` (from v4 phase A3 the Kestrel app starts it)",
-    }
+    "open the Kestrel app, or run `kestrel serve --notes DIR CONFIG`"
 }
 
 /// What answers a request: (text, a y/N question asker, a sink for text while it is written)

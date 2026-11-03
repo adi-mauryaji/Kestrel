@@ -181,13 +181,15 @@ pub fn port_of(address: &str) -> Option<u16> {
 /// whether Kestrel runs.
 #[cfg_attr(unix, allow(dead_code))]
 pub fn page_answers(var: &dyn Fn(&str) -> Option<std::ffi::OsString>) -> bool {
-    std::fs::read_to_string(url_file(var))
-        .ok()
-        .and_then(|a| port_of(&a))
-        .is_some_and(|port| {
-            let at = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port));
-            std::net::TcpStream::connect_timeout(&at, std::time::Duration::from_millis(500)).is_ok()
-        })
+    std::fs::read_to_string(url_file(var)).is_ok_and(|a| answers_at(&a))
+}
+
+/// A page answers at `address` on this machine (the file outlives a service that ended).
+fn answers_at(address: &str) -> bool {
+    port_of(address).is_some_and(|port| {
+        let at = std::net::SocketAddr::from((std::net::Ipv4Addr::LOCALHOST, port));
+        std::net::TcpStream::connect_timeout(&at, std::time::Duration::from_millis(500)).is_ok()
+    })
 }
 
 /// The page's address; the token rides in the fragment, which the browser never sends.
@@ -229,6 +231,13 @@ pub fn open(
         )
     })?;
     let address = address.trim();
+    if !answers_at(address) {
+        return Err(format!(
+            "Kestrel is not running (its last page no longer answers): {}",
+            crate::service::start_hint()
+        )
+        .into());
+    }
     if args.iter().any(|a| a == "--print") {
         writeln!(out, "{address}")?;
         return Ok(());
@@ -1418,11 +1427,22 @@ mod tests {
         let mut out = Vec::new();
         let e = open(&["--print".into()], &var, &mut out).unwrap_err();
         assert!(e.to_string().contains("not running"), "{e}");
-        std::fs::write(url_file(&var), url(7811, "ab12")).unwrap();
+        // A service that ended leaves its address behind: that page is dead, not Kestrel's.
+        let live = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = live.local_addr().unwrap().port();
+        let dead = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let gone = dead.local_addr().unwrap().port();
+        drop(dead);
+        std::fs::write(url_file(&var), url(gone, "ab12")).unwrap();
+        let e = open(&["--print".into()], &var, &mut out).unwrap_err();
+        assert!(e.to_string().contains("not running"), "{e}");
+        assert!(e.to_string().contains("Kestrel app"), "{e}");
+        assert!(out.is_empty());
+        std::fs::write(url_file(&var), url(port, "ab12")).unwrap();
         open(&["--print".into()], &var, &mut out).unwrap();
         assert_eq!(
             String::from_utf8(out).unwrap(),
-            "http://127.0.0.1:7811/#t=ab12\n"
+            format!("{}\n", url(port, "ab12"))
         );
         let _ = std::fs::remove_dir_all(&dir);
     }
