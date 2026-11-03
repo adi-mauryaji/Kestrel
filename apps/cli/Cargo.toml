@@ -28,6 +28,7 @@ kestrel-sandbox.workspace = true
 kestrel-tools.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+pdf-extract.workspace = true
 sha2.workspace = true
 
 [lints]

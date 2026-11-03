@@ -76,6 +76,8 @@ mod notes_save;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod pass_rates;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod pdf;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod personal;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod planner;
@@ -141,6 +143,7 @@ fn main() -> ExitCode {
         Some("stop") => control::stop_here(&mut std::io::stdout()),
         Some("serve") => serve(&args[1..]),
         Some("sandbox-python") => sandbox::child(&args[1..]),
+        Some("pdf-text") => pdf::child(&args[1..], &mut std::io::stdout()),
         Some("tier4-worker") => tier4_worker(&args[1..]),
         Some("e4-eval") => e4_eval(&args[1..]),
         _ => Err(USAGE.into()),

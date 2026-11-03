@@ -62,7 +62,7 @@ pub fn child(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 /// This program, which holds `sandbox-python`.
 #[cfg(not(test))]
-fn kestrel() -> std::io::Result<PathBuf> {
+pub fn kestrel() -> std::io::Result<PathBuf> {
     std::env::current_exe()
 }
 
@@ -79,7 +79,7 @@ fn kestrel_files() -> PathBuf {
 
 /// In tests: the `kestrel` that cargo builds beside the test program (target/debug/deps/..).
 #[cfg(test)]
-fn kestrel() -> std::io::Result<PathBuf> {
+pub fn kestrel() -> std::io::Result<PathBuf> {
     let exe = std::env::current_exe()?;
     let name = format!("kestrel{}", std::env::consts::EXE_SUFFIX);
     Ok(exe

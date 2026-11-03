@@ -673,6 +673,8 @@ pub fn serve(
     if !notes.is_dir() {
         return Err(format!("no notes folder at {}", notes.display()).into());
     }
+    // PDFs in the notes folder are notes (src/pdf.rs).
+    kestrel_tools::notes::read_pdfs_with(crate::pdf::read);
     let act = crate::act::Act::open(notes, memory)?;
     let mut socket = Socket::claim(socket_path(&kestrel_platform::env))?;
 

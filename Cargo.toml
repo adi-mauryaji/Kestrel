@@ -27,6 +27,8 @@ kestrel-tools = { path = "crates/kestrel-tools" }
 # newest sys crate. sys 0.1.157 vendors llama.cpp 26394b4e = scripts/build_llama.sh (ADR-006/007).
 llama-cpp-2 = "=0.1.157"
 llama-cpp-sys-2 = "=0.1.157"
+# PDF text (registry `pdf-extract`, ADR-058), in `kestrel pdf-text`, a process of its own.
+pdf-extract = "=0.12.1"
 # The code sandbox (registry `wasmtime`, ADR-058): 48.x is an LTS line; re-check RustSec at each bump.
 wasmtime = { version = "=48.0.8", default-features = false, features = ["runtime", "cranelift", "parallel-compilation", "cache", "std"] }
 wasmtime-wasi = { version = "=48.0.8", default-features = false, features = ["p1"] }

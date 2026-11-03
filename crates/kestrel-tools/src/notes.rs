@@ -4,6 +4,7 @@
 //! `*.md` / `*.txt` files, named `YYYY-MM-DD-<slug>.md` so "recent" is the date prefix
 //! (deterministic, unlike file times); an optional first line `tags: a, b` tags a note. Every file
 //! is reached through `Sandbox::resolve`, so a symlink out of the notes folder is skipped.
+//! `*.pdf` count too once the service has said how to read them (`read_pdfs_with`, v4 B).
 //! Search is lexical: a note matches when it contains every query term (case-insensitive), ranked
 //! by how often the terms occur, then most recent first.
 
@@ -18,6 +19,19 @@ use crate::tools::Note;
 
 /// Largest note or document read, in bytes.
 pub const MAX_DOC_BYTES: u64 = 64 * 1024;
+/// Largest PDF read, in bytes (its text is then cut to MAX_DOC_BYTES).
+pub const MAX_PDF_BYTES: u64 = 32 * 1024 * 1024;
+
+/// How a PDF becomes text, or why it does not.
+pub type PdfReader = fn(&Path) -> Result<String, String>;
+
+static PDF_READER: std::sync::OnceLock<PdfReader> = std::sync::OnceLock::new();
+
+/// From now on PDFs are notes, read this way (the service, apps/cli/src/pdf.rs). Without it they are
+/// not, as in the research runs.
+pub fn read_pdfs_with(reader: PdfReader) {
+    let _ = PDF_READER.set(reader);
+}
 
 pub struct Notes {
     sandbox: Sandbox,
@@ -175,15 +189,42 @@ impl Entry {
     }
 }
 
+fn is_pdf(p: &Path) -> bool {
+    p.extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf"))
+}
+
 fn is_note(p: &Path) -> bool {
     p.extension()
         .is_some_and(|e| e.eq_ignore_ascii_case("md") || e.eq_ignore_ascii_case("txt"))
+        || (is_pdf(p) && PDF_READER.get().is_some())
+}
+
+/// At most `max` bytes of `text`, whole characters.
+fn cut(mut text: String, max: usize) -> String {
+    if text.len() > max {
+        let at = (0..=max).rev().find(|&i| text.is_char_boundary(i));
+        text.truncate(at.unwrap_or(0));
+    }
+    text
 }
 
 /// The file's text, if it is inside the sandbox, at most MAX_DOC_BYTES and UTF-8.
 fn read_note(sandbox: &Sandbox, real: &Path) -> Result<Note, KestrelError> {
     let real = sandbox.resolve(&real.to_string_lossy())?;
     let meta = std::fs::metadata(&real).map_err(|e| KestrelError::Storage(e.to_string()))?;
+    if let Some(reader) = PDF_READER.get().filter(|_| is_pdf(&real)) {
+        if meta.len() > MAX_PDF_BYTES {
+            return Err(KestrelError::Invalid(format!(
+                "PDF larger than {} MiB",
+                MAX_PDF_BYTES >> 20
+            )));
+        }
+        let text = reader(&real).map_err(KestrelError::Invalid)?;
+        return Ok(Note {
+            name: String::new(),
+            text: cut(text, MAX_DOC_BYTES as usize),
+        });
+    }
     if meta.len() > MAX_DOC_BYTES {
         return Err(KestrelError::Invalid(format!(
             "document larger than {} KiB",
@@ -265,5 +306,41 @@ mod tests {
         assert!(notes.by_name("../../etc/passwd").is_err());
         assert!(notes.by_name("missing.md").is_err());
         let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn pdfs_are_notes_once_a_reader_is_set_and_a_broken_one_is_only_left_out() {
+        fn reader(p: &Path) -> Result<String, String> {
+            match p.file_stem().and_then(|s| s.to_str()) {
+                Some("broken") => Err("not a PDF".into()),
+                Some("long") => Ok("é".repeat(MAX_DOC_BYTES as usize)),
+                _ => Ok("Passport Z1234567 valid till 2029".into()),
+            }
+        }
+        let root = std::env::temp_dir().join(format!("kestrel_notes_pdf_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        for f in ["passport.pdf", "SCAN.PDF", "broken.pdf", "long.pdf"] {
+            std::fs::write(root.join(f), "%PDF").unwrap();
+        }
+        std::fs::write(root.join("a.md"), "a note").unwrap();
+        let notes = Notes::new(Sandbox::new(std::slice::from_ref(&root)).unwrap());
+        assert_eq!(
+            notes
+                .all()
+                .iter()
+                .map(|n| n.name.as_str())
+                .collect::<Vec<_>>(),
+            ["a.md"],
+            "no reader yet"
+        );
+        read_pdfs_with(reader);
+        let names: Vec<String> = notes.all().into_iter().map(|n| n.name).collect();
+        assert_eq!(names, ["SCAN.PDF", "a.md", "long.pdf", "passport.pdf"]);
+        let found = notes.search("z1234567", 5);
+        assert!(found.iter().any(|n| n.name == "passport.pdf"), "{found:?}");
+        let long = notes.by_name("long.pdf").unwrap().text;
+        assert!(long.len() <= MAX_DOC_BYTES as usize && long.ends_with('é'));
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

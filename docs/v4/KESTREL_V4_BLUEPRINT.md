@@ -194,7 +194,7 @@ Migrations are versioned. `kestrel memory export` (exists) covers the new tables
 
 ### 4.6 Notes and documents index
 - The folder(s) the user picks are indexed by meaning with e5 (v3's `meaning.rs`), rescanned on change.
-- PDFs are read as text through a cross-platform Rust PDF crate (eval). pdf.js in the shell's webview is the fallback (already in CAPABILITY_REGISTRY).
+- PDFs are read as text with `pdf-extract` in a process of its own (`kestrel pdf-text`; the text stays in memory, not on disk). Evaluated 2026-11-03: English, numbers and dates are right; Hindi loses joined letters; a scan has no text. pdf.js in the shell's webview remains a fallback if Hindi PDFs matter (already in CAPABILITY_REGISTRY).
 - **Documents** ("kaagaz kahan hai"): the kind (Aadhaar, PAN, passport, licence, insurance, marksheet, bill) and the expiry date are found by rules first, then by the model. The user confirms with y/N before a date is stored. Reminders fire 30 days and 7 days before expiry.
 - Answers about notes and documents go through v3's grounding check (`grounding.rs`). An answer that is not grounded says so.
 
