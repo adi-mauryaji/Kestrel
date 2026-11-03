@@ -39,6 +39,7 @@ photo from the human for any page still wins.
 | Tasks | add a task (plain words become "add task …"), filter All · Today · Upcoming · No date · Overdue, Done, and ⋯: Rename, Change date, Set time, Remove date, Delete (y/N) | `built-tasks.jpg` |
 | Documents (inside Notes, so Home's side bar stays as designed) | the ID cards, policies and bills found in the folder, their expiry dates, days left; Check documents asks y/N before a date is kept; a click opens the file | `built-documents.jpg` |
 | What Kestrel remembers (Settings) | the facts it was told to keep, each with Forget; Forget conversations; shown on the wifi, forgotten only on this device | — |
+| Model download (Settings, first open) | with the internet on and a model missing: Download (2.6 GB), then "Downloading… N%", Stop, Continue from what came; its SHA-256 is checked before it is kept; each try in "What left this device"; turning the internet off stops it; refused from the wifi | `built-download.jpg` |
 | Internet and mail (Settings) | the internet switch (off at install; also on the first open's step 3), the Gmail address and app password (emptied from the page at once; into the OS keyring through `kestrel-net`, in no file), contacts with Add and Remove, "What left this device" newest first with recipient and subject, not the text. Read on the wifi, changed only on this device. Asking "send it to Ravi" shows the exact mail in the y/N question | `built-internet-mail.jpg`, `built-mail-question.jpg` |
 | Calendar | the month with each day's tasks, the chosen day's list and its hours | `built-calendar.jpg`, `built-calendar-dark.jpg` |
 | Notes | the folder's notes with search, one read beside them, Summarize, a question about your notes, New note (y/N) | `built-notes.jpg`, `built-notes-dark.jpg` |
@@ -49,7 +50,7 @@ photo from the human for any page still wins.
 Away from Home, Kestrel's answer (and any y/N question) shows in a card at the bottom right; it also
 goes into Recent on Home. The API behind them: `GET`/`POST /api/settings` (the name),
 `GET /api/notes`, `POST /api/notes/read`, `GET`/`POST /api/model/import`, `GET`/`POST /api/speed`,
-`GET`/`POST /api/outbound`.
+`GET`/`POST /api/outbound`, `GET`/`POST /api/model/download`.
 
 ## See it
 
@@ -83,3 +84,9 @@ Sending mail, same kind of set-up with real Gemma and a stand-in `kestrel-net` (
 which checks each approval token the way the real one does), then the real one with no password in the
 keyring, so no mail could leave: `experiments/v4/page_steps/outbound.mjs` (asked with the internet off, with
 no account, with no draft; a no; a yes; a stranger; each try in the log; the password in no file).
+The download, same set-up with no Gemma among Kestrel's files, and a stand-in `kestrel-net` copying the real
+file at 200 MB/s, so the hash check is real: `experiments/v4/page_steps/download.mjs`, 21 checks (off: the
+button waits and the service refuses; progress; other requests answered meanwhile; Stop, Continue, the file
+the same bytes as its source; each try in the log). The real `kestrel-net` was tried on the real address only
+for its first 60 MiB, stopped twice: redirect, Range and append right, the bytes the same as the local Gemma's.
+The whole 2.84 GB has not come down through it.

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """A stand-in for `kestrel-net` beside a scratch copy of kestrel, for v4 C's checks: no mail, no keyring,
 no network. It speaks the same JSON lines, checks each approval token the way the real one does, and
-writes what it was asked to FAKE_NET_LOG."""
+writes what it was asked to FAKE_NET_LOG. A download copies FAKE_NET_SOURCE, FAKE_NET_RATE bytes a second."""
 import hashlib
 import json
 import os
 import sys
+import time
 
 
 def approval(key, nonce, mail):
@@ -29,6 +30,17 @@ def main():
             good = request["approval"] == approval(key, request["nonce"], request["mail"])
             log.write(json.dumps({"op": op, "token_good": good, "mail": request["mail"]}) + "\n")
             reply.update({"sent": True} if good else {"error": "this mail has no approval"})
+        elif op == "download":
+            log.write(json.dumps({"op": op, "url": request["url"], "to": request["to"]}) + "\n")
+            log.flush()
+            with open(os.environ["FAKE_NET_SOURCE"], "rb") as source, open(request["to"], "ab") as out:
+                source.seek(out.tell())
+                rate = int(os.environ.get("FAKE_NET_RATE", 1 << 30))
+                while block := source.read(rate // 10):
+                    out.write(block)
+                    out.flush()
+                    time.sleep(0.1)
+                reply["bytes"] = out.tell()
         elif op == "secret_set":
             log.write(json.dumps({"op": op, "value": request["value"]}) + "\n")
             reply["saved"] = True

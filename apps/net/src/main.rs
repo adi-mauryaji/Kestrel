@@ -2,6 +2,7 @@
 //! when needed and talks JSON lines over stdio; the first line is the key for approval tokens. It knows
 //! a short list of operations (kestrel-net-proto) and nothing else: no notes, no memory.
 
+mod download;
 mod fetch;
 mod mail;
 mod secrets;

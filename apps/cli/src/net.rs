@@ -15,6 +15,10 @@ use crate::send::Link;
 
 /// The longest a request may take; its own limits (30 s for a mail) are inside this.
 const LIMIT: Duration = Duration::from_secs(90);
+/// How often a request with no time limit is asked whether it should go on.
+const WATCH_EVERY: Duration = Duration::from_secs(1);
+/// "No time limit", as a time.
+const NO_LIMIT: Duration = Duration::from_secs(60 * 60 * 24 * 365);
 
 pub struct Net {
     command: Box<dyn Fn() -> Command>,
@@ -51,6 +55,21 @@ impl Link for Net {
     }
 
     fn ask(&self, op: Op) -> Result<Value, String> {
+        self.run(op, Instant::now() + self.limit, &mut || true)
+    }
+
+    fn ask_while(&self, op: Op, still: &mut dyn FnMut() -> bool) -> Result<Value, String> {
+        self.run(op, Instant::now() + NO_LIMIT, still)
+    }
+}
+
+impl Net {
+    fn run(
+        &self,
+        op: Op,
+        until: Instant,
+        still: &mut dyn FnMut() -> bool,
+    ) -> Result<Value, String> {
         let mut child = (self.command)()
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -71,7 +90,7 @@ impl Link for Net {
                 }
             }
         });
-        let answer = talk(to, &heard, &self.key, op, Instant::now() + self.limit);
+        let answer = talk(to, &heard, &self.key, op, until, still);
         let _ = child.kill();
         let _ = child.wait();
         answer
@@ -85,13 +104,23 @@ fn talk(
     key: &str,
     op: Op,
     until: Instant,
+    still: &mut dyn FnMut() -> bool,
 ) -> Result<Value, String> {
     const ID: u64 = 1;
     const STOPPED: &str = "kestrel-net stopped";
-    let next = || match heard.recv_timeout(until.saturating_duration_since(Instant::now())) {
-        Ok(Ok(line)) => Ok(serde_json::from_str::<Value>(&line).unwrap_or(Value::Null)),
-        Err(RecvTimeoutError::Timeout) => Err("kestrel-net gave no answer in time".to_string()),
-        Ok(Err(_)) | Err(RecvTimeoutError::Disconnected) => Err(STOPPED.to_string()),
+    let mut next = || loop {
+        let left = until.saturating_duration_since(Instant::now());
+        match heard.recv_timeout(left.min(WATCH_EVERY)) {
+            Ok(Ok(line)) => return Ok(serde_json::from_str::<Value>(&line).unwrap_or(Value::Null)),
+            Err(RecvTimeoutError::Timeout) if left <= WATCH_EVERY => {
+                return Err("kestrel-net gave no answer in time".to_string());
+            }
+            Err(RecvTimeoutError::Timeout) if !still() => {
+                return Err("kestrel-net was stopped".to_string());
+            }
+            Err(RecvTimeoutError::Timeout) => {}
+            Ok(Err(_)) | Err(RecvTimeoutError::Disconnected) => return Err(STOPPED.to_string()),
+        }
     };
     let mut say = |line: &str| {
         writeln!(to, "{line}")
@@ -200,6 +229,38 @@ mod tests {
             LIMIT,
         );
         assert!(net.ask(Op::SecretHas).unwrap_err().contains("kestrel-net"));
+    }
+
+    #[test]
+    fn a_long_request_goes_on_until_it_is_told_to_stop() {
+        let d = folder("while");
+        let pid = d.join("pid");
+        let script = format!(
+            "read key\necho '{{\"ready\":true}}'\necho $$ > {}\nexec sleep 30\n",
+            pid.display()
+        );
+        let net = fake(&d, &script, Duration::from_millis(1));
+        let mut asked = 0;
+        let got = net.ask_while(Op::SecretHas, &mut || {
+            asked += 1;
+            asked < 2
+        });
+        assert!(got.unwrap_err().contains("stopped"));
+        assert_eq!(asked, 2, "past the short limit, which is not for this kind");
+        let pid = std::fs::read_to_string(&pid).unwrap();
+        assert!(
+            !std::path::Path::new(&format!("/proc/{}", pid.trim())).exists()
+                || cfg!(target_os = "macos")
+        );
+    }
+
+    #[test]
+    fn a_long_request_ends_with_its_answer() {
+        let d = folder("while_ok");
+        let script = "read key\necho '{\"ready\":true}'\nread line\nsleep 1.2\necho '{\"id\":1,\"bytes\":6}'\n";
+        let net = fake(&d, script, LIMIT);
+        let got = net.ask_while(Op::SecretHas, &mut || true).unwrap();
+        assert_eq!(got["bytes"], 6);
     }
 
     #[test]

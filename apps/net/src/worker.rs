@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 pub trait Outside {
     fn fetch(&self, url: &str) -> Result<Value, String>;
     fn send(&self, mail: &Mail, password: &str) -> Result<(), String>;
+    fn download(&self, url: &str, to: &str) -> Result<Value, String>;
     fn password(&self) -> Result<Option<String>, String>;
     fn set_password(&self, value: &str) -> Result<(), String>;
     fn delete_password(&self) -> Result<(), String>;
@@ -24,6 +25,9 @@ impl Outside for Real {
     }
     fn send(&self, mail: &Mail, password: &str) -> Result<(), String> {
         crate::mail::send_with_gmail(mail, password)
+    }
+    fn download(&self, url: &str, to: &str) -> Result<Value, String> {
+        crate::download::download(&crate::fetch::Internet, url, std::path::Path::new(to))
     }
     fn password(&self) -> Result<Option<String>, String> {
         crate::secrets::get()
@@ -93,6 +97,7 @@ impl<O: Outside> Worker<O> {
                 self.outside.set_password(&value)?;
                 Ok(json!({"saved": true}))
             }
+            Op::Download { url, to } => self.outside.download(&url, &to),
             Op::SecretHas => Ok(json!({"has": self.outside.password()?.is_some()})),
             Op::SecretDelete => {
                 self.outside.delete_password()?;
@@ -125,6 +130,9 @@ mod tests {
             assert_eq!(password, "app-password");
             self.0.borrow_mut().sent.push(mail.clone());
             Ok(())
+        }
+        fn download(&self, url: &str, to: &str) -> Result<Value, String> {
+            Ok(json!({"bytes": url.len() + to.len()}))
         }
         fn password(&self) -> Result<Option<String>, String> {
             Ok(self.0.borrow().password.clone())

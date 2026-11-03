@@ -55,6 +55,8 @@ mod control;
 mod conversation;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod documents;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod download;
 mod e4;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod events;

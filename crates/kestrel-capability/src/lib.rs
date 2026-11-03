@@ -108,6 +108,8 @@ pub struct Model {
     pub estimate: bool,
     /// Of the file, once known (a download is checked against it).
     pub sha256: Option<String>,
+    /// Where Kestrel may download it from (with `sha256`), a pinned address.
+    pub url: Option<String>,
     /// Multi-step tool use, from the model card (Tau2, %).
     pub tau2: Option<f64>,
     /// Where the numbers come from.
@@ -535,6 +537,18 @@ pub fn check(cards: &[Card], catalog: &Catalog) -> Result<(), String> {
     }
     if !catalog.models.iter().any(|m| m.role == Role::Writer) {
         return Err("the catalog has no writer model".into());
+    }
+    // A download is checked against its hash, and comes over https or not at all.
+    let bad_url = |m: &&Model| {
+        m.url
+            .as_deref()
+            .is_some_and(|u| !u.starts_with("https://") || m.sha256.is_none())
+    };
+    if let Some(m) = catalog.models.iter().find(bad_url) {
+        return Err(format!(
+            "{}: a download needs an https address and a SHA-256",
+            m.id
+        ));
     }
     for c in cards {
         if let Some(m) = c.needs.models.iter().find(|m| !ids.contains(m.as_str())) {

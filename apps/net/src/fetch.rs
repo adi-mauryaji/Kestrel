@@ -89,6 +89,46 @@ fn check(url: &str) -> Result<(), String> {
     }
 }
 
+/// The internet, for a download (src/download.rs).
+pub struct Internet;
+
+impl crate::download::Source for Internet {
+    fn check(&self, url: &str) -> Result<(), String> {
+        check(url)
+    }
+
+    fn get(&self, url: &str, from: u64) -> Result<crate::download::Reply, String> {
+        // No limit on the whole body: a model takes as long as it takes, and the core stops this
+        // program when the file stops growing.
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .max_redirects(0)
+            .http_status_as_error(false)
+            .timeout_connect(Some(TIME_LIMIT))
+            .timeout_recv_response(Some(TIME_LIMIT))
+            .build()
+            .into();
+        let mut request = agent.get(url).header("User-Agent", "Kestrel");
+        if from > 0 {
+            request = request.header("Range", format!("bytes={from}-"));
+        }
+        let response = request
+            .call()
+            .map_err(|e| format!("the request failed: {e}"))?;
+        let text = |name: &str| {
+            let value = response.headers().get(name)?;
+            value.to_str().ok().map(String::from)
+        };
+        let (location, content_range) = (text("location"), text("content-range"));
+        let status = response.status().as_u16();
+        Ok(crate::download::Reply {
+            status,
+            location,
+            content_range,
+            body: Box::new(response.into_body().into_reader()),
+        })
+    }
+}
+
 pub fn fetch(url: &str) -> Result<Value, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .max_redirects(0)

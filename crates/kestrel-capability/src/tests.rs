@@ -474,6 +474,21 @@ fn check_refuses_a_catalog_that_does_not_fit_the_cards() {
     let mut no_writer = catalog.clone();
     no_writer.models.retain(|m| m.role != Role::Writer);
     assert!(check(&cards, &no_writer).unwrap_err().contains("writer"));
+    let e2b = catalog.models.iter().position(|m| m.id == E2B).unwrap();
+    assert!(
+        catalog.models[e2b]
+            .url
+            .as_deref()
+            .unwrap()
+            .contains(catalog.models[e2b].file.as_str()),
+        "the writer most laptops get can come down"
+    );
+    let mut plain = catalog.clone();
+    plain.models[e2b].url = Some("http://example.com/m.gguf".into());
+    assert!(check(&cards, &plain).unwrap_err().contains(E2B));
+    let mut unchecked = catalog.clone();
+    unchecked.models[e2b].sha256 = None;
+    assert!(check(&cards, &unchecked).unwrap_err().contains(E2B));
     let mut twice = catalog.clone();
     twice.models.push(twice.models[0].clone());
     assert!(check(&cards, &twice).unwrap_err().contains(E5));

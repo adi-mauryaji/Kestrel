@@ -30,6 +30,8 @@ pub enum Op {
         nonce: String,
         approval: String,
     },
+    /// A model file into `to`, its `.part` file, continuing what is there.
+    Download { url: String, to: String },
     /// Keeps the mail password in the OS keyring. It goes no further.
     SecretSet { value: String },
     /// Is the mail password in the keyring?

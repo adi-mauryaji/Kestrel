@@ -427,6 +427,7 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
   width: 100%; height: 48px; padding: 0 16px;
   border: 1px solid var(--input-line); border-radius: 8px; background: var(--input); color: var(--ink); font-size: 16px;
 }
+.btn[hidden] { display: none; }
 .field::placeholder { color: var(--placeholder); }
 .field:focus { outline: none; border-color: color-mix(in srgb, var(--ink) 30%, var(--input-line)); }
 textarea.field { height: 140px; padding: 12px 16px; resize: vertical; font: inherit; font-size: 16px; line-height: 1.55; }
@@ -495,6 +496,9 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .set form .field { min-width: 0; flex: 1; }
 .out-row { align-items: baseline; }
 .w-net { margin: 14px 0 0; }
+.download { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
+.download .hint { flex-basis: 100%; margin: 0; }
+.download[hidden] { display: none; }
 .out-row small { flex: none; color: var(--muted); font-size: 13.5px; }
 .doc-card { padding: 18px 22px; margin-bottom: 22px; }
 .doc-card[hidden] { display: none; }
@@ -853,6 +857,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <p id="model-line">…</p>
           <form class="import-form" id="import-form"><label class="sr" for="import-file">The model file</label><input class="field" id="import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
           <p class="hint" id="import-hint" aria-live="polite">A model from a file (a USB stick, a download made elsewhere): its full path. Kestrel copies it in and checks it is one of its models.</p>
+          <div class="download" id="download" hidden><button class="btn primary" type="button">Download</button><button class="btn" type="button" hidden>Stop</button><p class="hint" aria-live="polite"></p></div>
         </section>
         <section class="card set wide" aria-labelledby="kept-h">
           <div class="card-head"><h2 id="kept-h">What Kestrel remembers</h2><button class="btn" type="button" id="kept-forget">Forget conversations</button></div>
@@ -925,6 +930,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <p class="hint" id="w-model"></p>
         <form class="import-form" id="w-import-form" hidden><label class="sr" for="w-import-file">The model file</label><input class="field" id="w-import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
         <p class="hint" id="w-import-hint" aria-live="polite"></p>
+        <div class="download" id="w-download" hidden><button class="btn primary" type="button">Download</button><button class="btn" type="button" hidden>Stop</button><p class="hint" aria-live="polite"></p></div>
         <label class="switch w-net"><input type="checkbox" id="w-internet"><span>Let Kestrel use the internet, for mail you send. Off is fine: everything else works without it, and nothing leaves without your yes.</span></label>
         <div class="speed" id="w-speed" hidden><button class="btn" type="button" id="w-speed-go">Measure speed</button><p class="hint" id="w-speed-hint" aria-live="polite">How fast this device writes with the model. About a minute.</p></div>
         <button class="btn primary go" type="button" data-next="4">Continue</button>
@@ -1834,6 +1840,7 @@ async function loadSettings() {
     if (k.ok) drawRemembered(await k.json());
     const o = await api("/api/outbound");
     if (o.ok) drawOutbound(await o.json());
+    loadDownload();
   } catch (e) { /* the page reports a stopped service elsewhere */ }
 }
 
@@ -1886,6 +1893,7 @@ const OUT_LINE = $("out-line").textContent;
 function drawOutbound(o) {
   $("out-internet").checked = o.internet;
   $("w-internet").checked = o.internet;
+  loadDownload();
   $("out-state").textContent = o.internet ? "On" : "Off";
   $("mail-state").textContent = o.mail ? `Mail leaves from ${o.mail}.` : "Mail is not set up.";
   $("mail-forget").hidden = !o.mail;
@@ -1996,6 +2004,81 @@ async function startImport(file, hint) {
 $("import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("import-file").value, $("import-hint")); });
 $("w-import-form").addEventListener("submit", (e) => { e.preventDefault(); startImport($("w-import-file").value, $("w-import-hint")); });
 
+// A model from the internet (/api/model/download, v4 C): through kestrel-net, logged, continued after
+// a stop, kept only when its SHA-256 is the catalog's. Both places show the same state.
+let downloading = false;
+function drawDownload(d) {
+  const offer = d.offers[0];
+  const running = d.state === "getting" || d.state === "checking";
+  const size = offer ? gb(offer.mib * 2 ** 20) : "";
+  const said = {
+    getting: () => `Downloading… ${d.all ? Math.floor((d.done * 100) / d.all) : 0}% (${gb(d.done)} of ${gb(d.all)})`,
+    checking: () => "Checking the file against its SHA-256…",
+    done: () => `Downloaded ${d.model}, SHA-256 checked. Kestrel writes with it from your next request.`,
+    stopped: () => "Stopped. What came is kept: Continue goes on from there.",
+    failed: () => d.why,
+    idle: () => (d.internet ? "From huggingface.co, checked by SHA-256. It can stop and go on later." : "Turn the internet on to download it, or import a file."),
+  }[d.state]();
+  for (const id of ["download", "w-download"]) {
+    const box = $(id);
+    const [go, stop] = box.querySelectorAll("button");
+    const hint = box.querySelector(".hint");
+    box.hidden = !offer && !running && d.state !== "done";
+    go.hidden = running || !offer;
+    go.disabled = !d.internet;
+    if (offer) go.textContent = offer.here ? `Continue download (${gb(offer.here)} of ${size} here)` : `Download ${offer.id} (${size})`;
+    stop.hidden = d.state !== "getting";
+    hint.textContent = said;
+    hint.classList.toggle("bad", d.state === "failed");
+  }
+  return running;
+}
+async function loadDownload() {
+  try {
+    const r = await api("/api/model/download");
+    if (!r.ok) return;
+    if (drawDownload(await r.json()) && !downloading) watchDownload();
+  } catch (e) { /* the page reports a stopped service elsewhere */ }
+}
+async function watchDownload() {
+  downloading = true;
+  for (;;) {
+    await new Promise((ok) => setTimeout(ok, 1000));
+    let d;
+    try {
+      const r = await api("/api/model/download");
+      if (!r.ok) break;
+      d = await r.json();
+    } catch (e) { break; }
+    if (!drawDownload(d)) {
+      if (d.state === "done") refresh();
+      break;
+    }
+  }
+  downloading = false;
+}
+async function changeDownload(change, hintOf) {
+  try {
+    const r = await api("/api/model/download", change);
+    if (!r.ok) throw new Error(await r.text());
+    if (drawDownload(await r.json()) && !downloading) watchDownload();
+  } catch (e) {
+    hintOf.textContent = e.message;
+    hintOf.classList.add("bad");
+  }
+}
+for (const id of ["download", "w-download"]) {
+  const box = $(id);
+  const [go, stop] = box.querySelectorAll("button");
+  const hint = box.querySelector(".hint");
+  go.addEventListener("click", async () => {
+    const r = await api("/api/model/download");
+    const offer = r.ok ? (await r.json()).offers[0] : null;
+    if (offer) changeDownload({ id: offer.id }, hint);
+  });
+  stop.addEventListener("click", () => changeDownload({ stop: true }, hint));
+}
+
 // The speed test (POST /api/speed, v4 A3): `kestrel capabilities --measure` in its own process; the
 // page asks how far it is each second, then shows what this device can do with the speeds.
 function speedButtons(on) {
@@ -2090,6 +2173,7 @@ $("w-name").addEventListener("submit", async (e) => {
 // Step 3 shows what Settings shows; drawn again when an import or a speed test changes it.
 function drawWelcomeDevice() {
   api("/api/outbound").then((r) => (r.ok ? r.json() : null)).then((o) => { if (o) $("w-internet").checked = o.internet; }).catch(() => {});
+  loadDownload();
   $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
   const list = $("w-cards");
   list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));

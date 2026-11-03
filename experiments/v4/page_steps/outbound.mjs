@@ -48,6 +48,8 @@ export default async ({ js, shot, wait, check, log }) => {
   check("nothing has left", await js(`!document.getElementById("out-empty").hidden`), null);
   check("the mail card names its two steps", await until(async () => (await text()).includes("add your Gmail address and app password"), 8), null);
 
+  check("no account: nothing to Forget", await js(`getComputedStyle(document.getElementById("mail-forget")).display === "none"`), null);
+
   await view("home");
   await saying("add contact Ravi ravi@example.com", "Ravi's address is ravi@example.com");
   await saying("send it to Ravi", "no draft ready");
@@ -73,6 +75,7 @@ export default async ({ js, shot, wait, check, log }) => {
   check("the password field is emptied at once", (await js(`document.getElementById("mail-password").value`)) === "", null);
   await account("me@example.com", "page canary 1234");
   check("the account is shown", await until(() => js(`document.getElementById("mail-state").textContent.includes("me@example.com")`), 8), null);
+  check("and can be forgotten", await js(`getComputedStyle(document.getElementById("mail-forget")).display !== "none"`), null);
   check("the refusal is gone after a success", await js(`!document.getElementById("out-line").textContent.includes("not one mail address")`), null);
   check("its password is not", !(await text()).includes("page canary") && (await js(`document.documentElement.outerHTML.includes("page canary")`)) === false, null);
   check("the mail card is ready", await until(async () => { await js(`refresh(); true`); await wait(600); return !(await text()).includes("add your Gmail address and app password"); }, 12), null);

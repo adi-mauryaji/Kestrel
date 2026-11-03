@@ -47,6 +47,9 @@ pub trait Link {
     /// The key approval tokens are made with.
     fn key(&self) -> String;
     fn ask(&self, op: Op) -> Result<Value, String>;
+    /// As `ask`, for one that takes long: no time limit, stopped when `still` says no (it is asked
+    /// about once a second).
+    fn ask_while(&self, op: Op, still: &mut dyn FnMut() -> bool) -> Result<Value, String>;
 }
 
 /// What a request says about sending and contacts.
@@ -459,6 +462,9 @@ pub(crate) mod fake {
                 Some(why) => Err(why.clone()),
                 None => Ok(serde_json::json!({"sent": true})),
             }
+        }
+        fn ask_while(&self, op: Op, _: &mut dyn FnMut() -> bool) -> Result<Value, String> {
+            self.ask(op)
         }
     }
 }

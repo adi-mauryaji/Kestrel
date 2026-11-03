@@ -74,6 +74,7 @@ pub fn file_model(path: &Path, bytes: u64) -> Model {
         role: kestrel_capability::Role::Writer,
         estimate: true,
         sha256: None,
+        url: None,
         tau2: None,
         source: "your file; memory estimated as 1.44 x the file".into(),
     }

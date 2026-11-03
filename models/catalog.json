@@ -18,6 +18,7 @@
       "role": "writer",
       "tau2": 24.5,
       "sha256": "8e30dff3ac4c8434c49a7036fa15564bdbb6044e42bf04550bf1a096ad7e6a52",
+      "url": "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/b4243c156154b6dca9324415f8c7ccc098b4aed1/gemma-4-E2B-it-Q4_0.gguf",
       "source": "file and hash from models/SHA256SUMS; resident 1144 + 2702 MiB with mmap (experiments/logs/v3/mmap); Tau2 from the Gemma 4 model card"
     },
     {

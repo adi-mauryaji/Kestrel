@@ -330,6 +330,7 @@ pub struct Web {
     documents: Box<Documents>,
     remembered: Box<Remembered>,
     outbound: Box<Outbound>,
+    download: Box<ModelDownload>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -345,6 +346,9 @@ pub type SpeedTest = dyn Fn(bool) -> Result<Value, String>;
 pub type Documents = dyn Fn() -> Result<Value, String>;
 /// What Kestrel remembers (None), or forgets some of it (Some); or why not.
 pub type Remembered = dyn Fn(Option<&Value>) -> Result<Value, String>;
+/// Where a model's download stands and what could come down (None), or starts or stops it (Some); or
+/// why not.
+pub type ModelDownload = dyn Fn(Option<&Value>) -> Result<Value, String>;
 /// The internet switch, the mail account, the contacts and what left (None), or a change to them
 /// (Some); or why not.
 pub type Outbound = dyn Fn(Option<&Value>) -> Result<Value, String>;
@@ -361,6 +365,7 @@ pub struct Api<'a> {
     pub documents: &'a Documents,
     pub remembered: &'a Remembered,
     pub outbound: &'a Outbound,
+    pub download: &'a ModelDownload,
 }
 
 #[cfg(test)]
@@ -378,6 +383,7 @@ impl Api<'static> {
             documents: &|| Err("no documents here".into()),
             remembered: &|_| Err("no memory here".into()),
             outbound: &|_| Err("no memory here".into()),
+            download: &|_| Err("no download here".into()),
         }
     }
 }
@@ -413,6 +419,7 @@ impl Web {
             documents: Box::new(|| Err("no documents here".into())),
             remembered: Box::new(|_| Err("no memory here".into())),
             outbound: Box::new(|_| Err("no memory here".into())),
+            download: Box::new(|_| Err("no download here".into())),
             lan,
         })
     }
@@ -447,6 +454,12 @@ impl Web {
         self
     }
 
+    /// `download` answers `GET`/`POST /api/model/download` (v4 C).
+    pub fn with_download(mut self, download: Box<ModelDownload>) -> Self {
+        self.download = download;
+        self
+    }
+
     /// `outbound` answers `GET`/`POST /api/outbound` (v4 C).
     pub fn with_outbound(mut self, outbound: Box<Outbound>) -> Self {
         self.outbound = outbound;
@@ -471,6 +484,7 @@ impl Web {
             documents: &*self.documents,
             remembered: &*self.remembered,
             outbound: &*self.outbound,
+            download: &*self.download,
         }
     }
 
@@ -656,6 +670,19 @@ pub fn respond(
                 None => reply(out, "400 Bad Request", TEXT, b"send {\"file\": \"...\"}"),
             }
         }
+        ("GET", "/api/model/download") => {
+            answered(out, (api.download)(None), "500 Internal Server Error")
+        }
+        ("POST", "/api/model/download") if !from_this_device(req) => reply(
+            out,
+            "403 Forbidden",
+            TEXT,
+            b"a model is downloaded on this device, not from the wifi",
+        ),
+        ("POST", "/api/model/download") => match serde_json::from_slice::<Value>(&req.body) {
+            Ok(change) => answered(out, (api.download)(Some(&change)), "400 Bad Request"),
+            Err(_) => reply(out, "400 Bad Request", TEXT, b"send {\"id\": \"...\"}"),
+        },
         ("GET", "/api/documents") => answered(out, (api.documents)(), "500 Internal Server Error"),
         ("GET", "/api/remembered") => {
             answered(out, (api.remembered)(None), "500 Internal Server Error")
@@ -725,9 +752,21 @@ pub fn respond(
         ("POST", "/api/answer") => reply(out, "409 Conflict", TEXT, b"no question is waiting"),
         (
             _,
-            "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
-            | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/documents"
-            | "/api/remembered" | "/api/outbound" | "/api/speed" | "/api/say" | "/api/answer",
+            "/"
+            | "/api/tasks"
+            | "/api/capabilities"
+            | "/api/events"
+            | "/api/settings"
+            | "/api/notes"
+            | "/api/notes/read"
+            | "/api/model/import"
+            | "/api/model/download"
+            | "/api/documents"
+            | "/api/remembered"
+            | "/api/outbound"
+            | "/api/speed"
+            | "/api/say"
+            | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
@@ -1133,6 +1172,11 @@ mod tests {
                 Some(c) if c["internet"] == true => Ok(json!({"internet": true})),
                 Some(_) => Err("not a change".to_string()),
             },
+            download: &|change: Option<&Value>| match change {
+                None => Ok(json!({"state": "idle"})),
+                Some(c) if c["id"] == "e2b" => Ok(json!({"state": "getting"})),
+                Some(_) => Err("not a model".to_string()),
+            },
         };
         respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
@@ -1226,6 +1270,26 @@ mod tests {
         let body = r#"{"forget":1}"#;
         let from_phone = req(&format!(
             "POST /api/remembered HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
+             X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        ));
+        let (out, _) = answer_to(&from_phone, None);
+        assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+    }
+
+    #[test]
+    fn a_download_is_started_on_this_device_only() {
+        let (out, _) = answer_to(&get("/api/model/download"), None);
+        assert!(out.ends_with("{\"state\":\"idle\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/model/download", r#"{"id":"e2b"}"#), None);
+        assert!(out.ends_with("{\"state\":\"getting\"}"), "{out}");
+        let (out, _) = answer_to(&post("/api/model/download", r#"{"id":"x"}"#), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let (out, _) = answer_to(&post("/api/model/download", "not json"), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let body = r#"{"id":"e2b"}"#;
+        let from_phone = req(&format!(
+            "POST /api/model/download HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
              X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
             body.len()
         ));

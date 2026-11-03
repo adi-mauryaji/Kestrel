@@ -666,6 +666,39 @@ fn open_web(
             Some(c) => crate::send::change(&mut db, &net, outbound_data.as_deref(), c),
         }
     };
+    // A model from the internet, through kestrel-net on a thread of its own (src/download.rs).
+    let downloads = crate::download::Job::default();
+    let download_data =
+        kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let download_memory = memory.to_path_buf();
+    let download = move |change: Option<&serde_json::Value>| {
+        let data = (download_data.clone()).ok_or("no data folder to download into")?;
+        let catalog =
+            kestrel_capability::load_catalog(std::path::Path::new("models/catalog.json"))?;
+        let root = std::path::Path::new(".");
+        let have = |f: &str| crate::slot::model_path(root, Some(&data), f).is_file();
+        let internet = crate::send::account(Some(&data)).internet;
+        if let Some(c) = change {
+            crate::download::change(&downloads, &catalog, &have, internet, c, |job, model| {
+                let (settings, memory) = (data.clone(), download_memory.clone());
+                job.start(
+                    model,
+                    data.clone(),
+                    move || !crate::send::account(Some(&settings)).internet,
+                    move || {
+                        let net =
+                            crate::net::Net::beside_this_program().map_err(|e| e.to_string())?;
+                        let memory = crate::memory::open(&memory).map_err(|e| e.to_string())?;
+                        Ok((Box::new(net) as Box<dyn crate::send::Link>, memory))
+                    },
+                )
+            })?;
+        }
+        let here = |m: &kestrel_capability::Model| crate::download::part_bytes(m, &data);
+        Ok(crate::download::page_json(
+            &downloads, &catalog, &have, internet, &here,
+        ))
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
         .with_events(Box::new(events))
@@ -674,7 +707,8 @@ fn open_web(
         .with_import(Box::new(import))
         .with_documents(Box::new(documents))
         .with_remembered(Box::new(remembered))
-        .with_outbound(Box::new(outbound));
+        .with_outbound(Box::new(outbound))
+        .with_download(Box::new(download));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
