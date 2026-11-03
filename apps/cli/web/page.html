@@ -883,7 +883,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <ul class="kept-rows" id="feed-rows"></ul>
           <form id="feed-form"><label class="sr" for="feed-url">A feed's address</label><input class="field" id="feed-url" autocomplete="off" spellcheck="false" placeholder="https://…/rss.xml"><button class="btn" type="submit">Add</button></form>
           <h3>Web search</h3>
-          <p class="hint" id="search-state">No search provider yet. Web search goes through a SearXNG you choose: one on this device, or one you trust. It sees what you search.</p>
+          <p class="hint" id="search-state">No search provider yet. Web search goes through a SearXNG you choose, best one on this device: public ones mostly refuse programs. It sees what you search.</p>
           <form id="search-form"><label class="sr" for="search-url">The SearXNG address</label><input class="field" id="search-url" autocomplete="off" spellcheck="false" placeholder="https://searx.example.org"><button class="btn" type="submit">Save</button><button class="btn" type="button" id="search-forget" hidden>Remove</button></form>
           <h3>What left this device</h3>
           <p class="hint" id="out-empty">Nothing yet.</p>
@@ -1932,7 +1932,7 @@ function drawOutbound(o) {
     li.append(el("span", "", url), remove);
     return li;
   }));
-  $("search-state").textContent = o.search_provider ? `Web search goes through ${o.search_provider}. It sees what you search.` : "No search provider yet. Web search goes through a SearXNG you choose: one on this device, or one you trust. It sees what you search.";
+  $("search-state").textContent = o.search_provider ? `Web search goes through ${o.search_provider}. It sees what you search.` : "No search provider yet. Web search goes through a SearXNG you choose, best one on this device: public ones mostly refuse programs. It sees what you search.";
   $("search-forget").hidden = !o.search_provider;
   $("out-empty").hidden = o.log.length > 0;
   $("out-rows").replaceChildren(...o.log.map((row) => {

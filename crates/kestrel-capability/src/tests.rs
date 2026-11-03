@@ -386,7 +386,7 @@ fn the_shipped_cards_and_catalog_load_and_agree() {
     let (cards, catalog) = shipped();
     check(&cards, &catalog).unwrap();
     assert_eq!(cards[0].id, "tasks", "file-name order");
-    assert_eq!(cards.last().unwrap().id, "news");
+    assert_eq!(cards.last().unwrap().id, "web.search");
     assert!(
         cards
             .iter()
@@ -420,6 +420,7 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
             "email.send" => "add your Gmail address and app password (Settings)",
             "weather" => "add your place (Settings)",
             "news" => "add a news feed (Settings)",
+            "web.search" => "add a SearXNG address (Settings)",
             _ => {
                 assert_eq!(v.state, ready(false), "{}", v.id);
                 continue;
@@ -434,7 +435,12 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
     }
     let set_up = Device {
         internet: true,
-        setup_done: strings(&["gmail.app_password", "weather.place", "news.feed"]),
+        setup_done: strings(&[
+            "gmail.app_password",
+            "weather.place",
+            "news.feed",
+            "search.provider",
+        ]),
         ..here
     };
     for v in evaluate(&cards, &catalog, &set_up, &m) {

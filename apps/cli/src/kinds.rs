@@ -360,6 +360,17 @@ pub trait Writer {
             "this writer does not answer from notes".into(),
         ))
     }
+
+    /// Answers `question` from web `results` (name, text) only (src/web_search.rs).
+    fn answer_web(
+        &self,
+        _question: &str,
+        _results: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        Err(KestrelError::Invalid(
+            "this writer does not answer from the web".into(),
+        ))
+    }
 }
 
 pub struct Kinds<'a> {
@@ -387,6 +398,11 @@ impl<'a> Kinds<'a> {
             conversation: None,
             draft: Default::default(),
         }
+    }
+
+    /// What writes, for an answer from the web (src/web_search.rs).
+    pub fn writer(&self) -> &dyn Writer {
+        self.writer.as_ref()
     }
 
     /// The last email written whole; a draft cut off or failed leaves none.

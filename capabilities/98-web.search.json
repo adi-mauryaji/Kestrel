@@ -1,0 +1,19 @@
+{
+  "id": "web.search",
+  "name": {
+    "en": "Web search, with its sources",
+    "hi": "Web search, sources ke saath"
+  },
+  "needs": {
+    "internet": true,
+    "setup": [
+      {
+        "id": "search.provider",
+        "step": {
+          "en": "add a SearXNG address (Settings)",
+          "hi": "Settings mein SearXNG ka address daalo"
+        }
+      }
+    ]
+  }
+}

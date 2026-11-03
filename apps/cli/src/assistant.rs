@@ -143,6 +143,13 @@ impl<'a> Assistant<'a> {
         {
             return act.online(online, asked, now);
         }
+        // v4: a web search: the person's words go out, and the answer is only shown.
+        if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
+            && let Some(query) = crate::web_search::parse(text)
+        {
+            let writer = self.kinds.as_ref().map(|k| k.writer());
+            return act.web_search(online, &query, writer, now);
+        }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
             Before::Correction(lines) => return lines,

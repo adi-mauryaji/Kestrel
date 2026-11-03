@@ -223,7 +223,8 @@ Test: in a 20+ turn conversation, a fact from turn 2 is still used correctly, an
   - Recipients come only from the user's contacts.
   - Note content is never added to a search query automatically.
 - **Internet is off at install.** Onboarding asks, and Settings can change it.
-- **Open item, before Phase D:** SearXNG needs Docker or Python, which is fine on Linux but heavy for normal Windows and macOS users. Options are a SearXNG instance the user trusts, or a user-supplied key for a paid API such as Brave (~$5/month credit; paid, so not a default). Until one is chosen, web search shows 🔧 there.
+- **Search provider (ADR-060):** a SearXNG address the person gives: on this device (`docs/v4/SEARXNG.md`) or a public https one. Measured 2026-11-04: 0 of 25 public instances answered a program in JSON, so on this device is the way that works. Docker or podman is fine on Linux and heavy for normal Windows and macOS users, where web search shows 🔧 until there is an address; a user-supplied key for a paid API such as Brave stays possible later (the slot takes it), and is never a default.
+- **Orders in pages:** what reads as an order is left out before the model reads it, an answer that tells the person to act is not shown, and the person is told a page tried. These catch common forms only: the guarantee is structural (the query is the person's words, the prompt holds nothing private, the answer is only shown).
 
 ### 4.9 Code sandbox (new crate `kestrel-sandbox`)
 CPython built for WASI (`python.wasm`, standard library only) runs inside wasmtime, with the same behaviour on all three OSes. The limits match v3's bubblewrap:

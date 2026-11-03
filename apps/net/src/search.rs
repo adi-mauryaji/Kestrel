@@ -80,6 +80,13 @@ pub fn search(provider: &str, query: &str) -> Result<Value, String> {
         &format!("{base}/search"),
         &[("q", query), ("format", "json")],
     )?;
+    // Public instances mostly refuse programs: 25 of 25 tried on 2026-11-04 (docs/v4/SEARXNG.md).
+    if status == 429 {
+        return Err(
+            "the search provider said 429: it refuses programs or is busy. One on this device works best."
+                .into(),
+        );
+    }
     if status != 200 {
         return Err(format!(
             "the search provider said {status}: is JSON format turned on there?"
@@ -208,6 +215,13 @@ mod tests {
         let (address, _asked) = server("403 Forbidden", "{}");
         let e = search(&address, "x").unwrap_err();
         assert!(e.contains("403") && e.contains("JSON"), "{e}");
+    }
+
+    #[test]
+    fn a_public_instance_that_refuses_programs_is_told_apart() {
+        let (address, _asked) = server("429 Too Many Requests", "{}");
+        let e = search(&address, "x").unwrap_err();
+        assert!(e.contains("429") && e.contains("on this device"), "{e}");
     }
 
     #[test]

@@ -374,6 +374,29 @@ pub fn worker(args: &WorkerArgs) -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(e) => json!({"error": e.to_string()}),
             }
+        } else if v["web"].is_object() {
+            // v4: from the given results only, and checked before it is shown (src/web_search.rs).
+            let q = v["web"]["question"].as_str().unwrap_or_default();
+            let results: Vec<(String, String)> = (v["web"]["results"].as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|n| {
+                            Some((n["name"].as_str()?.into(), n["text"].as_str()?.into()))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            match write_web_answer(slm, &mut writer, format, q, &results) {
+                Ok(t) => {
+                    let texts: Vec<&str> = results.iter().map(|(_, t)| t.as_str()).collect();
+                    let plain = crate::web_search::without_citations(&t);
+                    let ungrounded = (!crate::web_search::not_in_results(&t))
+                        .then(|| crate::grounding::check_facts(&plain, &texts).err())
+                        .flatten();
+                    json!({"text": plain, "ungrounded": ungrounded})
+                }
+                Err(e) => json!({"error": e.to_string()}),
+            }
         } else if let Some(text) = v["kind"].as_str() {
             let tier = kinds.get_or_insert_with(|| {
                 models
@@ -488,6 +511,38 @@ fn write_notes_answer<'m>(
         &prompt,
         &user,
         crate::notes_qa::MAX_TOKENS,
+        &mut |_| {},
+    )
+    .map(|(text, _)| text)
+}
+
+/// Gemma's answer from web results only (src/web_search.rs); text that could open or close a chat turn
+/// is refused, as for the notes, so a page cannot write itself into the conversation's frame.
+#[cfg(feature = "llama")]
+fn write_web_answer<'m>(
+    slm: &'m kestrel_inference::llama::LlamaSlm,
+    writer: &mut Option<kestrel_inference::llama::LlamaSession<'m>>,
+    format: kestrel_inference::prompt::ChatFormat,
+    question: &str,
+    results: &[(String, String)],
+) -> Result<String, kestrel_core::KestrelError> {
+    let pairs: Vec<(&str, &str)> = results
+        .iter()
+        .map(|(n, t)| (n.as_str(), t.as_str()))
+        .collect();
+    let user = crate::web_search::user_message(question, &pairs);
+    if slm.has_special_tokens(&user)? {
+        return Err(kestrel_core::KestrelError::Invalid(
+            "the results or the question contain control-token text".into(),
+        ));
+    }
+    let prompt = kestrel_inference::prompt::ChatPrompt::new(format, crate::web_search::SYSTEM);
+    answer(
+        slm,
+        writer,
+        &prompt,
+        &user,
+        crate::web_search::MAX_TOKENS,
         &mut |_| {},
     )
     .map(|(text, _)| text)

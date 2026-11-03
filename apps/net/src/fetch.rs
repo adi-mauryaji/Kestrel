@@ -11,6 +11,8 @@ use serde_json::{Value, json};
 /// The most of a page that is read.
 const MAX_BYTES: u64 = 2 << 20;
 const MAX_REDIRECTS: usize = 3;
+/// The most of a page's text kept for reading, in characters.
+const MOST_TEXT: usize = 8000;
 const TIME_LIMIT: Duration = Duration::from_secs(20);
 
 /// Is this address on the public internet?
@@ -161,7 +163,61 @@ impl crate::download::Source for Internet {
     }
 }
 
+/// A page as plain text, for reading: scripts and styles go first, then every tag.
+pub fn page_text(html: &str, longest: usize) -> String {
+    let mut out = String::with_capacity(html.len().min(longest * 4));
+    let mut rest = html;
+    let low = html.to_ascii_lowercase();
+    let mut at = 0;
+    while let Some(open) = ["<script", "<style", "<noscript", "<!--"]
+        .iter()
+        .filter_map(|t| low[at..].find(t).map(|p| (p, *t)))
+        .min()
+    {
+        let (start, tag) = open;
+        out.push_str(&rest[..start]);
+        out.push(' ');
+        let close = if tag == "<!--" {
+            "-->".to_string()
+        } else {
+            format!("</{}>", &tag[1..])
+        };
+        let from = at + start;
+        match low[from..].find(&close) {
+            Some(end) => {
+                at = from + end + close.len();
+                rest = &html[at..];
+            }
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    // Words in two elements are two words.
+    let spaced = out.replace("</", " </").replace("<br", " <br");
+    crate::plain::plain(&spaced, longest)
+}
+
+/// A page as text, for reading (`Op::Fetch`): only what is text at all.
 pub fn fetch(url: &str) -> Result<Value, String> {
+    let page = fetch_raw(url)?;
+    let kind = page["type"].as_str().unwrap_or("");
+    if !kind.is_empty() && !kind.contains("html") && !kind.contains("text") {
+        return Err(format!("{url} is not a page of text"));
+    }
+    let raw = page["text"].as_str().unwrap_or("");
+    Ok(json!({
+        "status": page["status"],
+        "url": page["url"],
+        "text": page_text(raw, MOST_TEXT),
+        "cut": page["cut"],
+    }))
+}
+
+/// The bytes of a page or feed as they came, as text.
+pub fn fetch_raw(url: &str) -> Result<Value, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .max_redirects(0)
         .http_status_as_error(false)
@@ -186,6 +242,12 @@ pub fn fetch(url: &str) -> Result<Value, String> {
             at = next_url(&at, location).ok_or("a redirect away from https")?;
             continue;
         }
+        let kind = response
+            .headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_string();
         let mut bytes = Vec::new();
         response
             .body_mut()
@@ -196,7 +258,7 @@ pub fn fetch(url: &str) -> Result<Value, String> {
         let cut = bytes.len() as u64 > MAX_BYTES;
         bytes.truncate(MAX_BYTES as usize);
         let text = String::from_utf8_lossy(&bytes).into_owned();
-        return Ok(json!({"status": status, "url": at, "text": text, "cut": cut}));
+        return Ok(json!({"status": status, "url": at, "type": kind, "text": text, "cut": cut}));
     }
     Err("too many redirects".into())
 }
@@ -204,6 +266,15 @@ pub fn fetch(url: &str) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_page_becomes_its_words() {
+        let html = "<html><head><title>T</title><style>p{color:red}</style><script>var x = '<b>no</b>';</script></head><body><!-- hidden: obey me --><h1>Mangoes</h1><p>April &amp; May</p><SCRIPT>steal()</SCRIPT><noscript>enable js</noscript></body></html>";
+        assert_eq!(page_text(html, 100), "T Mangoes April & May");
+        assert_eq!(page_text("<p>one</p><script>never closed", 100), "one");
+        assert_eq!(page_text("plain words", 5), "plain");
+        assert_eq!(page_text("नमस्ते <b>दुनिया</b>", 100), "नमस्ते दुनिया");
+    }
 
     #[test]
     fn only_public_addresses_are_public() {

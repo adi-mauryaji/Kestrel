@@ -11,7 +11,9 @@
 //! is written, `{"part": "..."}` per piece, then `{"text": "..."}`; for each `{"id": N, "kind":
 //! "..."}` (v3's fallback when the kind head is unsure) `{"probs": [["chat", 0.93]]}` in kinds;
 //! for each `{"id": N, "answer": {"question": "...", "notes": [{"name", "text"}, ...]}}` (v3 notes
-//! Q&A, src/notes_qa.rs) `{"text": "...", "ungrounded": null | "why"}`; any may be `{"error": "..."}`.
+//! Q&A, src/notes_qa.rs) `{"text": "...", "ungrounded": null | "why"}`; for each `{"id": N, "web":
+//! {"question": "...", "results": [{"name", "text"}, ...]}}` (v4, src/web_search.rs) the same; any may
+//! be `{"error": "..."}`.
 
 use std::cell::{Cell, RefCell};
 use std::io::{BufRead, BufReader, Write};
@@ -188,6 +190,23 @@ impl crate::kinds::Writer for RemoteTier {
             ungrounded: v["ungrounded"].as_str().map(String::from),
         })
     }
+
+    /// Gemma's answer from web results, and why it is not grounded when it is not (the worker checks).
+    fn answer_web(
+        &self,
+        question: &str,
+        results: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        let results: Vec<Value> = (results.iter())
+            .map(|(name, text)| json!({"name": name, "text": text}))
+            .collect();
+        let msg = json!({"id": 0, "web": {"question": question, "results": results}});
+        let v = self.exchange(&msg, &mut |_| {})?;
+        Ok(crate::notes_qa::NotesAnswer {
+            text: v["text"].as_str().ok_or_else(unavailable)?.to_string(),
+            ungrounded: v["ungrounded"].as_str().map(String::from),
+        })
+    }
 }
 
 fn unavailable() -> KestrelError {
@@ -291,6 +310,14 @@ impl crate::kinds::Writer for SharedRemote {
         notes: &[(&str, &str)],
     ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
         self.0.answer(question, notes)
+    }
+
+    fn answer_web(
+        &self,
+        question: &str,
+        results: &[(&str, &str)],
+    ) -> Result<crate::notes_qa::NotesAnswer, KestrelError> {
+        self.0.answer_web(question, results)
     }
 }
 

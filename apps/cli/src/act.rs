@@ -115,6 +115,17 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// A web search (src/web_search.rs).
+    pub fn web_search(
+        &mut self,
+        online: &crate::online::Online,
+        query: &str,
+        writer: Option<&dyn crate::kinds::Writer>,
+        now: i64,
+    ) -> Vec<String> {
+        online.search(query, writer, self.backend.memory_mut(), now)
+    }
+
     /// The weather, the news (src/online.rs).
     pub fn online(
         &mut self,

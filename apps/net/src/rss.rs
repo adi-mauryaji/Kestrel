@@ -97,7 +97,7 @@ pub fn parse_feed(text: &str) -> Value {
 }
 
 pub fn rss(url: &str) -> Result<Value, String> {
-    let page = crate::fetch::fetch(url)?;
+    let page = crate::fetch::fetch_raw(url)?;
     if page["status"] != 200 {
         return Err(format!("the feed answered {}", page["status"]));
     }

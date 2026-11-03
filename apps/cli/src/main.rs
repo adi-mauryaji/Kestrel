@@ -119,6 +119,8 @@ mod telemetry;
 mod times;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod web;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod web_search;
 
 use std::process::ExitCode;
 
