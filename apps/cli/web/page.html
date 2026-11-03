@@ -484,6 +484,11 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .cal-day-strip { margin-top: 24px; }
 
 /* Notes: the folder's notes, one read beside them. */
+#kept-forget { margin-left: auto; }
+#kept-forget[hidden] { display: none; }
+.kept-rows { list-style: none; margin: 12px 0 0; padding: 0; }
+.kept-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 2px; border-top: 1px solid var(--rule); }
+.kept-row span { color: var(--text); overflow-wrap: anywhere; }
 .doc-card { padding: 18px 22px; margin-bottom: 22px; }
 .doc-card[hidden] { display: none; }
 .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -841,6 +846,11 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <p id="model-line">…</p>
           <form class="import-form" id="import-form"><label class="sr" for="import-file">The model file</label><input class="field" id="import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
           <p class="hint" id="import-hint" aria-live="polite">A model from a file (a USB stick, a download made elsewhere): its full path. Kestrel copies it in and checks it is one of its models.</p>
+        </section>
+        <section class="card set wide" aria-labelledby="kept-h">
+          <div class="card-head"><h2 id="kept-h">What Kestrel remembers</h2><button class="btn" type="button" id="kept-forget">Forget conversations</button></div>
+          <p class="hint" id="kept-line">What you told it to keep, here on this device. Say “my sister's name is Meera” or “remember that …”.</p>
+          <ul class="kept-rows" id="kept-rows"></ul>
         </section>
         <section class="card set wide" aria-labelledby="can-h">
           <div class="card-head"><h2 id="can-h">On this device</h2><span class="device" id="can-count"></span></div>
@@ -1797,6 +1807,8 @@ async function loadSettings() {
     if (i.ok && (await i.json()).state === "copying" && !importing) watchImport($("import-hint"));
     const m = await api("/api/speed");
     if (m.ok && (await m.json()).state === "measuring" && !measuring) watchSpeed($("speed-hint"));
+    const k = await api("/api/remembered");
+    if (k.ok) drawRemembered(await k.json());
   } catch (e) { /* the page reports a stopped service elsewhere */ }
 }
 
@@ -1816,6 +1828,32 @@ async function saveName(name, hint) {
   }
 }
 $("name-form").addEventListener("submit", (e) => { e.preventDefault(); saveName($("name-input").value, $("name-hint")); });
+
+// What Kestrel remembers (/api/remembered, v4 B): each fact can go, and so can the conversations.
+function drawRemembered(kept) {
+  $("kept-forget").hidden = !kept.turns;
+  $("kept-forget").textContent = `Forget conversations (${kept.turns} turns)`;
+  $("kept-rows").replaceChildren(...kept.facts.map((f) => {
+    const li = el("li", "kept-row");
+    const forget = el("button", "btn", "Forget");
+    forget.type = "button";
+    forget.addEventListener("click", () => changeRemembered({ forget: f.id }));
+    li.append(el("span", "", f.text), forget);
+    return li;
+  }));
+}
+async function changeRemembered(change) {
+  try {
+    const r = await api("/api/remembered", change);
+    if (!r.ok) throw new Error(await r.text());
+    drawRemembered(await r.json());
+    $("kept-line").classList.remove("bad");
+  } catch (e) {
+    $("kept-line").textContent = e.message;
+    $("kept-line").classList.add("bad");
+  }
+}
+$("kept-forget").addEventListener("click", () => changeRemembered({ forget_conversations: true }));
 
 // A model from a file (POST /api/model/import, v4 A3): the service copies it in on its own thread
 // and checks its SHA-256; the page asks how far it is each second until it ends.

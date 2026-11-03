@@ -121,6 +121,48 @@ impl Memory {
         ))
     }
 
+    /// Everything a backup needs (`kestrel memory export`, blueprint §6): memories, tasks, documents,
+    /// conversations.
+    pub fn export_all_json(&self) -> Result<String, KestrelError> {
+        let documents: Vec<serde_json::Value> = self
+            .documents()?
+            .iter()
+            .map(
+                |d| serde_json::json!({"path": d.path, "kind": d.kind, "expires_on": d.expires_on}),
+            )
+            .collect();
+        let mut q = self
+            .conn
+            .prepare("SELECT id, started_at FROM conversations ORDER BY id")
+            .map_err(storage)?;
+        let ids: Vec<(i64, i64)> = q
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .and_then(Iterator::collect)
+            .map_err(storage)?;
+        let mut conversations = Vec::new();
+        for (id, started_at) in ids {
+            let turns: Vec<serde_json::Value> = self
+                .turns(id)?
+                .iter()
+                .map(|t| {
+                    let role = match t.role {
+                        Role::Person => "person",
+                        Role::Kestrel => "kestrel",
+                    };
+                    serde_json::json!({"role": role, "text": t.text})
+                })
+                .collect();
+            conversations.push(serde_json::json!({"started_at": started_at, "turns": turns}));
+        }
+        let all = serde_json::json!({
+            "memories": self.items(crate::Filter::All)?,
+            "tasks": self.tasks()?,
+            "documents": documents,
+            "conversations": conversations,
+        });
+        serde_json::to_string_pretty(&all).map_err(|e| KestrelError::Storage(e.to_string()))
+    }
+
     /// Removes every conversation.
     pub fn forget_conversations(&mut self) -> Result<(), KestrelError> {
         self.conn
@@ -168,5 +210,27 @@ mod tests {
         m.add_turn(a, Role::Person, "x", 1).unwrap();
         m.forget_conversations().unwrap();
         assert_eq!(m.conversation_counts().unwrap(), (0, 0));
+    }
+
+    #[test]
+    fn the_export_holds_everything_a_backup_needs_and_no_deleted_turn() {
+        let mut m = Memory::in_memory().unwrap();
+        let c = m.current_conversation(1, 50).unwrap();
+        m.add_turn(c, Role::Person, "hello there", 1).unwrap();
+        m.create_task("buy milk", None, 1).unwrap();
+        m.sync_documents(&[crate::FoundDocument {
+            path: "p.pdf".into(),
+            kind: "passport".into(),
+            sha256: "a".into(),
+            found_on: None,
+        }])
+        .unwrap();
+        let v: serde_json::Value = serde_json::from_str(&m.export_all_json().unwrap()).unwrap();
+        assert_eq!(v["tasks"][0]["title"], "buy milk");
+        assert_eq!(v["documents"][0]["path"], "p.pdf");
+        assert_eq!(v["conversations"][0]["turns"][0]["text"], "hello there");
+        assert!(v["memories"].as_array().unwrap().is_empty());
+        m.forget_conversations().unwrap();
+        assert!(!m.export_all_json().unwrap().contains("hello there"));
     }
 }

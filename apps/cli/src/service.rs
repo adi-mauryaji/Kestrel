@@ -640,13 +640,26 @@ fn open_web(
         let today = crate::clock::local_date(now, offset);
         crate::documents::page_json(&mut db, &reader.all(), today).map_err(|e| e.to_string())
     };
+    // What Kestrel remembers, shown and forgotten on the page (src/facts.rs).
+    let remembered_db = std::cell::RefCell::new(crate::memory::open(memory)?);
+    let remembered = move |change: Option<&serde_json::Value>| {
+        let mut db = remembered_db.try_borrow_mut().map_err(|e| e.to_string())?;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
+        match change {
+            None => crate::facts::page_json(&db).map_err(|e| e.to_string()),
+            Some(c) => crate::facts::change(&mut db, c, now),
+        }
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
         .with_events(Box::new(events))
         .with_settings(Box::new(settings))
         .with_notes(Box::new(notes))
         .with_import(Box::new(import))
-        .with_documents(Box::new(documents));
+        .with_documents(Box::new(documents))
+        .with_remembered(Box::new(remembered));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),

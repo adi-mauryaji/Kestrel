@@ -195,13 +195,13 @@ Migrations are versioned. `kestrel memory export` (exists) covers the new tables
 ### 4.6 Notes and documents index
 - The folder(s) the user picks are indexed by meaning with e5 (v3's `meaning.rs`), rescanned on change.
 - PDFs are read as text with `pdf-extract` in a process of its own (`kestrel pdf-text`; the text stays in memory, not on disk). Evaluated 2026-11-03: English, numbers and dates are right; Hindi loses joined letters; a scan has no text. pdf.js in the shell's webview remains a fallback if Hindi PDFs matter (already in CAPABILITY_REGISTRY).
-- **Documents** ("kaagaz kahan hai"): the kind (Aadhaar, PAN, passport, licence, insurance, marksheet, bill) and the expiry date are found by rules first, then by the model. The user confirms with y/N before a date is stored. Reminders fire 30 days and 7 days before expiry.
+- **Documents** ("kaagaz kahan hai"): the kind (Aadhaar, PAN, passport, licence, insurance, marksheet, bill) and the expiry date are found by rules (`src/documents.rs`; the model fallback is not built). The user confirms with y/N before a date is stored. Reminders fire 30 days and 7 days before expiry.
 - Answers about notes and documents go through v3's grounding check (`grounding.rs`). An answer that is not grounded says so.
 
 ### 4.7 Long conversation engine
 The prompt has a budget per device, taken from the measured prefill speed. On this laptop Gemma prefills 58–80 tok/s (meas.), so 8K tokens ≈ 2 min before the first word. That is why the budget is small, and why the whole context window is not used: Gemma E2B also scores only 19.1% on a 128K long-context test.
 
-Prompt = fixed prefix (KV state reused, v3's `prime_cached`) + rolling summary of older turns + the last turns verbatim + the closest note chunks. The summary is refreshed in the background when the conversation passes a turn threshold.
+Prompt = fixed prefix (KV state reused, v3's `prime_cached`) + facts the person told Kestrel to keep + older turns that share words with the new message + the last turns verbatim, within the budget (`src/conversation.rs`; built 2026-11-03). Older turns come back word for word instead of through a rolling summary: a fact cannot drift and no model time is spent. Its limit: a question in other words (sister / behen) misses them. Notes questions stay single turn, through the grounding check, instead of note chunks in the chat.
 
 Test: in a 20+ turn conversation, a fact from turn 2 is still used correctly, and every notes claim is grounded.
 

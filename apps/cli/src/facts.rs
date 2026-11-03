@@ -5,7 +5,9 @@
 //! is refused. Requests with a time or an action stay what they were: a task, a mail, a question for
 //! the writer.
 
-use kestrel_memory::{Item, Kind};
+use kestrel_core::KestrelError;
+use kestrel_memory::{Filter, Item, Kind, Memory};
+use serde_json::{Value, json};
 
 /// Longest memory key made here.
 const KEY_CHARS: usize = 48;
@@ -206,6 +208,35 @@ pub fn related(items: &[Item], request: &str) -> Vec<String> {
         .collect()
 }
 
+/// What `GET /api/remembered` answers: the facts kept, and how much conversation.
+pub fn page_json(memory: &Memory) -> Result<Value, KestrelError> {
+    let facts: Vec<Value> = memory
+        .items(Filter::Approved)?
+        .iter()
+        .filter(|i| i.kind == Kind::Fact)
+        .map(|i| json!({"id": i.id, "text": i.value}))
+        .collect();
+    let (conversations, turns) = memory.conversation_counts()?;
+    Ok(json!({"facts": facts, "conversations": conversations, "turns": turns}))
+}
+
+/// `POST /api/remembered`: forgets one fact or every conversation; what is kept after, or why not.
+pub fn change(memory: &mut Memory, change: &Value, now: i64) -> Result<Value, String> {
+    let text = |e: KestrelError| e.to_string();
+    if change["forget_conversations"] == true {
+        memory.forget_conversations().map_err(text)?;
+    } else if let Some(id) = change["forget"].as_i64() {
+        let items = memory.items(Filter::All).map_err(text)?;
+        if !items.iter().any(|i| i.id == id && i.kind == Kind::Fact) {
+            return Err(format!("no fact #{id}"));
+        }
+        memory.delete(id, now).map_err(text)?;
+    } else {
+        return Err("send {\"forget\": id} or {\"forget_conversations\": true}".into());
+    }
+    page_json(memory).map_err(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -392,5 +423,47 @@ mod tests {
         let r = related(&kept(), "write a birthday wish for my sister");
         assert_eq!(r, ["my sister's name is Meera and she lives in Pune"]);
         assert!(related(&kept(), "why is the sky blue").is_empty());
+    }
+
+    fn with_a_fact() -> Memory {
+        let mut m = Memory::in_memory().unwrap();
+        let draft = kestrel_memory::Draft::new(Kind::Fact, "name", "my name is Aditya");
+        m.propose(&draft, Source::UserExplicit, 1).unwrap();
+        let draft = kestrel_memory::Draft::new(Kind::Preference, "style", "short answers");
+        m.propose(&draft, Source::UserExplicit, 1).unwrap();
+        let c = m.current_conversation(1, 50).unwrap();
+        m.add_turn(c, kestrel_memory::Role::Person, "hi", 1)
+            .unwrap();
+        m
+    }
+
+    #[test]
+    fn the_page_sees_what_is_kept_and_can_forget_it() {
+        let mut m = with_a_fact();
+        let v = page_json(&m).unwrap();
+        assert_eq!(v["facts"][0]["text"], "my name is Aditya");
+        assert_eq!(
+            v["facts"].as_array().unwrap().len(),
+            1,
+            "facts, not preferences"
+        );
+        assert_eq!(
+            (v["conversations"].as_u64(), v["turns"].as_u64()),
+            (Some(1), Some(1))
+        );
+
+        let id = v["facts"][0]["id"].clone();
+        let v = change(&mut m, &json!({"forget": id}), 2).unwrap();
+        assert!(v["facts"].as_array().unwrap().is_empty());
+        let v = change(&mut m, &json!({"forget_conversations": true}), 3).unwrap();
+        assert_eq!(v["turns"].as_u64(), Some(0));
+
+        assert!(change(&mut m, &json!({"forget": 999}), 4).is_err());
+        assert!(change(&mut m, &json!({"name": "x"}), 4).is_err());
+        let pref = m.items(Filter::All).unwrap()[0].id;
+        assert!(
+            change(&mut m, &json!({"forget": pref}), 4).is_err(),
+            "only a fact"
+        );
     }
 }

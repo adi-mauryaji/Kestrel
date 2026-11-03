@@ -96,7 +96,7 @@ fn command(
             }
             Ok(writeln!(out, "deleted #{id}")?)
         }
-        ["export"] => Ok(writeln!(out, "{}", m.export_json()?)?),
+        ["export"] => Ok(writeln!(out, "{}", m.export_all_json()?)?),
         ["purge"] => Ok(writeln!(out, "purged {} expired", m.purge_expired(now)?)?),
         ["vacuum"] => {
             m.vacuum()?;
@@ -191,8 +191,8 @@ mod tests {
         );
         let export: serde_json::Value =
             serde_json::from_str(&say(&mut m, &["export"]).unwrap()).unwrap();
-        assert_eq!(export.as_array().map(Vec::len), Some(1));
-        assert_eq!(export[0]["key"], "advisor");
+        assert_eq!(export["memories"].as_array().map(Vec::len), Some(1));
+        assert_eq!(export["memories"][0]["key"], "advisor");
         assert_eq!(say(&mut m, &["purge"]).unwrap(), "purged 0 expired\n");
         assert_eq!(say(&mut m, &["vacuum"]).unwrap(), "vacuumed\n");
     }
