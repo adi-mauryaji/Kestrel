@@ -1,0 +1,22 @@
+{
+  "id": "email.send",
+  "name": {
+    "en": "Send a mail you drafted, after your yes",
+    "hi": "Draft kiya mail bhejna, aapki haan ke baad"
+  },
+  "needs": {
+    "cards": [
+      "email.draft"
+    ],
+    "internet": true,
+    "setup": [
+      {
+        "id": "gmail.app_password",
+        "step": {
+          "en": "add your Gmail address and app password (Settings)",
+          "hi": "Settings mein Gmail address aur app password daalo"
+        }
+      }
+    ]
+  }
+}

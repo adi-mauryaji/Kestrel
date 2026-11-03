@@ -1490,6 +1490,7 @@ dependencies = [
  "kestrel-inference",
  "kestrel-learning",
  "kestrel-memory",
+ "kestrel-net-proto",
  "kestrel-nlu",
  "kestrel-platform",
  "kestrel-router",

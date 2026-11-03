@@ -369,6 +369,8 @@ pub struct Kinds<'a> {
     fallback: Option<(Box<dyn TierModel<Kind> + 'a>, f32)>,
     /// What a chat remembers of the conversation so far (v4 B, src/conversation.rs).
     conversation: Option<crate::conversation::Log>,
+    /// The last email written whole, for "send it to Ravi" (v4 C, src/send.rs).
+    draft: std::cell::RefCell<Option<String>>,
 }
 
 impl<'a> Kinds<'a> {
@@ -383,7 +385,13 @@ impl<'a> Kinds<'a> {
             tau,
             fallback: None,
             conversation: None,
+            draft: Default::default(),
         }
+    }
+
+    /// The last email written whole; a draft cut off or failed leaves none.
+    pub fn draft(&self) -> Option<String> {
+        self.draft.borrow().clone()
     }
 
     /// Chats carry the conversation so far.
@@ -456,6 +464,10 @@ impl<'a> Kinds<'a> {
             }
         });
         let finished = written.is_ok();
+        if kind == Kind::Email {
+            let whole = written.as_ref().ok().filter(|_| !self.writer.cut());
+            *self.draft.borrow_mut() = whole.cloned();
+        }
         if let (Some(log), Ok(text)) = (chat, &written) {
             log.remember(typed.trim(), text);
         }
@@ -625,6 +637,31 @@ mod tests {
         fn cut(&self) -> bool {
             true
         }
+    }
+
+    #[test]
+    fn only_an_email_written_whole_is_kept_for_sending() {
+        let request = Request::new(1, "write a mail to Ravi");
+        let typed = "write a mail to Ravi";
+        let (k, _) = kinds(Ok(vec![(Kind::Email, 0.9)]), Ok("Subject: Hi"));
+        assert_eq!(k.draft(), None);
+        k.handle(&request, typed, &mut |_| true, None, None);
+        assert_eq!(k.draft().as_deref(), Some("Subject: Hi"));
+        // A later draft that fails leaves none: "send it" must not send an older one.
+        let (k, asked) = kinds(Ok(vec![(Kind::Email, 0.9)]), Err(()));
+        k.handle(&request, typed, &mut |_| true, None, None);
+        assert_eq!(k.draft(), None, "failed");
+        assert_eq!(asked.borrow().len(), 1);
+        let cut = Kinds::new(
+            Box::new(Fixed(Ok(vec![(Kind::Email, 0.9)]))),
+            Box::new(CutShort("Subject: H")),
+            TAU,
+        );
+        cut.handle(&request, typed, &mut |_| true, None, None);
+        assert_eq!(cut.draft(), None, "cut off");
+        let (k, _) = kinds(Ok(vec![(Kind::Chat, 0.9)]), Ok("hello"));
+        k.handle(&request, "hello there", &mut |_| true, None, None);
+        assert_eq!(k.draft(), None, "not an email");
     }
 
     #[test]

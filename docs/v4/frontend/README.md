@@ -39,6 +39,7 @@ photo from the human for any page still wins.
 | Tasks | add a task (plain words become "add task …"), filter All · Today · Upcoming · No date · Overdue, Done, and ⋯: Rename, Change date, Set time, Remove date, Delete (y/N) | `built-tasks.jpg` |
 | Documents (inside Notes, so Home's side bar stays as designed) | the ID cards, policies and bills found in the folder, their expiry dates, days left; Check documents asks y/N before a date is kept; a click opens the file | `built-documents.jpg` |
 | What Kestrel remembers (Settings) | the facts it was told to keep, each with Forget; Forget conversations; shown on the wifi, forgotten only on this device | — |
+| Internet and mail (Settings) | the internet switch (off at install; also on the first open's step 3), the Gmail address and app password (emptied from the page at once; into the OS keyring through `kestrel-net`, in no file), contacts with Add and Remove, "What left this device" newest first with recipient and subject, not the text. Read on the wifi, changed only on this device. Asking "send it to Ravi" shows the exact mail in the y/N question | `built-internet-mail.jpg`, `built-mail-question.jpg` |
 | Calendar | the month with each day's tasks, the chosen day's list and its hours | `built-calendar.jpg`, `built-calendar-dark.jpg` |
 | Notes | the folder's notes with search, one read beside them, Summarize, a question about your notes, New note (y/N) | `built-notes.jpg`, `built-notes-dark.jpg` |
 | Settings | your name, Light / Dark / System, the notes folder, the model and its import from a file, what Kestrel can do here and its speed test | `built-settings.jpg`, `built-settings-model.jpg`, `built-settings-speed.jpg` |
@@ -47,7 +48,8 @@ photo from the human for any page still wins.
 
 Away from Home, Kestrel's answer (and any y/N question) shows in a card at the bottom right; it also
 goes into Recent on Home. The API behind them: `GET`/`POST /api/settings` (the name),
-`GET /api/notes`, `POST /api/notes/read`, `GET`/`POST /api/model/import`, `GET`/`POST /api/speed`.
+`GET /api/notes`, `POST /api/notes/read`, `GET`/`POST /api/model/import`, `GET`/`POST /api/speed`,
+`GET`/`POST /api/outbound`.
 
 ## See it
 
@@ -77,3 +79,7 @@ The speed test, same set-up with Gemma in the data folder and no speeds yet: 17 
 follows the model going and coming back; the loaded writer unloaded for the test, which runs in
 its own process, 12 s here; a second test refused; other requests answered meanwhile; 3 → 9 of 9
 ready, on step 3's list and in Settings).
+Sending mail, same kind of set-up with real Gemma and a stand-in `kestrel-net` (`experiments/v4/fake_net.py`,
+which checks each approval token the way the real one does), then the real one with no password in the
+keyring, so no mail could leave: `experiments/v4/page_steps/outbound.mjs` (asked with the internet off, with
+no account, with no draft; a no; a yes; a stranger; each try in the log; the password in no file).

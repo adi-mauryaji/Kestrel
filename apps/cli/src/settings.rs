@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by";
+pub const USAGE: &str = "usage: kestrel settings              what Kestrel keeps between starts\n       kestrel settings notes DIR     the notes folder `kestrel serve` uses when given none\n       kestrel settings name NAME     the name the page greets you by\n       kestrel settings internet on|off   may Kestrel use the internet (off at install)";
 /// The longest name the page greets.
 const NAME_MAX: usize = 40;
 
@@ -21,6 +21,12 @@ pub struct Settings {
     /// The name the page greets ("Good morning, Aditya").
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Kestrel may use the internet (off at install, blueprint §4.8).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub internet: bool,
+    /// The Gmail address mail leaves from; its app password is in the OS keyring, never here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mail_from: Option<String>,
     #[serde(flatten)]
     pub rest: serde_json::Map<String, serde_json::Value>,
 }
@@ -126,6 +132,13 @@ pub fn run(
             settings.name = Some(name.into());
             save(&at, &settings)?;
             writeln!(out, "the page greets you as {name}")?;
+        }
+        [key, on] if key == "internet" && (on == "on" || on == "off") => {
+            let at = path(data()?);
+            let mut settings = load(&at)?;
+            settings.internet = on == "on";
+            save(&at, &settings)?;
+            writeln!(out, "the internet for Kestrel: {on}")?;
         }
         _ => return Err(USAGE.into()),
     }
@@ -266,6 +279,23 @@ mod tests {
         assert!(change(Some(&d), &serde_json::json!({"notes": "/tmp"})).is_err());
         assert!(change(None, &serde_json::json!({"name": "Asha"})).is_err());
         assert_eq!(name(Some(&d)).as_deref(), Some("Asha"));
+    }
+
+    #[test]
+    fn the_internet_is_off_until_it_is_turned_on_and_kept_with_the_rest() {
+        let d = dir("internet");
+        let mut out = Vec::new();
+        assert!(!load(&path(&d)).unwrap().internet);
+        run(&args(&["name", "Asha"]), Some(&d), &mut out).unwrap();
+        let text = std::fs::read_to_string(path(&d)).unwrap();
+        assert!(!text.contains("internet"), "off is not written: {text}");
+        run(&args(&["internet", "on"]), Some(&d), &mut out).unwrap();
+        assert!(load(&path(&d)).unwrap().internet);
+        assert_eq!(name(Some(&d)).as_deref(), Some("Asha"));
+        run(&args(&["internet", "off"]), Some(&d), &mut out).unwrap();
+        assert!(!load(&path(&d)).unwrap().internet);
+        let e = run(&args(&["internet", "maybe"]), Some(&d), &mut out).unwrap_err();
+        assert_eq!(e.to_string(), USAGE);
     }
 
     #[test]

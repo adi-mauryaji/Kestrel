@@ -159,6 +159,8 @@ impl Memory {
             "tasks": self.tasks()?,
             "documents": documents,
             "conversations": conversations,
+            "contacts": self.contacts()?,
+            "outbound": self.outbound(u32::MAX)?,
         });
         serde_json::to_string_pretty(&all).map_err(|e| KestrelError::Storage(e.to_string()))
     }

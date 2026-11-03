@@ -76,6 +76,8 @@ mod meaning;
 mod measure;
 mod memory;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod net;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod notes_qa;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod notes_save;
@@ -95,6 +97,8 @@ mod remote;
 mod route_items;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod sandbox;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod send;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod service;
 // Without llama nothing serves, so the notes folder is only saved and shown.

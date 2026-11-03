@@ -367,7 +367,7 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
 .detail .wait { color: var(--muted); }
 .detail .trouble { color: var(--trouble); }
 .question { margin: 6px 0 4px; padding: 12px 14px; border-radius: 10px; background: var(--chip); border: 1px solid var(--chip-line); }
-.question p { margin: 0 0 10px; color: var(--ink); }
+.question p { margin: 0 0 10px; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
 .answer { height: 34px; padding: 0 20px; margin-right: 8px; border-radius: 8px; border: 1px solid var(--done-line); background: var(--done-bg); color: var(--done-ink); }
 .answer.yes { background: var(--send); color: var(--send-ink); border-color: transparent; }
 .codebox { position: relative; margin: 6px 0 10px; }
@@ -489,6 +489,13 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 .kept-rows { list-style: none; margin: 12px 0 0; padding: 0; }
 .kept-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 2px; border-top: 1px solid var(--rule); }
 .kept-row span { color: var(--text); overflow-wrap: anywhere; }
+.set h3 { margin: 20px 0 2px; font: 600 18px/1.25 var(--serif); color: var(--ink); }
+.switch { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--text); cursor: pointer; }
+.switch input { width: 18px; height: 18px; accent-color: var(--ink); }
+.set form .field { min-width: 0; flex: 1; }
+.out-row { align-items: baseline; }
+.w-net { margin: 14px 0 0; }
+.out-row small { flex: none; color: var(--muted); font-size: 13.5px; }
 .doc-card { padding: 18px 22px; margin-bottom: 22px; }
 .doc-card[hidden] { display: none; }
 .doc-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -852,6 +859,21 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <p class="hint" id="kept-line">What you told it to keep, here on this device. Say “my sister's name is Meera” or “remember that …”.</p>
           <ul class="kept-rows" id="kept-rows"></ul>
         </section>
+        <section class="card set wide" aria-labelledby="out-h">
+          <div class="card-head"><h2 id="out-h">Internet and mail</h2><label class="switch"><input type="checkbox" id="out-internet"><span id="out-state">Off</span></label></div>
+          <p class="hint" id="out-line" aria-live="polite">Off until you turn it on. Nothing leaves without your yes, and everything that tries is listed below.</p>
+          <h3>Your Gmail</h3>
+          <p class="hint" id="mail-state">Mail is not set up.</p>
+          <form id="mail-form"><label class="sr" for="mail-from">Your Gmail address</label><input class="field" id="mail-from" autocomplete="off" spellcheck="false" placeholder="you@gmail.com"><label class="sr" for="mail-password">Its app password</label><input class="field" id="mail-password" type="password" autocomplete="new-password" placeholder="App password"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="mail-forget" hidden>Forget</button></form>
+          <p class="hint">An app password from your Google account, not your own password. It stays in this device's keyring, in no file of Kestrel's.</p>
+          <h3>Contacts</h3>
+          <p class="hint">Mail goes only to people here. You can also say “add contact Ravi ravi@example.com”.</p>
+          <ul class="kept-rows" id="contact-rows"></ul>
+          <form id="contact-form"><label class="sr" for="contact-name">Name</label><input class="field" id="contact-name" autocomplete="off" placeholder="Name"><label class="sr" for="contact-email">Address</label><input class="field" id="contact-email" autocomplete="off" spellcheck="false" placeholder="name@example.com"><button class="btn" type="submit">Add</button></form>
+          <h3>What left this device</h3>
+          <p class="hint" id="out-empty">Nothing yet.</p>
+          <ul class="kept-rows" id="out-rows"></ul>
+        </section>
         <section class="card set wide" aria-labelledby="can-h">
           <div class="card-head"><h2 id="can-h">On this device</h2><span class="device" id="can-count"></span></div>
           <p class="device" id="device">Loading what Kestrel can do here</p>
@@ -903,6 +925,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
         <p class="hint" id="w-model"></p>
         <form class="import-form" id="w-import-form" hidden><label class="sr" for="w-import-file">The model file</label><input class="field" id="w-import-file" autocomplete="off" spellcheck="false" placeholder="~/Downloads/gemma-4-E2B-it-Q4_0.gguf"><button class="btn primary" type="submit">Import</button></form>
         <p class="hint" id="w-import-hint" aria-live="polite"></p>
+        <label class="switch w-net"><input type="checkbox" id="w-internet"><span>Let Kestrel use the internet, for mail you send. Off is fine: everything else works without it, and nothing leaves without your yes.</span></label>
         <div class="speed" id="w-speed" hidden><button class="btn" type="button" id="w-speed-go">Measure speed</button><p class="hint" id="w-speed-hint" aria-live="polite">How fast this device writes with the model. About a minute.</p></div>
         <button class="btn primary go" type="button" data-next="4">Continue</button>
       </div>
@@ -1809,6 +1832,8 @@ async function loadSettings() {
     if (m.ok && (await m.json()).state === "measuring" && !measuring) watchSpeed($("speed-hint"));
     const k = await api("/api/remembered");
     if (k.ok) drawRemembered(await k.json());
+    const o = await api("/api/outbound");
+    if (o.ok) drawOutbound(await o.json());
   } catch (e) { /* the page reports a stopped service elsewhere */ }
 }
 
@@ -1854,6 +1879,66 @@ async function changeRemembered(change) {
   }
 }
 $("kept-forget").addEventListener("click", () => changeRemembered({ forget_conversations: true }));
+
+// The internet, mail and what left (/api/outbound, v4 C). The password field is emptied at once and
+// never filled again: the page cannot read it back.
+const OUT_LINE = $("out-line").textContent;
+function drawOutbound(o) {
+  $("out-internet").checked = o.internet;
+  $("w-internet").checked = o.internet;
+  $("out-state").textContent = o.internet ? "On" : "Off";
+  $("mail-state").textContent = o.mail ? `Mail leaves from ${o.mail}.` : "Mail is not set up.";
+  $("mail-forget").hidden = !o.mail;
+  $("contact-rows").replaceChildren(...o.contacts.map((c) => {
+    const li = el("li", "kept-row");
+    const remove = el("button", "btn", "Remove");
+    remove.type = "button";
+    remove.addEventListener("click", () => changeOutbound({ remove_contact: c.name }));
+    li.append(el("span", "", `${c.name} · ${c.email}`), remove);
+    return li;
+  }));
+  $("out-empty").hidden = o.log.length > 0;
+  $("out-rows").replaceChildren(...o.log.map((row) => {
+    const li = el("li", "kept-row out-row");
+    const end = row.result ?? "did not finish";
+    li.append(el("span", "", `${row.kind} · ${row.host} · ${row.what}`), el("small", "", `${new Date(row.at * 1000).toLocaleString()} · ${end}`));
+    return li;
+  }));
+}
+async function changeOutbound(change) {
+  try {
+    const r = await api("/api/outbound", change);
+    if (!r.ok) throw new Error(await r.text());
+    drawOutbound(await r.json());
+    $("out-line").textContent = OUT_LINE;
+    $("out-line").classList.remove("bad");
+    return true;
+  } catch (e) {
+    $("out-line").textContent = e.message;
+    $("out-line").classList.add("bad");
+    return false;
+  }
+}
+for (const box of ["out-internet", "w-internet"]) {
+  $(box).addEventListener("change", async (e) => {
+    const on = e.target.checked;
+    if (!(await changeOutbound({ internet: on }))) e.target.checked = !on;
+  });
+}
+$("mail-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const password = $("mail-password").value;
+  $("mail-password").value = "";
+  if (await changeOutbound({ mail: { from: $("mail-from").value, password } })) $("mail-from").value = "";
+});
+$("mail-forget").addEventListener("click", () => changeOutbound({ forget_mail: true }));
+$("contact-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (await changeOutbound({ contact: { name: $("contact-name").value, email: $("contact-email").value } })) {
+    $("contact-name").value = "";
+    $("contact-email").value = "";
+  }
+});
 
 // A model from a file (POST /api/model/import, v4 A3): the service copies it in on its own thread
 // and checks its SHA-256; the page asks how far it is each second until it ends.
@@ -2004,6 +2089,7 @@ $("w-name").addEventListener("submit", async (e) => {
 });
 // Step 3 shows what Settings shows; drawn again when an import or a speed test changes it.
 function drawWelcomeDevice() {
+  api("/api/outbound").then((r) => (r.ok ? r.json() : null)).then((o) => { if (o) $("w-internet").checked = o.internet; }).catch(() => {});
   $("w-device").textContent = lastCaps ? $("device").textContent : "Kestrel is still looking at this device.";
   const list = $("w-cards");
   list.replaceChildren(...[...$("cards").children].map((li) => li.cloneNode(true)));

@@ -112,7 +112,7 @@ pub fn device(
             .map(|m| m.id.clone())
             .collect(),
         writer,
-        internet: false, // the setting comes with the net process (v4 phase C)
+        internet: false, // `context` reads the setting (src/send.rs)
         setup_done: vec![],
     }
 }
@@ -253,6 +253,11 @@ pub fn context(
     };
     let have_file = |f: &str| crate::slot::model_path(root, data, f).is_file();
     let mut device = device(found, &cards, &catalog, &on_path, &have_file);
+    let account = crate::send::account(data);
+    device.internet = account.internet;
+    if account.from.is_some() {
+        device.setup_done.push(crate::send::MAIL_SETUP.into());
+    }
     let config_writer = device.writer.take();
     let model_file = |id: &str| {
         let m = catalog.models.iter().find(|m| m.id == id)?;
@@ -637,6 +642,37 @@ mod tests {
 
     fn repo() -> std::path::PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    #[test]
+    fn sending_mail_waits_for_the_internet_and_the_account_it_is_told_of() {
+        let root = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+        let data = std::env::temp_dir().join(format!("kestrel_caps_mail_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&data);
+        std::fs::create_dir_all(&data).unwrap();
+        let steps = |data: &Path| {
+            let a = assess(root, Some(data), None).unwrap();
+            let card = a.verdicts.iter().find(|v| v.id == "email.send").cloned();
+            let state = card.expect("the mail card").state;
+            let got: Vec<String> = match state {
+                State::Setup { steps } => steps.iter().map(|s| s.en.clone()).collect(),
+                other => vec![format!("{other:?}")],
+            };
+            got
+        };
+        let mentions = |got: &[String], part: &str| got.iter().any(|s| s.contains(part));
+        let got = steps(&data);
+        assert!(mentions(&got, "internet"), "{got:?}");
+        assert!(mentions(&got, "app password"), "{got:?}");
+        let settings = crate::settings::Settings {
+            internet: true,
+            mail_from: Some("me@gmail.com".into()),
+            ..Default::default()
+        };
+        crate::settings::save(&crate::settings::path(&data), &settings).unwrap();
+        let got = steps(&data);
+        assert!(!mentions(&got, "internet"), "{got:?}");
+        assert!(!mentions(&got, "app password"), "{got:?}");
     }
 
     #[test]

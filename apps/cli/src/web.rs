@@ -329,6 +329,7 @@ pub struct Web {
     speed: Box<SpeedTest>,
     documents: Box<Documents>,
     remembered: Box<Remembered>,
+    outbound: Box<Outbound>,
     lan: Option<std::net::Ipv4Addr>,
 }
 
@@ -344,6 +345,9 @@ pub type SpeedTest = dyn Fn(bool) -> Result<Value, String>;
 pub type Documents = dyn Fn() -> Result<Value, String>;
 /// What Kestrel remembers (None), or forgets some of it (Some); or why not.
 pub type Remembered = dyn Fn(Option<&Value>) -> Result<Value, String>;
+/// The internet switch, the mail account, the contacts and what left (None), or a change to them
+/// (Some); or why not.
+pub type Outbound = dyn Fn(Option<&Value>) -> Result<Value, String>;
 
 /// What the API reads and changes beside the requests themselves.
 pub struct Api<'a> {
@@ -356,6 +360,7 @@ pub struct Api<'a> {
     pub speed: &'a SpeedTest,
     pub documents: &'a Documents,
     pub remembered: &'a Remembered,
+    pub outbound: &'a Outbound,
 }
 
 #[cfg(test)]
@@ -372,6 +377,7 @@ impl Api<'static> {
             speed: &|_| Err("no speed test here".into()),
             documents: &|| Err("no documents here".into()),
             remembered: &|_| Err("no memory here".into()),
+            outbound: &|_| Err("no memory here".into()),
         }
     }
 }
@@ -406,6 +412,7 @@ impl Web {
             speed: Box::new(|_| Err("no speed test here".into())),
             documents: Box::new(|| Err("no documents here".into())),
             remembered: Box::new(|_| Err("no memory here".into())),
+            outbound: Box::new(|_| Err("no memory here".into())),
             lan,
         })
     }
@@ -440,6 +447,12 @@ impl Web {
         self
     }
 
+    /// `outbound` answers `GET`/`POST /api/outbound` (v4 C).
+    pub fn with_outbound(mut self, outbound: Box<Outbound>) -> Self {
+        self.outbound = outbound;
+        self
+    }
+
     /// `remembered` answers `GET`/`POST /api/remembered` (v4 B).
     pub fn with_remembered(mut self, remembered: Box<Remembered>) -> Self {
         self.remembered = remembered;
@@ -457,6 +470,7 @@ impl Web {
             speed: &*self.speed,
             documents: &*self.documents,
             remembered: &*self.remembered,
+            outbound: &*self.outbound,
         }
     }
 
@@ -658,6 +672,19 @@ pub fn respond(
         },
         ("GET", "/api/speed") => answered(out, (api.speed)(false), "500 Internal Server Error"),
         // A minute of this device's CPU and memory: never for the page shared on the wifi.
+        ("GET", "/api/outbound") => {
+            answered(out, (api.outbound)(None), "500 Internal Server Error")
+        }
+        ("POST", "/api/outbound") if !from_this_device(req) => reply(
+            out,
+            "403 Forbidden",
+            TEXT,
+            b"the internet and mail are changed on the device Kestrel runs on",
+        ),
+        ("POST", "/api/outbound") => match serde_json::from_slice::<Value>(&req.body) {
+            Ok(change) => answered(out, (api.outbound)(Some(&change)), "400 Bad Request"),
+            Err(_) => reply(out, "400 Bad Request", TEXT, b"send one change as JSON"),
+        },
         ("POST", "/api/speed") if !from_this_device(req) => {
             let why = b"the speed test runs on this device, not from the wifi";
             reply(out, "403 Forbidden", TEXT, why)
@@ -700,7 +727,7 @@ pub fn respond(
             _,
             "/" | "/api/tasks" | "/api/capabilities" | "/api/events" | "/api/settings"
             | "/api/notes" | "/api/notes/read" | "/api/model/import" | "/api/documents"
-            | "/api/remembered" | "/api/speed" | "/api/say" | "/api/answer",
+            | "/api/remembered" | "/api/outbound" | "/api/speed" | "/api/say" | "/api/answer",
         ) => reply(out, "405 Method Not Allowed", TEXT, b"method not allowed"),
         _ => reply(out, "404 Not Found", TEXT, b"not found"),
     }
@@ -1101,6 +1128,11 @@ mod tests {
                 Some(c) if c["forget"] == 1 => Ok(json!({"facts": [], "forgot": 1})),
                 Some(_) => Err("no fact".to_string()),
             },
+            outbound: &|change: Option<&Value>| match change {
+                None => Ok(json!({"internet": false})),
+                Some(c) if c["internet"] == true => Ok(json!({"internet": true})),
+                Some(_) => Err("not a change".to_string()),
+            },
         };
         respond(r, &mut out, &api, &mut say, &mut || page_says).unwrap();
         (String::from_utf8(out).unwrap(), heard)
@@ -1194,6 +1226,30 @@ mod tests {
         let body = r#"{"forget":1}"#;
         let from_phone = req(&format!(
             "POST /api/remembered HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
+             X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        ));
+        let (out, _) = answer_to(&from_phone, None);
+        assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+    }
+
+    #[test]
+    fn the_internet_and_mail_are_read_anywhere_and_changed_on_this_device_only() {
+        let (out, _) = answer_to(&get("/api/outbound"), None);
+        assert!(out.ends_with("{\"internet\":false}"), "{out}");
+        let (out, _) = answer_to(&post("/api/outbound", r#"{"internet":true}"#), None);
+        assert!(out.ends_with("{\"internet\":true}"), "{out}");
+        let (out, _) = answer_to(&post("/api/outbound", r#"{"other":1}"#), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        // What was sent is not said back: it may hold the password.
+        let (out, _) = answer_to(&post("/api/outbound", "password hunter2 not json"), None);
+        assert!(
+            out.starts_with("HTTP/1.1 400") && !out.contains("hunter2"),
+            "{out}"
+        );
+        let body = r#"{"internet":true}"#;
+        let from_phone = req(&format!(
+            "POST /api/outbound HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
              X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
             body.len()
         ));

@@ -115,6 +115,18 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// "send it to Ravi", "add contact ..." (src/send.rs).
+    pub fn send_or_keep(
+        &mut self,
+        sender: &crate::send::Sender,
+        said: crate::send::Said,
+        draft: Option<&str>,
+        now: i64,
+        confirm: &mut dyn FnMut(&str) -> bool,
+    ) -> Vec<String> {
+        sender.handle(said, draft, self.backend.memory_mut(), now, confirm)
+    }
+
     /// What the person says about themselves, and asks back (src/facts.rs); None: not that.
     pub fn about_the_person(&mut self, text: &str, now: i64) -> Option<Vec<String>> {
         use kestrel_memory::{Draft, Filter, Kind, Source};

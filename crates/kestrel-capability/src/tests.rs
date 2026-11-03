@@ -386,7 +386,7 @@ fn the_shipped_cards_and_catalog_load_and_agree() {
     let (cards, catalog) = shipped();
     check(&cards, &catalog).unwrap();
     assert_eq!(cards[0].id, "tasks", "file-name order");
-    assert_eq!(cards.last().unwrap().id, "code.check");
+    assert_eq!(cards.last().unwrap().id, "email.send");
     assert!(
         cards
             .iter()
@@ -415,8 +415,27 @@ fn the_shipped_cards_on_this_laptop_and_on_a_fresh_windows_laptop() {
     };
     let m = Measured::from([(E2B.to_string(), speed(12.8, 58.5))]);
     for v in evaluate(&cards, &catalog, &here, &m) {
-        assert_eq!(v.state, ready(false), "{}", v.id);
+        if v.id == "email.send" {
+            // Sending waits for the two things only the person can do.
+            assert_eq!(
+                en(&v.state),
+                [
+                    "switch internet features on (Settings)",
+                    "add your Gmail address and app password (Settings)"
+                ]
+            );
+        } else {
+            assert_eq!(v.state, ready(false), "{}", v.id);
+        }
     }
+    let set_up = Device {
+        internet: true,
+        setup_done: strings(&["gmail.app_password"]),
+        ..here
+    };
+    let sends = evaluate(&cards, &catalog, &set_up, &m);
+    let sends = sends.iter().find(|v| v.id == "email.send").unwrap();
+    assert_eq!(sends.state, ready(false));
     // The installers bring the code sandbox's Python: code runs on every OS since A4.
     let fresh = Device {
         models: strings(&[E5]),

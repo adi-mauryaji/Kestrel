@@ -206,7 +206,7 @@ Prompt = fixed prefix (KV state reused, v3's `prime_cached`) + facts the person 
 Test: in a 20+ turn conversation, a fact from turn 2 is still used correctly, and every notes claim is grounded.
 
 ### 4.8 Network process `kestrel-net` (new binary)
-- **Start:** started by the core on demand and stopped when idle. It talks JSON lines over stdio, like v3's model worker.
+- **Start:** started by the core for each request and gone after it, so nothing network-shaped stays running. It talks JSON lines over stdio, like v3's model worker.
 - **Allowlisted operations:**
   - `search(query)` through a **search provider slot**: SearXNG (ADR-049) or a provider the user configures
   - `fetch(url)`

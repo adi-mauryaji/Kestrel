@@ -652,6 +652,20 @@ fn open_web(
             Some(c) => crate::facts::change(&mut db, c, now),
         }
     };
+    // The internet switch, the mail account, the contacts and what left (src/send.rs).
+    let outbound_db = std::cell::RefCell::new(crate::memory::open(memory)?);
+    let outbound_data =
+        kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let net = crate::net::Net::beside_this_program()?;
+    let outbound = move |change: Option<&serde_json::Value>| {
+        let mut db = outbound_db.try_borrow_mut().map_err(|e| e.to_string())?;
+        match change {
+            None => {
+                crate::send::page_json(&db, outbound_data.as_deref()).map_err(|e| e.to_string())
+            }
+            Some(c) => crate::send::change(&mut db, &net, outbound_data.as_deref(), c),
+        }
+    };
     let web = crate::web::Web::bind(port, token.clone(), Box::new(tasks), lan)?
         .with_capabilities(Box::new(capabilities))
         .with_events(Box::new(events))
@@ -659,7 +673,8 @@ fn open_web(
         .with_notes(Box::new(notes))
         .with_import(Box::new(import))
         .with_documents(Box::new(documents))
-        .with_remembered(Box::new(remembered));
+        .with_remembered(Box::new(remembered))
+        .with_outbound(Box::new(outbound));
     let var = |k: &str| std::env::var_os(k);
     crate::web::write_private(
         &crate::web::url_file(&var),
@@ -766,6 +781,12 @@ pub fn serve(
     let act = act.with_summarizer(Box::new(SharedRemote(remote.clone())));
     let mut assistant =
         crate::assistant::Assistant::new(cascade, log, personal, Some(act), sink, true);
+    // v4: a draft leaves after a yes, through kestrel-net; the settings are read at each send.
+    let data = kestrel_platform::data_dir(Os::current(), &kestrel_platform::env);
+    assistant = assistant.with_sender(crate::send::Sender::new(
+        Box::new(crate::net::Net::beside_this_program()?),
+        Box::new(move || crate::send::account(data.as_deref())),
+    ));
     // v3 (ADR-037): the kind head, once experiments/tier3/train.py has made it.
     let mut skills = false;
     match models.kinds_tier() {

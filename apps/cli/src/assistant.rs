@@ -29,6 +29,7 @@ pub struct Assistant<'a> {
     n: u64,
     kinds: Option<crate::kinds::Kinds<'a>>,
     meaning: Option<Box<dyn crate::meaning::Meaning + 'a>>,
+    sender: Option<crate::send::Sender>,
 }
 
 impl<'a> Assistant<'a> {
@@ -51,7 +52,14 @@ impl<'a> Assistant<'a> {
             n: 0,
             kinds: None,
             meaning: None,
+            sender: None,
         }
+    }
+
+    /// v4: a draft can leave, after a yes, through `kestrel-net` (src/send.rs).
+    pub fn with_sender(mut self, sender: crate::send::Sender) -> Self {
+        self.sender = Some(sender);
+        self
     }
 
     /// v3 (ADR-039): notes searches also find notes by meaning.
@@ -113,6 +121,13 @@ impl<'a> Assistant<'a> {
             && let Some(asked) = crate::documents::parse(text)
         {
             return act.about_documents(asked, now, confirm);
+        }
+        // v4: "send it to Ravi": the last draft leaves after a yes, through kestrel-net (src/send.rs).
+        if let (Some(sender), Some(act)) = (self.sender.as_ref(), self.act.as_mut())
+            && let Some(said) = crate::send::parse(text)
+        {
+            let draft = self.kinds.as_ref().and_then(|k| k.draft());
+            return act.send_or_keep(sender, said, draft.as_deref(), now, confirm);
         }
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
@@ -315,6 +330,61 @@ mod tests {
                 ungrounded: None,
             })
         }
+    }
+
+    #[test]
+    fn a_draft_goes_to_a_contact_after_a_yes_and_each_try_is_in_the_log() {
+        use crate::send::{Account, Sender, fake::Fake};
+        use kestrel_net_proto::Op;
+        let (a, d) = assistant("send", true);
+        let f = Fake::default();
+        let account = || Account {
+            internet: true,
+            from: Some("me@example.com".into()),
+            name: None,
+        };
+        let mut a = a
+            .with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU))
+            .with_sender(Sender::new(Box::new(f.clone()), Box::new(account)));
+        let out = a.handle("add contact Ravi ravi@example.com", &mut |q| panic!("{q}"));
+        assert!(out.last().unwrap().contains("ravi@example.com"), "{out:?}");
+        let out = a.handle("send it to Ravi", &mut |q| panic!("{q}"));
+        assert!(out.last().unwrap().contains("no draft"), "{out:?}");
+        a.handle("draft a mail to Ravi: Leave on Friday", &mut yes());
+        let mut shown = String::new();
+        let out = a.handle("ravi ko bhej do", &mut |q| {
+            shown = q.to_string();
+            false
+        });
+        assert_eq!(out, ["Not sent."]);
+        assert!(shown.contains("To: ravi@example.com"), "{shown}");
+        assert!(
+            shown.contains("email draft of: draft a mail to Ravi"),
+            "{shown}"
+        );
+        assert!(f.asked.borrow().is_empty());
+        let out = a.handle("send it to ravi", &mut yes());
+        assert!(out.last().unwrap().contains("Sent to Ravi"), "{out:?}");
+        assert_eq!(f.asked.borrow().len(), 1);
+        assert!(matches!(f.asked.borrow()[0], Op::SmtpSend { .. }));
+        let log = kestrel_memory::Memory::open(&d.join("memory.db"))
+            .unwrap()
+            .outbound(9)
+            .unwrap();
+        assert_eq!(log.len(), 2);
+        assert_eq!(log[0].result.as_deref(), Some("sent"));
+        assert!(!log[1].approved);
+    }
+
+    #[test]
+    fn without_a_way_out_asking_to_send_takes_the_usual_path() {
+        let (mut a, _) = assistant("no_sender", true);
+        let out = a.handle("send it to Ravi", &mut yes());
+        assert!(
+            !out.iter()
+                .any(|l| l.contains("no draft") || l.contains("Sent")),
+            "{out:?}"
+        );
     }
 
     #[test]
