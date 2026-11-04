@@ -1888,6 +1888,7 @@ async function saveName(name, hint) {
 $("name-form").addEventListener("submit", (e) => { e.preventDefault(); saveName($("name-input").value, $("name-hint")); });
 
 // What Kestrel remembers (/api/remembered, v4 B): each fact can go, and so can the conversations.
+const KEPT_LINE = $("kept-line").textContent;
 function drawRemembered(kept) {
   $("kept-forget").hidden = !kept.turns;
   $("kept-forget").textContent = `Forget conversations (${kept.turns} turns)`;
@@ -1905,6 +1906,7 @@ async function changeRemembered(change) {
     const r = await api("/api/remembered", change);
     if (!r.ok) throw new Error(await r.text());
     drawRemembered(await r.json());
+    $("kept-line").textContent = KEPT_LINE;
     $("kept-line").classList.remove("bad");
   } catch (e) {
     $("kept-line").textContent = e.message;
