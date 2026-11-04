@@ -30,7 +30,8 @@ jobs:
       - run: scripts/fetch_python_wasi.sh
         shell: bash
       - run: cargo test -p kestrel-sandbox -- --include-ignored --test-threads=1
-      - run: cargo test -p kestrel-cli -- --include-ignored sandbox:: code::
+      # Quoted: an unquoted ": " here breaks YAML, and GitHub then runs nothing at all.
+      - run: "cargo test -p kestrel-cli -- --include-ignored sandbox:: code::"
 
   llama:
     strategy:
