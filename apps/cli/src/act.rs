@@ -118,6 +118,11 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// One more of `what` in the daily counts (kestrel-memory's usage.rs).
+    pub fn count_use(&mut self, now: i64, what: &'static str) {
+        self.backend.memory_mut().count_use(now, what);
+    }
+
     /// What left this device since `at`, oldest first: kind, host, what (src/why.rs).
     pub fn left_since(&self, at: i64) -> Vec<(String, String, String)> {
         let rows = self

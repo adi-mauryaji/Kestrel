@@ -331,6 +331,7 @@ pub struct Web {
     speed: Box<SpeedTest>,
     documents: Box<Documents>,
     remembered: Box<Remembered>,
+    usage: Box<Usage>,
     outbound: Box<Outbound>,
     download: Box<ModelDownload>,
     lan: Option<std::net::Ipv4Addr>,
@@ -348,6 +349,8 @@ pub type SpeedTest = dyn Fn(bool) -> Result<Value, String>;
 pub type Documents = dyn Fn() -> Result<Value, String>;
 /// What Kestrel remembers (None), or forgets some of it (Some); or why not.
 pub type Remembered = dyn Fn(Option<&Value>) -> Result<Value, String>;
+/// The daily counts for a pilot (None), or forgets them (Some); or why not.
+pub type Usage = dyn Fn(Option<&Value>) -> Result<Value, String>;
 /// Where a model's download stands and what could come down (None), or starts or stops it (Some); or
 /// why not.
 pub type ModelDownload = dyn Fn(Option<&Value>) -> Result<Value, String>;
@@ -366,6 +369,7 @@ pub struct Api<'a> {
     pub speed: &'a SpeedTest,
     pub documents: &'a Documents,
     pub remembered: &'a Remembered,
+    pub usage: &'a Usage,
     pub outbound: &'a Outbound,
     pub download: &'a ModelDownload,
 }
@@ -384,6 +388,7 @@ impl Api<'static> {
             speed: &|_| Err("no speed test here".into()),
             documents: &|| Err("no documents here".into()),
             remembered: &|_| Err("no memory here".into()),
+            usage: &|_| Err("no memory here".into()),
             outbound: &|_| Err("no memory here".into()),
             download: &|_| Err("no download here".into()),
         }
@@ -431,6 +436,7 @@ impl Web {
             speed: Box::new(|_| Err("no speed test here".into())),
             documents: Box::new(|| Err("no documents here".into())),
             remembered: Box::new(|_| Err("no memory here".into())),
+            usage: Box::new(|_| Err("no memory here".into())),
             outbound: Box::new(|_| Err("no memory here".into())),
             download: Box::new(|_| Err("no download here".into())),
             lan,
@@ -485,6 +491,12 @@ impl Web {
         self
     }
 
+    /// `usage` answers `GET`/`POST /api/usage` (v4, the pilot's counts).
+    pub fn with_usage(mut self, usage: Box<Usage>) -> Self {
+        self.usage = usage;
+        self
+    }
+
     fn api(&self) -> Api<'_> {
         Api {
             tasks: &*self.tasks,
@@ -496,6 +508,7 @@ impl Web {
             speed: &*self.speed,
             documents: &*self.documents,
             remembered: &*self.remembered,
+            usage: &*self.usage,
             outbound: &*self.outbound,
             download: &*self.download,
         }
@@ -722,6 +735,17 @@ pub fn respond(
             Ok(change) => answered(out, (api.remembered)(Some(&change)), "400 Bad Request"),
             Err(_) => reply(out, "400 Bad Request", TEXT, b"send JSON"),
         },
+        ("GET", "/api/usage") => answered(out, (api.usage)(None), "500 Internal Server Error"),
+        ("POST", "/api/usage") if !from_this_device(req) => reply(
+            out,
+            "403 Forbidden",
+            TEXT,
+            b"forgotten on this device, not from the wifi",
+        ),
+        ("POST", "/api/usage") => match serde_json::from_slice::<Value>(&req.body) {
+            Ok(change) => answered(out, (api.usage)(Some(&change)), "400 Bad Request"),
+            Err(_) => reply(out, "400 Bad Request", TEXT, b"send JSON"),
+        },
         ("GET", "/api/speed") => answered(out, (api.speed)(false), "500 Internal Server Error"),
         // A minute of this device's CPU and memory: never for the page shared on the wifi.
         ("GET", "/api/outbound") => {
@@ -788,6 +812,7 @@ pub fn respond(
             | "/api/model/download"
             | "/api/documents"
             | "/api/remembered"
+            | "/api/usage"
             | "/api/outbound"
             | "/api/speed"
             | "/api/say"
@@ -1216,6 +1241,11 @@ mod tests {
                 Some(c) if c["forget"] == 1 => Ok(json!({"facts": [], "forgot": 1})),
                 Some(_) => Err("no fact".to_string()),
             },
+            usage: &|change: Option<&Value>| match change {
+                None => Ok(json!({"days": []})),
+                Some(c) if c["forget"] == true => Ok(json!({"days": [], "forgot": true})),
+                Some(_) => Err("send forget".to_string()),
+            },
             outbound: &|change: Option<&Value>| match change {
                 None => Ok(json!({"internet": false})),
                 Some(c) if c["internet"] == true => Ok(json!({"internet": true})),
@@ -1324,6 +1354,30 @@ mod tests {
         ));
         let (out, _) = answer_to(&from_phone, None);
         assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+    }
+
+    #[test]
+    fn the_counts_are_shown_and_forgotten_on_this_device_only() {
+        let (out, _) = answer_to(&get("/api/usage"), None);
+        assert!(out.ends_with("{\"days\":[]}"), "{out}");
+        let (out, _) = answer_to(&post("/api/usage", r#"{"forget":true}"#), None);
+        assert!(out.contains("\"forgot\":true"), "{out}");
+        let (out, _) = answer_to(&post("/api/usage", r#"{"forget":false}"#), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let (out, _) = answer_to(&post("/api/usage", "not json"), None);
+        assert!(out.starts_with("HTTP/1.1 400"), "{out:.80}");
+        let body = r#"{"forget":true}"#;
+        let from_phone = req(&format!(
+            "POST /api/usage HTTP/1.1\r\nHost: 192.168.1.5:7811\r\n\
+             X-Kestrel-Token: s3cret\r\nContent-Length: {}\r\n\r\n{body}",
+            body.len()
+        ));
+        let (out, _) = answer_to(&from_phone, None);
+        assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+        let put =
+            req("PUT /api/usage HTTP/1.1\r\nHost: 127.0.0.1\r\nX-Kestrel-Token: s3cret\r\n\r\n");
+        let (out, _) = answer_to(&put, None);
+        assert!(out.starts_with("HTTP/1.1 405"), "{out:.80}");
     }
 
     #[test]

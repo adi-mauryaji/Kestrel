@@ -184,8 +184,10 @@ pub fn ring(
         None => "Good morning".to_string(),
     };
     send(&title, &brief.lines.join("\n"))?;
+    memory.count_use(now, "brief_rang");
     if let Some(reminder) = &brief.alert {
         send("The weather today", reminder)?;
+        memory.count_use(now, "weather_reminder_rang");
     }
     Ok(true)
 }
@@ -472,6 +474,10 @@ mod tests {
         assert_eq!(shown[1].0, "The weather today");
         assert!(shown[1].1.contains("umbrella"), "{shown:?}");
         assert_eq!(m.outbound(9).unwrap().len(), 2, "one forecast a day");
+        let rows = m.usage().unwrap();
+        let n = |what: &str| rows.iter().find(|r| r.what == what).map(|r| r.n);
+        assert_eq!(n("brief_rang"), Some(2));
+        assert_eq!(n("weather_reminder_rang"), Some(2));
     }
 
     #[test]

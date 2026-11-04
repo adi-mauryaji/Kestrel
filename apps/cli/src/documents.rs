@@ -450,6 +450,7 @@ pub fn ring(
             _ => format!("Your {} expires in {left} days", r.kind),
         };
         send(&title, &format!("{}: expiry date {}", r.path, long(d)))?;
+        memory.count_use(now, "document_reminder_rang");
         memory.mark_document_reminded(&r.path, 30, now)?;
         if week {
             memory.mark_document_reminded(&r.path, 7, now)?;
@@ -775,6 +776,9 @@ mod tests {
         assert_eq!(late.len(), 1, "within 7 days: one reminder, not two");
         assert!(late[0].0.contains("3 days"), "{late:?}");
         assert!(rung(&mut m, "2029-03-09").is_empty());
+        let rows = m.usage().unwrap();
+        let rang = rows.iter().find(|r| r.what == "document_reminder_rang");
+        assert_eq!(rang.map(|r| r.n), Some(1), "not the one that failed");
         let mut past = Memory::in_memory().unwrap();
         past.sync_documents(&found_in(&folder())).unwrap();
         past.answer_document("passport.txt", Some("2029-03-11"))

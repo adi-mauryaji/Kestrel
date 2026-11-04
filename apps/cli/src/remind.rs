@@ -145,6 +145,7 @@ pub fn ring(
     send(&title, &body)?;
     for t in &ringing {
         memory.mark_notified(t.id, now)?;
+        memory.count_use(now, "reminder_rang");
     }
     Ok(ringing.iter().map(|t| t.id).collect())
 }
@@ -322,6 +323,9 @@ mod tests {
                 "Kestrel reminder | 18:00 call asha"
             ]
         );
+        let rows = m.usage().unwrap();
+        let rang = rows.iter().find(|r| r.what == "reminder_rang");
+        assert_eq!(rang.map(|r| r.n), Some(3), "not the one that failed");
     }
 
     #[test]

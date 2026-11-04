@@ -286,6 +286,7 @@ impl Memory {
             .and_then(|_| conn.execute_batch(crate::documents::SCHEMA))
             .and_then(|_| conn.execute_batch(crate::conversations::SCHEMA))
             .and_then(|_| conn.execute_batch(crate::outbound::SCHEMA))
+            .and_then(|_| conn.execute_batch(crate::usage::SCHEMA))
             .and_then(|_| conn.pragma_update(None, "user_version", SCHEMA_VERSION))
             .map_err(storage)?;
         Ok(Self { conn })

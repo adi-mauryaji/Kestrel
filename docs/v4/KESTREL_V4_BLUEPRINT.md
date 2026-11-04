@@ -266,7 +266,7 @@ Before it replaces v3's sandbox, it must reach the same result as bubblewrap on 
 - `GET` / `POST /api/settings`
 
 ### 4.12 Pilot telemetry
-v3's content-free records (`telemetry.rs`) gain daily counters: skills used, reminders, documents, capability states. They are stored locally only. A participant may export the counts file and send it. Nothing is sent automatically. Participants give written consent if the pilot feeds the paper.
+Daily counters beside v3's content-free records: skills used, reminders, tasks and documents added (table `usage` in the memory file; kestrel-memory's `usage.rs`). A counter's name is a `&'static str`, so nothing a person says can reach it. They are stored locally only. Settings ("How Kestrel is used") shows them whole, with each capability's state as it is at that moment and nothing about the device: a participant copies that text and sends it, or forgets the counts. Nothing is sent automatically. Participants give written consent if the pilot feeds the paper. Steps, consent and survey: docs/v4/PILOT.md.
 
 ---
 

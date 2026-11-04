@@ -12,6 +12,7 @@ pub mod retrieval;
 pub mod secrets;
 pub mod store;
 pub mod tasks;
+pub mod usage;
 
 pub use context::Context;
 pub use conversations::{Role, Turn};
@@ -20,3 +21,4 @@ pub use outbound::{Contact, OutboundRow};
 pub use retrieval::{Scored, Weights};
 pub use store::{Draft, Event, Filter, Item, Kind, Memory, Proposed, Source};
 pub use tasks::TaskRow;
+pub use usage::UsageRow;

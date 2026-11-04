@@ -35,6 +35,8 @@ pub struct Assistant<'a> {
     why: Option<crate::why::Why>,
     /// The last research, until "save research" keeps it (src/research.rs).
     research: Option<String>,
+    /// The way this request took, for the daily counts (kestrel-memory's usage.rs).
+    took: Option<&'static str>,
 }
 
 impl<'a> Assistant<'a> {
@@ -61,6 +63,7 @@ impl<'a> Assistant<'a> {
             online: None,
             why: None,
             research: None,
+            took: None,
         }
     }
 
@@ -112,6 +115,26 @@ impl<'a> Assistant<'a> {
         confirm: &mut dyn FnMut(&str) -> bool,
         part: Option<&mut dyn FnMut(&str)>,
     ) -> Vec<String> {
+        self.took = None;
+        let lines = self.answer(text, confirm, part);
+        if let Some(act) = self.act.as_mut() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |d| d.as_secs() as i64);
+            act.count_use(now, "request");
+            if let Some(took) = self.took {
+                act.count_use(now, took);
+            }
+        }
+        lines
+    }
+
+    fn answer(
+        &mut self,
+        text: &str,
+        confirm: &mut dyn FnMut(&str) -> bool,
+        part: Option<&mut dyn FnMut(&str)>,
+    ) -> Vec<String> {
         self.n += 1;
         let n = self.n;
         let mut out = Vec::new();
@@ -126,6 +149,7 @@ impl<'a> Assistant<'a> {
         let now = i64::try_from(unix_s).unwrap_or(i64::MAX);
         // v4.1: "why this answer": told from what happened, and it leaves the last answer's story alone.
         if crate::why::parse(text) {
+            self.took = Some("why");
             let left = match (&self.why, &self.act) {
                 (Some(why), Some(act)) => act.left_since(why.at),
                 _ => Vec::new(),
@@ -137,6 +161,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_ref()
             && let Some(asked) = crate::notes_save::parse(text)
         {
+            self.took = Some("note_saved");
             self.why = Some(Why::new(
                 now,
                 "By rules: you asked to save text as a note, no model.",
@@ -147,6 +172,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_mut()
             && let Some(asked) = crate::documents::parse(text)
         {
+            self.took = Some("documents");
             self.why = Some(Why::new(
                 now,
                 "By rules, from the documents in your notes folder, no model.",
@@ -157,6 +183,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_mut()
             && let Some(path) = crate::ticket::parse(text)
         {
+            self.took = Some("ticket");
             self.why = Some(Why::new(
                 now,
                 "By rules: the journey was read from the PDF's text, no model.",
@@ -167,6 +194,7 @@ impl<'a> Assistant<'a> {
         if let (Some(sender), Some(act)) = (self.sender.as_ref(), self.act.as_mut())
             && let Some(said) = crate::send::parse(text)
         {
+            self.took = Some("mail");
             let draft = self.kinds.as_ref().and_then(|k| k.draft());
             self.why = Some(Why::new(
                 now,
@@ -178,6 +206,13 @@ impl<'a> Assistant<'a> {
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(asked) = crate::online::parse(text)
         {
+            self.took = Some(match asked {
+                crate::online::Asked::Weather(_) => "weather",
+                crate::online::Asked::News => "news",
+                crate::online::Asked::SetPlace(_) | crate::online::Asked::AddFeed(_) => {
+                    "online_choice"
+                }
+            });
             self.why = Some(Why::new(
                 now,
                 "By rules: this came from the services you chose, shown as they said it, no model.",
@@ -188,6 +223,7 @@ impl<'a> Assistant<'a> {
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && crate::brief::parse(text)
         {
+            self.took = Some("brief");
             self.why = Some(Why::new(
                 now,
                 "By rules: your tasks and documents, and what you chose from the internet, no model.",
@@ -198,6 +234,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_ref()
             && crate::research::asks_to_save(text)
         {
+            self.took = Some("research_saved");
             return match self.research.take() {
                 Some(note) => act.save_note(crate::notes_save::Asked::Save(note), now, confirm),
                 None => vec!["There is no research to save yet.".to_string()],
@@ -206,6 +243,7 @@ impl<'a> Assistant<'a> {
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(topic) = crate::research::parse(text)
         {
+            self.took = Some("research");
             self.why = Some(Why::new(
                 now,
                 "Your words went to your search provider, and the model read each page on its own, with nothing of yours beside it.",
@@ -219,6 +257,7 @@ impl<'a> Assistant<'a> {
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(query) = crate::web_search::parse(text)
         {
+            self.took = Some("web_search");
             self.why = Some(Why::new(
                 now,
                 "Your words went to your search provider, and the model answered only from what came back.",
@@ -229,6 +268,7 @@ impl<'a> Assistant<'a> {
         // The request routed is the one with the user's aliases resolved.
         let req = match self.personal.before(&said, now, confirm) {
             Before::Correction(lines) => {
+                self.took = Some("correction");
                 self.why = Some(Why::new(
                     now,
                     "By rules: a correction or a word you taught, no model.",
@@ -249,6 +289,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_mut()
             && let Some(cmd) = crate::commands::parse(&req.text, act.today(now))
         {
+            self.took = Some("task_command");
             out.extend(act.command(&cmd, now));
             self.why = Some(Why::new(now, "By rules: a task command, no model."));
             return out;
@@ -257,6 +298,7 @@ impl<'a> Assistant<'a> {
         if let Some(act) = self.act.as_mut()
             && let Some(lines) = act.about_the_person(text, now)
         {
+            self.took = Some("fact");
             out.extend(lines);
             self.why = Some(Why::new(
                 now,
@@ -269,6 +311,11 @@ impl<'a> Assistant<'a> {
         if let Some(kinds) = self.kinds.as_ref()
             && let Some(lines) = kinds.handle(&req, text, confirm, part, meaning)
         {
+            self.took = Some(
+                kinds
+                    .took()
+                    .map_or("new_conversation", crate::kinds::Kind::label),
+            );
             out.extend(lines);
             let way = kinds
                 .why()
@@ -279,6 +326,10 @@ impl<'a> Assistant<'a> {
         let t0 = Instant::now();
         let (outcome, trace) = self.cascade.route(&req);
         let ms = t0.elapsed().as_secs_f64() * 1e3;
+        self.took = Some(match &outcome {
+            Outcome::Accepted(p) => p.intent.label(),
+            Outcome::Abstained { .. } => "not_understood",
+        });
         let accept = self.cascade.config().accept;
         let report = render(&req, &self.log.borrow(), &outcome, &trace, accept, ms);
         if !self.brief {
@@ -361,6 +412,7 @@ mod tests {
             let intent = match req.text.split(' ').next() {
                 Some("remind") => Intent::CreateTask,
                 Some("search") => Intent::SearchNotes,
+                Some("shrug") => return Ok(vec![]),
                 _ => Intent::Chitchat,
             };
             Ok(vec![(intent, 0.99)])
@@ -509,6 +561,49 @@ mod tests {
             !out.iter().any(|l| l.contains("internet is off")),
             "{out:?}"
         );
+    }
+
+    #[test]
+    fn each_request_is_counted_by_the_way_it_took_and_nothing_of_what_was_said() {
+        let (a, d) = assistant("usage", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        for text in [
+            "remind me to call CANARY-7f3a tomorrow",
+            "show my tasks",
+            "draft a mail to Asha: CANARY-7f3a leave on Friday",
+            "my sister's name is CANARY-7f3a",
+            "why this answer",
+        ] {
+            a.handle(text, &mut yes());
+        }
+        let m = crate::memory::open(&d.join("memory.db")).unwrap();
+        let rows = m.usage().unwrap();
+        let n = |what: &str| rows.iter().find(|r| r.what == what).map_or(0, |r| r.n);
+        for (what, times) in [
+            ("request", 5),
+            ("create_task", 1),
+            ("task_added", 1),
+            ("task_command", 1),
+            ("email", 1),
+            ("fact", 1),
+            ("why", 1),
+        ] {
+            assert_eq!(n(what), times, "{what}: {rows:?}");
+        }
+        let all = format!("{rows:?}");
+        for said in ["CANARY", "asha", "Asha", "sister"] {
+            assert!(!all.contains(said), "{said}: {all}");
+        }
+    }
+
+    #[test]
+    fn a_request_nothing_could_place_is_counted_as_that() {
+        let (mut a, d) = assistant("usage_none", true);
+        a.handle("shrug at this", &mut yes());
+        let m = crate::memory::open(&d.join("memory.db")).unwrap();
+        let rows = m.usage().unwrap();
+        let said: Vec<(&str, i64)> = rows.iter().map(|r| (r.what.as_str(), r.n)).collect();
+        assert_eq!(said, [("not_understood", 1), ("request", 1)]);
     }
 
     #[test]

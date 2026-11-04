@@ -49,12 +49,14 @@ impl Memory {
     /// changed file asked about again.
     pub fn sync_documents(&mut self, found: &[FoundDocument]) -> Result<(), KestrelError> {
         let tx = self.conn.transaction().map_err(storage)?;
+        let added;
         {
             let mut known = tx.prepare("SELECT path FROM documents").map_err(storage)?;
             let paths: Vec<String> = known
                 .query_map([], |r| r.get(0))
                 .and_then(Iterator::collect)
                 .map_err(storage)?;
+            added = found.iter().filter(|f| !paths.contains(&f.path)).count();
             for gone in paths
                 .iter()
                 .filter(|p| !found.iter().any(|f| &f.path == *p))
@@ -78,7 +80,11 @@ impl Memory {
                 .map_err(storage)?;
             }
         }
-        tx.commit().map_err(storage)
+        tx.commit().map_err(storage)?;
+        if added > 0 {
+            self.count_today("document_added", added as i64);
+        }
+        Ok(())
     }
 
     /// Every document, by path.

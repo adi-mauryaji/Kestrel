@@ -628,6 +628,23 @@ fn open_web(
     // What Kestrel can do here, probed again at each ask (a speed test may have run since).
     let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
     let config = config.to_string_lossy().into_owned();
+    // The daily counts for a pilot (src/usage.rs), with each capability's state as it is now.
+    let (usage_data, usage_config) = (data.clone(), config.clone());
+    let usage_db = std::cell::RefCell::new(crate::memory::open(memory)?);
+    let usage = move |change: Option<&serde_json::Value>| {
+        let mut db = usage_db.try_borrow_mut().map_err(|e| e.to_string())?;
+        let cards = crate::capabilities::assess(
+            std::path::Path::new("."),
+            usage_data.as_deref(),
+            Some(&usage_config),
+        )
+        .map(|a| crate::capabilities::to_json(&a))
+        .ok();
+        match change {
+            None => crate::usage::page_json(&db, cards.as_ref()),
+            Some(c) => crate::usage::change(&mut db, c, cards.as_ref()),
+        }
+    };
     let capabilities = move || {
         crate::capabilities::assess(std::path::Path::new("."), data.as_deref(), Some(&config))
             .map(|a| crate::capabilities::to_json(&a))
@@ -762,6 +779,7 @@ fn open_web(
         .with_import(Box::new(import))
         .with_documents(Box::new(documents))
         .with_remembered(Box::new(remembered))
+        .with_usage(Box::new(usage))
         .with_outbound(Box::new(outbound))
         .with_download(Box::new(download));
     let var = |k: &str| std::env::var_os(k);

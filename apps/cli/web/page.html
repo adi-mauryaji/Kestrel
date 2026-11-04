@@ -487,6 +487,9 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
 /* Notes: the folder's notes, one read beside them. */
 #kept-forget { margin-left: auto; }
 #kept-forget[hidden] { display: none; }
+#usage-forget { margin-left: auto; }
+#usage-forget[hidden] { display: none; }
+.usage-text { margin: 12px 0; padding: 14px 16px; max-height: 280px; overflow: auto; border-radius: 10px; background: var(--chip); border: 1px solid var(--chip-line); font: 13.5px/1.5 ui-monospace, "Hack", monospace; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
 .kept-rows { list-style: none; margin: 12px 0 0; padding: 0; }
 .kept-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 2px; border-top: 1px solid var(--rule); }
 .kept-row span { color: var(--text); overflow-wrap: anywhere; }
@@ -863,6 +866,12 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
           <div class="card-head"><h2 id="kept-h">What Kestrel remembers</h2><button class="btn" type="button" id="kept-forget">Forget conversations</button></div>
           <p class="hint" id="kept-line">What you told it to keep, here on this device. Say “my sister's name is Meera” or “remember that …”.</p>
           <ul class="kept-rows" id="kept-rows"></ul>
+        </section>
+        <section class="card set wide" aria-labelledby="usage-h">
+          <div class="card-head"><h2 id="usage-h">How Kestrel is used</h2><button class="btn" type="button" id="usage-forget">Forget counts</button></div>
+          <p class="hint" id="usage-line" aria-live="polite">How many times each thing was used, day by day, on this device. Never what you said or who you are. Nothing is sent. If you take part in a pilot, copy this and send it yourself.</p>
+          <pre class="usage-text" id="usage-text" tabindex="0"></pre>
+          <button class="btn" type="button" id="usage-copy">Copy</button>
         </section>
         <section class="card set wide" aria-labelledby="out-h">
           <div class="card-head"><h2 id="out-h">Internet</h2><label class="switch"><input type="checkbox" id="out-internet"><span id="out-state">Off</span></label></div>
@@ -1864,6 +1873,8 @@ async function loadSettings() {
     if (m.ok && (await m.json()).state === "measuring" && !measuring) watchSpeed($("speed-hint"));
     const k = await api("/api/remembered");
     if (k.ok) drawRemembered(await k.json());
+    const u = await api("/api/usage");
+    if (u.ok) drawUsage(await u.json());
     const o = await api("/api/outbound");
     if (o.ok) drawOutbound(await o.json());
     loadDownload();
@@ -1914,6 +1925,36 @@ async function changeRemembered(change) {
   }
 }
 $("kept-forget").addEventListener("click", () => changeRemembered({ forget_conversations: true }));
+
+// How Kestrel is used (/api/usage, the pilot's counts): shown whole, since what is copied is what is seen.
+const USAGE_LINE = $("usage-line").textContent;
+function usageSays(text, bad) {
+  $("usage-line").textContent = text;
+  $("usage-line").classList.toggle("bad", bad);
+}
+function drawUsage(u) {
+  $("usage-text").textContent = JSON.stringify(u, null, 2);
+  $("usage-forget").hidden = !u.days.length;
+}
+$("usage-forget").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/usage", { forget: true });
+    if (!r.ok) throw new Error(await r.text());
+    drawUsage(await r.json());
+    usageSays(USAGE_LINE, false);
+  } catch (e) {
+    usageSays(e.message, true);
+  }
+});
+$("usage-copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("usage-text").textContent);
+    usageSays("Copied. Paste it into a mail or a message to whoever runs the pilot.", false);
+  } catch (e) {
+    getSelection().selectAllChildren($("usage-text"));
+    usageSays("Copying was refused here, so the text is selected: press Ctrl+C.", false);
+  }
+});
 
 // The internet, mail and what left (/api/outbound, v4 C). The password field is emptied at once and
 // never filled again: the page cannot read it back.

@@ -384,6 +384,8 @@ pub struct Kinds<'a> {
     draft: std::cell::RefCell<Option<String>>,
     /// How the last request was decided, for "why this answer" (v4.1, src/why.rs).
     why: std::cell::RefCell<Option<String>>,
+    /// The kind the last request was answered as; none when it needed no kind.
+    took: std::cell::Cell<Option<Kind>>,
 }
 
 impl<'a> Kinds<'a> {
@@ -400,7 +402,13 @@ impl<'a> Kinds<'a> {
             conversation: None,
             draft: Default::default(),
             why: Default::default(),
+            took: Default::default(),
         }
+    }
+
+    /// The kind the last request this answered took, for the daily counts.
+    pub fn took(&self) -> Option<Kind> {
+        self.took.get()
     }
 
     /// How the last request this answered was decided.
@@ -442,6 +450,7 @@ impl<'a> Kinds<'a> {
         mut stream: Option<&mut dyn FnMut(&str)>,
         meaning: Option<&mut dyn crate::meaning::Meaning>,
     ) -> Option<Vec<String>> {
+        self.took.set(None);
         // "start a new conversation": said to the conversation, not to the head.
         if let Some(log) = self.conversation.as_ref()
             && crate::conversation::is_new(typed)
@@ -462,6 +471,7 @@ impl<'a> Kinds<'a> {
             Choice::Ask(k) if confirm(k.question()) => k,
             Choice::Ask(_) => return None,
         };
+        self.took.set(Some(kind));
         let sure = top(&probs).map_or(0.0, |(_, p)| p);
         let made = match kind {
             Kind::Notes => "answered by the model from your closest notes",

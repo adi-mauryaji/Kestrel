@@ -70,7 +70,9 @@ impl Memory {
                 params![title, due, now],
             )
             .map_err(storage)?;
-        Ok(self.conn.last_insert_rowid())
+        let id = self.conn.last_insert_rowid();
+        self.count_use(now, "task_added");
+        Ok(id)
     }
 
     /// A new title and/or due date (`Some(None)` clears the date and its time; `None` leaves a
