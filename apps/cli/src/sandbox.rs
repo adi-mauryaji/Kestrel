@@ -111,14 +111,16 @@ fn work_dir() -> std::io::Result<Work> {
     Ok(Work(d))
 }
 
-/// All the bytes under `dir`.
+/// All the bytes under `dir`. Each size is asked of the file itself: on Windows an entry from
+/// `read_dir` holds the listing's size, which a file still open for writing does not update, so the
+/// limit would never be reached (seen on CI, 2026-11-04). A link is measured, not followed.
 fn bytes_under(dir: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return 0;
     };
     entries
         .flatten()
-        .map(|e| match e.metadata() {
+        .map(|e| match std::fs::symlink_metadata(e.path()) {
             Ok(m) if m.is_dir() => bytes_under(&e.path()),
             Ok(m) => m.len(),
             Err(_) => 0,
@@ -286,6 +288,27 @@ mod tests {
         let r = run_python(code, &[], "", T).unwrap();
         assert!(!r.ok && !r.timed_out, "{r:?}");
         assert!(r.stderr.contains("limit"), "{r:?}");
+    }
+
+    #[test]
+    fn a_file_still_being_written_is_measured_at_its_size_now() {
+        const MIB: usize = 1 << 20;
+        let work = work_dir().unwrap();
+        let mut open = std::fs::File::create(work.0.join("big.bin")).unwrap();
+        for written in 1..=3 {
+            open.write_all(&vec![0; MIB]).unwrap();
+            open.flush().unwrap();
+            assert_eq!(bytes_under(&work.0), (written * MIB) as u64);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_is_not_followed_when_measuring() {
+        let work = work_dir().unwrap();
+        std::fs::write(work.0.join("a"), [0; 1024]).unwrap();
+        std::os::unix::fs::symlink(".", work.0.join("again")).unwrap();
+        assert!(bytes_under(&work.0) < 2048, "{}", bytes_under(&work.0));
     }
 
     #[test]
