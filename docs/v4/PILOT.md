@@ -45,7 +45,7 @@ gh release create v0.1.0-rc3 --prerelease --notes "Pilot build" installers/*/*
 | Before | Each person reads the guide and agrees to the consent text | `pilot/guide.md`, `pilot/consent.md` |
 | Day 0 | They install it. Be reachable: this is the likeliest place to lose people. Write down each failure as they tell it | |
 | Day 2 or 3 | "Did it install? Has it been useful yet?" | One short message |
-| Day 7 | "Anything wrong or annoying?" Fix what can be fixed; a new build goes to everyone | One short message |
+| Day 7 | "Anything wrong or annoying?" Fix what can be fixed; a new build goes to everyone. Tell them to Quit Kestrel from its icon first: installing over a running app changes nothing until it restarts, and nothing says so | One short message |
 | Day 14 | They copy their counts from Settings and fill in the survey | `pilot/survey.md`, as a form |
 | After | Run the summary; write up the results, including what failed | |
 
