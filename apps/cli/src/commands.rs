@@ -9,6 +9,8 @@
 //! - "move task 3 to friday", "task 5 kal tak kar do", "task 3 ki date hata do"
 //! - "task 3 at 5 pm", "move task 3 to friday at 5 pm", "task 2 kal shaam 6 baje kar do": a time
 //!   (src/times.rs), with or without a new date
+//! - by its words, not its number (`by_name`): "bill bharna ho gaya", "mark call asha as done",
+//!   "buy milk wala task hata do", "reschedule doctor to monday"
 //!
 //! Anything that says delete / remove / hata (without "date") stays the cascade's, as do requests
 //! that create tasks. `join_words` turns ", also" / ", now" / ", plus" / "; " into "and" so the
@@ -24,7 +26,206 @@ use crate::times::{self, Said};
 pub enum Which {
     All,
     Today,
+    Tomorrow,
     Overdue,
+}
+
+/// What a request naming a task by its words comes to (`by_name`).
+#[derive(Debug, Clone, PartialEq)]
+pub enum ByName {
+    Run(Command),
+    /// Removing asks first, as it does by number.
+    Delete(i64, String),
+    /// Nothing to do but say this.
+    Say(String),
+}
+
+/// Words that say nothing about which task.
+const NOT_THE_TASK: &[&str] = &[
+    "task", "tasks", "todo", "wala", "wali", "wale", "the", "my", "mera", "meri", "mere", "a",
+    "an", "ka", "ki", "ke", "ko", "se", "time",
+];
+const FINISHED: &[&str] = &["done", "finished", "complete", "completed"];
+/// How a Hinglish sentence says something is finished.
+const FINISHED_HI: &[&[&str]] = &[
+    &["ho", "gaya"],
+    &["ho", "gayi"],
+    &["ho", "gaye"],
+    &["ho", "chuka"],
+    &["ho", "chuki"],
+    &["kar", "liya"],
+    &["kar", "li"],
+    &["kar", "diya"],
+    &["kar", "di"],
+    &["kr", "liya"],
+    &["kr", "li"],
+    &["kr", "diya"],
+    &["kr", "di"],
+    &["liya"],
+    &["diya"],
+    &["khatam"],
+    &["is", "done"],
+    &["done"],
+];
+const REMOVE_HI: &[&[&str]] = &[
+    &["delete", "kar", "do"],
+    &["delete", "kr", "do"],
+    &["delete", "karo"],
+    &["remove", "kar", "do"],
+    &["remove", "kr", "do"],
+    &["cancel", "kar", "do"],
+    &["cancel", "kr", "do"],
+    &["hata", "do"],
+    &["hata", "dena"],
+    &["hatao"],
+    &["mita", "do"],
+    &["mita", "dena"],
+    &["mitao"],
+];
+const MOVE: &[&str] = &["reschedule", "move", "postpone", "push", "shift"];
+const MOVE_HI: &[&[&str]] = &[
+    &["kar", "do"],
+    &["kr", "do"],
+    &["kar", "dena"],
+    &["kr", "dena"],
+    &["karo"],
+    &["kardo"],
+    &["krdo"],
+];
+
+/// The words before one of `endings`, when `w` ends in one.
+fn before_ending<'a>(w: &'a [String], endings: &[&[&str]]) -> Option<&'a [String]> {
+    endings.iter().find_map(|e| {
+        let n = w.len().checked_sub(e.len())?;
+        w[n..]
+            .iter()
+            .zip(e.iter())
+            .all(|(a, b)| a == b)
+            .then(|| &w[..n])
+    })
+}
+
+/// The words naming a finished task, and whether the sentence can only be about a task.
+fn finished_part(w: &[String]) -> Option<(&[String], bool)> {
+    let is_finished = |x: &String| FINISHED.contains(&x.as_str());
+    let n = w.len();
+    match w.first()?.as_str() {
+        "mark" if is_finished(&w[n - 1]) => {
+            let x = &w[1..n - 1];
+            return Some((x.strip_suffix(&["as".to_string()]).unwrap_or(x), true));
+        }
+        "finished" | "completed" => return Some((&w[1..], false)),
+        "i" if n > 2 && matches!(w[1].as_str(), "finished" | "completed" | "did") => {
+            return Some((&w[2..], false));
+        }
+        "done" if n > 2 && w[1] == "with" => return Some((&w[2..], false)),
+        _ => {}
+    }
+    before_ending(w, FINISHED_HI).map(|x| (x, false))
+}
+
+/// The one task `said` names by its words. None when none does and the sentence may be about
+/// something else; a question or a plain "not there" when `sure` it is about a task.
+fn pick(
+    said: &[String],
+    tasks: &[TaskRow],
+    sure: bool,
+    with: impl FnOnce(&TaskRow) -> ByName,
+) -> Option<ByName> {
+    let same = |a: &str, b: &str| {
+        a == b || a.len().min(b.len()) >= 3 && (a.starts_with(b) || b.starts_with(a))
+    };
+    let wanted: Vec<&String> = said
+        .iter()
+        .filter(|w| !NOT_THE_TASK.contains(&w.as_str()))
+        .collect();
+    if wanted.is_empty() {
+        return None;
+    }
+    let found: Vec<&TaskRow> = tasks
+        .iter()
+        .filter(|t| {
+            let title = words(&t.title);
+            wanted.iter().all(|w| title.iter().any(|x| same(w, x)))
+        })
+        .collect();
+    match found.as_slice() {
+        [one] => Some(with(one)),
+        [] if sure => {
+            let about = wanted
+                .iter()
+                .map(|w| w.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            Some(ByName::Say(format!(
+                "I can't find a task about \"{about}\". To see them, say: show my tasks"
+            )))
+        }
+        [] => None,
+        many => {
+            let listed: Vec<String> = many
+                .iter()
+                .map(|t| format!("#{} {}", t.id, t.title))
+                .collect();
+            Some(ByName::Say(format!(
+                "Which one? {}. Say its number, for example: task {} done",
+                listed.join(", "),
+                many[0].id
+            )))
+        }
+    }
+}
+
+/// A task named by its words instead of its number: "bill bharna ho gaya", "mark call asha as done",
+/// "buy milk wala task hata do", "reschedule doctor to monday". Only `tasks` that are really there
+/// count, so other sentences that end the same way ("khana ho gaya") pass by.
+pub fn by_name(text: &str, today: Date, tasks: &[TaskRow]) -> Option<ByName> {
+    let all = words(text);
+    let by_number = |p: &[String]| TASK.contains(&p[0].as_str()) && p[1].parse::<i64>().is_ok();
+    if all.is_empty() || all.windows(2).any(by_number) {
+        return None;
+    }
+    if let Some((said, sure)) = finished_part(&all) {
+        return pick(said, tasks, sure, |t| {
+            ByName::Run(Command::Done(vec![t.id]))
+        });
+    }
+    let removes = DELETE.contains(&all[0].as_str());
+    let said = if removes {
+        Some(&all[1..])
+    } else {
+        before_ending(&all, REMOVE_HI)
+    };
+    if let Some(said) = said {
+        return pick(said, tasks, false, |t| {
+            ByName::Delete(t.id, t.title.clone())
+        });
+    }
+    let (rest, time) = match times::take(text) {
+        Some((rest, time)) => (words(&rest), Some(time)),
+        None => (all.clone(), None),
+    };
+    let moves = rest.first().is_some_and(|w| MOVE.contains(&w.as_str()));
+    let hindi = before_ending(&rest, MOVE_HI).is_some()
+        && !rest.iter().any(|w| CREATE.contains(&w.as_str()));
+    if !moves && !hindi {
+        return None;
+    }
+    let from = usize::from(moves);
+    let (due, left) = kestrel_tools::templates::split_due(&rest[from..].join(" "), today);
+    if due.is_none() && time.is_none() {
+        return None;
+    }
+    let not_a_name = |w: &String| {
+        DATE_FILLER.contains(&w.as_str()) || matches!(w.as_str(), "kr" | "kardo" | "krdo" | "dena")
+    };
+    let said: Vec<String> = left.into_iter().filter(|w| !not_a_name(w)).collect();
+    pick(&said, tasks, moves, |t| {
+        ByName::Run(match time {
+            Some(time) => Command::At(t.id, due, time),
+            None => Command::Reschedule(t.id, due),
+        })
+    })
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -166,6 +367,10 @@ fn parse_words(w: &[String], today: Date) -> Option<Command> {
     }
     if any(&["overdue", "late", "missed"]) && (tasky || any(SHOW)) {
         return Some(Command::List(Which::Overdue));
+    }
+    let tomorrow_word = any(&["tomorrow", "kal", "tomorrow's"]);
+    if tomorrow_word && (tasky || any(&["due"]) || (any(&["kya"]) && any(&["karna"]))) {
+        return Some(Command::List(Which::Tomorrow));
     }
     let today_word = any(&["today", "aaj", "today's"]);
     if today_word && (tasky || any(&["due"]) || (any(&["kya"]) && any(&["karna"]))) {
@@ -312,8 +517,12 @@ fn list(tasks: &[TaskRow], which: Which, today: Date) -> Vec<String> {
         .filter(|t| t.due.as_deref().and_then(Date::parse).is_none())
         .map(|t| format!("  #{} {}", t.id, t.title))
         .collect();
-    let mut sections = vec![("overdue:", group(&|d| d < today, true))];
-    if which != Which::Overdue {
+    let tomorrow = today.add_days(1);
+    let mut sections = match which {
+        Which::Tomorrow => vec![("tomorrow:", group(&|d| d == tomorrow, false))],
+        _ => vec![("overdue:", group(&|d| d < today, true))],
+    };
+    if matches!(which, Which::All | Which::Today) {
         sections.push(("today:", group(&|d| d == today, false)));
     }
     if which == Which::All {
@@ -330,12 +539,173 @@ fn list(tasks: &[TaskRow], which: Which, today: Date) -> Vec<String> {
             match which {
                 Which::All => "no tasks",
                 Which::Today => "nothing due today",
+                Which::Tomorrow => "nothing due tomorrow",
                 Which::Overdue => "nothing overdue",
             }
             .to_string(),
         );
     }
     out
+}
+
+#[cfg(test)]
+mod by_name_tests {
+    use super::*;
+
+    fn task(id: i64, title: &str) -> TaskRow {
+        TaskRow {
+            id,
+            title: title.into(),
+            due: None,
+            due_time: None,
+            created_at: 0,
+            notified_at: None,
+        }
+    }
+
+    fn tasks() -> Vec<TaskRow> {
+        vec![
+            task(1, "bill bharna"),
+            task(2, "call asha"),
+            task(3, "doctor ke paas jana"),
+            task(4, "buy milk"),
+        ]
+    }
+
+    fn today() -> Date {
+        Date::parse("2026-11-04").unwrap()
+    }
+
+    fn said(text: &str) -> Option<ByName> {
+        by_name(text, today(), &tasks())
+    }
+
+    #[test]
+    fn a_task_is_finished_by_its_words() {
+        for (text, id) in [
+            ("bill bharna ho gaya", 1),
+            ("mark call asha as done", 2),
+            ("mark call asha done", 2),
+            ("call asha done", 2),
+            ("finished call asha", 2),
+            ("I finished the buy milk task", 4),
+            ("doctor wala task ho gaya", 3),
+            ("milk wala task kar liya", 4),
+            ("bill bhar diya", 1),
+        ] {
+            assert_eq!(
+                said(text),
+                Some(ByName::Run(Command::Done(vec![id]))),
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_task_is_moved_by_its_words() {
+        let monday = Date::parse("2026-11-09").unwrap();
+        for text in [
+            "reschedule doctor to monday",
+            "move the doctor task to monday",
+            "postpone doctor to monday",
+            "doctor wala task monday ko kar do",
+        ] {
+            assert_eq!(
+                said(text),
+                Some(ByName::Run(Command::Reschedule(3, Some(monday)))),
+                "{text}"
+            );
+        }
+        assert!(
+            matches!(
+                said("move call asha to monday at 5 pm"),
+                Some(ByName::Run(Command::At(2, Some(d), _))) if d == monday
+            ),
+            "a time comes with it"
+        );
+    }
+
+    #[test]
+    fn removing_a_task_by_its_words_is_asked_about_first() {
+        for (text, id, title) in [
+            ("buy milk wala task hata do", 4, "buy milk"),
+            ("delete the call asha task", 2, "call asha"),
+            ("remove buy milk", 4, "buy milk"),
+            ("doctor wala task mita do", 3, "doctor ke paas jana"),
+        ] {
+            assert_eq!(said(text), Some(ByName::Delete(id, title.into())), "{text}");
+        }
+    }
+
+    #[test]
+    fn words_several_tasks_share_ask_which_one() {
+        let mut more = tasks();
+        more.push(task(5, "call ravi"));
+        let Some(ByName::Say(line)) = by_name("mark call as done", today(), &more) else {
+            panic!("it should ask");
+        };
+        assert!(
+            line.contains("#2 call asha") && line.contains("#5 call ravi"),
+            "{line}"
+        );
+    }
+
+    #[test]
+    fn asking_plainly_about_a_task_that_is_not_there_is_told_so() {
+        for text in ["mark call ravi as done", "reschedule the dentist to monday"] {
+            let Some(ByName::Say(line)) = said(text) else {
+                panic!("{text}");
+            };
+            assert!(line.contains("show my tasks"), "{line}");
+        }
+    }
+
+    #[test]
+    fn other_sentences_pass_by_when_no_task_matches() {
+        for text in [
+            "khana ho gaya",
+            "my homework is done",
+            "remove the stain from my shirt",
+            "delete all my tasks",
+            "move my files to drive",
+            "what is done in a bank",
+            "hello",
+            "kal mausam kaisa rahega",
+            "task 3 done",
+        ] {
+            assert_eq!(said(text), None, "{text}");
+        }
+    }
+
+    #[test]
+    fn tomorrows_tasks_are_asked_for_on_their_own() {
+        for text in [
+            "kal ke tasks dikhao",
+            "show tomorrow's tasks",
+            "tasks due tomorrow",
+            "kal kya karna hai",
+        ] {
+            assert_eq!(
+                parse(text, today()),
+                Some(Command::List(Which::Tomorrow)),
+                "{text}"
+            );
+        }
+        let mut m = Memory::in_memory().unwrap();
+        m.create_task("bill bharna", Some("2026-11-05"), 0).unwrap();
+        m.create_task("later", Some("2026-11-09"), 0).unwrap();
+        m.create_task("today's", Some("2026-11-04"), 0).unwrap();
+        let cmd = Command::List(Which::Tomorrow);
+        assert_eq!(
+            run(&cmd, &mut m, today(), 0).unwrap(),
+            ["tomorrow:", "  #1 bill bharna"]
+        );
+        let mut none = Memory::in_memory().unwrap();
+        assert_eq!(
+            run(&cmd, &mut none, today(), 0).unwrap(),
+            ["nothing due tomorrow"]
+        );
+    }
 }
 
 #[cfg(test)]

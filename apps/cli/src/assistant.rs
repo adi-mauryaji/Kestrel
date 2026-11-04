@@ -133,7 +133,7 @@ impl<'a> Assistant<'a> {
         &mut self,
         text: &str,
         confirm: &mut dyn FnMut(&str) -> bool,
-        part: Option<&mut dyn FnMut(&str)>,
+        mut part: Option<&mut dyn FnMut(&str)>,
     ) -> Vec<String> {
         self.n += 1;
         let n = self.n;
@@ -321,6 +321,18 @@ impl<'a> Assistant<'a> {
             self.why = Some(Why::new(now, "By rules: a task command, no model."));
             return out;
         }
+        // A task named by its words: "bill bharna ho gaya", "reschedule doctor to monday".
+        if let Some(act) = self.act.as_mut()
+            && let Some(lines) = act.task_by_name(&req.text, now, confirm)
+        {
+            self.took = Some("task_command");
+            out.extend(lines);
+            self.why = Some(Why::new(
+                now,
+                "By rules: your words named a task, no model.",
+            ));
+            return out;
+        }
         // v4: what the person says about themselves is kept, and asked back, without the model.
         if let Some(act) = self.act.as_mut()
             && let Some(lines) = act.about_the_person(text, now)
@@ -335,8 +347,16 @@ impl<'a> Assistant<'a> {
         }
         // v3 (ADR-037): a request for a skill is written now, from the text as typed.
         let meaning = (self.meaning.as_deref_mut()).map(|m| m as &mut dyn crate::meaning::Meaning);
+        // `part` is still wanted below when no skill takes this.
+        let streams = part.is_some();
+        let mut forward = |piece: &str| {
+            if let Some(show) = part.as_mut() {
+                show(piece);
+            }
+        };
+        let stream: Option<&mut dyn FnMut(&str)> = streams.then_some(&mut forward);
         if let Some(kinds) = self.kinds.as_ref()
-            && let Some(lines) = kinds.handle(&req, text, confirm, part, meaning)
+            && let Some(lines) = kinds.handle(&req, text, confirm, stream, meaning)
         {
             self.took = Some(
                 kinds
@@ -370,9 +390,7 @@ impl<'a> Assistant<'a> {
         if !self.brief {
             out.extend(report.lines().map(String::from));
         }
-        let mut why = Why::new(now, "This was routed through the tiers:");
-        why.way.extend(report.lines().map(String::from));
-        self.why = Some(why);
+        self.why = Some(Why::new(now, &crate::why::routed(&outcome)));
         // Acting, the plan's update_preference step stores a stated preference; otherwise this does.
         if self.act.is_none() {
             out.extend(self.personal.after(&req, &outcome, now));
@@ -382,6 +400,44 @@ impl<'a> Assistant<'a> {
             let rec =
                 crate::telemetry::record(&self.log.borrow(), &outcome, &trace, ms, unix_s, peak);
             self.sink.write(&rec);
+        }
+        // A question or a remark nothing else took: the notes if they answer it, else a chat. A search
+        // in question's clothes ("who shares the plan") gets the answer first, and stays a search.
+        if let Some(kinds) = self.kinds.as_ref()
+            && crate::kinds::conversational(text)
+        {
+            let unplaced = match &outcome {
+                Outcome::Accepted(p) => p.intent == Intent::Unsupported,
+                Outcome::Abstained { .. } => true,
+            };
+            let search =
+                matches!(&outcome, Outcome::Accepted(p) if p.intent == Intent::SearchNotes);
+            if unplaced || search {
+                let n = crate::notes_qa::N;
+                let mut notes = (self.meaning.as_deref_mut())
+                    .map_or_else(Vec::new, |m| m.closest(text.trim(), n));
+                if let (true, Some(act)) = (notes.is_empty(), self.act.as_ref()) {
+                    notes = act.notes_sharing(text, n);
+                }
+                if let Some(lines) = kinds.answer_from_notes(text, &notes) {
+                    self.took = Some("notes");
+                    self.why = Some(Why::new(
+                        now,
+                        "I read this as a question about your notes, and it was answered by the model from your closest notes.",
+                    ));
+                    out.extend(lines);
+                    return out;
+                }
+            }
+            if unplaced {
+                self.took = Some("chat");
+                self.why = Some(Why::new(
+                    now,
+                    "I read this as a chat, and it was written by the model.",
+                ));
+                out.extend(kinds.chat(text, part));
+                return out;
+            }
         }
         if let Some(act) = self.act.as_mut() {
             let routed = routed_parts(&self.cascade, &req, &outcome, n);
@@ -447,7 +503,10 @@ mod tests {
             let intent = match req.text.split(' ').next() {
                 Some("remind") => Intent::CreateTask,
                 Some("search") => Intent::SearchNotes,
+                Some("recall") => Intent::RetrieveMemory,
                 Some("shrug") => return Ok(vec![]),
+                Some("how" | "book" | "whose" | "i") => Intent::Unsupported,
+                Some("whom") => Intent::SearchNotes,
                 _ => Intent::Chitchat,
             };
             Ok(vec![(intent, 0.99)])
@@ -672,6 +731,152 @@ mod tests {
     }
 
     #[test]
+    fn a_question_or_a_remark_gets_a_chat_reply_and_an_action_is_still_refused() {
+        let (a, _) = assistant("converse", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        for text in [
+            "how do I send an email from my phone",
+            "i am planning a trip to Goa",
+        ] {
+            let out = a.handle(text, &mut |q| panic!("{q}"));
+            assert!(
+                out.iter()
+                    .any(|l| l.contains(&format!("chat draft of: {text}"))),
+                "{out:?}"
+            );
+            assert!(
+                out.iter().any(|l| l.contains("small model")),
+                "the caveat: {out:?}"
+            );
+        }
+        for text in ["book me a flight", "book a table please"] {
+            let out = a.handle(text, &mut |q| panic!("{q}"));
+            assert!(
+                out.last().unwrap().starts_with("I can't do that"),
+                "{out:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_question_the_notes_answer_is_answered_from_them_first() {
+        struct Closest(Vec<kestrel_tools::tools::Note>);
+        impl crate::meaning::Meaning for Closest {
+            fn find(&mut self, _: &str) -> Vec<kestrel_tools::tools::Note> {
+                Vec::new()
+            }
+            fn k(&self) -> usize {
+                2
+            }
+            fn closest(&mut self, _: &str, _: usize) -> Vec<kestrel_tools::tools::Note> {
+                self.0.clone()
+            }
+        }
+        let note = kestrel_tools::tools::Note {
+            name: "budget.md".into(),
+            text: "Ravi shares the plan.".into(),
+        };
+        let (a, _) = assistant("converse_notes", true);
+        let mut a = a
+            .with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU))
+            .with_meaning(Box::new(Closest(vec![note])));
+        for text in ["whose plan is it", "whom does the plan go to"] {
+            let out = a.handle(text, &mut |q| panic!("{q}"));
+            assert!(
+                out.iter().any(|l| l.contains("Asked about 1 notes")),
+                "{text}: {out:?}"
+            );
+        }
+        // With no note close, a question nothing else took is a chat, and a search stays a search.
+        let (a, _) = assistant("converse_none", true);
+        let mut a = a
+            .with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU))
+            .with_meaning(Box::new(Closest(vec![])));
+        let out = a.handle("whose plan is it", &mut |q| panic!("{q}"));
+        assert!(out.iter().any(|l| l.contains("chat draft of")), "{out:?}");
+        let out = a.handle("whom does the plan go to", &mut |q| panic!("{q}"));
+        assert!(!out.iter().any(|l| l.contains("chat draft of")), "{out:?}");
+        // Close by no measure of meaning, but it holds the question's words.
+        let out = a.handle("whom does the standup report go to", &mut |q| panic!("{q}"));
+        assert!(
+            out.iter().any(|l| l.contains("Asked about 1 notes")),
+            "{out:?}"
+        );
+    }
+
+    #[test]
+    fn rewriting_or_summing_up_given_text_is_written_without_asking() {
+        let (a, _) = assistant("explicit", true);
+        let mut a = a.with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU));
+        let out = a.handle("rewrite this politely: send me the file now", &mut |q| {
+            panic!("{q}")
+        });
+        assert!(
+            out.iter().any(|l| l.starts_with("rewrite draft of")),
+            "{out:?}"
+        );
+        let out = a.handle("summarize this: Kestrel keeps tasks.", &mut |q| {
+            panic!("{q}")
+        });
+        assert!(
+            out.iter().any(|l| l.starts_with("chat draft of")),
+            "{out:?}"
+        );
+    }
+
+    #[test]
+    fn what_was_kept_comes_back_in_plain_words() {
+        let (mut a, _) = assistant("plain_memory", true);
+        a.handle("remember that I am allergic to peanuts", &mut yes());
+        let out = a.handle("recall what I am allergic to", &mut yes());
+        let all = out.join(" ");
+        assert!(
+            !all.contains("user_explicit") && !all.contains('['),
+            "{all}"
+        );
+    }
+
+    #[test]
+    fn a_task_named_by_its_words_is_changed_and_no_new_task_is_made() {
+        let (mut a, _) = assistant("by_name", true);
+        for text in [
+            "remind me to call asha",
+            "remind me to buy milk",
+            "remind me to see the doctor",
+        ] {
+            a.handle(text, &mut yes());
+        }
+        let count = |a: &mut Assistant<'_>| a.handle("show my tasks", &mut yes()).len();
+        let before = count(&mut a);
+        let out = a.handle("mark call asha as done", &mut |q| panic!("{q}"));
+        assert_eq!(
+            out.last().map(String::as_str),
+            Some("done: #1 call asha"),
+            "{out:?}"
+        );
+        let out = a.handle("reschedule doctor to monday", &mut |q| panic!("{q}"));
+        assert!(out.last().unwrap().contains("task #3 now due"), "{out:?}");
+        let mut asked = String::new();
+        let out = a.handle("buy milk wala task hata do", &mut |q| {
+            asked = q.to_string();
+            false
+        });
+        assert_eq!(asked, "Delete task #2, buy milk?");
+        assert_eq!(
+            out.last().map(String::as_str),
+            Some("Task #2 stays."),
+            "{out:?}"
+        );
+        let out = a.handle("buy milk wala task hata do", &mut yes());
+        assert_eq!(
+            out.last().map(String::as_str),
+            Some("deleted: #2 buy milk"),
+            "{out:?}"
+        );
+        assert!(count(&mut a) < before, "fewer tasks, none added");
+    }
+
+    #[test]
     fn the_weather_is_answered_before_the_model_and_only_with_a_way_out() {
         let d = std::env::temp_dir().join(format!("kestrel_assistant_w_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
@@ -745,14 +950,15 @@ mod tests {
         assert!(why(&mut a).contains("no answer to explain"));
         a.handle("remind me to call asha tomorrow", &mut yes());
         let w = why(&mut a);
-        assert!(w.contains("routed") && w.contains("create_task"), "{w}");
+        assert!(w.contains("create task") && !w.contains('_'), "{w}");
+        assert!(!w.contains("tier"), "{w}");
         assert!(w.contains("Nothing left this device"), "{w}");
         a.handle("show my tasks", &mut yes());
         assert!(why(&mut a).contains("rules"));
         a.handle("draft a mail to Asha: Leave on Friday", &mut yes());
         let w = why(&mut a);
         assert!(
-            w.contains("email") && w.contains("0.90") && w.contains("written by the model"),
+            w.contains("a mail") && w.contains("90%") && w.contains("written by the model"),
             "{w}"
         );
         a.handle("my sister's name is Meera", &mut yes());

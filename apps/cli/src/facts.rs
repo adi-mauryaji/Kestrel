@@ -135,6 +135,14 @@ pub fn parse(text: &str) -> Option<Said> {
             _ => None,
         };
     }
+    // "mujhe chai pasand hai": what someone likes, under what it is, so a change of mind replaces it.
+    if first == "mujhe" {
+        let subject = LIKES.iter().find_map(|like| {
+            let n = words.len().checked_sub(like.len())?;
+            (n > 1 && words[n..] == **like).then(|| words[1..n].join(" "))
+        })?;
+        return fact(key_of(&subject));
+    }
     let hindi = ["mera", "meri", "mere"].contains(&first)
         && ["hai", "hain", "hoon"].contains(&words[words.len() - 1])
         && words.len() >= 4;
@@ -142,6 +150,58 @@ pub fn parse(text: &str) -> Option<Said> {
         return fact(key_of(&words[..words.len() - 2].join(" ")));
     }
     None
+}
+
+/// How "mujhe X ..." says someone likes it or does not.
+const LIKES: [&[&str]; 8] = [
+    &["pasand", "nahi", "hai"],
+    &["pasand", "nahi"],
+    &["pasand", "hai"],
+    &["pasand", "hain"],
+    &["acha", "lagta", "hai"],
+    &["accha", "lagta", "hai"],
+    &["achi", "lagti", "hai"],
+    &["acchi", "lagti", "hai"],
+];
+
+/// The same thing in Hinglish and in English: a fact kept in one is found when asked in the other.
+const SAME: [(&str, &str); 17] = [
+    ("behen", "sister"),
+    ("bahen", "sister"),
+    ("bhai", "brother"),
+    ("maa", "mother"),
+    ("mummy", "mother"),
+    ("papa", "father"),
+    ("pita", "father"),
+    ("dost", "friend"),
+    ("biwi", "wife"),
+    ("pati", "husband"),
+    ("beta", "son"),
+    ("beti", "daughter"),
+    ("naam", "name"),
+    ("shehar", "city"),
+    ("sheher", "city"),
+    ("ghar", "home"),
+    ("kaam", "work"),
+];
+
+/// "mera naam kya hai", "what is my name": their own name, which the page greets them by.
+pub fn asks_own_name(text: &str) -> bool {
+    let said = text
+        .trim()
+        .trim_end_matches(['.', '!', '?'])
+        .trim()
+        .to_lowercase();
+    [
+        "mera naam kya hai",
+        "mera naam batao",
+        "mera naam kya he",
+        "what is my name",
+        "what's my name",
+        "whats my name",
+        "do you know my name",
+    ]
+    .contains(&said.as_str())
 }
 
 /// A word without what clings to it: "it," is "it".
@@ -166,7 +226,14 @@ fn key_of(subject: &str) -> String {
 
 /// Facts among `items`, each with how many words it shares with `text`, best first.
 fn sharing<'a>(items: &'a [Item], text: &str) -> Vec<(usize, &'a Item)> {
-    let wanted = crate::conversation::words(text);
+    let mut wanted = crate::conversation::words(text);
+    for (hi, en) in SAME {
+        if wanted.contains(hi) {
+            wanted.insert(en.to_string());
+        } else if wanted.contains(en) {
+            wanted.insert(hi.to_string());
+        }
+    }
     let mut found: Vec<(usize, &Item)> = items
         .iter()
         .filter(|i| i.kind == Kind::Fact && i.approved)
@@ -187,6 +254,12 @@ fn sharing<'a>(items: &'a [Item], text: &str) -> Vec<(usize, &'a Item)> {
 /// The kept facts that answer `question`, word for word; None when none does, and the request goes
 /// on as if never asked here.
 pub fn answer(items: &[Item], question: &str, name: Option<&str>) -> Option<Vec<String>> {
+    if asks_own_name(question) {
+        let own = items
+            .iter()
+            .find(|i| i.kind == Kind::Fact && i.approved && i.key == "name")?;
+        return Some(vec![format!("You told me: {}", own.value)]);
+    }
     let found = sharing(items, question);
     let best = found.first()?.0;
     let lines: Vec<String> = found
@@ -241,6 +314,82 @@ pub fn change(memory: &mut Memory, change: &Value, now: i64) -> Result<Value, St
 mod tests {
     use super::*;
     use kestrel_memory::Source;
+
+    #[test]
+    fn hinglish_words_find_what_was_said_in_english_and_back() {
+        let kept = [
+            item(
+                "sister_s_name",
+                "my sister's name is Meera",
+                Kind::Fact,
+                true,
+            ),
+            item(
+                "meri_maa_ka_naam",
+                "meri maa ka naam Sunita hai",
+                Kind::Fact,
+                true,
+            ),
+        ];
+        let got = answer(&kept, "meri behen ka naam kya hai", None).unwrap();
+        assert_eq!(got, ["You told me: my sister's name is Meera"]);
+        let got = answer(&kept, "what is my mother's name", None).unwrap();
+        assert_eq!(got, ["You told me: meri maa ka naam Sunita hai"]);
+    }
+
+    #[test]
+    fn asking_ones_own_name_finds_only_ones_own_name() {
+        let sister = item(
+            "sister_s_name",
+            "my sister's name is Meera",
+            Kind::Fact,
+            true,
+        );
+        assert_eq!(
+            answer(std::slice::from_ref(&sister), "mera naam kya hai", None),
+            None
+        );
+        assert_eq!(
+            answer(std::slice::from_ref(&sister), "what is my name", None),
+            None
+        );
+        let mine = item("name", "my name is Ram", Kind::Fact, true);
+        let got = answer(&[sister, mine], "mera naam kya hai", None).unwrap();
+        assert_eq!(got, ["You told me: my name is Ram"]);
+    }
+
+    #[test]
+    fn what_someone_likes_in_hinglish_is_kept() {
+        assert_eq!(
+            fact("mujhe chai pasand hai"),
+            ("chai".to_string(), "mujhe chai pasand hai".to_string())
+        );
+        assert_eq!(
+            fact("mujhe chai pasand nahi hai").0,
+            "chai",
+            "a change of mind replaces it"
+        );
+        assert_eq!(fact("mujhe garam chai acchi lagti hai").0, "garam_chai");
+    }
+
+    #[test]
+    fn asking_ones_own_name_is_told_apart() {
+        for text in [
+            "mera naam kya hai",
+            "what is my name",
+            "What's my name?",
+            "mera naam batao",
+        ] {
+            assert!(asks_own_name(text), "{text}");
+        }
+        for text in [
+            "what is my sister's name",
+            "meri behen ka naam kya hai",
+            "name a color",
+        ] {
+            assert!(!asks_own_name(text), "{text}");
+        }
+    }
 
     fn fact(text: &str) -> (String, String) {
         match parse(text) {

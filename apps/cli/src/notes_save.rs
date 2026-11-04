@@ -59,6 +59,27 @@ fn instructions() -> Vec<String> {
             }
         }
     }
+    // "ye note save kar do", "note bana do", "note kar lo".
+    for obj in ["", "ye ", "yeh ", "ise ", "isse ", "isko "] {
+        for verb in ["save", "add", "bana", "likh", "daal"] {
+            for end in [
+                "",
+                " karo",
+                " kar do",
+                " kardo",
+                " kar dena",
+                " do",
+                " dena",
+                " lo",
+                " kar lo",
+            ] {
+                out.push(format!("{obj}note {verb}{end}"));
+            }
+        }
+        for end in ["karo", "kar do", "kardo", "kar dena", "kar lo", "kar lena"] {
+            out.push(format!("{obj}note {end}"));
+        }
+    }
     // Longest first, so "add this to my notes" wins over "add to notes" inside it.
     out.sort_by_key(|s| std::cmp::Reverse(s.len()));
     out.dedup();
@@ -253,6 +274,28 @@ mod tests {
             saved("notes mein save karo - kal 5 baje meeting").as_deref(),
             Some("kal 5 baje meeting")
         );
+    }
+
+    #[test]
+    fn a_note_asked_for_in_hinglish_with_the_word_note() {
+        for text in [
+            "ye note save kar do: kal gym jana hai",
+            "note save kar do: kal gym jana hai",
+            "yeh note bana do: kal gym jana hai",
+            "note kar lo: kal gym jana hai",
+            "ise note kar lo - kal gym jana hai",
+            "kal gym jana hai ye note save kar do",
+            "kal gym jana hai note kar lo",
+        ] {
+            assert_eq!(saved(text).as_deref(), Some("kal gym jana hai"), "{text}");
+        }
+        for text in [
+            "note kya hota hai",
+            "meri note dikhao",
+            "ye note kisne likha",
+        ] {
+            assert_eq!(parse(text), None, "{text}");
+        }
     }
 
     #[test]

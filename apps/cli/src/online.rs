@@ -136,9 +136,14 @@ fn place_in(words: &[&str], lower: &[String]) -> Option<String> {
     let lower: Vec<&str> = lower.iter().map(String::as_str).collect();
     let n = lower.len();
     let name = match lower.as_slice() {
-        ["my", "city", "is", ..] => &words[3..],
-        ["set", "my", "city", "to", ..] => &words[4..],
-        ["mera" | "meri", "shehar" | "city", .., "hai"] if n > 3 => &words[2..n - 1],
+        ["my", "city" | "place" | "location", "is", ..] => &words[3..],
+        ["set", "my", "city" | "place" | "location", "to", ..] => &words[4..],
+        [
+            "mera" | "meri",
+            "shehar" | "sheher" | "shahar" | "sehar" | "city" | "place" | "location",
+            ..,
+            "hai",
+        ] if n > 3 => &words[2..n - 1],
         _ => return None,
     };
     (!name.is_empty() && name.len() <= PLACE_WORDS).then(|| name.join(" "))
@@ -529,6 +534,25 @@ pub(crate) mod tests {
             "news about cricket",
         ] {
             assert_eq!(parse(text), None, "{text}");
+        }
+    }
+
+    #[test]
+    fn a_place_said_in_other_words_is_set() {
+        for text in [
+            "set my place to Kanpur",
+            "set my location to Kanpur",
+            "my location is Kanpur",
+            "my place is Kanpur",
+            "mera sheher Kanpur hai",
+            "mera shahar Kanpur hai",
+            "meri location Kanpur hai",
+        ] {
+            assert_eq!(
+                parse(text),
+                Some(Asked::SetPlace("Kanpur".into())),
+                "{text}"
+            );
         }
     }
 

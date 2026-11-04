@@ -52,6 +52,38 @@ impl Why {
     }
 }
 
+/// How the routing tiers read a request, in plain words.
+pub fn routed<L: Copy + Labelled>(outcome: &kestrel_router::Outcome<L>) -> String {
+    match outcome {
+        kestrel_router::Outcome::Accepted(p) => {
+            let who = match p.tier {
+                kestrel_core::Tier::Rules => "A rule",
+                kestrel_core::Tier::Encoder => "A small classifier",
+                _ => "The model",
+            };
+            format!(
+                "{who} on this device read this as: {} ({:.0}% sure).",
+                p.intent.in_words(),
+                p.confidence * 100.0
+            )
+        }
+        kestrel_router::Outcome::Abstained { .. } => {
+            "Nothing on this device could tell what this asks for.".to_string()
+        }
+    }
+}
+
+/// What a routing label says, in words.
+pub trait Labelled {
+    fn in_words(&self) -> String;
+}
+
+impl Labelled for kestrel_core::Intent {
+    fn in_words(&self) -> String {
+        self.label().replace('_', " ")
+    }
+}
+
 /// The lines for a request "why": the way, then what left this device (kind, host, what).
 pub fn lines(why: Option<&Why>, left: &[(String, String, String)]) -> Vec<String> {
     let Some(why) = why else {

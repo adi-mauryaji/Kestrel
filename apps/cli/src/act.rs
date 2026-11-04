@@ -118,6 +118,49 @@ impl Act {
             .unwrap_or_else(|e| vec![format!("that did not work: {e}")])
     }
 
+    /// The notes holding at least two of `text`'s words that say something, the most first: for a
+    /// question the search by meaning found no note close enough for.
+    pub fn notes_sharing(&self, text: &str, most: usize) -> Vec<kestrel_tools::tools::Note> {
+        let wanted = crate::conversation::words(text);
+        let mut found: Vec<(usize, kestrel_tools::tools::Note)> = (self.backend.notes().all())
+            .into_iter()
+            .map(|n| {
+                (
+                    crate::conversation::words(&n.text)
+                        .intersection(&wanted)
+                        .count(),
+                    n,
+                )
+            })
+            .filter(|(shared, _)| *shared >= 2)
+            .collect();
+        found.sort_by_key(|(shared, _)| std::cmp::Reverse(*shared));
+        found.into_iter().take(most).map(|(_, n)| n).collect()
+    }
+
+    /// A task named by its words, not its number (src/commands.rs's `by_name`); None: not that.
+    pub fn task_by_name(
+        &mut self,
+        text: &str,
+        now: i64,
+        confirm: &mut dyn FnMut(&str) -> bool,
+    ) -> Option<Vec<String>> {
+        use crate::commands::ByName;
+        let today = self.today(now);
+        let tasks = self.backend.memory().tasks().ok()?;
+        Some(match crate::commands::by_name(text, today, &tasks)? {
+            ByName::Run(cmd) => self.command(&cmd, now),
+            ByName::Say(line) => vec![line],
+            ByName::Delete(id, title) if confirm(&format!("Delete task #{id}, {title}?")) => {
+                match self.backend.memory_mut().delete_task(id) {
+                    Ok(_) => vec![format!("deleted: #{id} {title}")],
+                    Err(e) => vec![format!("that did not work: {e}")],
+                }
+            }
+            ByName::Delete(id, _) => vec![format!("Task #{id} stays.")],
+        })
+    }
+
     /// One more of `what` in the daily counts (kestrel-memory's usage.rs).
     pub fn count_use(&mut self, now: i64, what: &'static str) {
         self.backend.memory_mut().count_use(now, what);
@@ -242,7 +285,12 @@ impl Act {
             }
             crate::facts::Said::Question { name } => {
                 let items = self.backend.memory().items(Filter::Approved).ok()?;
-                crate::facts::answer(&items, text, name.as_deref())
+                crate::facts::answer(&items, text, name.as_deref()).or_else(|| {
+                    let own = crate::facts::asks_own_name(text);
+                    let name =
+                        own.then(|| crate::settings::name(crate::data_dir().as_deref()))??;
+                    Some(vec![format!("Your name here is {name}.")])
+                })
             }
         }
     }
@@ -617,7 +665,9 @@ fn show(op: &Op, data: Option<&Data>, by_meaning: &HashSet<String>) -> Vec<Strin
                 v
             })
             .collect(),
-        (_, Some(Data::Notes(notes))) if notes.is_empty() => vec!["no notes matched".into()],
+        (_, Some(Data::Notes(notes))) if notes.is_empty() => {
+            vec!["I found nothing about that in your notes.".into()]
+        }
         (_, Some(Data::Notes(notes))) => {
             let mut v = vec![format!(
                 "found {} note{}:",
@@ -642,7 +692,7 @@ fn show(op: &Op, data: Option<&Data>, by_meaning: &HashSet<String>) -> Vec<Strin
         (Op::RetrieveMemory { .. }, Some(Data::Text(t))) if t.trim().is_empty() => {
             vec!["I don't remember anything about that.".into()]
         }
-        (Op::RetrieveMemory { .. }, Some(Data::Text(t))) => vec![format!("from memory: {t}")],
+        (Op::RetrieveMemory { .. }, Some(Data::Text(t))) => t.lines().map(told).collect(),
         (_, Some(Data::Text(t))) => vec![t.clone()],
         (_, Some(Data::Items(items))) if items.is_empty() => vec!["none found".into()],
         (Op::ExtractActionItems, Some(Data::Items(items))) => {
@@ -653,6 +703,15 @@ fn show(op: &Op, data: Option<&Data>, by_meaning: &HashSet<String>) -> Vec<Strin
         (_, Some(Data::Items(items))) => items.iter().map(|i| format!("- {i}")).collect(),
         _ => vec![],
     }
+}
+
+/// A remembered line in plain words: its label and key ("[fact|user_explicit|2026-11-04] key:") are ours.
+fn told(line: &str) -> String {
+    let value = line
+        .split_once("] ")
+        .and_then(|(_, rest)| rest.split_once(": "))
+        .map_or(line, |(_, value)| value);
+    format!("You told me: {value}")
 }
 
 fn task_line(t: &TaskRow) -> String {
@@ -668,7 +727,9 @@ fn clarify(slot: &str) -> String {
         "title" => "What should the task say? For example: remind me to call Asha tomorrow.".into(),
         "query" => "What should I search for? For example: search my notes for budget.".into(),
         "document" => "Which document? Say its name, for example: open project-plan.md.".into(),
-        "task id" => "Which task? Say its number (`kestrel memory tasks` lists them).".into(),
+        "task id" => {
+            "Which task? Say its number, or its words. To see them, say: show my tasks".into()
+        }
         "terms" => "What should I look up in memory?".into(),
         "preference" => "Which preference? For example: I prefer short answers.".into(),
         other => format!("I need the {other} to do that."),
@@ -940,7 +1001,10 @@ mod tests {
             ten_am,
             &yes(),
         ));
-        assert_eq!(out, "no notes matched", "the query kept \"at 5 pm\"");
+        assert_eq!(
+            out, "I found nothing about that in your notes.",
+            "the query kept \"at 5 pm\""
+        );
     }
 
     /// Finds the same notes by meaning for every query, and counts the queries.
@@ -1064,7 +1128,7 @@ mod tests {
             NOW,
             &yes(),
         ));
-        assert_eq!(out, "no notes matched");
+        assert_eq!(out, "I found nothing about that in your notes.");
     }
 
     #[test]

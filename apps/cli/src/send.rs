@@ -408,7 +408,8 @@ pub fn next_step(text: &str, contacts: &[String]) -> String {
     match named {
         Some((name, _)) => format!("To send it, say: send it to {name}"),
         None if contacts.is_empty() => {
-            "To send it, first add who it goes to: add contact Ravi name@example.com".into()
+            "To send it, first add who it goes to, for example: add contact Ravi name@example.com"
+                .into()
         }
         None => "To send it, say: send it to, then a name from your contacts".into(),
     }
@@ -865,7 +866,7 @@ mod tests {
         );
         assert_eq!(
             say("write a mail about leave", &[]),
-            "To send it, first add who it goes to: add contact Ravi name@example.com"
+            "To send it, first add who it goes to, for example: add contact Ravi name@example.com"
         );
     }
 
