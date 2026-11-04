@@ -317,8 +317,26 @@ All entries are estimates. The capability system replaces them with measurements
 
 ## 7. Performance budgets (tested)
 
-| What | Target | Reference |
-|---|---|---|
+Measured 2026-11-04 on the Ryzen 5 5500U laptop, 14 GB, on AC, with a release build: `experiments/v4/measure_budgets.py`, log in `experiments/logs/v4/budgets-2026-11-04.json`. One run on one machine; no 8 GB laptop has been measured.
+
+| What | Target | Measured | |
+|---|---|---|---|
+| Routing decision, rules and encoder | ≤ 0.1 s | 0.007 ms, 13 ms | met |
+| Worker ready (warm, saved prefix) | ≤ 3 s | ~2.6 s (first words after a restart, 4.1 s, less a new conversation's) | met |
+| First words of a chat answer (warm), new conversation | ≤ 2 s | 1.55 s (1.53 to 1.98) | met |
+| First words of a chat answer (warm), inside a conversation | ≤ 2 s | 2.9 s, about 3 to 5 s after several turns | **missed** |
+| Mail draft (~400 tokens) | ≤ 60 s on the slowest ✅ device | 21.7 s for 1,045 characters (about 300 tokens) | met here |
+| Model unload after idle | 10 min (setting) | 57 s with `--idle-minutes 1` | met |
+| Idle memory (no model loaded) | ≤ 400 MB | 268 MiB (283 after a model was unloaded) | met |
+| Model resident (E2B, mmap) | ~1.1 GiB pinned + 2.7 GiB reclaimable file pages | 1.5 GiB private + 2.7 GiB file pages | more than estimated |
+| Default download | ≤ 3 GB | E2B 2.84 GB | met |
+| CPU when idle | ~0 | 0.02% of a core | met |
+
+**Why inside a conversation misses:** the earlier turns are prefilled before the first word at 58–80 tok/s, and §4.7 allows them up to 10 s of it. Shortening them would make Kestrel forget sooner, so the target stands as known missed until the pilot says whether people mind; the words do stream once they begin.
+
+**The first use costs more, once per model and device:** the first answer takes about 17 s and the first unsure request about 20 s, while each prompt's prefix is computed and saved to disk. The page says the model loads the first time.
+
+---|---|---|
 | Routing decision | ≤ 0.1 s | e5 pass ~10 ms (meas.) |
 | Worker ready (warm, saved prefix) | ≤ 3 s | 2.0 s (meas., v3) |
 | First words of a chat answer (warm) | ≤ 2 s | — |

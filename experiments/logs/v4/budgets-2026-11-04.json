@@ -1,0 +1,127 @@
+{
+ "binary": "/home/Adi_mauryaji/Kestrel/target/release/kestrel",
+ "unix": 1793766365,
+ "service_ready_s": 1.0263358929996684,
+ "idle_cpu_percent": 0.0166665590020845,
+ "idle_memory_mib": {
+  "rss": 268.0078125,
+  "anon": 256.00390625,
+  "file": 12.00390625
+ },
+ "routing_ms": [
+  {
+   "end_tier": 1,
+   "ms": 0.007074
+  },
+  {
+   "end_tier": 3,
+   "ms": 13.069223
+  },
+  {
+   "end_tier": 4,
+   "ms": 17127.395763
+  },
+  {
+   "end_tier": 4,
+   "ms": 477.070686
+  }
+ ],
+ "cold": {
+  "first_s": 1.5186714740002571,
+  "total_s": 4.414950891000444,
+  "chars": 178,
+  "lines": [
+   "(Written offline by a small model: it may be wrong.)"
+  ]
+ },
+ "warm": [
+  {
+   "first_s": 2.474114992000068,
+   "total_s": 3.9686522109996076,
+   "chars": 60,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  },
+  {
+   "first_s": 2.8866364969999267,
+   "total_s": 4.113838426999791,
+   "chars": 81,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  },
+  {
+   "first_s": 19.785081025999716,
+   "total_s": 21.834679616000358,
+   "chars": 104,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  }
+ ],
+ "warm_fresh": [
+  {
+   "first_s": 1.532572746000369,
+   "total_s": 3.0885597380001855,
+   "chars": 60,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  },
+  {
+   "first_s": 1.5499000510008045,
+   "total_s": 2.8351844430007986,
+   "chars": 81,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  },
+  {
+   "first_s": 1.9753514760004691,
+   "total_s": 3.9680992270004936,
+   "chars": 104,
+   "lines": [
+    "(Written offline by a small model: it may be wrong.)"
+   ]
+  }
+ ],
+ "mail": {
+  "first_s": 2.0730477719998817,
+  "total_s": 21.715937891000067,
+  "chars": 1045,
+  "lines": []
+ },
+ "after_memory_mib": {
+  "service": {
+   "rss": 342.546875,
+   "anon": 329.00390625,
+   "file": 13.54296875
+  },
+  "workers": [
+   {
+    "rss": 4239.05859375,
+    "anon": 1533.08984375,
+    "file": 2705.96875
+   }
+  ]
+ },
+ "workers_seen": 1,
+ "restart": {
+  "first_s": 4.12366307999946,
+  "total_s": 5.612657402999503,
+  "chars": 60,
+  "lines": [
+   "(Written offline by a small model: it may be wrong.)"
+  ]
+ },
+ "unloaded_after_s": 56.523673345000134,
+ "worker_was_running": true,
+ "memory_after_unload_mib": {
+  "rss": 282.546875,
+  "anon": 269.6484375,
+  "file": 12.8984375
+ },
+ "warm_first_median_s": 2.8866364969999267,
+ "warm_fresh_first_median_s": 1.5499000510008045
+}
