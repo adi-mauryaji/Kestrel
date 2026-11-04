@@ -570,8 +570,9 @@ impl Web {
     /// answer on.
     fn read(
         &self,
-        mut stream: std::net::TcpStream,
+        stream: std::net::TcpStream,
     ) -> io::Result<Option<(HttpRequest, std::net::TcpStream)>> {
+        let mut stream = unheld(stream)?;
         stream.set_nonblocking(false)?;
         stream.set_read_timeout(Some(READ_TIMEOUT))?;
         // Read through a borrow: one socket handle, closed once (no clone closed early).
@@ -641,6 +642,23 @@ impl Web {
         }
         None
     }
+}
+
+/// One line of a streamed answer, in one write and at once. A line in several writes, as `writeln!`
+/// makes, stays on its way: its first byte leaves and TCP holds the rest for an acknowledgement that
+/// WebKitGTK, the Linux app's engine, does not send until more comes. So a y/N question reached the
+/// page only when the answer's wait had run out (2026-11-04; Chrome and curl never showed it).
+fn send_line(out: &mut dyn Write, value: &Value) -> io::Result<()> {
+    let mut line = value.to_string();
+    line.push('\n');
+    out.write_all(line.as_bytes())?;
+    out.flush()
+}
+
+/// A connection from the page: what is written goes at once (`send_line`).
+fn unheld(stream: std::net::TcpStream) -> io::Result<std::net::TcpStream> {
+    stream.set_nodelay(true)?;
+    Ok(stream)
 }
 
 /// Answers one allowed request. `api` reads the task list, what Kestrel can do on this device, the
@@ -780,23 +798,22 @@ pub fn respond(
                 // A question goes to the page; no answer in time counts as no.
                 let mut confirm = |q: &str| -> bool {
                     let mut o = out.borrow_mut();
-                    let sent = writeln!(o, "{}", json!({"ask": q})).and_then(|()| o.flush());
+                    let sent = send_line(&mut **o, &json!({"ask": q}));
                     drop(o);
                     sent.is_ok() && answer().unwrap_or(false)
                 };
                 // Written text is sent as it comes; a page gone mid-answer only loses its answer.
                 let mut part = |p: &str| {
                     let mut o = out.borrow_mut();
-                    let _ = writeln!(o, "{}", json!({"part": p})).and_then(|()| o.flush());
+                    let _ = send_line(&mut **o, &json!({"part": p}));
                 };
                 say(&text, &mut confirm, &mut part)
             };
             let out = out.into_inner();
             for l in lines {
-                writeln!(out, "{}", json!({"line": l}))?;
+                send_line(&mut *out, &json!({"line": l}))?;
             }
-            writeln!(out, "{}", json!({"done": true}))?;
-            out.flush()
+            send_line(&mut *out, &json!({"done": true}))
         }
         ("POST", "/api/answer") => reply(out, "409 Conflict", TEXT, b"no question is waiting"),
         (
@@ -1354,6 +1371,40 @@ mod tests {
         ));
         let (out, _) = answer_to(&from_phone, None);
         assert!(out.starts_with("HTTP/1.1 403"), "{out:.80}");
+    }
+
+    #[test]
+    fn a_line_of_an_answer_goes_in_one_write_and_at_once() {
+        #[derive(Default)]
+        struct Writes(Vec<Vec<u8>>, usize);
+        impl Write for Writes {
+            fn write(&mut self, b: &[u8]) -> io::Result<usize> {
+                self.0.push(b.to_vec());
+                Ok(b.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                self.1 += 1;
+                Ok(())
+            }
+        }
+        let mut w = Writes::default();
+        send_line(&mut w, &json!({"ask": "Send this mail?\n\nTo: a@b.c"})).unwrap();
+        assert_eq!(w.0.len(), 1, "one write, or WebKit waits for the rest");
+        assert_eq!(w.1, 1, "and it does not stay here");
+        assert_eq!(w.0[0], b"{\"ask\":\"Send this mail?\\n\\nTo: a@b.c\"}\n");
+    }
+
+    #[test]
+    fn a_connection_from_the_page_is_not_held_back_by_tcp() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let client = std::net::TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let (accepted, _) = listener.accept().unwrap();
+        assert!(
+            !accepted.nodelay().unwrap(),
+            "the default holds small writes"
+        );
+        assert!(unheld(accepted).unwrap().nodelay().unwrap());
+        drop(client);
     }
 
     #[test]
