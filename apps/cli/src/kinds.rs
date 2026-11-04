@@ -447,7 +447,7 @@ impl<'a> Kinds<'a> {
         req: &Request,
         typed: &str,
         confirm: &mut dyn FnMut(&str) -> bool,
-        mut stream: Option<&mut dyn FnMut(&str)>,
+        stream: Option<&mut dyn FnMut(&str)>,
         meaning: Option<&mut dyn crate::meaning::Meaning>,
     ) -> Option<Vec<String>> {
         self.took.set(None);
@@ -497,6 +497,22 @@ impl<'a> Kinds<'a> {
                 self.writer.as_ref(),
             ));
         }
+        Some(self.written(kind, typed, stream))
+    }
+
+    /// A mail the person asked for by name (src/send.rs's `compose`), whatever the head would say.
+    pub fn email(&self, typed: &str, stream: Option<&mut dyn FnMut(&str)>) -> Vec<String> {
+        self.took.set(Some(Kind::Email));
+        self.written(Kind::Email, typed, stream)
+    }
+
+    /// `kind` written from `typed`; the lines that follow what was streamed.
+    fn written(
+        &self,
+        kind: Kind,
+        typed: &str,
+        mut stream: Option<&mut dyn FnMut(&str)>,
+    ) -> Vec<String> {
         let mut shown = String::new();
         // A chat is written knowing the conversation so far, and joins it.
         let chat = self.conversation.as_ref().filter(|_| kind == Kind::Chat);
@@ -533,7 +549,7 @@ impl<'a> Kinds<'a> {
         if kind == Kind::Chat && (finished || !shown.is_empty()) {
             lines.push(CAVEAT.into());
         }
-        Some(lines)
+        lines
     }
 }
 

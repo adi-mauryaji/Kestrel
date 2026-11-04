@@ -52,7 +52,10 @@ Type these in the box on Home, in your own words:
 - `show my tasks`
 - `my sister's name is Meera`, and later ask about it
 - `mera PAN kahan hai`, once a PAN document is in your notes folder
-- `draft a mail to my teacher asking for leave on Friday`
+- `add contact Anup anup@gmail.com`, then `send an email to Anup about leave on Friday` or
+  `anup ko mail kr do mai kl chutti pr hu`, once your Gmail is set up in Settings. It shows you the mail
+  and asks before sending
+- `draft a mail to my teacher asking for leave on Friday`, which only writes it
 - A question about something in your notes
 - `why this answer`, after any answer
 

@@ -202,6 +202,33 @@ impl<'a> Assistant<'a> {
             ));
             return act.send_or_keep(sender, said, draft.as_deref(), now, confirm);
         }
+        // v4: "send an email to Anup about Friday": written, then the same yes as for any draft.
+        if let (Some(sender), Some(kinds), Some(act)) =
+            (self.sender.as_ref(), self.kinds.as_ref(), self.act.as_mut())
+            && let Some(asked) = crate::send::compose(text, &act.contact_names())
+        {
+            self.took = Some("mail");
+            self.why = Some(Why::new(
+                now,
+                "By rules: your words asked for a mail to a contact. The model wrote it, and it went only after your yes.",
+            ));
+            let to = crate::send::Said::Send {
+                to: Some(asked.to.clone()),
+            };
+            if !asked.has_words {
+                let draft = kinds.draft();
+                return act.send_or_keep(sender, to, draft.as_deref(), now, confirm);
+            }
+            let known = act.contact_names();
+            if !known.iter().any(|c| c.eq_ignore_ascii_case(&asked.to)) {
+                return vec![crate::send::not_a_contact(&asked.to)];
+            }
+            let mut lines = kinds.email(text, part);
+            if let Some(draft) = kinds.draft() {
+                lines.extend(act.send_or_keep(sender, to, Some(&draft), now, confirm));
+            }
+            return lines;
+        }
         // v4: the weather and the news: rules, and what comes back is shown, never acted on.
         if let (Some(online), Some(act)) = (self.online.as_ref(), self.act.as_mut())
             && let Some(asked) = crate::online::parse(text)
@@ -317,6 +344,14 @@ impl<'a> Assistant<'a> {
                     .map_or("new_conversation", crate::kinds::Kind::label),
             );
             out.extend(lines);
+            // A draft on its own: what to say to send it.
+            if self.sender.is_some()
+                && kinds.took() == Some(crate::kinds::Kind::Email)
+                && kinds.draft().is_some()
+                && let Some(act) = self.act.as_ref()
+            {
+                out.push(crate::send::next_step(text, &act.contact_names()));
+            }
             let way = kinds
                 .why()
                 .unwrap_or_else(|| "It was written by the model.".to_string());
@@ -541,6 +576,99 @@ mod tests {
         assert_eq!(log.len(), 2);
         assert_eq!(log[0].result.as_deref(), Some("sent"));
         assert!(!log[1].approved);
+    }
+
+    /// An assistant that can write and send, with Anup in the contacts.
+    fn mailer(name: &str) -> (Assistant<'static>, crate::send::fake::Fake) {
+        use crate::send::{Account, Sender, fake::Fake};
+        let (a, _) = assistant(name, true);
+        let f = Fake::default();
+        let account = || Account {
+            internet: true,
+            from: Some("me@example.com".into()),
+            name: None,
+        };
+        let mut a = a
+            .with_kinds(Kinds::new(Box::new(KindByFirstWord), Box::new(Drafts), TAU))
+            .with_sender(Sender::new(Box::new(f.clone()), Box::new(account)));
+        a.handle("add contact Anup anup@example.com", &mut |q| panic!("{q}"));
+        (a, f)
+    }
+
+    #[test]
+    fn one_request_writes_the_mail_and_it_leaves_only_after_a_yes() {
+        for (n, text) in [
+            "send an email to anup regarding a day off tomorrow",
+            "anup ko mail kr do mai kl chutti pr hu",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let (mut a, f) = mailer(&format!("compose{n}"));
+            let mut shown = String::new();
+            let out = a.handle(text, &mut |q| {
+                shown = q.to_string();
+                false
+            });
+            assert!(shown.contains("To: anup@example.com"), "{shown}");
+            assert!(
+                shown.contains(&format!("email draft of: {text}")),
+                "{shown}"
+            );
+            assert_eq!(out.last().map(String::as_str), Some("Not sent."), "{out:?}");
+            assert!(f.asked.borrow().is_empty());
+            // The no left the draft where it was.
+            let out = a.handle("send it to anup", &mut yes());
+            assert!(out.last().unwrap().contains("Sent to Anup"), "{out:?}");
+            assert_eq!(f.asked.borrow().len(), 1);
+            // And with a yes at once.
+            let out = a.handle(text, &mut yes());
+            assert!(out.last().unwrap().contains("Sent to Anup"), "{out:?}");
+            assert_eq!(f.asked.borrow().len(), 2);
+        }
+    }
+
+    #[test]
+    fn someone_not_in_the_contacts_is_told_before_anything_is_written() {
+        let (mut a, f) = mailer("compose_unknown");
+        let out = a.handle("boss ko mail kr do mai late hu", &mut |q| panic!("{q}"));
+        assert_eq!(
+            out,
+            ["boss is not in your contacts. Add them first: add contact boss name@example.com"]
+        );
+        let out = a.handle("send it to anup", &mut |q| panic!("{q}"));
+        assert!(
+            out.last().unwrap().contains("no draft"),
+            "nothing written: {out:?}"
+        );
+        assert!(f.asked.borrow().is_empty());
+    }
+
+    #[test]
+    fn asking_to_mail_someone_with_no_words_sends_the_draft_there_is() {
+        let (mut a, f) = mailer("compose_draft");
+        let out = a.handle("send an email to anup", &mut |q| panic!("{q}"));
+        assert!(out.last().unwrap().contains("no draft"), "{out:?}");
+        a.handle("draft a mail to anup: leave on friday", &mut |q| {
+            panic!("{q}")
+        });
+        let out = a.handle("anup ko mail kr do", &mut yes());
+        assert!(out.last().unwrap().contains("Sent to Anup"), "{out:?}");
+        assert_eq!(f.asked.borrow().len(), 1);
+    }
+
+    #[test]
+    fn a_draft_on_its_own_says_how_to_send_it_and_asks_nothing() {
+        let (mut a, f) = mailer("compose_hint");
+        let out = a.handle("draft a mail to anup: leave on friday", &mut |q| {
+            panic!("{q}")
+        });
+        assert_eq!(
+            out.last().map(String::as_str),
+            Some("To send it, say: send it to Anup"),
+            "{out:?}"
+        );
+        assert!(f.asked.borrow().is_empty());
     }
 
     #[test]

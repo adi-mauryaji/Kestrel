@@ -215,6 +215,14 @@ impl Act {
         sender.handle(said, draft, self.backend.memory_mut(), now, confirm)
     }
 
+    /// The names mail may go to (src/send.rs).
+    pub fn contact_names(&self) -> Vec<String> {
+        let memory = self.backend.memory();
+        (memory.contacts().unwrap_or_default().into_iter())
+            .map(|c| c.name)
+            .collect()
+    }
+
     /// What the person says about themselves, and asks back (src/facts.rs); None: not that.
     pub fn about_the_person(&mut self, text: &str, now: i64) -> Option<Vec<String>> {
         use kestrel_memory::{Draft, Filter, Kind, Source};

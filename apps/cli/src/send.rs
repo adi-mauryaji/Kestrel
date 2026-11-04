@@ -167,6 +167,258 @@ pub fn parse(text: &str) -> Option<Said> {
     contact(&words, &lower).or_else(|| to_send(&words, &lower))
 }
 
+/// One request to mail someone, written and sent in one go: "send an email to Anup about Friday",
+/// "anup ko mail kr do mai kl chutti pr hu". Asking only to write ("write a mail to Anup", "mail likh
+/// do") stays a draft. The name is the person's own words and goes through the contacts, and the mail
+/// still waits for a yes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Compose {
+    pub to: String,
+    /// Whether it says what the mail is about; if not, it means the draft there is.
+    pub has_words: bool,
+}
+
+/// What a mail may be called.
+const A_MAIL: [&str; 4] = ["email", "mail", "e-mail", "message"];
+/// What may stand before it.
+const ARTICLES: [&str; 5] = ["a", "an", "the", "one", "ek"];
+/// What ends a name nobody has listed, in "send an email to the manager about leave".
+const AFTER_A_NAME: [&str; 12] = [
+    "about",
+    "regarding",
+    "re",
+    "saying",
+    "that",
+    "for",
+    "asking",
+    "telling",
+    "on",
+    "with",
+    "and",
+    "ki",
+];
+/// Words before "ko" that are no one's name.
+const NOT_A_NAME: [&str; 8] = ["is", "us", "in", "un", "kis", "kisi", "sab", "mail"];
+/// Words that say nothing about what a mail should say.
+const NO_WORDS: [&str; 6] = ["ki", "ke", "please", "pls", "plz", "kindly"];
+/// How "mail" is asked to go, in Hinglish, longest first. "mail likh do" is not here: it is a draft.
+const MAIL_IT: [&[&str]; 28] = [
+    &["likh", "kar", "bhej", "do"],
+    &["likh", "ke", "bhej", "do"],
+    &["likh", "kr", "bhej", "do"],
+    &["send", "kar", "do"],
+    &["send", "kr", "do"],
+    &["kar", "dijiye"],
+    &["kr", "dijiye"],
+    &["kar", "dena"],
+    &["kr", "dena"],
+    &["kar", "do"],
+    &["kr", "do"],
+    &["bhej", "dijiye"],
+    &["bhej", "dena"],
+    &["bhej", "do"],
+    &["bhejna", "hai"],
+    &["karna", "hai"],
+    &["krna", "hai"],
+    &["bhejo"],
+    &["bhejna"],
+    &["karo"],
+    &["kro"],
+    &["krdo"],
+    &["kardo"],
+    &["karna"],
+    &["krna"],
+    &["send"],
+    &["kar"],
+    &["kr"],
+];
+
+/// A listed contact whose name `lower` starts with: the longest such, and how many words it takes.
+fn listed(lower: &[String], contacts: &[String]) -> Option<(String, usize)> {
+    contacts
+        .iter()
+        .filter_map(|c| {
+            let name: Vec<String> = c.split_whitespace().map(str::to_lowercase).collect();
+            lower.starts_with(&name).then(|| (c.clone(), name.len()))
+        })
+        .max_by_key(|(_, n)| *n)
+}
+
+/// The name at the start of `words`, listed or not, and how many words it takes.
+fn named(words: &[&str], lower: &[String], contacts: &[String]) -> Option<(String, usize)> {
+    if let Some(found) = listed(lower, contacts) {
+        return Some(found);
+    }
+    let skip = usize::from(matches!(lower.first()?.as_str(), "the" | "my"));
+    let rest = lower.get(skip..)?;
+    let n = (rest.iter().take(NAME_WORDS + 1))
+        .position(|w| AFTER_A_NAME.contains(&w.as_str()))
+        .filter(|n| *n > 0)
+        .unwrap_or(1);
+    (rest.len() >= n).then(|| (words[skip..skip + n].join(" "), skip + n))
+}
+
+/// "send an email to Anup ...", "send Anup a mail ...", "mail Anup ...", "email to Anup ...".
+fn compose_english(words: &[&str], lower: &[String], contacts: &[String]) -> Option<Compose> {
+    let mut start = 0;
+    if matches!(
+        lower.first().map(String::as_str),
+        Some("can" | "could" | "would" | "will")
+    ) && lower.get(1).is_some_and(|w| w == "you")
+    {
+        start = 2;
+    }
+    while matches!(
+        lower.get(start).map(String::as_str),
+        Some("please" | "pls" | "plz" | "kindly")
+    ) {
+        start += 1;
+    }
+    let (first, rest) = (lower.get(start)?, start + 1);
+    let is_mail = |w: Option<&String>| w.is_some_and(|w| A_MAIL.contains(&w.as_str()));
+    let is_article = |w: Option<&String>| w.is_some_and(|w| ARTICLES.contains(&w.as_str()));
+    let (who, used) = if first == "send" {
+        let mut at = rest;
+        if is_article(lower.get(at)) {
+            at += 1;
+        }
+        if is_mail(lower.get(at)) && lower.get(at + 1).is_some_and(|w| w == "to") {
+            let (who, n) = named(&words[at + 2..], &lower[at + 2..], contacts)?;
+            (who, at + 2 + n)
+        } else {
+            // "send Anup a mail": only a contact, since "send a parcel" is no one's name.
+            let (who, n) = listed(&lower[rest..], contacts)?;
+            let mut at = rest + n;
+            if is_article(lower.get(at)) {
+                at += 1;
+            }
+            if !is_mail(lower.get(at)) {
+                return None;
+            }
+            (who, at + 1)
+        }
+    } else if A_MAIL[..3].contains(&first.as_str()) {
+        // "mail Anup ...": only a contact, since "mail merge" and "email tips" are no one's name.
+        let at = rest + usize::from(lower.get(rest).is_some_and(|w| w == "to"));
+        let (who, n) = listed(&lower[at..], contacts)?;
+        (who, at + n)
+    } else {
+        return None;
+    };
+    Some(Compose {
+        to: who,
+        has_words: used < lower.len(),
+    })
+}
+
+/// How long the words at `at` that ask for a mail to go are.
+fn mail_it(lower: &[String], at: usize) -> Option<usize> {
+    let rest = lower.get(at..)?;
+    MAIL_IT
+        .iter()
+        .find(|verb| rest.len() >= verb.len() && verb.iter().zip(rest).all(|(v, w)| *v == w))
+        .map(|verb| verb.len())
+}
+
+/// The name just before `ko`, and how many words it takes.
+fn before_ko(
+    words: &[&str],
+    lower: &[String],
+    ko: usize,
+    contacts: &[String],
+) -> Option<(String, usize)> {
+    let known = (1..=ko.min(NAME_WORDS))
+        .rev()
+        .find_map(|n| listed(&lower[ko - n..ko], contacts).filter(|(_, m)| *m == n));
+    known.or_else(|| {
+        let word = lower.get(ko.checked_sub(1)?)?;
+        (!NOT_A_NAME.contains(&word.as_str())).then(|| (words[ko - 1].to_string(), 1))
+    })
+}
+
+/// "anup ko mail kr do ...", "... anup ko ek email bhej do", "mail kr do anup ko ...".
+fn compose_hinglish(words: &[&str], lower: &[String], contacts: &[String]) -> Option<Compose> {
+    let is_mail = |w: Option<&String>| w.is_some_and(|w| A_MAIL.contains(&w.as_str()));
+    let done = |who: String, used: usize| {
+        let spare = lower.len() - used;
+        let filler = lower
+            .iter()
+            .filter(|w| NO_WORDS.contains(&w.as_str()))
+            .count();
+        Some(Compose {
+            to: who,
+            has_words: spare > filler,
+        })
+    };
+    for ko in (0..lower.len()).filter(|i| lower[*i] == "ko") {
+        // The name, "ko", then the mail and how it goes.
+        let mail = ko
+            + 1
+            + usize::from(
+                lower
+                    .get(ko + 1)
+                    .is_some_and(|w| ARTICLES.contains(&w.as_str())),
+            );
+        if is_mail(lower.get(mail))
+            && let Some(verb) = mail_it(lower, mail + 1)
+            && let Some((who, n)) = before_ko(words, lower, ko, contacts)
+        {
+            return done(who, n + (mail - ko) + 1 + verb);
+        }
+    }
+    // The mail and how it goes first, then the name and "ko".
+    if is_mail(lower.first())
+        && let Some(verb) = mail_it(lower, 1)
+    {
+        let at = 1 + verb;
+        let ko = at + lower.get(at..)?.iter().position(|w| w == "ko")?;
+        if ko > at && ko - at <= NAME_WORDS {
+            let (who, n) = before_ko(words, lower, ko, contacts)?;
+            return (n == ko - at).then(|| done(who, at + n + 1)).flatten();
+        }
+    }
+    None
+}
+
+/// Whether `text` asks for a mail to be written and sent to someone; `contacts` are the names kept.
+pub fn compose(text: &str, contacts: &[String]) -> Option<Compose> {
+    let said = text.trim().trim_end_matches(['.', '!', '?']);
+    let words: Vec<&str> = (said.split_whitespace())
+        .map(|w| w.trim_matches([',', ';', ':']))
+        .filter(|w| !w.is_empty())
+        .collect();
+    let lower: Vec<String> = words.iter().map(|w| w.to_lowercase()).collect();
+    if words.len() < 2 {
+        return None;
+    }
+    compose_english(&words, &lower, contacts).or_else(|| compose_hinglish(&words, &lower, contacts))
+}
+
+/// What to say once a draft is written, with the contact the request named when it named one.
+pub fn next_step(text: &str, contacts: &[String]) -> String {
+    let lower: Vec<String> = (text.split_whitespace())
+        .map(|w| {
+            w.trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase()
+        })
+        .collect();
+    let named = (0..lower.len())
+        .filter_map(|at| listed(&lower[at..], contacts))
+        .max_by_key(|(_, n)| *n);
+    match named {
+        Some((name, _)) => format!("To send it, say: send it to {name}"),
+        None if contacts.is_empty() => {
+            "To send it, first add who it goes to: add contact Ravi name@example.com".into()
+        }
+        None => "To send it, say: send it to, then a name from your contacts".into(),
+    }
+}
+
+/// What to say when `to` is not among the contacts.
+pub fn not_a_contact(to: &str) -> String {
+    format!("{to} is not in your contacts. Add them first: add contact {to} name@example.com")
+}
+
 /// A draft as subject and body: its "Subject:" line if it has one.
 pub fn split_draft(draft: &str) -> (String, String) {
     let text = draft.trim();
@@ -256,9 +508,7 @@ pub fn send(
         return one("Send it to whom? For example: send it to Ravi".into());
     };
     let Some(contact) = memory.contact(to)? else {
-        return one(format!(
-            "{to} is not in your contacts. Add them first: add contact {to} name@example.com"
-        ));
+        return one(not_a_contact(to));
     };
     let draft = with_name(draft, account.name.as_deref());
     let (subject, body) = split_draft(&draft);
@@ -506,6 +756,118 @@ pub(crate) mod fake {
 mod tests {
     use super::fake::Fake;
     use super::*;
+
+    fn people() -> Vec<String> {
+        vec!["Anup".to_string(), "Ravi Kumar".to_string()]
+    }
+
+    #[test]
+    fn one_request_can_ask_for_a_mail_to_be_written_and_sent() {
+        let to = |n: &str, has_words| {
+            Some(Compose {
+                to: n.into(),
+                has_words,
+            })
+        };
+        for (text, want) in [
+            (
+                "send an email to anup regarding a day off tomorrow",
+                to("Anup", true),
+            ),
+            ("Send a mail to Anup about leave.", to("Anup", true)),
+            (
+                "send mail to ravi kumar saying hello",
+                to("Ravi Kumar", true),
+            ),
+            ("please send an email to anup, I am late", to("Anup", true)),
+            (
+                "can you send a message to anup that I am late",
+                to("Anup", true),
+            ),
+            ("send anup an email about friday", to("Anup", true)),
+            ("email anup about friday", to("Anup", true)),
+            ("mail anup i am late", to("Anup", true)),
+            ("mail to anup i am late", to("Anup", true)),
+            ("anup ko mail kr do mai kl chutti pr hu", to("Anup", true)),
+            (
+                "Anup ko mail kar do ki main kal nahi aaunga",
+                to("Anup", true),
+            ),
+            (
+                "anup ko ek email bhej do kal ki chutti ke baare mein",
+                to("Anup", true),
+            ),
+            ("kal ki chutti ke liye anup ko mail kr do", to("Anup", true)),
+            (
+                "anup ko mail likh ke bhej do kal chutti hai",
+                to("Anup", true),
+            ),
+            (
+                "ravi kumar ko mail karo ki meeting kal hai",
+                to("Ravi Kumar", true),
+            ),
+            ("mail kr do anup ko mai kl chutti pr hu", to("Anup", true)),
+            // Someone who is not a contact is named, so they can be told so.
+            ("boss ko mail kr do mai late hu", to("boss", true)),
+            (
+                "send an email to the manager about leave",
+                to("manager", true),
+            ),
+            ("send an email to boss i am late", to("boss", true)),
+            // Nothing about what to say: the draft there is.
+            ("send an email to anup", to("Anup", false)),
+            ("anup ko mail kr do", to("Anup", false)),
+            ("mail anup", to("Anup", false)),
+        ] {
+            assert_eq!(compose(text, &people()), want, "{text}");
+        }
+    }
+
+    #[test]
+    fn asking_only_for_a_draft_or_about_mail_is_not_asking_to_send() {
+        for text in [
+            "write an email to anup about friday",
+            "draft a mail to anup",
+            "anup ko mail likh do friday ki chutti",
+            "manager ko friday ki chutti ke liye mail likh do",
+            "how do I send an email to my boss",
+            "mail merge kya hota hai",
+            "email kya hota hai",
+            "email marketing tips",
+            "what is an email",
+            "anup ko call kar do",
+            "anup ko mail aaya kya",
+            "mail ko delete kr do",
+            "us ko mail kr do",
+            "send it to Ravi",
+            "send a parcel to anup",
+            "hello",
+            "",
+        ] {
+            assert_eq!(compose(text, &people()), None, "{text}");
+        }
+    }
+
+    #[test]
+    fn a_draft_says_how_to_send_it() {
+        let say = |text, people: &[String]| next_step(text, people);
+        assert_eq!(
+            say("draft a mail to Anup: leave", &people()),
+            "To send it, say: send it to Anup"
+        );
+        assert_eq!(
+            say("ravi kumar ko mail likh do", &people()),
+            "To send it, say: send it to Ravi Kumar"
+        );
+        assert_eq!(
+            say("write a mail about leave", &people()),
+            "To send it, say: send it to, then a name from your contacts"
+        );
+        assert_eq!(
+            say("write a mail about leave", &[]),
+            "To send it, first add who it goes to: add contact Ravi name@example.com"
+        );
+    }
 
     #[test]
     fn asking_to_send_and_to_keep_a_contact_are_told_from_the_rest() {
