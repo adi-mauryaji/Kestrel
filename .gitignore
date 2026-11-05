@@ -34,10 +34,7 @@ datasets/raw/
 /experiments/logs/router/tier_outputs_clinc150.jsonl
 /experiments/logs/router/tier_outputs_clinc150_test.jsonl
 
-
-
-KESTREL_COMPLETE_RESEARCH_AND_IMPLEMENTATION_BLUEPRINT.md
-
 # Kept on this laptop only (Claude Code, KYROS).
 .claude/
 .kyros/
+KESTREL_COMPLETE_RESEARCH_AND_IMPLEMENTATION_BLUEPRINT.md
