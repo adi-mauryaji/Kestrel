@@ -126,6 +126,8 @@ mod ticket;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod times;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
+mod update;
+#[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod usage;
 #[cfg_attr(not(feature = "llama"), allow(dead_code))]
 mod web;

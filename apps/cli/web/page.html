@@ -221,6 +221,8 @@ svg.i { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor;
   border-bottom: 1px solid var(--rule);
   font-size: 15.5px; color: var(--muted);
 }
+.updated { margin: 0 0 14px; padding: 10px 16px; border-radius: 10px; background: var(--chip); border: 1px solid var(--chip-line); color: var(--ink); font-size: 15px; }
+.updated[hidden] { display: none; }
 .topbar .lock { width: 19px; height: 19px; color: var(--muted); }
 .topbar .today { margin-left: auto; color: var(--ink); }
 .theme { display: flex; gap: 6px; margin-left: 22px; }
@@ -670,6 +672,7 @@ code { padding: 1px 6px; border-radius: 5px; background: var(--chip); border: 1p
   </aside>
 
   <div class="main">
+    <p class="updated" id="updated" role="status" hidden>Kestrel was updated. To use the new version, quit it from its icon near the clock and open it again.</p>
     <header class="topbar">
       <svg class="i lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
       <span id="promise-line">Runs on this laptop. Nothing you type leaves it.</span>
@@ -1265,6 +1268,7 @@ async function refresh() {
     const r = await api("/api/tasks");
     if (!r.ok) return;
     last = await r.json();
+    $("updated").hidden = !last.updated;
     drawHero(last);
     drawTimeline(last);
     drawTasks(last);
@@ -1286,7 +1290,7 @@ function summary(t) {
   // Lines trimmed; a heading line ("today:") runs into the next.
   const said = t.lines.map((l) => l.trim()).filter(Boolean);
   if (said.length) return said.reduce((a, l) => (!a ? l : a.endsWith(":") ? `${a} ${l}` : `${a} · ${l}`), "");
-  if (t.written) return t.written.replace(/```[\s\S]*?(```|$)/g, "[code]").replace(/\s+/g, " ").trim();
+  if (t.written) return plainWritten(t.written.replace(/```[\s\S]*?(```|$)/g, "[code]")).replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
   return "done";
 }
 
@@ -1392,6 +1396,14 @@ function ask(t, q) {
   no.addEventListener("click", () => answer(false));
   box.append(yes, no);
   t.detail.append(box);
+  // The service stops waiting after two minutes: a late press would seem to work and do nothing.
+  t.expire = () => {
+    if (answered) return;
+    answered = true;
+    t.asking = false;
+    box.querySelectorAll("button").forEach((b) => b.remove());
+    box.append(el("span", "wait", "No answer came in time, so that was taken as no. Ask again when you are ready."));
+  };
   no.focus();
   box.addEventListener("keydown", (e) => {
     if (e.key === "y") answer(true);
@@ -1399,15 +1411,40 @@ function ask(t, q) {
   });
 }
 
+// What the model wrote, as a person would write it: its "* " as a bullet, a heading's "#" gone, and the
+// blank for the person's own name filled, as it is in the mail that leaves (src/send.rs).
+function plainWritten(text) {
+  const named = last && last.name
+    ? text.replace(/\[(your name|aapka naam|apna naam|mera naam)\]/gi, () => last.name)
+    : text;
+  return named.split("\n").map((l) => l.replace(/^(\s*)[*-]\s+/, "$1• ").replace(/^\s*#{1,6}\s+/, "")).join("\n");
+}
+// The same as nodes: its **bold** bold. Built from text, so nothing the model writes can be markup.
+function writtenNodes(text) {
+  const out = document.createDocumentFragment();
+  plainWritten(text).split(/\*\*(.+?)\*\*/s).forEach((part, i) => {
+    if (!part) return;
+    out.append(i % 2 ? el("b", "", part) : document.createTextNode(part));
+  });
+  return out;
+}
+
 // A written answer's ```fenced``` code as a box with a Copy button, once the text is complete (an
-// unclosed fence, as in an answer cut at its length limit, is code to the end).
+// unclosed fence, as in an answer cut at its length limit, is code to the end). The rest is made plain.
 function codeBoxes(p) {
   const text = p.textContent;
-  if (!text.includes("```")) return;
+  if (!text.includes("```")) {
+    p.replaceChildren(writtenNodes(text));
+    return;
+  }
   const out = document.createDocumentFragment();
   text.split("```").forEach((part, i) => {
     if (i % 2 === 0) {
-      if (part.trim()) out.append(el("p", "", part.trim()));
+      if (part.trim()) {
+        const words = el("p", "", "");
+        words.append(writtenNodes(part.trim()));
+        out.append(words);
+      }
       return;
     }
     const nl = part.indexOf("\n");
@@ -1490,6 +1527,7 @@ async function send(text, opts = {}) {
   } finally {
     clearInterval(tick);
     wait.remove();
+    if (t.expire) t.expire();
     t.done = true;
     // A one-line answer needs no opening: its line is under the request.
     t.oneLine = !t.written && t.lines.length <= 1 && !t.trouble && !t.detail.querySelector(".question");

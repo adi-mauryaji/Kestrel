@@ -3,11 +3,16 @@
 folder, real Gemma from models/, and a Chrome window on the screen. It says a scenario's requests and writes each
 reply to OUT/results.jsonl; reading them is the test (page_steps/conversation.mjs has the scenario's form).
 
-    python3 experiments/v4/app_test.py SCENARIO.json OUT [--headless] [--welcome]
+    python3 experiments/v4/app_test.py SCENARIO.json OUT [--headless] [--welcome] [--engine chrome|webkit] [--stand-in-net]
+
+The Linux app runs WebKitGTK, not Chrome, and a bug has hidden in that gap: use webkit for what the app must do.
+experiments/v4/app_scenario.json is the whole app in people's own sentences (with webkit, as it has steps only webkit runs).
 
 The memory file, notes and settings live in OUT/root and last between runs with the same OUT, so a later scenario
-continues an earlier one. It never touches the real ones. No mail account is set, so no mail can leave. A stand-in
-search provider runs on {SEARX}, which a scenario's text may name. Stops everything it started.
+continues an earlier one. It never touches the real ones. No mail account is set, so no mail can leave; with
+--stand-in-net (experiments/v4/fake_net.py) one is, the internet is on, and nothing goes anywhere: that is
+app_scenario_mail.json. A stand-in search provider runs on {SEARX}, which a scenario's text may name. Stops everything
+it started.
 """
 import argparse
 import json
@@ -43,6 +48,8 @@ def main() -> int:
     ap.add_argument("out", type=pathlib.Path)
     ap.add_argument("--headless", action="store_true")
     ap.add_argument("--welcome", action="store_true", help="no name saved: the first-open steps show")
+    ap.add_argument("--engine", choices=("chrome", "webkit"), default="chrome")
+    ap.add_argument("--stand-in-net", action="store_true", help="fake_net.py in place of kestrel-net, with a made-up mail account")
     args = ap.parse_args()
     out, root = args.out.resolve(), args.out.resolve() / "root"
     fresh = not root.exists()
@@ -56,7 +63,15 @@ def main() -> int:
         if not built.is_file():
             sys.exit(f"{built}: build it first (scripts/build_desktop.sh builds both)")
         shutil.copy2(built, root / "bin" / name)
-    env = dict(os.environ, XDG_RUNTIME_DIR=str(run), XDG_DATA_HOME=str(root / "data"), XDG_CACHE_HOME=str(root / "cache"))
+    if args.stand_in_net:
+        wrapper = root / "bin/kestrel-net"
+        wrapper.write_text(f'#!/bin/sh\nexec {sys.executable} -I "{REPO}/experiments/v4/fake_net.py" "$@"\n')
+        wrapper.chmod(0o755)
+        (root / "data/kestrel").mkdir(exist_ok=True)
+        settings = root / "data/kestrel/settings.json"
+        if not settings.exists():
+            settings.write_text(json.dumps({"internet": True, "mail_from": "me@example.com"}))
+    env = dict(os.environ, FAKE_NET_LOG=str(out / "net.log"), XDG_RUNTIME_DIR=str(run), XDG_DATA_HOME=str(root / "data"), XDG_CACHE_HOME=str(root / "cache"))
     for k in ("KESTREL_NOTES", "KESTREL_MEMORY", "KESTREL_TELEMETRY", "KESTREL_WEB_LAN", "KESTREL_SLM"):
         env.pop(k, None)
     kestrel = lambda *a: subprocess.run([str(root / "bin/kestrel"), *a], env=env, cwd=REPO, capture_output=True, text=True, timeout=60)
@@ -92,6 +107,12 @@ def main() -> int:
             time.sleep(0.3)
         (out / "url.txt").write_text(opened.stdout.strip())
 
+        text = args.scenario.read_text().replace("{SEARX}", f"http://127.0.0.1:{searx_port}").replace("{DOWNLOADS}", str(root / "Downloads"))
+        (out / "scenario.now.json").write_text(text)
+        if args.engine == "webkit":
+            return subprocess.run(["/usr/bin/python3", "-I", str(REPO / "experiments/v4/webkit_conversation.py"), str(out / "url.txt"),
+                                   str(out / "scenario.now.json"), str(out / "results.jsonl"), str(out), str(root / "bin/kestrel")]).returncode
+
         port = free_port()
         flags = ["--headless=new"] if args.headless else ["--new-window", "--window-size=1440,900"]
         started.append(subprocess.Popen([chrome, *flags, f"--remote-debugging-port={port}", f"--user-data-dir={root}/chrome",
@@ -104,8 +125,6 @@ def main() -> int:
             except OSError:
                 time.sleep(0.5)
 
-        text = args.scenario.read_text().replace("{SEARX}", f"http://127.0.0.1:{searx_port}").replace("{DOWNLOADS}", str(root / "Downloads"))
-        (out / "scenario.now.json").write_text(text)
         return subprocess.run(["node", str(REPO / "experiments/v4/page_check.mjs"), str(port), str(out / "url.txt"),
                                str(REPO / "experiments/v4/page_steps/conversation.mjs")],
                               env=dict(os.environ, SCENARIO=str(out / "scenario.now.json"), RESULTS=str(out / "results.jsonl"), OUT=str(out))).returncode

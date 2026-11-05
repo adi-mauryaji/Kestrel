@@ -85,7 +85,8 @@ only once your device has been measured.
 
 Reminders need Kestrel running. Closing the window leaves it near the clock; its icon has **Start at login**.
 
-**To update,** Quit from that icon first. Installing over a running app changes nothing until it restarts.
+**To update,** Quit from that icon first. Installing over a running app changes nothing until it restarts, and the page
+says so.
 
 How to uninstall, and how to run an unsigned build on macOS or Windows, is in [the guide](docs/v4/pilot/guide.md).
 
@@ -99,7 +100,7 @@ Measured on one laptop (Ryzen 5 5500U, 14 GB, no GPU), once: [the numbers](docs/
 | First words, new conversation | 1.6 s |
 | First words, inside a conversation | 3 to 5 s (the target of 2 s is missed) |
 | A mail of about 300 tokens | 22 s |
-| The first answers ever | 17 to 43 s, once per model and device |
+| The first answers ever | up to about a minute, once per model and device |
 | Memory, no model loaded | 268 MiB |
 | Memory, model loaded | 1.5 GiB of its own, plus 2.7 GiB of file pages the system can take back |
 
@@ -115,8 +116,8 @@ no 8 GB laptop has been measured.
 - **A real SearXNG** (search has used a stand-in provider, [how to set one up](docs/v4/SEARXNG.md)) and
   **[the phone page through Tailscale](docs/v4/PHONE.md).**
 
-Known rough edges: chat bullet points show as `*`; a draft shows `[Your Name]` until the question that sends it; PDFs in
-Hindi lose joined letters, and scanned PDFs give no text. Answers come from a small model, and they can be wrong.
+Known rough edges: PDFs in Hindi lose joined letters, and scanned PDFs give no text. Answers come from a small model, and
+they can be wrong.
 
 ## Develop
 
@@ -143,11 +144,11 @@ python3 scripts/preview_page.py    # the page with demo data, on scratch folders
 | `apps/desktop` | the Tauri app: window, tray, notifications, installers |
 | `crates/` | routing, memory, tools, the code sandbox, device capabilities, platform differences |
 | `capabilities/` | one file for each thing Kestrel can do on a device, and what that needs |
-| `experiments/v4/` | checks that drive the real page, including `app_test.py`, and `webkit_mail.py` in the Linux app's own engine |
+| `experiments/v4/` | checks that drive the real page; `app_test.py --engine webkit` says `app_scenario.json` in the Linux app's own engine |
 | [`docs/v4/KESTREL_V4_BLUEPRINT.md`](docs/v4/KESTREL_V4_BLUEPRINT.md) | the architecture and the rules every change keeps |
 
-Page checks run in Chrome, and the Linux app runs WebKitGTK. A bug can hide in that gap, as one did: check what you
-change in the app itself.
+The Linux app runs WebKitGTK, and a bug has hidden between it and Chrome: run what you change in that engine too. macOS
+and Windows have their own webviews, unchecked so far.
 
 ## Other versions and the research
 

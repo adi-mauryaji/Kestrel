@@ -522,7 +522,8 @@ pub fn send(
     let what = format!("to {}: {}", mail.to, mail.subject);
     if !confirm(&preview(&mail)) {
         let id = memory.log_outbound(now, "mail", GMAIL, &what, false)?;
-        memory.finish_outbound(id, "you said no; nothing left")?;
+        // A no, or no answer in time: either way there was no yes.
+        memory.finish_outbound(id, "no yes; nothing left")?;
         return one("Not sent.".into());
     }
     // In the log before it can leave: a send that dies on the way stays visible.
@@ -1014,7 +1015,7 @@ mod tests {
         assert!(f.asked.borrow().is_empty());
         let log = m.outbound(5).unwrap();
         assert!(!log[0].approved);
-        assert_eq!(log[0].result.as_deref(), Some("you said no; nothing left"));
+        assert_eq!(log[0].result.as_deref(), Some("no yes; nothing left"));
     }
 
     #[test]

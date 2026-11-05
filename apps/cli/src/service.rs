@@ -613,17 +613,20 @@ fn open_web(
     let offset = crate::clock::utc_offset();
     // The name the page greets, read at each ask (`kestrel settings name NAME` may set it since).
     let named = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);
+    let this_program = crate::update::ThisProgram::at_start();
     let tasks = move || {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs() as i64);
-        crate::web::tasks_json(
+        let mut answer = crate::web::tasks_json(
             &tasks_db.tasks().unwrap_or_default(),
             crate::clock::local_date(now, offset),
             crate::clock::local_minute(now, offset),
             skills,
             crate::settings::name(named.as_deref()).as_deref(),
-        )
+        );
+        answer["updated"] = this_program.replaced().into();
+        answer
     };
     // What Kestrel can do here, probed again at each ask (a speed test may have run since).
     let data = kestrel_platform::data_dir(kestrel_platform::Os::current(), &kestrel_platform::env);

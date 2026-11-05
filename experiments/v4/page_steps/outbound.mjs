@@ -98,7 +98,7 @@ export default async ({ js, shot, wait, check, log }) => {
   await answer("No");
   check("No: Not sent", await ended("Not sent.", 8), await newest());
   let rows = await logHas(1);
-  check("the no is in the log", rows.length === 1 && rows[0].includes("you said no") && rows[0].includes("ravi@example.com"), rows);
+  check("the no is in the log", rows.length === 1 && rows[0].includes("no yes") && rows[0].includes("ravi@example.com"), rows);
   await view("home");
 
   await say("ravi ko bhej do");

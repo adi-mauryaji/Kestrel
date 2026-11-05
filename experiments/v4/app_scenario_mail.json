@@ -1,0 +1,52 @@
+[
+{
+"say": "add contact Anup anup@example.com"
+},
+{
+"say": "anup ko mail kr do main kl chutti pr hu",
+"answer": [
+"no"
+]
+},
+{
+"js": "document.querySelector('.detail').textContent.includes('Not sent.')",
+"want": true
+},
+{
+"js": "document.querySelector('.detail').textContent.includes('[Your Name]')",
+"want": false
+},
+{
+"say": "send an email to anup regarding i day off tommorow",
+"answer": [
+"yes"
+]
+},
+{
+"js": "document.querySelector('.detail').textContent.includes('Sent to Anup')",
+"want": true
+},
+{
+"say": "write an email to anup about the meeting on monday"
+},
+{
+"js": "document.querySelector('.detail').textContent.includes('To send it, say: send it to Anup')",
+"want": true
+},
+{
+"js": "document.querySelectorAll('.question .answer').length",
+"want": 0
+},
+{
+"say": "send it to Anup",
+"answer": [
+"no"
+]
+},
+{
+"view": "settings"
+},
+{
+"shot": "mail-settings"
+}
+]
