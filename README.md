@@ -52,7 +52,7 @@ summary request is not read as a date. It runs in a terminal and needs about 3.7
 The study (a pre-registered, measured evaluation of calibrated cascade routing on this laptop) lives under
 `experiments/`: the pre-registration `PREREG.md`, the results `RESULTS.md`, the failure analysis
 `ERROR_ANALYSIS.md`, `LIMITATIONS.md`, and how to reproduce everything, `README_REPRO.md`. The plan it follows
-is `KESTREL_COMPLETE_RESEARCH_AND_IMPLEMENTATION_BLUEPRINT.md`. `scripts/demo.sh` shows how each tier decides
+is kept outside this repository. `scripts/demo.sh` shows how each tier decides
 on every request.
 
 ## Development
