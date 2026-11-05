@@ -6,7 +6,8 @@ notes, documents and conversations go to no AI company.
 
 ![Kestrel's Home page](docs/v4/frontend/built-home-light.jpg)
 
-**Status: early, and not released yet.** It is used daily on one Linux laptop. The macOS and Windows builds pass their
+**This is version 4, in progress; what GitHub gives by default is version 3, on `feat/v3`.** It is not released yet, and is
+used daily on one Linux laptop. The macOS and Windows builds pass their
 tests and compile, but nobody has run them as an app. See [What has not been tested](#what-has-not-been-tested).
 
 ## What it does
@@ -59,7 +60,7 @@ sudo dnf install webkit2gtk4.1-devel gtk3-devel librsvg2-devel openssl-devel cma
 Then:
 
 ```sh
-git clone https://github.com/adi-mauryaji/Kestrel.git
+git clone -b feat/v4 https://github.com/adi-mauryaji/Kestrel.git
 cd Kestrel
 
 # Files too big for git: the sentence encoder and its trained heads (121 MiB)
@@ -152,8 +153,8 @@ and Windows have their own webviews, unchecked so far.
 
 ## Other versions and the research
 
-This branch, `feat/v4`, is the current one. `main` is v1, `feat/stage2-daily-use` is v2, and `feat/v3` is v3, which runs
-on one laptop and is frozen.
+This branch, `feat/v4`, is the newest. `feat/v3` is v3, frozen, for Linux, and what a ZIP from the repository's front page
+gives. `feat/stage2-daily-use` is v2, and `main` is v1.
 
 The project began as a study: a pre-registered evaluation of calibrated cascade routing on a laptop, where keyword rules
 go first, then a small encoder, and the language model only when the cheaper tiers are not confident. See
