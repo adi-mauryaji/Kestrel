@@ -21,7 +21,6 @@ models/*
 datasets/raw/
 
 # Local tool state
-.claude/settings.local.json
 
 # Third-party sources built locally (scripts/build_llama.sh)
 /third_party/
@@ -34,3 +33,7 @@ datasets/raw/
 # Large router logs are committed gzipped (experiments/router/policies.py reads either form)
 /experiments/logs/router/tier_outputs_clinc150.jsonl
 /experiments/logs/router/tier_outputs_clinc150_test.jsonl
+
+# Kept on this laptop only (Claude Code, KYROS).
+.claude/
+.kyros/
