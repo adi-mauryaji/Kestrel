@@ -1,5 +1,0 @@
-{
-  "enabledPlugins": {
-    "pyright-lsp@anthropic-plugin-directory": true
-  }
-}
