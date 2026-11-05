@@ -30,3 +30,4 @@ datasets/raw/
 # Kept on this laptop only (Claude Code, KYROS).
 .claude/
 .kyros/
+KESTREL_COMPLETE_RESEARCH_AND_IMPLEMENTATION_BLUEPRINT.md
