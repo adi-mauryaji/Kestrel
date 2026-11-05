@@ -23,7 +23,7 @@ to 61%. `pilot_summary.py` prints that interval; say it whenever the number is q
 | 1 | Kestrel opens and answers on a real Windows PC | Its service and page have only compiled on Windows, never run. Students likely use Windows | the organiser |
 | 2 | The `.dmg` opens and answers on the M4 | The same for macOS | the organiser |
 | 3 | The real Gmail send and a real ticket PDF work | People will try them; so far they ran only with stand-ins | the organiser |
-| 4 | The first open works from nothing, including the real 2.84 GB download | Only its first 60 MiB went through the real `kestrel-net` | the organiser, once on each OS |
+| 4 | The first open works from nothing, including the real 2.84 GB download | Done once on Linux, from the unpacked rpm, without the window (`experiments/v4/download_test.py`). It never stopped on the way, so a real stop and continue of the whole file has not happened | the organiser, once on macOS and on Windows |
 | 5 | A new tag (`v0.1.0-rc3` or later) built its installers | The last ones have no daily counts | the organiser |
 | 6 | The installers are on a GitHub Release or a shared drive | A workflow's files need a GitHub login, and they expire | the organiser |
 | 7 | The placeholders in `pilot/guide.md` and `pilot/consent.md` are filled in | Name, contact, where to get the installers | the organiser |
